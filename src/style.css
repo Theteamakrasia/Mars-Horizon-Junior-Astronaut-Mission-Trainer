@@ -1,0 +1,5 @@
+/* Entry stylesheet — one import per layer, matching the DOM stacking order. */
+@import './styles/base.css';
+@import './styles/starfield.css';
+@import './styles/astronaut.css';
+@import './styles/message.css';

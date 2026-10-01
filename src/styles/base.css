@@ -1,0 +1,82 @@
+/* ==========================================================================
+   Mars Horizon — placeholder page
+   Deep-space backdrop + pulsing starfield + a DVD-style floating astronaut.
+   Layer order (bottom to top): backdrop -> stars -> astronaut -> text -> vignette
+   ========================================================================== */
+
+/* ---------- DESIGN TOKENS ---------- */
+:root {
+  --space-void: #04060f;
+  --space-deep: #080d1f;
+  --space-mid: #0d1533;
+  --nebula-warm: rgba(124, 58, 237, 0.16);
+  --nebula-cool: rgba(14, 165, 233, 0.14);
+  --nebula-mars: rgba(217, 119, 66, 0.13);
+
+  --star-white: #ffffff;
+
+  --text-primary: #f2f7ff;
+  --text-glow: rgba(125, 195, 255, 0.55);
+  --text-glow-wide: rgba(90, 160, 255, 0.28);
+
+  --font-display: 'Orbitron', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Astronaut sizing: mobile-first, scales with the smaller viewport axis. */
+  --astronaut-size: clamp(110px, 26vmin, 260px);
+
+  --ease-float: ease-in-out;
+}
+
+/* ---------- RESET ---------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  background: var(--space-void);
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  /* The page is intentionally non-interactive; block stray selections. */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ==========================================================================
+   LAYER 0 — DEEP-SPACE BACKDROP
+   Painted in CSS so the page already reads as space before any JS runs.
+   ========================================================================== */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  /* Near-black at the top, warming slightly toward the bottom. */
+  background: linear-gradient(
+    180deg,
+    var(--space-void) 0%,
+    var(--space-deep) 55%,
+    var(--space-mid) 100%
+  );
+}
+
+/* Nebulae — large, soft, off-centre colour washes for depth. */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(60vmax 45vmax at 18% 12%, var(--nebula-cool), transparent 65%),
+    radial-gradient(70vmax 55vmax at 88% 78%, var(--nebula-warm), transparent 62%),
+    radial-gradient(55vmax 40vmax at 62% 96%, var(--nebula-mars), transparent 60%);
+  pointer-events: none;
+}

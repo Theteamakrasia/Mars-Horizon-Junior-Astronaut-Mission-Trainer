@@ -1,0 +1,51 @@
+/* ==========================================================================
+   LAYER 2 — FLOATING ASTRONAUT
+   .astronaut is positioned by JS (translate3d). .astronaut__img is animated
+   by CSS. Separating them keeps the two transforms independent.
+   ========================================================================== */
+.astronaut {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  width: var(--astronaut-size);
+  height: var(--astronaut-size);
+  pointer-events: none;
+  will-change: transform;
+}
+
+.astronaut__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* The source art is pixel art — keep the edges crisp at any scale. */
+  image-rendering: pixelated;
+  object-fit: contain;
+  /* A soft cyan halo so the sprite reads against the dark backdrop. */
+  filter: drop-shadow(0 0 14px rgba(140, 200, 255, 0.35));
+  animation:
+    astronaut-sway 5.5s var(--ease-float) infinite,
+    astronaut-breathe 4s var(--ease-float) infinite;
+}
+
+/* Gentle lean, applied to the inner image only. */
+@keyframes astronaut-sway {
+  0%,
+  100% {
+    transform: rotate(-4deg);
+  }
+  50% {
+    transform: rotate(4deg);
+  }
+}
+
+/* Slow breathing scale — sells the "floating weightlessly" idea. */
+@keyframes astronaut-breathe {
+  0%,
+  100% {
+    scale: 1;
+  }
+  50% {
+    scale: 1.035;
+  }
+}
