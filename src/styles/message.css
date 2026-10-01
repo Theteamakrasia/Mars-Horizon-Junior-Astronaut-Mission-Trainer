@@ -1,0 +1,84 @@
+/* ==========================================================================
+   LAYER 3 — "UNDER CONSTRUCTION"
+   Above the astronaut so the drifting sprite passes behind the letters.
+   ========================================================================== */
+.stage {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  pointer-events: none;
+}
+
+.stage__title {
+  margin: 0;
+  text-align: center;
+  font-size: clamp(1.5rem, 6vw, 4rem);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.35em;
+  /* Optical fix: trailing letter-spacing leaves the block visually off-centre. */
+  text-indent: 0.35em;
+  color: var(--text-primary);
+  /* Layered shadows give a mission-control glow without a filter, which would
+     force a repaint of the whole element every frame. */
+  text-shadow:
+    0 0 24px var(--text-glow),
+    0 0 60px var(--text-glow-wide);
+}
+
+/* Blinking mission-console cursor. Opacity only. */
+.stage__cursor {
+  display: inline-block;
+  margin-left: 0.35em;
+  animation: cursor-blink 1.1s steps(2, start) infinite;
+}
+
+@keyframes cursor-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+/* ==========================================================================
+   LAYER 4 — VIGNETTE
+   Darkens the edges so the centred text keeps its contrast.
+   ========================================================================== */
+.vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 35%,
+    rgba(2, 4, 12, 0.45) 78%,
+    rgba(2, 4, 12, 0.75) 100%
+  );
+}
+
+/* ==========================================================================
+   REDUCED MOTION
+   A full-viewport blink is a genuine accessibility trigger, so the cursor is
+   made static rather than merely slowed down. The astronaut's drift is paused
+   by JavaScript (see floatAstronaut.ts), which recentres the sprite.
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .star,
+  .star-layer,
+  .astronaut__img {
+    animation: none;
+  }
+
+  .stage__cursor {
+    animation: none;
+    opacity: 1;
+  }
+}

@@ -1,0 +1,70 @@
+/* ==========================================================================
+   LAYER 1 — PULSING STARFIELD
+   Elements are generated in starfield.ts; motion lives here in CSS.
+   ========================================================================== */
+.starfield {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Three depth layers, each drifting at a different rate. */
+.star-layer {
+  position: absolute;
+  inset: -10%;
+  will-change: transform;
+}
+
+.star-layer--far {
+  animation: layer-drift 190s linear infinite;
+}
+
+.star-layer--mid {
+  animation: layer-drift 120s linear infinite reverse;
+}
+
+.star-layer--near {
+  animation: layer-drift 70s linear infinite;
+}
+
+@keyframes layer-drift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(0, -50%, 0);
+  }
+}
+
+/* Individual stars. Random size/opacity/delay are set inline by the script. */
+.star {
+  position: absolute;
+  width: var(--star-size, 2px);
+  height: var(--star-size, 2px);
+  border-radius: 50%;
+  background: var(--star-color, var(--star-white));
+  opacity: var(--star-opacity, 0.7);
+  /* Twinkle runs transform + opacity only — never a layout-triggering property. */
+  animation: twinkle var(--twinkle-duration, 3s) var(--ease-float) infinite;
+  animation-delay: var(--twinkle-delay, 0s);
+  will-change: transform, opacity;
+}
+
+@keyframes twinkle {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: var(--star-opacity, 0.7);
+  }
+  50% {
+    transform: scale(1.7);
+    opacity: var(--star-peak, 1);
+  }
+}
+
+/* A few brighter "hero" stars get a soft halo. */
+.star--glow {
+  box-shadow: 0 0 6px 1px var(--text-glow);
+}
