@@ -19,6 +19,18 @@
   --text-glow: rgba(125, 195, 255, 0.55);
   --text-glow-wide: rgba(90, 160, 255, 0.28);
 
+  /* Extruded-slab faces for the title, front to back. Each pair of steps shares
+     a tone so the slab shows banding like real thickness rather than a smooth
+     gradient. Kept desaturated and dark: a bright extrusion would compete with
+     the glyph face, which has to stay the brightest thing on the page. */
+  --text-depth-1: #b9d4f5;
+  --text-depth-2: #8fb4e0;
+  --text-depth-3: #6a90c6;
+  --text-depth-4: #4d6f9f;
+  --text-depth-5: #35507a;
+  --text-depth-6: #22385a;
+  --text-depth-7: #142238;
+
   --font-display: 'Orbitron', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
   /* Astronaut sizing: mobile-first, scales with the smaller viewport axis. */

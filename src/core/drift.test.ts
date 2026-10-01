@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  clampSpeed,
   clampToViewport,
   createInitialDrift,
   driftSpeedForViewport,
   MAX_DRIFT_SPEED,
   MIN_DRIFT_SPEED,
+  REDUCED_DRIFT_SPEED,
   rescaleSpeed,
   stepDrift,
   type DriftState,
@@ -48,6 +50,10 @@ describe('stepDrift', () => {
 
     expect(result.position.x).toBeGreaterThanOrEqual(0);
     expect(result.velocity.x).toBe(100);
+    // The normal points away from the wall that was hit, which is what orients
+    // the squash.
+    expect(result.impact?.normal).toEqual({ x: 1, y: 0 });
+    expect(result.impact?.speed).toBe(100);
   });
 
   it('reflects off the right edge and reverses horizontal velocity', () => {
@@ -80,6 +86,33 @@ describe('stepDrift', () => {
 
     expect(result.velocity.x).toBe(-100);
     expect(result.velocity.y).toBe(-100);
+    // Both components are set, so the deformation layer can read this as a
+    // harder two-axis landing.
+    expect(result.impact?.normal).toEqual({ x: -1, y: -1 });
+  });
+
+  it('reports no impact when the frame is spent in open space', () => {
+    const result = stepDrift(state(500, 400, 10, 10), 1 / 60, SPRITE, VIEWPORT);
+
+    expect(result.impact).toBeNull();
+  });
+
+  it('reports the impact speed, not the post-bounce velocity', () => {
+    // Speed is captured before the sign flips, so it is always positive and
+    // always describes the closing speed at contact.
+    const result = stepDrift(state(0, 400, -250, 0), 1 / 60, SPRITE, VIEWPORT);
+
+    expect(result.impact?.speed).toBe(250);
+    expect(result.velocity.x).toBe(250);
+  });
+
+  it('keeps only the fastest impact when a long frame clips twice', () => {
+    // Three seconds at 5000px/s ping-pongs the full width many times. Reporting
+    // every bounce would stack deformations; the fastest one is the real one.
+    const result = stepDrift(state(0, 400, 5000, 0), 3, SPRITE, VIEWPORT);
+
+    expect(result.impact).not.toBeNull();
+    expect(result.impact?.speed).toBe(5000);
   });
 
   it('never tunnels through a wall during a long frame', () => {
@@ -174,7 +207,9 @@ describe('createInitialDrift', () => {
 
 describe('driftSpeedForViewport', () => {
   it('runs at roughly DVD pace on a desktop viewport', () => {
-    expect(driftSpeedForViewport(1280)).toBeCloseTo(204.8, 5);
+    // Scaled with MIN/MAX so this stays a check on the fraction rather than a
+    // hardcoded number that drifts out of sync when the pace is retuned.
+    expect(driftSpeedForViewport(1280)).toBeCloseTo(1280 * 0.128, 5);
   });
 
   it('stays above the floor on a narrow phone viewport', () => {
@@ -197,5 +232,45 @@ describe('rescaleSpeed', () => {
 
   it('leaves a zero velocity alone rather than producing NaN', () => {
     expect(rescaleSpeed({ x: 0, y: 0 }, 100)).toEqual({ x: 0, y: 0 });
+  });
+});
+
+describe('REDUCED_DRIFT_SPEED', () => {
+  it('is markedly slower than the normal drift', () => {
+    // The point of the reduced mode is that it is calm. If this ever creeps up
+    // towards the normal speed the accessibility behaviour stops meaning
+    // anything.
+    expect(REDUCED_DRIFT_SPEED).toBeLessThan(MIN_DRIFT_SPEED / 2);
+  });
+
+  it('is still enough to actually travel across a viewport', () => {
+    // Too slow and he reads as frozen again, which was the original bug.
+    const secondsToCross = VIEWPORT.width / REDUCED_DRIFT_SPEED;
+
+    expect(secondsToCross).toBeLessThan(60);
+  });
+
+  it('still bounces off the walls, rather than parking on one', () => {
+    const slow = stepDrift(state(900, 400, REDUCED_DRIFT_SPEED, 0), 1 / 60, SPRITE, VIEWPORT);
+
+    expect(slow.velocity.x).toBe(-REDUCED_DRIFT_SPEED);
+  });
+});
+
+describe('clampSpeed', () => {
+  it('caps a throw without changing its heading', () => {
+    const result = clampSpeed({ x: 3000, y: 4000 }, 100);
+
+    expect(Math.hypot(result.x, result.y)).toBeCloseTo(100, 5);
+    // Same 3-4-5 heading as the input.
+    expect(result.y / result.x).toBeCloseTo(4 / 3, 10);
+  });
+
+  it('leaves a velocity under the cap untouched', () => {
+    expect(clampSpeed({ x: 30, y: 40 }, 100)).toEqual({ x: 30, y: 40 });
+  });
+
+  it('leaves a zero velocity alone rather than producing NaN', () => {
+    expect(clampSpeed({ x: 0, y: 0 }, 100)).toEqual({ x: 0, y: 0 });
   });
 });

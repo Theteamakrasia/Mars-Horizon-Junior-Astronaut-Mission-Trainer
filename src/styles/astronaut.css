@@ -1,7 +1,11 @@
 /* ==========================================================================
    LAYER 2 — FLOATING ASTRONAUT
-   .astronaut is positioned by JS (translate3d). .astronaut__img is animated
-   by CSS. Separating them keeps the two transforms independent.
+   Three nested elements, each owning exactly one transform so none of them
+   overwrite another's:
+     .astronaut        translate3d  — position          (JS)
+     .astronaut__deform rotate+scale — impact squash   (JS)
+     .astronaut__img   sway+breathe  — idle life       (CSS)
+   The wrapper is also the pointer grab target.
    ========================================================================== */
 .astronaut {
   position: fixed;
@@ -10,8 +14,35 @@
   z-index: 1;
   width: var(--astronaut-size);
   height: var(--astronaut-size);
-  pointer-events: none;
+  /* The whole wrapper is the grab target, so it takes pointer events even
+     though the pixels are mostly transparent around the sprite. */
+  pointer-events: auto;
+  /* Touch drags must not scroll or zoom instead. */
+  touch-action: none;
+  cursor: grab;
   will-change: transform;
+}
+
+/* Held by the cursor: the grab cursor and a lift so he reads as picked up
+   rather than merely being dragged. */
+.astronaut.is-held {
+  cursor: grabbing;
+}
+
+/* The deformation layer. JS writes rotate+scale here; `transform-origin` is
+   the sprite's centre, which is what makes a wall hit flatten against the wall
+   instead of pivoting away from it. */
+.astronaut__deform {
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+
+/* While held he sits slightly larger, like an object lifted off the backdrop. */
+.astronaut.is-held .astronaut__img {
+  filter: drop-shadow(0 0 18px rgba(140, 200, 255, 0.5))
+    drop-shadow(0 6px 10px rgba(0, 0, 0, 0.4));
 }
 
 .astronaut__img {

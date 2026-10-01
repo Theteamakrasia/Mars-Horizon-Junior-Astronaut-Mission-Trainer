@@ -25,10 +25,16 @@
     <!-- Layer 0/1: deep-space background + pulsing starfield (decorative) -->
     <div id="starfield" class="starfield" aria-hidden="true"></div>
 
-    <!-- Layer 2: the astronaut. The wrapper is moved by JS, the inner <img>
-         is animated by CSS, so the two never fight over `transform`. -->
+    <!-- Layer 2: the astronaut. Three nested elements, each owning exactly one
+         transform, so nothing fights over `transform`:
+           .astronaut        translate3d  — position, driven by JS
+           .astronaut__deform rotate+scale — squash on impact, driven by JS
+           .astronaut__img   sway+breathe  — idle life, driven by CSS
+         Also pick-up-able: the pointer handlers live in pointerGrab.ts. -->
     <div id="astronaut" class="astronaut">
-      <img id="astronaut-img" class="astronaut__img" alt="Cartoon astronaut floating in space" />
+      <div id="astronaut-deform" class="astronaut__deform">
+        <img id="astronaut-img" class="astronaut__img" alt="Cartoon astronaut floating in space, draggable" />
+      </div>
     </div>
 
     <!-- Layer 3: the message. Sits above the astronaut so the drifting sprite

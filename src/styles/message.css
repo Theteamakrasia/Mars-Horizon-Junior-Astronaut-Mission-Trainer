@@ -23,9 +23,39 @@
   /* Optical fix: trailing letter-spacing leaves the block visually off-centre. */
   text-indent: 0.35em;
   color: var(--text-primary);
-  /* Layered shadows give a mission-control glow without a filter, which would
-     force a repaint of the whole element every frame. */
+  /* Pseudo-3D: the glyph face is left square-on to the viewer and given depth
+     by stacking offset copies behind it, rather than by rotating the text. The
+     front face stays readable and the extrusion does not skew the letterforms.
+
+     Built as an extruded slab, lit from the upper left, so the visible side and
+     underside faces are darker than the face and the top edge catches a
+     highlight. Kept in text-shadow rather than a filter: it composites once and
+     never repaints, while a filter on the glyph would repaint every frame.
+
+     Offsets are in em, not px, so the slab stays proportional to the glyphs as
+     the clamp scales the type between 1.5rem and 4rem. In px it would be a slab
+     the height of the letter on a phone and a hairline on a desktop. */
   text-shadow:
+    /* --- Extruded slab, 14 steps down-right --- */
+    0.016em 0.016em 0 var(--text-depth-1),
+    0.031em 0.031em 0 var(--text-depth-1),
+    0.047em 0.047em 0 var(--text-depth-2),
+    0.063em 0.063em 0 var(--text-depth-2),
+    0.078em 0.078em 0 var(--text-depth-3),
+    0.094em 0.094em 0 var(--text-depth-3),
+    0.109em 0.109em 0 var(--text-depth-4),
+    0.125em 0.125em 0 var(--text-depth-4),
+    0.141em 0.141em 0 var(--text-depth-5),
+    0.156em 0.156em 0 var(--text-depth-5),
+    0.172em 0.172em 0 var(--text-depth-6),
+    0.188em 0.188em 0 var(--text-depth-6),
+    0.203em 0.203em 0 var(--text-depth-7),
+    0.219em 0.219em 0 var(--text-depth-7),
+    /* --- Lit top-left edge: sells the extrusion as a solid, not a blur --- */
+    -0.016em -0.016em 0 rgba(255, 255, 255, 0.55),
+    /* --- Contact shadow where the slab meets the face --- */
+    0.016em 0.016em 0.03em rgba(2, 6, 18, 0.9),
+    /* --- Mission-control glow, behind everything --- */
     0 0 24px var(--text-glow),
     0 0 60px var(--text-glow-wide);
 }
@@ -75,6 +105,17 @@
   .star-layer,
   .astronaut__img {
     animation: none;
+  }
+
+  /* The astronaut still drifts, slowly and without deformation (see
+     floatAstronaut.ts) — he is no longer parked in the centre, which read as a
+     broken page. What is given up here is the idle life only: the perpetual
+     sway and breathing are the looping motion this preference is about. */
+
+  /* Picking him up stays available, so the held glow is kept at its resting
+     intensity rather than brightening on grab. */
+  .astronaut.is-held .astronaut__img {
+    filter: drop-shadow(0 0 14px rgba(140, 200, 255, 0.35));
   }
 
   .stage__cursor {

@@ -16,9 +16,28 @@ export interface Size {
   height: number;
 }
 
+/**
+ * A bounce off a viewport wall. `normal` points away from the wall that was
+ * hit, as -1/0/+1 per axis, which is all the deformation layer needs to know:
+ * it orients the squash axis and whether the sprite flattens or stretches.
+ */
+export interface Impact {
+  normal: Vec2;
+  /** Closing speed in px/s at the moment of contact. */
+  speed: number;
+}
+
 export interface DriftState {
   position: Vec2;
   velocity: Vec2;
+}
+
+/**
+ * One step's outcome: the new state plus the strongest bounce that happened
+ * along the way, or null for a frame spent in open space.
+ */
+export interface DriftResult extends DriftState {
+  impact: Impact | null;
 }
 
 /** Clamp a value into an inclusive range. */
@@ -48,9 +67,20 @@ const DEG_TO_RAD = Math.PI / 180;
  * (~200px/s) while a phone is floored at 120px/s, because the same sprite
  * crossing a 375px screen at desktop speed reads as a blur rather than a drift.
  */
-export const MIN_DRIFT_SPEED = 120;
-export const MAX_DRIFT_SPEED = 220;
-const DRIFT_SPEED_VIEWPORT_FRACTION = 0.16;
+export const MIN_DRIFT_SPEED = 96;
+export const MAX_DRIFT_SPEED = 176;
+const DRIFT_SPEED_VIEWPORT_FRACTION = 0.128;
+
+/**
+ * Drift speed used when the visitor prefers reduced motion, in px/second.
+ *
+ * A flat figure rather than a fraction of the normal speed: at roughly a fifth
+ * of the usual pace he crosses a 1280px viewport in about 30s, which is slow
+ * enough to drift past the periphery without demanding a saccade toward him.
+ * Scaling the normal speed down proportionally instead would make him crawl at
+ * a visually odd, stop-start pace on large displays.
+ */
+export const REDUCED_DRIFT_SPEED = 34;
 
 /**
  * Advance the drift by `deltaSeconds`, reflecting off the viewport edges.
@@ -64,7 +94,7 @@ export function stepDrift(
   deltaSeconds: number,
   size: Size,
   viewport: Size,
-): DriftState {
+): DriftResult {
   const maxX = Math.max(0, viewport.width - size.width);
   const maxY = Math.max(0, viewport.height - size.height);
 
@@ -74,29 +104,57 @@ export function stepDrift(
   const steps = Math.max(1, Math.ceil(deltaSeconds / MAX_SUBSTEP_SECONDS));
   const stepTime = deltaSeconds / steps;
 
+  // A long frame can clip two different walls. Only the fastest bounce is
+  // reported, so a single lag spike does not stack two full deformations.
+  let impact: Impact | null = null;
+
+  const record = (normalX: number, normalY: number, speed: number): void => {
+    if (impact === null || speed > impact.speed) {
+      impact = { normal: { x: normalX, y: normalY }, speed };
+    }
+  };
+
   for (let i = 0; i < steps; i++) {
     x += vx * stepTime;
     y += vy * stepTime;
 
-    // Reflect on each axis independently, so a corner hit flips both.
+    // Both axes are resolved before the impact is recorded, so a corner reads
+    // as one two-axis landing rather than two separate wall hits.
+    let normalX = 0;
+    let normalY = 0;
+
     if (x < 0) {
       x = -x;
+      normalX = 1;
       vx = -vx;
     } else if (x > maxX) {
       x = maxX - (x - maxX);
+      normalX = -1;
       vx = -vx;
     }
 
     if (y < 0) {
       y = -y;
+      normalY = 1;
       vy = -vy;
     } else if (y > maxY) {
       y = maxY - (y - maxY);
+      normalY = -1;
       vy = -vy;
+    }
+
+    // The closing speed is the magnitude of travel, which is what a listener
+    // actually feels, rather than one axis of it.
+    if (normalX !== 0 || normalY !== 0) {
+      record(normalX, normalY, Math.hypot(vx, vy));
     }
   }
 
-  return { position: { x: clamp(x, 0, maxX), y: clamp(y, 0, maxY) }, velocity: { x: vx, y: vy } };
+  return {
+    position: { x: clamp(x, 0, maxX), y: clamp(y, 0, maxY) },
+    velocity: { x: vx, y: vy },
+    impact,
+  };
 }
 
 /**
@@ -149,6 +207,14 @@ export function driftSpeedForViewport(viewportWidth: number): number {
 }
 
 /**
+ * Ceiling on a thrown astronaut, in px/s. A fast flick across a 4K display can
+ * otherwise read as several thousand px/s, which looks like a glitch rather
+ * than a throw. Deliberately well above MAX_DRIFT_SPEED so a throw is visibly
+ * livelier than the idle drift it returns to.
+ */
+export const MAX_THROW_SPEED = 620;
+
+/**
  * Re-point a velocity at a new speed while preserving its direction. Needed on
  * resize, where the viewport-relative target speed changes but the sprite
  * should carry on along the line it is already travelling.
@@ -161,5 +227,21 @@ export function rescaleSpeed(velocity: Vec2, speed: number): Vec2 {
   }
 
   const factor = speed / magnitude;
+  return { x: velocity.x * factor, y: velocity.y * factor };
+}
+
+/**
+ * Clamp a velocity's magnitude to `maxSpeed` while leaving its heading alone.
+ * Used to cap the speed of a throw, so a hard flick across a large display
+ * cannot send the sprite off at a speed that reads as a glitch.
+ */
+export function clampSpeed(velocity: Vec2, maxSpeed: number): Vec2 {
+  const magnitude = Math.hypot(velocity.x, velocity.y);
+
+  if (magnitude === 0 || magnitude <= maxSpeed) {
+    return velocity;
+  }
+
+  const factor = maxSpeed / magnitude;
   return { x: velocity.x * factor, y: velocity.y * factor };
 }
