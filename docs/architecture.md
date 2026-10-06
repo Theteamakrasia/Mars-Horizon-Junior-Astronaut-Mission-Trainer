@@ -132,11 +132,22 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │                                             Suspect: layers animate with no looping copy —
     │                                             ISS-002, unverified in a browser.
     │
-    ├── data/                           DOES NOT EXIST   The only zone allowed to fetch. Blocked on
-    │                                                 ISS-008. Contract below.
-    ├── features/                       DOES NOT EXIST   One folder per screen. Not created empty:
-    │                                                 git cannot track an empty directory, and a
-    │                                                 .gitkeep reads as implemented work.
+    ├── data/                           CONTRACTS ONLY. One README, no source file. The only
+    │                                   zone allowed to fetch. Blocked on ISS-008. Contract below.
+    ├── features/                       CONTRACTS ONLY. Five READMEs, no source file. One README
+    │   │                               per screen plus one for the directory. Each records what
+    │   │                               belongs in model.ts and view.ts, so a task-picker does not
+    │   │                               reconstruct it. See "known simplifications" #2.
+    │   ├── README.md                   the layout contract: four files, depth 2, which rules are
+    │   │                               enforced vs convention
+    │   ├── landing-site/               contracts only — TASK-028, no dependency on the resource
+    │   │                               model. Best first task in the project.
+    │   ├── base/                       contracts only — TASK-029, blocked on TASK-015
+    │   ├── act/                        contracts only — TASK-030. Simulation runner, NOT a decision
+    │   │                               screen: there is no plan phase (D-018).
+    │   └── debrief/                    contracts only — TASK-031. Load-bearing, not polish: with no
+    │                                   plan phase it is the only place a player learns why they
+    │                                   lost, which is the README's central teaching promise.
     │
     └── styles/                         plain CSS, landing page only
         ├── base.css                    complete   94 lines. Tokens, reset, backdrop, nebulae.
@@ -320,10 +331,15 @@ Deliberate shortcuts, and why each was accepted.
 1. **`src/sim/` has no game state.** No resource model, no sol counter, no module graph.
    Accepted because none of it exists yet and inventing a shape would be guesswork baked
    into architecture.
-2. **`data/`, `features/`, `sim/{resources,sol,run}.ts` and `ui/registry.ts` are declared
-   but absent.** Accepted because git cannot track an empty directory and a `.gitkeep`
-   reads as implemented work. The cost is that several declared zones are untested by the
-   checker until code lands in them.
+2. **`features/` and `data/` contain only READMEs, no code.** Accepted on the owner's
+   instruction after an earlier pass left them absent. **An empty directory is invisible
+   to git** — verified: creating `src/features/demo/` with nothing in it produced no
+   `git status` output at all — so "the folder does not exist" and "the feature is not
+   built" were indistinguishable to anyone opening the repository. A `README.md` per
+   folder makes the structure visible *and* states what belongs there, which a `.gitkeep`
+   would not. The cost is that a README is not an implementation, so every one states
+   "Not implemented" in its first line, and `architecture.md` marks them
+   **contracts only** rather than complete.
 3. **`ui/router.ts` is implemented, tested in part, and not wired.** Half-wiring it with
    no features to switch to could break the landing page, and the DOM half cannot be
    tested without jsdom (ISS-013). Accepted deliberately: the pure half

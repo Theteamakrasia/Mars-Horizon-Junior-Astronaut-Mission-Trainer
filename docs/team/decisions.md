@@ -10,6 +10,31 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+**D-019 — project owner · 2026-10-06**
+**Choice:** `src/features/` and `src/data/` each get a `README.md` per folder, so the
+structure is visible in the repository. One `README.md` for the `features/` directory
+plus one per screen folder, and one for `data/`.
+**Why:** The owner asked for placeholders after finding the folders invisible. **The
+agent had recommended against it, twice, and was wrong about the cost.** An earlier pass
+left the folders absent and reported that as deliberate; the owner reasonably read "I
+created the folder structure" and could not find two of the seven new paths. Verified
+afterwards: an empty directory produces *no* `git status` output at all, so
+"the folder does not exist" and "the feature is not built" were indistinguishable to
+anyone opening the repository — including the person who had just asked for the work.
+**Rejected:** `.gitkeep`. Rejected because it makes the folder visible while saying
+nothing; a `README.md` does the same job and states what belongs there. Also rejected:
+leaving the folders absent, on the grounds that the annotated file tree in
+`architecture.md` already showed them — which is true, and irrelevant to someone looking
+at their editor.
+**Consequence:** the folders now appear, and each README states "Not implemented" in its
+first line so a contract cannot be mistaken for code. `architecture.md` marks them
+**contracts only**, and `AGENTS.md` §1 and §8 updated. The checker's zone classifier
+ignores `.md` files, so no rule changed — verified, still 14 files scanned. **The lesson
+worth keeping: a documented decision to leave something absent is not the same thing as
+the thing being visibly absent.** Absence reads as "nothing happened", not as "decided".
+
+---
+
 **D-018 — agent, on the owner's confirmation · 2026-10-06**
 **Choice:** The game is built **without a plan phase**. The four in-scope screens are
 `landing-site`, `base`, `act`, `debrief`.

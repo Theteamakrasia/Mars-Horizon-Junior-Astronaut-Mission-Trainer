@@ -8,6 +8,68 @@ than a documented one.
 
 ---
 
+## 2026-10-06 — Placeholder READMEs so the folders are visible
+
+Third pass, same branch. Small change, but it reverses a recommendation I made twice.
+
+**Did**
+
+- The owner reported that five of the seven new paths were not showing in their editor.
+  Diagnosed rather than guessed: **19 files were on the branch and never pushed**, and two
+  paths (`src/features/`, `src/data/`) did not exist on disk at all.
+- Demonstrated git's behaviour directly: created an empty `src/features/demo/`, and
+  `git status` reported **nothing**. An empty directory is invisible to git, so "the folder
+  does not exist" and "the feature is not built" looked identical to anyone opening the repo.
+- Added six `README.md` files: one for `features/`, one per screen folder
+  (`landing-site`, `base`, `act`, `debrief`), and one for `data/`. Each states what belongs
+  in `model.ts` and `view.ts`, taken from the project README — the five scoring axes, the
+  four starting modules, the Power Surplus trade-off, the debrief's teaching promise.
+- Chose `README.md` over `.gitkeep` after the owner asked for placeholders: same
+  visibility, but it carries the contract. Used the owner's decision, my own framing.
+
+**Files**
+
+- Added: `src/features/README.md`, `src/features/{landing-site,base,act,debrief}/README.md`,
+  `src/data/README.md`
+- Updated for the change: `AGENTS.md` §1 and §8, `docs/architecture.md` file tree and
+  known simplification #2, `docs/team/decisions.md` (D-019)
+- No source file added. `npm run check` still scans 14 files — the checker ignores `.md`.
+
+**Problems**
+
+1. **I reported a folder as created when I had deliberately not created it.** The
+   folder-structure pass said `src/features/` was "does not exist, by design", then
+   summarised itself as building the folder structure. Those two statements are
+   incompatible, and I did not flag the difference. The owner spent time debugging a
+   missing folder that I had chosen to omit and then failed to say was omitted in the
+   summary. Logged as D-019 rather than quietly fixed.
+2. **I had recommended against placeholders twice, and the cost was real but asymmetric.**
+   My worry — that a placeholder reads as implemented — is now handled by putting
+   "Not implemented" in the first line of every README and marking the folders
+   "contracts only" in the architecture tree. The owner's cost — an invisible structure
+   that looks like a broken checkout — was paid immediately and repeatedly.
+3. **Second cause, still outstanding: nothing has been pushed.** The branch
+   `docs/agent-orientation` has no upstream. Nine commits before this pass and six more
+   with it exist only in this working directory. Anyone on another machine, or looking at
+   GitHub, sees the old `src/core/` layout and none of this work.
+4. **ISS-015 still fires.** `npm test` is still red roughly 40% of the time on
+   `src/sim/frame.test.ts:81`.
+
+**Next**
+
+- Push the branch, or say it stays local. This is the only reason the work is invisible
+  outside this folder.
+- Close ISS-015.
+- Build `features/landing-site/` — the folder and its contract now exist, so it is
+  `model.ts`, `model.test.ts`, `view.ts`, `landing-site.css` and nothing else.
+- Fix ISS-006 before anyone creates a `.env.local` for `data/`.
+
+**Doc updates made:** `AGENTS.md` §1 and §8, `docs/architecture.md` (file tree, known
+simplification #2), `docs/team/decisions.md` (D-019). `README.md` unchanged — still wrong
+about the code, ISS-001, still deferred by D-011.
+
+---
+
 ## 2026-10-06 — Folder structure for the game, `sim/` rename, hash routing
 
 Second pass on the same branch. All decisions confirmed by the owner first, including

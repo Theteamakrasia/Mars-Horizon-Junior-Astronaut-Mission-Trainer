@@ -18,8 +18,9 @@ asserted on rather than eyeballed. Everything else here exists to protect it. If
 unsure where code goes: if it touches the DOM it is not pure.
 
 **Current reality, stated plainly: there is still no game code.** What exists is a
-polished landing page, the astronaut's physics in `sim/`, and hash routing in `ui/` that
-is **not yet wired into `main.ts`**. No resource model, no screens, no save, no network
+polished landing page, the astronaut's physics in `sim/`, hash routing in `ui/` that is
+**not yet wired into `main.ts`**, and README contracts in `features/` and `data/`
+describing screens nobody has built. No resource model, no screens, no save, no network
 call. The README describes the game; the code is the landing page.
 
 ## 2. Rules
@@ -169,8 +170,9 @@ opening its folder — that is the whole point of the layout.
 | Build output, asset handling, offline base | `vite.config.ts` |
 | Strictness, module resolution, compiled files | `tsconfig.json` |
 | Layer rules, banned APIs, the `KNOWN` set | `scripts/check-imports.mjs` |
-| **Any NASA-API call** | `src/data/` — **does not exist yet**, blocked on ISS-008 |
-| A game screen | `src/features/<name>/` — **does not exist yet** |
+| **Any NASA-API call** | `src/data/` — README only, no source yet, blocked on ISS-008 |
+| A game screen | `src/features/<name>/` — READMEs only, no source yet |
+| What a screen is meant to contain | the `README.md` in that screen's folder, before you code |
 | Per-screen pure logic / tests / DOM / styles | `model.ts` / `model.test.ts` / `view.ts` / `<name>.css` |
 
 ## 9. Commands
