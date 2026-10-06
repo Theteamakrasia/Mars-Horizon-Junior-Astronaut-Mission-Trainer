@@ -1,4 +1,4 @@
-import { clampSpeed, type Vec2 } from './drift';
+import { clampSpeed, type Vec2 } from '../sim/drift';
 
 /**
  * Pointer grabbing for the astronaut.
