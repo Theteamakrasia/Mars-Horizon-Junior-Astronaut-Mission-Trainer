@@ -8,6 +8,68 @@ than a documented one.
 
 ---
 
+## 2026-10-06 — Typed stubs across the whole planned structure
+
+Fourth pass. Smallest change, and the one that was asked for three times before I got it
+right.
+
+**Did**
+
+- Replaced "folders with README contracts" with **typed stubs** across the entire planned
+  structure: `sim/{resources,sol,run}.ts`, `ui/registry.ts`, `data/spaceweather.ts`, and
+  `model.ts` / `view.ts` / `<name>.css` for all four features. 17 new files.
+- Every export has a real type and a real signature taken from the project README — the
+  five Site Analysis axes, the four starting modules, `ResourceStores`, `RunState`,
+  `SolEvent`. **Every function body throws `STUB: ...`.**
+- Verified the stubs compile and behave: `npm run check` passes and now scans **27** files
+  (was 14), `tsc --noEmit` clean under `strict` + `noUnusedLocals`, `npm run build`
+  unchanged because no stub is imported by `main.ts`. Then probed three stubs with a
+  throwaway test to confirm they throw rather than return `undefined`, and deleted it.
+
+**Files**
+
+- Added: `sim/{resources,sol,run}.ts`, `ui/registry.ts`, `data/spaceweather.ts`,
+  `features/{landing-site,base,act,debrief}/{model.ts,view.ts,<name>.css}`
+- Updated for the change: `AGENTS.md` §1 and §8, `docs/architecture.md` (legend, file
+  tree, known simplification #2), `docs/team/decisions.md` (D-020)
+
+**Problems**
+
+1. **I gave three progressively smaller answers to one request.** Absent folders, then
+   README contracts, then stubs. Each was defensible on its own merits and none of them
+   was what was being asked for — the ask was always *put the files in the tree*. The
+   cost was three rounds of the owner not being able to see the structure. Logged as
+   D-020 rather than quietly fixed.
+2. **Stubs are not implementations, and that is a real risk.** A stub that returns
+   `undefined` is a trap three weeks later. Mitigated four ways: STUB on line 1 of every
+   file, `architecture.md` marks them **stub** rather than complete, `AGENTS.md` §1 states
+   it in bold, and every body throws.
+3. **No `*.test.ts` stubs, deliberately.** Vitest fails a test file containing no tests,
+   so creating `model.test.ts` placeholders would have broken `npm test` — turning a
+   cosmetic request into a red build. Checked before writing, not after.
+4. **`ui/registry.ts` imports no feature, on purpose.** Wiring it to import all four
+   views would have made it claim to route to screens that throw. It stays a stub until
+   the first screen is real.
+5. **ISS-015 still fires.** This run failed at `src/sim/frame.test.ts:78` rather than
+   line 81 — the sibling assertion in the same test, which is the same root cause and a
+   good confirmation of the diagnosis. 93 of 94 passed.
+
+**Next**
+
+- **ISS-015.** It has now failed on both assertions in that test, which is enough
+  evidence. Pin the test's input; do not loosen the tolerance.
+- Fill in `sim/resources.ts` first (TASK-015). Everything else depends on it and it is
+  pure, tested work.
+- `features/landing-site/model.ts` (TASK-028) is the best screen to start — but the
+  resource model underneath it does not exist yet.
+- ISS-006 before anyone creates a `.env.local`.
+
+**Doc updates made:** `AGENTS.md` §1 and §8, `docs/architecture.md` (legend, file tree,
+known simplification #2), `docs/team/decisions.md` (D-020). `README.md` unchanged — still
+wrong about the code, ISS-001, still deferred by D-011.
+
+---
+
 ## 2026-10-06 — Placeholder READMEs so the folders are visible
 
 Third pass, same branch. Small change, but it reverses a recommendation I made twice.

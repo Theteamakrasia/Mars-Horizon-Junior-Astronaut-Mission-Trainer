@@ -17,11 +17,15 @@ That is what lets 94 tests run in ~15ms with no browser and no mocks, so the gam
 asserted on rather than eyeballed. Everything else here exists to protect it. If you are
 unsure where code goes: if it touches the DOM it is not pure.
 
-**Current reality, stated plainly: there is still no game code.** What exists is a
-polished landing page, the astronaut's physics in `sim/`, hash routing in `ui/` that is
-**not yet wired into `main.ts`**, and README contracts in `features/` and `data/`
-describing screens nobody has built. No resource model, no screens, no save, no network
-call. The README describes the game; the code is the landing page.
+**Current reality, stated plainly: there is still no game code.** What works is the
+polished landing page, the astronaut's physics in `sim/`, and hash routing in `ui/` that
+is **not yet wired into `main.ts`**. Everything else — `sim/{resources,sol,run}.ts`,
+`ui/registry.ts`, `data/spaceweather.ts` and all four features — is a **stub**: real
+types, real signatures, every function body `throw`s. No resource model, no screens, no
+save, no network call. The README describes the game; the code is the landing page.
+
+**A stub is not an implementation.** If a file says STUB, calling it throws. That is
+deliberate: it fails loudly instead of silently returning `undefined`.
 
 ## 2. Rules
 
@@ -152,14 +156,14 @@ opening its folder — that is the whole point of the layout.
 | Drift, bounce, throw, speed | `src/sim/drift.ts` |
 | Squash-and-stretch feel, spring constants | `src/sim/deform.ts` |
 | How drift and deformation combine per frame | `src/sim/frame.ts` |
-| Resource drain, power/O2/water/food/shielding | `src/sim/resources.ts` — **not written yet** |
-| Advancing a sol, resolving events, detecting loss | `src/sim/sol.ts` — **not written yet** |
-| Run state shape and progression | `src/sim/run.ts` — **not written yet** |
+| Resource drain, power/O2/water/food/shielding | `src/sim/resources.ts` — **STUB, throws** |
+| Advancing a sol, resolving events, detecting loss | `src/sim/sol.ts` — **STUB, throws** |
+| Run state shape and progression | `src/sim/run.ts` — **STUB, throws** |
 | The rAF loop, transforms, resize, reduced motion | `src/dom/floatAstronaut.ts` |
 | Pointer grab, throw velocity, pointer capture | `src/dom/pointerGrab.ts` |
 | Star generation and twinkle randomness | `src/dom/starfield.ts` |
 | Hash routing, route table | `src/ui/router.ts`, `src/ui/routes.ts` |
-| Route → screen mapping | `src/ui/registry.ts` — **not written yet**, comes with the first feature |
+| Route → screen mapping | `src/ui/registry.ts` — **STUB, throws** |
 | Boot, element lookup, `?motion=`, owning `RunState` | `src/main.ts` |
 | Page structure, element ids, font link | `index.html` |
 | Landing-page colours and tokens | `src/styles/base.css` |
@@ -170,10 +174,10 @@ opening its folder — that is the whole point of the layout.
 | Build output, asset handling, offline base | `vite.config.ts` |
 | Strictness, module resolution, compiled files | `tsconfig.json` |
 | Layer rules, banned APIs, the `KNOWN` set | `scripts/check-imports.mjs` |
-| **Any NASA-API call** | `src/data/` — README only, no source yet, blocked on ISS-008 |
-| A game screen | `src/features/<name>/` — READMEs only, no source yet |
-| What a screen is meant to contain | the `README.md` in that screen's folder, before you code |
-| Per-screen pure logic / tests / DOM / styles | `model.ts` / `model.test.ts` / `view.ts` / `<name>.css` |
+| **Any NASA-API call** | `src/data/spaceweather.ts` — **STUB, throws**, blocked on ISS-008 |
+| A game screen | `src/features/<name>/` — **STUBs, every export throws** |
+| What a screen is meant to contain | the `README.md` in that screen's folder |
+| Per-screen pure logic / DOM / styles | `model.ts` / `view.ts` / `<name>.css` |
 
 ## 9. Commands
 

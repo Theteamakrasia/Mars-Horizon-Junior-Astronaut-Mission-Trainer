@@ -10,6 +10,30 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+**D-020 — project owner · 2026-10-06**
+**Choice:** `sim/{resources,sol,run}.ts`, `ui/registry.ts`, `data/spaceweather.ts` and all
+four features get **typed stubs** — real types, real signatures, every body
+`throw new Error('STUB: ...')` — rather than README contracts or absent folders.
+**Why:** The owner asked, three times, for the structure to be visible. Each of my
+earlier answers was a smaller version of the same request and each left them unable to
+see what they had asked for. A stub is the answer that was actually wanted on the first
+attempt: it puts the *files* in the tree, not just the folders. Throwing rather than
+returning `undefined` is the important half — a stub that returns `undefined` is a trap
+three weeks later, while a stub that throws tells you immediately that it is not built.
+**Rejected:** `.gitkeep` (visible but says nothing) and leaving the folders absent
+(a documented decision to omit is not the same as the omission being visible). Also
+rejected: writing the real implementations, which was never the ask.
+**Consequence:** `npm run check` now scans **27** files instead of 14 and still passes,
+`tsc --noEmit` passes under `strict` + `noUnusedLocals`, and `npm run build` is unchanged
+because no stub is imported by `main.ts`. Verified by probe that `createInitialStores`,
+`advanceSol` and `newRun` each throw. The risk of a stub reading as work is handled by
+four things: every file says STUB on line 1, `architecture.md` marks them **stub**,
+`AGENTS.md` §1 says so in bold, and the bodies throw. **No `*.test.ts` stubs were
+created** — Vitest fails a test file containing no tests, so stubbing those would have
+broken `npm test`.
+
+---
+
 **D-019 — project owner · 2026-10-06**
 **Choice:** `src/features/` and `src/data/` each get a `README.md` per folder, so the
 structure is visible in the repository. One `README.md` for the `features/` directory

@@ -26,7 +26,8 @@ Enforced as `no-dom-in-pure-zone`.
 ## Annotated file tree
 
 Legend: **complete** = does what its name says, verified. **partial** = real code with a
-real gap. **empty** = zero bytes. **does not exist** = planned, nothing written.
+real gap. **stub** = typed signature present, every function body throws. **does not
+exist** = planned, nothing written.
 
 ```
 Mars-Horizon-Junior-Astronaut-Mission-Trainer/
@@ -99,9 +100,16 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   ├── drift.test.ts               complete   30 tests
     │   ├── deform.test.ts              complete   30 tests
     │   ├── frame.test.ts               PARTIAL    19 tests, one 40% flaky — ISS-015
-    │   ├── resources.ts                DOES NOT EXIST   resource drain, 5 stores
-    │   ├── sol.ts                      DOES NOT EXIST   advance one sol, resolve events, loss
-    │   └── run.ts                      DOES NOT EXIST   RunState shape, newRun, isLost
+    │   ├── resources.ts                STUB       62 lines. Exports ResourceName,
+    │   │                                         RESOURCE_NAMES, ResourceStores,
+    │   │                                         createInitialStores, drainForSol,
+    │   │                                         depletedStores. **Every function throws.**
+    │   │                                         Types are real; arithmetic is not written.
+    │   ├── sol.ts                      STUB       Exports SolEvent, SolResult, advanceSol,
+    │   │                                         isRunOver. Sol stepping undecided. All throw.
+    │   └── run.ts                      STUB       Exports RunStatus, RunState, newRun,
+    │                                             withState. RunState is the only thing
+    │                                             shared between screens. All throw.
     │
     ├── ui/                             CROSS-SCREEN BROWSER GLUE. No framework, so no components.
     │   ├── routes.ts                   complete   Pure route table and hash parsing. Exports
@@ -117,9 +125,9 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │                                             main.ts** — no features exist to route to, and
     │                                             half-wiring it could break the landing page.
     │                                             DOM behaviour UNVERIFIED in a browser.
-    │   # registry.ts                   DOES NOT EXIST   route -> feature view map. Arrives with
-    │                                                 the first feature, so it never imports
-    │                                                 something that does not exist.
+    │   # registry.ts                   STUB        Exports ScreenFactory, resolveScreen. Imports
+    │                                             NO feature yet, so it cannot claim to route to a
+    │                                             screen that does not exist. Throws.
     │
     ├── dom/                            landing-page side effects only. Untested (ISS-011).
     │   ├── floatAstronaut.ts           complete   218 lines. The rAF loop, the two transforms, the
@@ -132,22 +140,41 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │                                             Suspect: layers animate with no looping copy —
     │                                             ISS-002, unverified in a browser.
     │
-    ├── data/                           CONTRACTS ONLY. One README, no source file. The only
-    │                                   zone allowed to fetch. Blocked on ISS-008. Contract below.
-    ├── features/                       CONTRACTS ONLY. Five READMEs, no source file. One README
-    │   │                               per screen plus one for the directory. Each records what
-    │   │                               belongs in model.ts and view.ts, so a task-picker does not
-    │   │                               reconstruct it. See "known simplifications" #2.
+    ├── data/                           STUB + contract. The only zone allowed to fetch. Blocked on
+    │   │                               ISS-008 — DONKI's CORS is unverified.
+    │   ├── README.md                   the quarantine rules and why the live client is blocked
+    │   └── spaceweather.ts             STUB       Exports SpaceWeatherEvent, SpaceWeatherSource,
+    │                                             fetchSpaceWeather, lastSource. All throw.
+    │
+    ├── features/                       STUB + contracts. Every folder present, none built. Each
+    │   │                               file throws, so nothing here silently returns undefined.
     │   ├── README.md                   the layout contract: four files, depth 2, which rules are
     │   │                               enforced vs convention
-    │   ├── landing-site/               contracts only — TASK-028, no dependency on the resource
-    │   │                               model. Best first task in the project.
-    │   ├── base/                       contracts only — TASK-029, blocked on TASK-015
-    │   ├── act/                        contracts only — TASK-030. Simulation runner, NOT a decision
-    │   │                               screen: there is no plan phase (D-018).
-    │   └── debrief/                    contracts only — TASK-031. Load-bearing, not polish: with no
-    │                                   plan phase it is the only place a player learns why they
-    │                                   lost, which is the README's central teaching promise.
+    │   ├── landing-site/               STUB       TASK-028. Best first task: no dependency on the
+    │   │   ├── README.md                           resource model.
+    │   │   ├── model.ts                           SiteAxis, SITE_AXES, SiteScore, Region,
+    │   │   │                                       REGIONS, scoreRegion, tradeoffSummary
+    │   │   ├── view.ts                            mountLandingSite
+    │   │   └── landing-site.css
+    │   ├── base/                       STUB       TASK-029, blocked on TASK-015.
+    │   │   ├── README.md
+    │   │   ├── model.ts                           ModuleKind, ModuleSpec, MODULE_CATALOGUE,
+    │   │   │                                       canPlace, upkeepFor
+    │   │   ├── view.ts                            mountBase
+    │   │   └── base.css
+    │   ├── act/                        STUB       TASK-030. Simulation runner, NOT a decision
+    │   │   │                           screen: no plan phase (D-018). Sol stepping undecided.
+    │   │   ├── README.md
+    │   │   ├── model.ts                           ActPresentation, missionHeadline
+    │   │   ├── view.ts                            mountAct
+    │   │   └── act.css
+    │   └── debrief/                    STUB       TASK-031. Load-bearing, not polish: with no
+    │       │                           plan phase it is the only place a player learns why
+    │       │                           they lost — the README's central teaching promise.
+    │       ├── README.md
+    │       ├── model.ts                           Explanation, explainOutcome, consumptionSummary
+    │       ├── view.ts                            mountDebrief
+    │       └── debrief.css
     │
     └── styles/                         plain CSS, landing page only
         ├── base.css                    complete   94 lines. Tokens, reset, backdrop, nebulae.
@@ -331,15 +358,18 @@ Deliberate shortcuts, and why each was accepted.
 1. **`src/sim/` has no game state.** No resource model, no sol counter, no module graph.
    Accepted because none of it exists yet and inventing a shape would be guesswork baked
    into architecture.
-2. **`features/` and `data/` contain only READMEs, no code.** Accepted on the owner's
-   instruction after an earlier pass left them absent. **An empty directory is invisible
-   to git** — verified: creating `src/features/demo/` with nothing in it produced no
-   `git status` output at all — so "the folder does not exist" and "the feature is not
-   built" were indistinguishable to anyone opening the repository. A `README.md` per
-   folder makes the structure visible *and* states what belongs there, which a `.gitkeep`
-   would not. The cost is that a README is not an implementation, so every one states
-   "Not implemented" in its first line, and `architecture.md` marks them
-   **contracts only** rather than complete.
+2. **`features/`, `data/`, `sim/{resources,sol,run}.ts` and `ui/registry.ts` are stubs,
+   not implementations.** Every export has a real type and a real signature; every body
+   is `throw new Error('STUB: ...')`. Accepted on the owner's instruction, after two
+   rounds of this — first the folders were left absent, then given README contracts.
+   **A stub was the right answer and I reached for it too late.** An empty directory
+   produces *no* `git status` output at all, and a README makes a folder visible without
+   making its *files* visible. Both intermediate states left the owner unable to see
+   the structure they had asked for. The cost of stubs is that a stub can be mistaken
+   for work: mitigated by every file naming itself STUB on line 1, by `architecture.md`
+   marking them **stub**, and by throwing rather than returning `undefined` — verified by
+   running a probe that called `createInitialStores`, `advanceSol` and `newRun` and
+   confirmed each throws.
 3. **`ui/router.ts` is implemented, tested in part, and not wired.** Half-wiring it with
    no features to switch to could break the landing page, and the DOM half cannot be
    tested without jsdom (ISS-013). Accepted deliberately: the pure half
