@@ -2,7 +2,7 @@ import {
   deformScale,
   isDeformSettled,
   type DeformState,
-} from './deform';
+} from '../core/deform';
 import {
   clampToViewport,
   driftSpeedForViewport,
@@ -11,7 +11,7 @@ import {
   rescaleSpeed,
   type Size,
   type Vec2,
-} from './drift';
+} from '../core/drift';
 import {
   createAstronautFrame,
   MIN_THROW_SPEED,
@@ -20,7 +20,7 @@ import {
   type AstronautFrame,
   type FrameOptions,
   type GrabTarget,
-} from './frame';
+} from '../core/frame';
 import { attachGrab } from './pointerGrab';
 
 /**

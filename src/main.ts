@@ -1,8 +1,8 @@
 import './style.css';
 
 import astronautUrl from '../Assets/images/floating.png';
-import { startFloatingAstronaut } from './core/floatAstronaut';
-import { createStarfield } from './core/starfield';
+import { startFloatingAstronaut } from './dom/floatAstronaut';
+import { createStarfield } from './dom/starfield';
 
 /**
  * Resolves an element by id, throwing a clear error if the markup and the
