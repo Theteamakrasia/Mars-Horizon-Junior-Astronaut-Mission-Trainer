@@ -10,27 +10,23 @@ Read [`../AGENTS.md`](../AGENTS.md) first. This document is the detail behind it
 
 A Mars outpost survival-strategy game for ages 8-16, in which a child balances five
 draining resources — power, oxygen, water, food, radiation shielding — over a
-sol-based plan/act loop. Students are NASA Space Apps Challenge entrants; Nov 14-15
-2026 is the demo and Nov 8 is the feature freeze.
+sol-based loop. Students are NASA Space Apps Challenge entrants; Nov 8 2026 is the
+feature freeze and Nov 14-15 is the demo.
 
-**The single most important invariant:** the physics core (`src/core/`) is pure and
-DOM-free. That is what makes the game feel testable and what makes it possible to
-assert on a simulation instead of on a screenshot. Everything else in the architecture
-exists to protect that.
+**The single most important invariant:** `sim/` and each feature's `model.ts` are pure —
+no `document`, no `window`, no network. That is what makes the game assertable rather
+than eyeballed, and it is what `npm run check` protects.
 
 ## The invariant, and why it is enforced
 
-`src/core/` must never touch `document`, `window`, or the network. This is not a style
-preference — it is the reason 79 tests run in 15ms with no browser, no jsdom, and no
-mocks. If core grew a DOM reference it would still work, and the cost would appear
-later as an untestable bug.
-
-`npm run check` enforces it as rule `no-dom-outside-dom`.
+94 tests run in about 15ms with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
+reference it would still work, and the cost would surface later as an untestable bug.
+Enforced as `no-dom-in-pure-zone`.
 
 ## Annotated file tree
 
-Legend: **complete** = does what its name says, verified. **partial** = real code with
-a real gap. **empty** = zero bytes, a promise only. **does not exist** = planned.
+Legend: **complete** = does what its name says, verified. **partial** = real code with a
+real gap. **empty** = zero bytes. **does not exist** = planned, nothing written.
 
 ```
 Mars-Horizon-Junior-Astronaut-Mission-Trainer/
@@ -38,7 +34,7 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
 ├── index.html                          complete   54 lines. All five visual layers and the
 │                                                  <script type=module> entry. Contains an
 │                                                  external Google Fonts request — see ISS-007.
-├── package.json                        complete   5 scripts: dev, build, preview, typecheck,
+├── package.json                        complete   6 scripts: dev, build, preview, typecheck,
 │                                                  test, check. Zero runtime dependencies.
 ├── package-lock.json                   complete   generated, do not edit
 ├── tsconfig.json                       complete   strict, noUnusedLocals, bundler resolution
@@ -46,172 +42,200 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
 ├── LICENSE                             complete   MIT, "Team Akrasia 2026". Not mirrored into
 │                                                  package.json — see ISS-004.
 ├── .gitignore                          partial    4 lines. Missing .env* — see ISS-006.
-├── .gitattributes                      DOES NOT EXIST   See ISS-005. This is the single
-│                                                  cheapest thing to add and it is missing.
+├── .gitattributes                      DOES NOT EXIST   See ISS-005. Cheapest thing to add.
 │
 ├── Assets/
 │   ├── images/floating.png             complete   145 KB astronaut sprite, imported from TS so
 │   │                                             Vite fingerprints it into dist/
-│   └── README_ref/*.png                complete   6 UI mockups, ~2.4 MB total. Never bundled
+│   └── README_ref/*.png                complete   6 UI mockups, ~2.4 MB. Never bundled
 │                                                 (publicDir:false exists to exclude them).
 │
 ├── scripts/
-│   └── check-imports.mjs               complete   Layer + banned-API checker. KNOWN set is
-│                                                 empty; self-cleaning staleness rule tested.
-│                                                 See "Layering" below.
+│   └── check-imports.mjs               complete   Zone + banned-API checker, 9 rule ids.
+│                                                 KNOWN set empty; staleness rule verified by
+│                                                 running it. See "Layering".
 │
 ├── docs/
 │   ├── architecture.md                 this file
 │   └── team/
 │       ├── decisions.md                complete   numbered, newest first
 │       ├── issues.md                   complete   15 issues, ISS-001..ISS-015
-│       ├── goals.md                    complete
-│       ├── tasks.md                    complete
-│       └── progress-log.md             complete
+│       ├── goals.md  tasks.md  progress-log.md
 │
 ├── AGENTS.md                           complete   the orientation file
 ├── README.md                           STALE      accurate about the game, WRONG about the
-│                                                 code — see ISS-001. Not rewritten in this pass.
+│                                                 code — see ISS-001. Not rewritten (D-011).
 │
 └── src/
     ├── main.ts                         complete   89 lines. Composition root only: resolves four
     │                                             elements by id, wires starfield + astronaut,
-    │                                             reads ?motion= override and the OS
-    │                                             prefers-reduced-motion query, tears down and
-    │                                             rebuilds the rAF loop on preference change.
-    ├── style.css                       complete   5 lines. Imports the four stylesheets in DOM
-    │                                             stacking order. Its only job.
-    ├── vite-env.d.ts                   complete   1 line, `/// <reference types="vite/client" />`.
-    │                                             Ambient declaration, exempt from layer rules.
+    │                                             reads ?motion= and prefers-reduced-motion.
+    │                                             **Does not import ui/router.ts** — routing is
+    │                                             implemented but not wired, see ui/ below.
+    ├── style.css                       complete   5 lines. Landing-page entry only. Imports the
+    │                                             four stylesheets in DOM stacking order.
+    ├── vite-env.d.ts                   complete   1 line. Ambient declaration, exempt from
+    │                                             zone classification.
     │
-    ├── core/                           PURE. No DOM. No network. Fully unit tested.
+    ├── sim/                            PURE. No DOM. No network. Fully unit tested.
+    │   │                               Renamed from core/ this pass. "core" described
+    │   │                               neither squash-and-stretch nor resource depletion.
     │   ├── drift.ts                    complete   247 lines. DVD-logo drift maths. Exports
     │   │                                         stepDrift, createInitialDrift, driftSpeedForViewport,
-    │   │                                         clampToViewport, clampSpeed, rescaleSpeed and the
-    │   │                                         constants MIN/MAX_DRIFT_SPEED (96/176),
-    │   │                                         REDUCED_DRIFT_SPEED (34), MAX_THROW_SPEED (620).
-    │   │                                         Substeps at 1/120s so a backgrounded tab cannot
-    │   │                                         tunnel the sprite through a wall.
+    │   │                                         clampToViewport, clampSpeed, rescaleSpeed;
+    │   │                                         MIN/MAX_DRIFT_SPEED 96/176, REDUCED_DRIFT_SPEED 34,
+    │   │                                         MAX_THROW_SPEED 620. Substeps at 1/120s.
+    │   │                                         createInitialDrift calls Math.random() 5 times.
     │   ├── deform.ts                   complete   238 lines. Damped spring for squash-and-stretch.
     │   │                                         Exports createDeform, impact, stretch,
     │   │                                         releaseStretch, stepDeform, isDeformSettled,
-    │   │                                         deformScale, STIFFNESS 340, DAMPING 11,
+    │   │                                         deformScale; STIFFNESS 340, DAMPING 11,
     │   │                                         MAX_COMPRESSION 0.19, MAX_DRAG_COMPRESSION 0.045,
-    │   │                                         IMPULSE 3.5. Semistplicit Euler, substepped.
-    │   ├── frame.ts                    complete   197 lines. Composes drift + deform into one frame
-    │   │                                         with no DOM. Exports createAstronautFrame,
-    │   │                                         stepAstronaut, releaseAstronaut, DRAG_FOLLOW_RATE 14,
+    │   │                                         IMPULSE 3.5.
+    │   ├── frame.ts                    complete   197 lines. Composes drift + deform per frame.
+    │   │                                         Exports createAstronautFrame, stepAstronaut,
+    │   │                                         releaseAstronaut, DRAG_FOLLOW_RATE 14,
     │   │                                         DRAG_STRETCH_SPEED 3400, MIN_THROW_SPEED 60.
-    │   │                                         The load-bearing line is the unconditional
-    │   │                                         `deform: stepDeform(...)` on return — a spring that is
-    │   │                                         kicked but never integrated again stays deformed.
-    │   ├── drift.test.ts               complete   30 tests. Contains a latent flake, see ISS-015
-    │   │                                         context — the flaky assertion is in frame.test.ts.
+    │   ├── drift.test.ts               complete   30 tests
     │   ├── deform.test.ts              complete   30 tests
-    │   └── frame.test.ts               PARTIAL    19 tests, one of them 40% flaky — ISS-015.
+    │   ├── frame.test.ts               PARTIAL    19 tests, one 40% flaky — ISS-015
+    │   ├── resources.ts                DOES NOT EXIST   resource drain, 5 stores
+    │   ├── sol.ts                      DOES NOT EXIST   advance one sol, resolve events, loss
+    │   └── run.ts                      DOES NOT EXIST   RunState shape, newRun, isLost
     │
-    ├── dom/                            BROWSER SIDE EFFECTS. May touch the DOM. Zero tests.
+    ├── ui/                             CROSS-SCREEN BROWSER GLUE. No framework, so no components.
+    │   ├── routes.ts                   complete   Pure route table and hash parsing. Exports
+    │   │                                         Route, ROUTE_ORDER, DEFAULT_ROUTE, parseRoute,
+    │   │                                         routeToHash, nextRoute, previousRoute. No DOM,
+    │   │                                         so it is unit tested like sim/.
+    │   ├── routes.test.ts              complete   15 tests. Every input literal — no Math.random,
+    │   │                                         no clock, so it cannot flake.
+    │   └── router.ts                   PARTIAL    startRouter(options) -> teardown, and
+    │                                             navigate(route). Reads location.hash, listens for
+    │                                             hashchange, normalises an unknown hash to the
+    │                                             default via replaceState. **NOT WIRED into
+    │                                             main.ts** — no features exist to route to, and
+    │                                             half-wiring it could break the landing page.
+    │                                             DOM behaviour UNVERIFIED in a browser.
+    │   # registry.ts                   DOES NOT EXIST   route -> feature view map. Arrives with
+    │                                                 the first feature, so it never imports
+    │                                                 something that does not exist.
+    │
+    ├── dom/                            landing-page side effects only. Untested (ISS-011).
     │   ├── floatAstronaut.ts           complete   218 lines. The rAF loop, the two transforms, the
-    │   │                                         resize handler, and the grab lifecycle. Exports
-    │   │                                         startFloatingAstronaut(wrapper, options) returning a
-    │   │                                         teardown function. Discards deltas over 50ms so a
-    │   │                                         returning tab does not teleport the sprite.
-    │   ├── pointerGrab.ts              complete   207 lines. Pointer events to GrabTarget. Exports
-    │   │                                         attachGrab(target, handlers, options) returning a
-    │   │                                         teardown. Velocity is a windowed average over 100ms
-    │   │                                         smoothed by EMA, because the last pointermove before
-    │   │                                         a pointerup is usually near-zero.
-    │   └── starfield.ts                complete   63 lines. Generates 140 stars across three depth
-    │                                             layers with randomised CSS custom properties.
+    │   │                                         resize handler, the grab lifecycle. Exports
+    │   │                                         startFloatingAstronaut -> teardown. Discards deltas
+    │   │                                         over 50ms.
+    │   ├── pointerGrab.ts              complete   207 lines. Exports attachGrab -> teardown.
+    │   │                                         Velocity is a 100ms windowed average, EMA smoothed.
+    │   └── starfield.ts                complete   63 lines. 140 stars across three depth layers.
     │                                             Suspect: layers animate with no looping copy —
     │                                             ISS-002, unverified in a browser.
     │
-    ├── data/                           DOES NOT EXIST   Planned for this sprint. The only layer
-    │                                                 permitted to fetch. Contract below.
-    ├── ui/                             DOES NOT EXIST   Planned. Screen rendering. Deliberately left
-    │                                                 uncreated: an empty directory cannot be tracked
-    │                                                 by git, and a placeholder file would be read as
-    │                                                 implemented work.
+    ├── data/                           DOES NOT EXIST   The only zone allowed to fetch. Blocked on
+    │                                                 ISS-008. Contract below.
+    ├── features/                       DOES NOT EXIST   One folder per screen. Not created empty:
+    │                                                 git cannot track an empty directory, and a
+    │                                                 .gitkeep reads as implemented work.
     │
-    └── styles/                         plain CSS, one layer each
-        ├── base.css                    complete   94 lines. Design tokens, reset, backdrop,
-        │                                         nebulae. Comment at line 60 is stale — ISS-014.
-        ├── starfield.css               complete   70 lines. Depth layers and twinkle keyframes.
-        │                                         Carries the suspect ISS-002 animation.
+    └── styles/                         plain CSS, landing page only
+        ├── base.css                    complete   94 lines. Tokens, reset, backdrop, nebulae.
+        │                                         Comment at line 60 is stale — ISS-014.
+        ├── starfield.css               complete   70 lines. Carries the suspect ISS-002 animation.
         ├── astronaut.css               complete   82 lines. Three nested elements each owning one
-        │                                         transform, plus the sway/breathe keyframes.
-        └── message.css                 complete   125 lines. Extruded-slab title, cursor, vignette,
-                                                  reduced-motion block. Lines 100-101 contradict
-                                                  lines 110-113 — ISS-003.
+        │                                         transform, plus sway/breathe keyframes.
+        └── message.css                 complete   125 lines. Title, cursor, vignette, reduced-motion
+                                                  block. Lines 100-101 contradict 110-113 — ISS-003.
 ```
+
+### The shape of a feature
+
+```
+src/features/<name>/
+├── model.ts         pure. Game rules for this screen. Unit tested.
+├── model.test.ts    every input literal — never Math.random, never the clock
+├── view.ts          DOM only. Imports its own model.ts. Nothing else.
+└── <name>.css       imported by view.ts, never added to style.css
+```
+
+Rules the checker enforces: no feature imports another (`cross-feature`); a `model.ts`
+may not import its own `view.ts` (`purity-inversion`); `model.ts`, `types.ts`,
+`constants.ts` and `*.test.ts` stay pure (`no-dom-in-pure-zone`).
 
 ## Layering
 
-Enforced by `npm run check` → `scripts/check-imports.mjs`. Every violation prints
-`file:line`.
+Enforced by `npm run check`. Every violation prints `file:line`. Zones:
 
-| layer | may import | may not | contains |
+| zone | may import | may not | contains |
 | --- | --- | --- | --- |
-| `core/` | `core` | everything else | pure maths, no DOM, no network |
-| `data/` | `data`, `core` | `dom`, `ui` | the only place `fetch` may appear |
-| `dom/` | `dom`, `core`, `data` | `ui` | rAF, DOM writes, pointer events |
-| `ui/` | `ui`, `core`, `data`, `dom` | — | screens and rendering |
-| `main.ts` | anything | — | composition root |
+| `sim/` | `sim/` | everything else | pure maths, tested |
+| `data/` | `data/`, `sim/` | `dom/`, `ui/`, features | the only place `fetch` may appear |
+| `dom/` | `dom/`, `data/`, `sim/` | `ui/`, features | rAF, DOM writes, pointer events |
+| `ui/` | `ui/`, `dom/`, `data/`, `sim/` | features | routing and screen registry |
+| `features/<f>/model.ts` | same feature, `sim/` | DOM, network, other features | pure rules |
+| `features/<f>/view.ts` | same feature, `ui/`, `dom/`, `data/`, `sim/` | other features | one screen's DOM |
+| `main.ts` | anything | — | composition root, owns `RunState` |
 
-Banned APIs, independently of layer:
+Two rules sit outside the zone table:
+
+- **`cross-feature`** — a feature may not import another feature. Zone names are shared
+  by all features, so the table alone cannot say "my own model but not someone else's".
+  State crosses screens through `RunState`, passed explicitly from `main.ts`.
+- **`purity-inversion`** — a `model.ts` may not import its own `view.ts`. Intra-feature
+  imports are otherwise unrestricted, because a model legitimately needs its own
+  `types.ts` and a view legitimately needs its own model.
+
+Banned APIs:
 
 | rule | banned | allowed in |
 | --- | --- | --- |
-| `no-alert` | `alert`, `confirm`, `prompt` | nowhere — ever |
-| `no-dom-outside-dom` | `document`, `window` | `dom/`, `ui/`, `main.ts` |
-| `no-network-outside-data` | `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `navigator.sendBeacon` | `data/` only |
-| `no-inline-handler` | `on*="..."` attributes in markup | nowhere — ever |
+| `no-alert` | `alert`, `confirm`, `prompt` | nowhere |
+| `no-dom-in-pure-zone` | `document`, `window` | `dom/`, `ui/`, feature `view.ts`, `main.ts` |
+| `no-network-outside-data` | `fetch`, `XHR`, `WebSocket`, `EventSource`, `sendBeacon` | `data/` only |
+| `no-inline-handler` | `on*="..."` in markup | nowhere |
 | `layer-boundary` | any import not in the table above | — |
-| `unresolved-import` | a relative path that resolves to nothing | — |
-| `unknown-layer` | a file in `src/` outside any declared layer | — |
+| `cross-feature` | `features/a/` importing `features/b/` | — |
+| `purity-inversion` | a `model.ts` importing its own `view.ts` | — |
+| `unresolved-import` | a relative path resolving to nothing | — |
+| `unknown-layer` | a file in `src/` outside every declared zone | — |
 
 ### The KNOWN set
 
-`scripts/check-imports.mjs` holds a `KNOWN` set of pre-existing tolerated violations
-keyed `"path:line:ruleId"`. **It is currently empty**, because after the layer fix there
-are no outstanding violations. Seeding it with a speculative entry would be worse than
-leaving it empty: a `KNOWN` entry that matches nothing is caught by the staleness rule
-and fails the build, so a fabricated one would break `npm run check` immediately.
+`KNOWN` in `scripts/check-imports.mjs` holds pre-existing tolerated violations keyed
+`"path:line:ruleId"`. **It is currently empty** — after the zone split there are no
+outstanding violations. Seeding it with a speculative entry would be worse than leaving
+it empty, because an entry matching nothing is caught by the staleness rule and fails the
+build immediately.
 
-The staleness rule is implemented and was verified by running it: an entry that matches
-no current violation produces `delete KNOWN entry: "..."` and exits 1. **Fix a KNOWN
-violation and delete its entry in the same commit.**
+The staleness rule is implemented and verified by running it: an entry matching no
+current violation prints `delete KNOWN entry: "..."` and exits 1. **Fix a KNOWN violation
+and delete its entry in the same commit.**
 
 ## Data flow
 
 ```
-URL ?motion=force|reduce ─┐
-                          ├─> main.bootstrap ─> readMotionOverride + matchMedia
-prefers-reduced-motion ───┘                            │
-                                                   startFloatingAstronaut ─┐
-createStarfield(starfield)  (one-off DOM build)                          │
-                                                                          v
-  rAF tick ─> stepAstronaut(frame, dt, grab, opts) ─> render ─> wrapper.style.transform
-                                     │                                     deformLayer.style.transform
+index.html → main.ts → { createStarfield, startFloatingAstronaut }
+startFloatingAstronaut → rAF tick → stepAstronaut (pure) → render transforms
                                      │
              ┌───────────────────────┴────────────────────┐
              v                                            v
       stepDrift (position, bounces)              stepDeform (spring)
              │  impact {normal, speed}                 │
              └────────────────> impact()/stretch() <────┘
+
+ui/router.ts → location.hash → parseRoute (pure) → onRoute(route) → main.ts
+             ╰─ NOT CONNECTED: main.ts does not import router.ts yet
 ```
 
-Two reads, zero network calls, zero storage. **This is the whole runtime today.** There
-is no game state, no save, and no data layer — see "Planned contracts".
+Zero network calls, zero storage. There is no game state.
 
 ## Boot order
 
 1. `index.html` parses. Five layers exist: `#starfield`, `#astronaut`, `.stage`,
    `.vignette`, plus `body::before`/`::after` backdrops.
-2. `index.html` requests Orbitron from Google Fonts — the only network request on the
-   page (ISS-007).
+2. Google Fonts request — the only network request (ISS-007).
 3. `<script type="module">` loads `/src/main.ts`, which imports `style.css` first.
-4. Vite resolves `../Assets/images/floating.png` to a fingerprinted URL.
+4. Vite resolves `floating.png` to a fingerprinted URL.
 5. `main.ts` waits for `DOMContentLoaded` if `readyState === 'loading'`, else boots now.
 6. `bootstrap()` resolves four elements by id via `requireElement`, which **throws** on a
    missing id rather than returning null.
@@ -220,90 +244,107 @@ is no game state, no save, and no data layer — see "Planned contracts".
 9. `readMotionOverride()` parses `?motion=`; `matchMedia` reads the OS preference.
 10. `applyMotionPreference()` stops any previous loop, then calls
     `startFloatingAstronaut`, storing the teardown.
-11. The `change` listener on the motion query is attached **only** when no URL override
-    was requested, so an explicit `?motion=` is not overwritten by an OS toggle.
+11. The `change` listener attaches **only** when no URL override was requested.
 12. The first `requestAnimationFrame` is scheduled.
+
+Routing does not appear here because it is not wired. When it is: start the router after
+the landing page is up, and let `main.ts` own `RunState` and pass it to each screen.
 
 ## Module contracts
 
-Exported surface, as actually declared.
-
 | module | exports | contract |
 | --- | --- | --- |
-| `main.ts` | none (side effects only) | composition root; throws on a missing element id |
-| `core/drift` | `stepDrift` | `(state, dt, size, viewport) -> DriftResult`; reflects off walls, returns the fastest `Impact` or null |
-| | `createInitialDrift` | `(size, viewport, speed) -> DriftState`; random 30-45 degree diagonal. **Calls `Math.random()` 5 times** |
-| | `driftSpeedForViewport` | `(width) -> number`, clamped to 96..176 px/s |
+| `main.ts` | none (side effects) | composition root; throws on a missing element id |
+| `sim/drift` | `stepDrift` | `(state, dt, size, viewport) -> DriftResult`; reflects off walls, returns the fastest `Impact` or null |
+| | `createInitialDrift` | `(size, viewport, speed) -> DriftState`; random 30-45 degree diagonal. **5 `Math.random()` calls** |
+| | `driftSpeedForViewport` | `(width) -> number`, clamped 96..176 px/s |
 | | `clampToViewport`, `clampSpeed`, `rescaleSpeed` | position/velocity utilities |
-| | `REDUCED_DRIFT_SPEED` (34), `MIN_DRIFT_SPEED` (96), `MAX_DRIFT_SPEED` (176), `MAX_THROW_SPEED` (620) | tunables in px/s |
-| `core/deform` | `createDeform` | zeroed `DeformState` |
+| | `REDUCED_DRIFT_SPEED` 34, `MIN_DRIFT_SPEED` 96, `MAX_DRIFT_SPEED` 176, `MAX_THROW_SPEED` 620 | tunables, px/s |
+| `sim/deform` | `createDeform` | zeroed `DeformState` |
 | | `impact` | `(state, angle, strength, profile) -> DeformState`; velocity impulse, does not stack above full strength |
 | | `stretch` | same shape; sets `target`, never an impulse |
-| | `releaseStretch` | `(state) -> DeformState`; zeroes `target` |
+| | `releaseStretch` | zeroes `target` |
 | | `stepDeform` | `(state, dt) -> DeformState`; substepped semistplicit Euler |
-| | `isDeformSettled` | `(state) -> boolean`; tolerance 0.0015 / 0.02 |
-| | `deformScale` | `(state) -> {along, across}`; `across` is the exact reciprocal of `along`, conserving area |
+| | `isDeformSettled` | tolerance 0.0015 / 0.02 |
+| | `deformScale` | `(state) -> {along, across}`; `across` is the exact reciprocal, conserving area |
 | | `STIFFNESS` 340, `DAMPING` 11, `MAX_COMPRESSION` 0.19, `MAX_DRAG_COMPRESSION` 0.045, `IMPULSE` 3.5 | tunables |
-| `core/frame` | `createAstronautFrame` | `(size, viewport, speed) -> AstronautFrame` |
+| `sim/frame` | `createAstronautFrame` | `(size, viewport, speed) -> AstronautFrame` |
 | | `stepAstronaut` | `(frame, dt, grab, options) -> AstronautFrame`; steps the spring unconditionally |
-| | `releaseAstronaut` | `(frame, release, options) -> AstronautFrame`; clamps into the viewport, discards throws under reduced motion |
+| | `releaseAstronaut` | clamps into the viewport; discards throws under reduced motion |
 | | `DRAG_FOLLOW_RATE` 14, `DRAG_STRETCH_SPEED` 3400, `MIN_THROW_SPEED` 60 | tunables |
-| `dom/floatAstronaut` | `startFloatingAstronaut` | `(wrapper, {deformLayer, reducedMotion}) -> teardown()`; teardown cancels rAF, removes the resize listener, detaches the grab and clears the transform |
-| `dom/pointerGrab` | `attachGrab` | `(target, handlers, options) -> teardown()`; handlers `onGrab`/`onDrag`/`onRelease`/`onCancel` |
+| `ui/routes` | `Route` | `'landing' \| 'landing-site' \| 'base' \| 'act' \| 'debrief'` |
+| | `ROUTE_ORDER` | the five routes in play order |
+| | `DEFAULT_ROUTE` | `'landing'` |
+| | `parseRoute` | `(hash) -> Route \| null`; tolerant of missing/duplicated `/`, whitespace, case, query string. Returns null rather than throwing |
+| | `routeToHash` | `(route) -> '#/<route>'` |
+| | `nextRoute`, `previousRoute` | `(route) -> Route \| null`; null at the ends |
+| `ui/router` | `startRouter` | `({onRoute, onUnknownHash?}) -> teardown`; fires `onRoute` once immediately and on every `hashchange`; normalises an unknown hash via `replaceState` |
+| | `navigate` | `(route) => void`; assigns `location.hash` so Back works |
+| `dom/floatAstronaut` | `startFloatingAstronaut` | `(wrapper, {deformLayer, reducedMotion}) -> teardown`; cancels rAF, removes the resize listener, detaches the grab, clears the transform |
+| `dom/pointerGrab` | `attachGrab` | `(target, handlers, options) -> teardown` |
 | `dom/starfield` | `createStarfield` | `(container) => void`; appends, never clears |
 
 ## Planned contracts
 
-Declared so the checker's allow-list and this document agree. **Not implemented, not
-tested, and marked here so nobody reads them as existing.**
+Declared so the checker and this document agree. **Not implemented, not tested, and
+marked here so nobody reads them as existing.**
 
-### `src/data/` — the network layer, this sprint
+### `src/data/` — the network layer
 
-Intended to be the only place `fetch` appears. Two sources:
+The only zone allowed to `fetch`. Two sources:
 
-- **DONKI** (`ccmc.gsfc.nasa.gov`) for solar flares and coronal mass ejections, driving
-  in-game storm warnings. Direct browser fetch plus a baked-in fallback.
-  **Blocked on ISS-008: CORS is unverified.** Do not build this until someone opens
-  DONKI in a real browser and reads the response headers.
+- **DONKI** (`ccmc.gsfc.nasa.gov`) for solar flares and CMEs, driving in-game storm
+  warnings. Direct browser fetch plus a baked-in fallback. **Blocked on ISS-008: CORS
+  unverified.** Do not build before a human checks it in a real browser.
 - **api.nasa.gov** with `VITE_NASA_API_KEY`, falling back to `DEMO_KEY`. Confirmed
-  reachable: HTTP 200 and `Access-Control-Allow-Origin` echoing the request origin.
+  reachable: HTTP 200, `Access-Control-Allow-Origin` echoing the request origin.
 
-Config belongs in `import.meta.env.VITE_*`, read only in `data/`. Requires ISS-006 to be
-fixed first, or the key gets committed to a public repository.
+Config read only in `data/`. Requires ISS-006 first, or the key is committed to a public
+repository.
 
-### `src/ui/` — screens
+### `src/features/` — one folder per screen
 
-Not created. Nothing to put in it yet.
+Four screens in scope before the freeze: `landing-site`, `base`, `act`, `debrief`. There
+is deliberately **no `plan/`** — act is built without one, confirmed by the owner.
+
+### `src/sim/{resources,sol,run}.ts` — the game model
+
+The pure simulation: five stores with per-sol drain, advancing a sol and resolving
+events, and the `RunState` that `main.ts` owns and passes to every screen. This is the
+largest unstarted body of work and the natural home for the 79-test pattern.
 
 ## Known simplifications
 
 Deliberate shortcuts, and why each was accepted.
 
-1. **`src/core/` has no game state.** There is no resource model, no sol counter, no
-   module graph. Accepted because none of it exists yet and inventing a shape for it
-   would be guesswork baked into architecture. The layer rule already guarantees the
-   maths lands somewhere testable.
-2. **`data/` and `ui/` are declared but absent.** Accepted because git cannot track an
-   empty directory, and a placeholder file is worse than an honest gap — it reads as
-   implemented work. The cost is that two of the five layers are untested by the
+1. **`src/sim/` has no game state.** No resource model, no sol counter, no module graph.
+   Accepted because none of it exists yet and inventing a shape would be guesswork baked
+   into architecture.
+2. **`data/`, `features/`, `sim/{resources,sol,run}.ts` and `ui/registry.ts` are declared
+   but absent.** Accepted because git cannot track an empty directory and a `.gitkeep`
+   reads as implemented work. The cost is that several declared zones are untested by the
    checker until code lands in them.
-3. **No persistence of any kind.** No `localStorage`, no `sessionStorage`, no cookie.
-   Accepted for this sprint: Supabase is explicitly deferred (D-003), and the landing
-   page has nothing to persist.
-4. **`MAX_SUBSTEP_SECONDS` is duplicated as `1/120` in both `drift.ts` and `deform.ts`.**
-   Accepted because the two integrators are independent and could legitimately diverge;
-   extracting a shared constant would couple modules that have no other relationship.
-   Worth revisiting if either rate changes.
-5. **Two `sample`-style locals in `pointerGrab.ts` are capped by `MAX_SAMPLES = 8` rather
-   than time.** Accepted as a cheap bound; the 100ms window discards the rest anyway.
-6. **`starfield.ts` uses `Math.random()` with no seeding option.** Accepted because the
-   field is decorative and variety per load is the goal. The cost is that it is not
-   snapshot-testable, which is part of ISS-011.
-7. **Frame-rate independence is approximated by substepping rather than a fixed
-   timestep accumulator.** Accepted because substepping is simpler and the drift maths
-   is linear. `deform.test.ts` asserts one long frame matches six short ones.
-8. **No CI.** Accepted as a deferral, not a virtue — see ISS-012. `npm run check` and
-   `npm test` both work locally and are wired for CI whenever someone adds it.
-9. **The `KNOWN` set is empty.** Accepted deliberately, per the reasoning above.
-10. **No DOM test coverage.** Accepted only because there is no jsdom yet — see ISS-011
-    and ISS-013. This is the largest real gap in the repository.
+3. **`ui/router.ts` is implemented, tested in part, and not wired.** Half-wiring it with
+   no features to switch to could break the landing page, and the DOM half cannot be
+   tested without jsdom (ISS-013). Accepted deliberately: the pure half
+   (`routes.ts`, 15 tests) carries the logic worth protecting.
+4. **Routing is hash-based rather than a state machine.** Costs a URL bar and a
+   `hashchange` listener. Rejected multi-page because there is no persistence, so a
+   navigation would lose the run state a multi-mission loop needs.
+5. **No persistence of any kind.** No `localStorage`, no cookie, no backend. Accepted:
+   Supabase is deferred (D-003).
+6. **`MAX_SUBSTEP_SECONDS` is duplicated as `1/120` in `drift.ts` and `deform.ts`.**
+   Accepted because the integrators are independent and could legitimately diverge.
+7. **`starfield.ts` uses `Math.random()` with no seeding option.** The field is decorative
+   and variety per load is the goal. The cost is it is not snapshot-testable — part of
+   ISS-011.
+8. **Frame-rate independence by substepping rather than a fixed-timestep accumulator.**
+   Simpler, and the drift maths is linear. `deform.test.ts` asserts one long frame matches
+   six short ones.
+9. **Sol stepping is undecided.** Turn-based or real-time, the tree works either way,
+   because pure transition functions are correct for turn-based *and* are the right seam
+   for real-time. If real-time wins, `sim/` gains a clock abstraction and `dom/` a ticker.
+   Nothing in this structure forecloses it.
+10. **The `KNOWN` set is empty.** Deliberate, per the reasoning above.
+11. **No DOM test coverage.** Accepted only because there is no jsdom yet — ISS-011,
+    ISS-013. The largest real gap in the repository.

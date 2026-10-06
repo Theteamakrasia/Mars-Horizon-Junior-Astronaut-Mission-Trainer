@@ -8,6 +8,83 @@ than a documented one.
 
 ---
 
+## 2026-10-06 — Folder structure for the game, `sim/` rename, hash routing
+
+Second pass on the same branch. All decisions confirmed by the owner first, including
+two that change the architecture.
+
+**Did**
+
+- Asked before drawing anything. Five questions established: features for the game with
+  `sim/` kept, hash routing, and — after two rounds — that **act is built with no plan
+  phase** and that the team picks up tasks one at a time.
+- Renamed `src/core/` → `src/sim/`. All three files moved together so their internal
+  relative imports stayed valid; only four import lines in `dom/` needed changing.
+- Rewrote `scripts/check-imports.mjs` around **zones** — a layer plus, for features, a
+  role. Added `cross-feature` (a feature never imports another feature) and
+  `purity-inversion` (a `model.ts` may not import its own `view.ts`).
+- Added `src/ui/routes.ts` (pure) + `routes.test.ts` (15 tests) + `router.ts` (browser
+  glue). Test count 79 → 94.
+- Verified the checker both ways with temporary fixtures: legitimate feature code reports
+  **zero** violations, and five injected violations each fire with the correct `file:line`.
+  Re-verified the `KNOWN` staleness rule against the new rule ids. All fixtures deleted.
+
+**Files**
+
+- Renamed: `src/core/*` → `src/sim/*` (6 files, `git mv`, history intact)
+- Added: `src/ui/routes.ts`, `src/ui/routes.test.ts`, `src/ui/router.ts`
+- Rewritten: `scripts/check-imports.mjs`, `AGENTS.md`, `docs/architecture.md`
+- Edited: `src/dom/floatAstronaut.ts`, `src/dom/pointerGrab.ts` (import paths),
+  `docs/team/{issues,decisions,tasks}.md`
+- **Not** created: `src/features/`, `src/data/`, `src/sim/{resources,sol,run}.ts`,
+  `src/ui/registry.ts` — all marked *does not exist*
+
+**Problems**
+
+1. **I broke my own checker with a comment.** I wrote `features/*/model.ts` inside a
+   `/** */` block comment; the `*/` terminated the comment early and the file failed to
+   parse with a syntax error. Caught by running it. Ironic, because guarding against
+   exactly this class of bug is written into the file two functions below where I
+   tripped over it.
+2. **Three consecutive false positives in the feature-role classifier**, logged as
+   ISS-016. Both of my first two designs rejected valid code: `model.ts` could not import
+   its own `types.ts`, and then the same import was misread as a purity inversion. Root
+   cause was using filename-inferred role to do two jobs — deciding purity *and*
+   deciding import permissions. Fixed by splitting them. This is the failure mode that
+   matters most for a checker: a false positive teaches the team to add `KNOWN` entries
+   for correct code, which is precisely how a `KNOWN` list grows forever.
+3. **`ui/router.ts` is deliberately not wired.** It is implemented and its pure half is
+   tested, but `main.ts` does not import it. Half-wiring a router with no features to
+   switch to could break the landing page, and the DOM half cannot be verified without a
+   browser. Labelled **not wired** in three places so nobody assumes navigation works.
+4. **`ui/registry.ts` deferred to the first feature.** It maps routes to feature views, so
+   creating it now would mean a file importing modules that do not exist — which the
+   checker correctly flags as `unresolved-import`.
+5. **Act has no plan phase** (owner-confirmed). Worth recording the consequence plainly:
+   debrief is now the only place a player learns why they lost. It is load-bearing, not
+   polish, and it carries the README's central teaching promise.
+6. **ISS-015 still fires.** `npm test` failed on this pass at `src/sim/frame.test.ts:81`.
+   93 of 94 passed. Untouched and unrelated to this pass.
+
+**Next**
+
+- Close ISS-015 before anything else. Still the priority.
+- Build `features/landing-site/` (TASK-028) — the best first task: one folder, four
+  files, no dependency on the resource model.
+- Wire the router only once a feature exists to route to (TASK-027).
+- Write `sim/resources.ts` and `sim/sol.ts` (TASK-015, TASK-016) with every test input
+  pinned literal, so the ISS-015 pattern is not inherited.
+- Sol stepping is still undecided. Whoever takes TASK-016 needs the team's answer first.
+
+**Doc updates made:** `AGENTS.md` (rules table R-1..R-21, data flow, structure rule, where
+things live), `docs/architecture.md` (file tree, zone table, contracts, known
+simplifications), `docs/team/decisions.md` (D-013..D-018), `docs/team/tasks.md`
+(TASK-025..TASK-031), `docs/team/issues.md` (ISS-016, plus path corrections for the
+`core/` → `sim/` rename). `README.md` unchanged — still wrong about the code, ISS-001,
+still deferred by D-011.
+
+---
+
 ## 2026-10-06 — Documentation and workflow system, and the `core/` split
 
 Branch `docs/agent-orientation`. Off `main`, never committed to it.

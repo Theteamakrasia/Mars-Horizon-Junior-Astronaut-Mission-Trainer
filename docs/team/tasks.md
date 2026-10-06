@@ -7,8 +7,15 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 
 | id | task | goal | owner | status | blocked by | notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| TASK-001 | Documentation and workflow system (AGENTS.md, architecture, decisions, issues, goals, tasks, progress log) | G-6 | agent | done | — | this branch, `docs/agent-orientation` |
-| TASK-002 | `scripts/check-imports.mjs` + `npm run check` | G-2, G-6 | agent | done | — | verified against injected fixtures |
+| TASK-025 | Folder structure: `sim/` rename, feature zones, cross-feature rule | G-6 | agent | done | — | D-013..D-018. Branch `docs/agent-orientation` |
+| TASK-026 | `src/ui/routes.ts` + `router.ts`, hash routing | G-4 | agent | done | — | 15 tests. **Not wired** — D-014 |
+| TASK-027 | Write `ui/registry.ts`, wire the router into `main.ts` | G-4 | unassigned | open | TASK-028 | arrives with the first feature |
+| TASK-028 | `features/landing-site/` — pick a region, score 5 axes | G-4 | unassigned | open | — | simplest screen; good first task |
+| TASK-029 | `features/base/` — place modules | G-4 | unassigned | open | TASK-015 | first place module placement appears |
+| TASK-030 | `features/act/` — advance a sol, resolve the mission | G-4 | unassigned | open | TASK-015, TASK-016 | **no plan phase** — D-018 |
+| TASK-031 | `features/debrief/` — explain why a run was won or lost | G-4 | unassigned | open | TASK-016 | load-bearing now, D-018 |
+| TASK-001 | Documentation and workflow system (AGENTS.md, architecture, decisions, issues, goals, tasks, progress log) | G-6 | agent | done | — | first pass, same branch |
+| TASK-002 | `scripts/check-imports.mjs` + `npm run check` | G-2, G-6 | agent | done | — | rewritten for zones; verified by fixtures |
 | TASK-003 | Split `src/core/` into pure `core/` and `dom/` | G-2 | agent | done | — | ISS-010. Runtime unverified |
 | TASK-004 | Fix ISS-015 flaky test (`frame.test.ts:81`) | G-2 | unassigned | open | — | 40% failure. Blocks CI and G-1 |
 | TASK-005 | Add `.gitattributes`, renormalise once | G-6 | unassigned | open | — | ISS-005. Cheapest item on the board |
@@ -34,18 +41,29 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 
 ## Notes
 
-**TASK-004 is the priority.** A test suite that fails 40% of the time is worse than no
-suite: it trains six people to ignore red, and it blocks TASK-011 outright. Fix it before
-anything else.
+**Do not create `features/<name>/` as an empty directory.** Git cannot track one, and a
+`.gitkeep` reads as implemented work. Each folder appears with its first real file, and
+until then `docs/architecture.md` marks it *does not exist*. The checker already knows
+about the zone, so nothing needs adding when the code lands.
+
+**TASK-028 is the best first task for a new person.** One folder, four files, no
+dependency on the resource model, and it is the only screen whose rules are fully
+specified by the README.
+
+**TASK-004 is still the priority.** A test suite that fails 40% of the time trains six
+people to ignore red, and it blocks TASK-011.
 
 **TASK-022 has no owner and no date.** Supabase auth is a known requirement (login, save
-state) that was explicitly deferred (D-003) with nothing scheduled against the Nov 8
-freeze. Someone with authority needs to decide whether it is in the demo. If it is, the
-current plan does not contain it.
+state) explicitly deferred (D-003) with nothing scheduled against the Nov 8 freeze. If it
+is in the demo, the current plan does not contain it.
 
-**TASK-015 is the project.** Everything in G-4 depends on it. Two of six people should be
-on resource state from now until freeze; it is pure functions with tests, which is the
-part of this codebase that is currently strong and well suited to parallel work.
+**TASK-015 is the project.** Everything in G-4 depends on it. `sim/resources.ts` and
+`sim/sol.ts` are pure functions — exactly the kind of work the existing 94 tests and the
+`sim/` zone are built for.
 
-**TASK-007 blocks TASK-020**, and TASK-020 is most of G-5. Sequence them: one browser
-session answers ISS-008 and unblocks a sprint's worth of work.
+**TASK-007 blocks TASK-020**, and TASK-020 is most of G-5. One browser session answers
+ISS-008 and unblocks a sprint's worth of work.
+
+**Sol stepping is undecided** (D-009 territory, recorded in `architecture.md` known
+simplification 9). Whoever builds TASK-016 should get the answer from the team first. The
+structure works either way.

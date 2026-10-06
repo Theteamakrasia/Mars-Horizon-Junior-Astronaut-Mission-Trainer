@@ -10,6 +10,105 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+**D-018 — agent, on the owner's confirmation · 2026-10-06**
+**Choice:** The game is built **without a plan phase**. The four in-scope screens are
+`landing-site`, `base`, `act`, `debrief`.
+**Why:** The owner confirmed this twice, including when asked directly what the act
+screen resolves if plan does not exist. The player's decisions happen at build time
+rather than each sol.
+**Rejected:** Adding `features/plan/` because the README calls plan "the heart of the
+game". The README describes the intended product; the owner decides the sprint.
+**Consequence:** **`debrief` is now load-bearing, not optional polish.** With no
+per-sol planning, the debrief is the only place a player learns *why* a run was lost,
+which is the README's central promise ("a run that ends badly is the most educational
+run in the game"). If debrief is weak, the game has no teaching left. `act` becomes the
+simulation runner rather than a decision screen. `src/ui/routes.ts` deliberately has no
+`plan` route.
+
+---
+
+**D-017 — no problem · 2026-10-06**
+**Choice:** A feature may not import another feature (`cross-feature`), enforced.
+State crosses screens through `RunState`, passed explicitly from `main.ts`.
+**Why:** Six people picking up tasks one at a time will otherwise couple features by
+import convenience. Enforcing isolation is what keeps "pick a folder, work in it" true.
+**Rejected:** Allowing cross-feature imports for shared helpers, with the shared code
+moved to `sim/` when duplication appears. That is strictly better for discoverability
+and is the intended migration path; the rule just makes it explicit rather than
+discretionary.
+**Consequence:** two screens that genuinely need each other's types must put the shared
+shape in `sim/` or in `main.ts`. The checker's error message says so, so the fix is
+discoverable at the point of failure.
+
+---
+
+**D-016 — agent, for "whoever is free, task by task" · 2026-10-06**
+**Choice:** No `index.ts` barrel files anywhere. Import concrete paths. Feature CSS is
+imported by that feature's own `view.ts`, never added to a central `style.css`.
+**Why:** A barrel is the single file every feature edits and nobody owns. With six
+people and no per-folder context, that is guaranteed merge conflict and invisible in
+review. A central stylesheet has the same problem one layer down.
+**Rejected:** Barrels, for import ergonomics. Rejected because the ergonomics gain is
+paid by everyone and the conflict cost is paid by everyone.
+**Consequence:** a long import path is the correct trade. Both rules are conventions, not
+enforced — nothing checks for a barrel today. Worth noting `tsc` would not catch one
+either. They live in `AGENTS.md` R-14 and R-15.
+
+---
+
+**D-015 — agent · 2026-10-06**
+**Choice:** Features are a fixed four-file layout: `model.ts`, `model.test.ts`,
+`view.ts`, `<feature>.css`. Depth never exceeds two levels. Tests are colocated.
+**Why:** The team works task-by-task, so someone opening a folder must find everything
+for that screen without a map. Colocated tests match the repo's existing
+`sim/*.test.ts` pattern, so nothing new has to be learned.
+**Rejected:** Grouping all tests under a top-level `tests/` mirror of the tree, and
+grouping all CSS centrally. Both rejected for the same reason as D-016: they trade a
+stranger's ability to find things for tidiness that only a regular of the codebase
+values.
+**Consequence:** four folders in flight means at most sixteen files, and each folder is
+self-contained. Purity is enforced by filename (`model.ts`, `types.ts`,
+`constants.ts`, `*.test.ts`), which means an unrecognised pure filename is treated as
+DOM-bearing — conservative, and it prompts a rename rather than a silent hole.
+
+---
+
+**D-014 — agent · 2026-10-06**
+**Choice:** Hash routing, with the pure parsing split from the DOM glue:
+`ui/routes.ts` (pure, 15 tests) and `ui/router.ts` (browser). **Not wired into
+`main.ts` yet.**
+**Why:** Deep-linkable screens matter for a Nov 14 demo — six people need to jump
+straight to `#/debrief` rather than play there. Splitting the pure half means the
+routing logic gets real coverage while the repo still has no jsdom (ISS-013).
+**Rejected:** A single-page state machine with no routing, because it forces the demo to
+be played from the start. Also rejected: multiple HTML entry points — **not a
+preference, a dead end** — since there is no persistence anywhere in the project, so a
+navigation would lose the run state a multi-mission loop needs.
+**Consequence:** `ui/router.ts` is implemented, partly tested, and deliberately
+inert. Half-wiring it with nothing to switch to could break the landing page, and the
+DOM half cannot be verified without a browser. It is marked **not wired** in
+`architecture.md`, `AGENTS.md` §3 and §10, so nobody assumes navigation works.
+
+---
+
+**D-013 — agent, approved by owner · 2026-10-06**
+**Choice:** Rename `src/core/` to `src/sim/`.
+**Why:** "core" described neither of the two things the folder would hold — astronaut
+squash-and-stretch and resource depletion. `sim/` says "deterministic, pure, tested",
+which is the property the folder exists to guarantee. It also gives the astronaut
+physics an honest burial date: it is landing-page-only and goes when the landing page
+is replaced (D-008).
+**Rejected:** Full feature slices that would have moved the physics under
+`features/landing/physics/`. Rejected on cost, not principle — it moves six files and
+ninety-four tests in the week before the freeze, for naming consistency. Also rejected:
+keeping `core/` on the grounds that a rename is churn; the rename costs four import
+lines, which is not churn.
+**Consequence:** all three files move together, so their internal relative imports stay
+valid and only four import lines in `dom/` needed changing. `git log --follow` still
+traces every file. Issue paths in `issues.md` were updated to match.
+
+---
+
 **D-012 — no problem · 2026-10-06**
 **Choice:** No `.gitattributes` and no line-ending normalisation in this pass.
 **Why:** Interview answer was that `AGENTS.md` is readable as-is, which is a statement

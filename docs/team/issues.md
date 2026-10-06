@@ -22,7 +22,8 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | ISS-011 | All three DOM modules have zero test coverage | medium | unassigned | open | — |
 | ISS-003 | `message.css` comment contradicts itself | low | unassigned | open | — |
 | ISS-004 | `package.json` has no `license` field | low | unassigned | open | — |
-| ISS-010 | `src/core/` held DOM modules — name did not match | low | unassigned | fixed | this branch |
+| ISS-010 | `src/core/` held DOM modules - name did not match | low | unassigned | fixed | this branch |
+| ISS-016 | Feature-role classifier produced false positives | low | agent | fixed | this branch |
 | ISS-012 | No CI; nothing runs checks on push | low | unassigned | open | — |
 | ISS-013 | Vitest runs node-env, no jsdom, so DOM is untestable | low | unassigned | open | — |
 | ISS-014 | `base.css` calls the page non-interactive while draggable | low | unassigned | open | — |
@@ -33,7 +34,8 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 - **Reported by:** running the suite repeatedly during the documentation pass,
   2026-10-06
-- **Where:** `src/core/frame.test.ts` lines 74-83, the assertion on line 81
+- **Where:** `src/sim/frame.test.ts` lines 74-83, the assertion on line 81. (Logged as
+  `src/core/frame.test.ts`; the directory was renamed to `sim/` afterwards.)
 - **Problem:** the test `produces no deformation while drifting through open space`
   fails intermittently. Measured failure rate: **8 of 20 consecutive `npm test` runs
   (40%)**. A separate 20 000-iteration probe of the same scenario failed 5 295 times
@@ -51,7 +53,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
   sprite is allowed to hit something at a random moment. The two assertions also
   disagree with each other: `isDeformSettled` on line 78 tolerates 0.0015 and passes,
   while `toBeCloseTo(1, 5)` on line 81 tolerates 0.000005 and fails on the same value.
-- **Pre-existing:** confirmed. `git diff main -- src/core/` is empty for
+- **Pre-existing:** confirmed. `git diff main -- src/core/` (now `src/sim/`) is empty for
   `frame.test.ts`, `frame.ts`, `drift.ts` and `deform.ts`. Nothing in the failing path
   was touched by the documentation pass. This flake has been live since the file was
   written.
@@ -72,6 +74,37 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
   result was wrong, caused by a non-ASCII `×` in a PowerShell regex being mangled into
   a different codepoint so the failure pattern never matched. Re-measured with an
   ASCII-only pattern, the failure rate is real.
+
+## ISS-016 — Feature-role classifier produced false positives
+
+- **Reported by:** fixture testing of the new checker, 2026-10-06, during the folder
+  structure pass
+- **Where:** `scripts/check-imports.mjs`, the `zoneOf` role classifier and the
+  intra-feature import rule
+- **Problem:** two consecutive designs for classifying a feature file as pure or
+  DOM-bearing both rejected valid code. First, treating any filename that was not
+  `model.ts` or `*.test.ts` as a view made `model.ts` unable to import its own
+  `types.ts`. Then allowing intra-feature imports unconditionally made that same
+  import look like a purity inversion instead. Three false positives in a row, each
+  only visible because legitimate fixture code was run through the checker.
+- **Cause:** the checker inferred role from filename, and role was doing two jobs at
+  once — deciding purity, and deciding import permissions. Pure files with
+  unrecognised names fall through to "view", and then a pure file cannot import them.
+- **Risk:** high for a checker, because a false positive trains the team to add
+  `KNOWN` entries for code that is actually correct. That is how a `KNOWN` list grows
+  forever — the exact failure this project set out to avoid.
+- **Fix:** split the two jobs. `PURE_BASENAMES = {model.ts, types.ts, constants.ts}`
+  plus any `*.test.ts` decides purity only. Intra-feature imports are then governed by
+  one rule — a pure file may not import a DOM-bearing one (`purity-inversion`) — and
+  everything else inside a feature is permitted.
+- **Verification:** legitimate fixture code (a model importing `sim/` and its own
+  types, a view importing its model and using `document`, a colocated test) now reports
+  zero violations, while five injected violations each fire with the correct
+  `file:line`.
+- **Consequence:** a pure file with a name outside `PURE_BASENAMES` is treated as
+  DOM-bearing, so it may not be imported by that feature's `model.ts`. That is the
+  conservative direction: it prompts a rename rather than silently permitting DOM into
+  pure logic.
 
 ## ISS-001 — README claims no installable build exists
 
@@ -142,7 +175,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 ## ISS-002 — Starfield layers drift out and never refill
 
 - **Reported by:** reading `starfield.css` against `starfield.ts`, 2026-10-06
-- **Where:** `src/styles/starfield.css` lines 14-39, `src/core/starfield.ts` lines 25-62
+- **Where:** `src/styles/starfield.css` lines 14-39, `src/dom/starfield.ts` lines 25-62
 - **Problem:** each `.star-layer` runs `layer-drift`, translating from
   `translate3d(0,0,0)` to `translate3d(0,-50%,0)` over 70s / 120s / 190s. Layers are
   `inset: -10%`, so -50% of layer height is -60% of viewport height. But
@@ -162,9 +195,10 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 - **Reported by:** byte-level encoding audit, 2026-10-06
 - **Where:** repository-wide
-- **Problem:** 17 tracked text files use CRLF; 6 use LF: `src/core/deform.ts`,
-  `src/core/frame.ts`, `src/core/floatAstronaut.ts`, `src/core/pointerGrab.ts`,
-  `src/core/deform.test.ts`, `src/core/frame.test.ts`. There is no `.gitattributes`, so
+- **Problem:** 17 tracked text files use CRLF; 6 use LF: `src/sim/deform.ts`,
+  `src/sim/frame.ts`, `src/dom/floatAstronaut.ts`, `src/dom/pointerGrab.ts`,
+  `src/sim/deform.test.ts`, `src/sim/frame.test.ts`. (Logged before the `core/` →
+  `sim/` rename; the same six files.) There is no `.gitattributes`, so
   git has no normalisation policy and depends on each developer's `core.autocrlf`.
 - **Measured:** every one of the 23 files decodes as **valid UTF-8, no BOM**. So this is
   not yet a corruption problem — it is a pending-corruption problem.
@@ -218,7 +252,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 ## ISS-011 — All three DOM modules have zero test coverage
 
 - **Reported by:** test-run measurement, 2026-10-06
-- **Where:** `src/core/floatAstronaut.ts`, `src/core/pointerGrab.ts`, `src/core/starfield.ts`
+- **Where:** `src/dom/floatAstronaut.ts`, `src/dom/pointerGrab.ts`, `src/dom/starfield.ts`
 - **Problem:** all 79 tests cover only the pure mathematics. The three modules that touch
   the DOM — the rAF loop, the resize handler, the pointer grab with velocity sampling,
   and the starfield generator — have no tests.
@@ -322,4 +356,4 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-**Next free id: ISS-016.**
+**Next free id: ISS-017.**
