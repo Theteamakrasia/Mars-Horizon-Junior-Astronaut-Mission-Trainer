@@ -4,54 +4,72 @@
  *
  * Run with `npm run check`. Exits 1 on any violation, 0 otherwise.
  *
- * The project is layered so that a rule can be *enforced* rather than trusted:
+ * Every source file is classified into a *zone* — its layer plus, for features,
+ * its role — and each zone has an explicit allow-list of zones it may import.
+ * Anything not listed is a violation, so adding a layer or a role means adding
+ * it here deliberately rather than discovering it is allowed.
  *
- *   core/  pure mathematics, zero DOM access, fully unit tested
- *   data/  the ONLY layer permitted to touch the network
- *   dom/   browser side effects — rAF, DOM writes, pointer events
- *   ui/    screens and rendering
- *   main.ts  the entry point, exempt from layer-crossing but not from banned APIs
+ *   sim/            pure, deterministic, tested. No DOM, no network.
+ *   data/           the ONLY zone permitted to touch the network
+ *   dom/            landing-page side effects: rAF, DOM writes, pointer events
+ *   ui/             cross-screen browser glue. No framework, so no components.
+ *   features/<f>/
+ *     model.ts      pure logic for one feature. No DOM, no network.
+ *     view.ts       one feature's DOM. May import its own model.ts.
+ *   main.ts         composition root. Exempt from layer rules, not from banned APIs.
  *
- * Imports must point "upward" only, per ALLOWED below. Anything not listed is a
- * violation, so adding a layer means adding it here deliberately.
+ * Two invariants this file exists to protect:
+ *   1. sim/ and each feature's model.ts stay pure, so the game can be unit tested
+ *      the way drift.ts and deform.ts already are.
+ *   2. one feature never imports another. State crosses screens through RunState,
+ *      passed explicitly from main.ts — not through module imports.
  *
  * Every violation prints file:line, because a rule that cannot point at the
  * offending character is a rule nobody can act on.
  */
 
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, extname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = join(ROOT, 'src');
 
-/** Layers, lowest first. A module may import from its own layer or from lower ones. */
-const LAYERS = ['core', 'data', 'dom', 'ui'];
+/** Every zone, for documentation and validation. */
+const ZONES = ['sim', 'data', 'dom', 'ui', 'feature-model', 'feature-view', 'entry'];
 
 /**
- * Which layers each layer is allowed to import from.
+ * Which zones each zone may import from.
  *
- * Deliberately an allow-list of pairs rather than a rank comparison: an explicit
- * table can be printed into architecture.md and read by a human, and it cannot be
- * defeated by inserting a new layer at the wrong position.
+ * A zone may always import its own — sibling modules within a zone are the
+ * normal case — plus the zones listed beneath it.
  *
- *   core  -> core          pure maths must not depend on anything impure
- *   data  -> data, core    data shaping may use maths, never the DOM
- *   dom   -> dom, core, data  animation may read data, never render screens
- *   ui    -> ui, core, data, dom
- *   main  -> anything      the composition root, by definition
- *
- * Every layer may import its own layer — sibling modules within a layer are the
- * normal case — plus the layers listed beneath it.
+ * feature-view may import any feature-model, because a view legitimately needs
+ * its own model. "Any" is then narrowed to "its own" by the `cross-feature`
+ * rule, because a zone table alone cannot express "same feature but not a
+ * different one".
  */
 const ALLOWED = {
-  core: ['core'],
-  data: ['data', 'core'],
-  dom: ['dom', 'core', 'data'],
-  ui: ['ui', 'core', 'data', 'dom'],
-  entry: LAYERS,
+  sim: ['sim'],
+  data: ['data', 'sim'],
+  dom: ['dom', 'data', 'sim'],
+  ui: ['ui', 'dom', 'data', 'sim'],
+  'feature-model': ['feature-model', 'sim'],
+  'feature-view': ['feature-view', 'feature-model', 'ui', 'dom', 'data', 'sim'],
+  entry: [...ZONES],
 };
+
+/**
+ * Pure zones: no DOM, no network. A violation here is the expensive kind,
+ * because it is invisible until someone tries to test the code.
+ */
+const PURE_ZONES = new Set(['sim', 'feature-model']);
+
+/** Zones allowed to reference `document` or `window`. */
+const DOM_ZONES = new Set(['dom', 'ui', 'feature-view', 'entry']);
+
+/** Zones allowed to perform network I/O. */
+const NETWORK_ZONES = new Set(['data']);
 
 /**
  * Pre-existing violations that are tolerated for now.
@@ -71,37 +89,24 @@ const ALLOWED = {
  */
 const KNOWN = new Set();
 
-/**
- * Banned APIs.
- *
- * `layers: null` means banned everywhere. Otherwise the API is banned in every
- * layer not listed, which is the form that scales as layers are added.
- */
-const BANNED_APIS = [
+/** Blocking browser dialogs, banned everywhere with no exceptions. */
+const ALWAYS_BANNED = [
   {
     id: 'no-alert',
     api: /\b(alert|confirm|prompt)\s*\(/,
-    layers: null,
     reason: 'blocking browser dialogs have no place in a game for children; route through ui/',
   },
-  {
-    id: 'no-dom-outside-dom',
-    api: /\b(document|window)\b/,
-    layers: ['dom', 'ui', 'entry'],
-    reason: 'DOM access is confined to dom/, ui/ and the entry point so that core/ stays unit testable',
-  },
-  {
-    id: 'no-network-outside-data',
-    api: /\b(fetch|XMLHttpRequest|WebSocket|EventSource|navigator\.sendBeacon)\b/,
-    layers: ['data'],
-    reason: 'all network access belongs to the data/ layer, so failures and fallbacks are handled in one place',
-  },
 ];
+
+/** Network I/O outside data/. */
+const NETWORK_APIS = /\b(fetch|XMLHttpRequest|WebSocket|EventSource|navigator\.sendBeacon)\b/;
+
+/** DOM globals. Matched with word boundaries so prose like "documented" never trips it. */
+const DOM_APIS = /\b(document|window)\b/;
 
 /** Extensions treated as source. */
 const CODE_EXT = new Set(['.ts', '.tsx', '.mts', '.js', '.mjs', '.jsx']);
 
-/** Files worth scanning, relative to root, with posix separators. */
 function walk(dir) {
   const found = [];
 
@@ -120,14 +125,33 @@ function rel(file) {
   return relative(ROOT, file).split(sep).join('/');
 }
 
-/** Which layer is this file in? `entry` for main.ts, `null` if unrecognised. */
-function layerOf(file) {
+/**
+ * Filenames inside a feature that are pure by convention.
+ *
+ * Recognised names matter: a pure file must be able to import its siblings, and
+ * the checker can only tell a pure file from a DOM-bearing one by name. Anything
+ * not listed here is treated as view-like, so the rule errs toward "put shared
+ * pure values in one of these names, or in sim/".
+ */
+const PURE_BASENAMES = new Set(['model.ts', 'types.ts', 'constants.ts']);
+
+/** Classify a file into its zone and, for features, its owning feature name. */
+function zoneOf(file) {
   const r = rel(file);
 
-  if (r === 'src/main.ts') return 'entry';
+  if (r === 'src/main.ts') return { zone: 'entry', feature: null };
+  if (r.endsWith('.d.ts')) return { zone: null, feature: null }; // ambient types, exempt
 
-  const match = /^src\/([^/]+)\//.exec(r);
-  return match ? match[1] : null;
+  const feature = /^src\/features\/([^/]+)\//.exec(r);
+  if (feature) {
+    const name = feature[1];
+    const base = r.slice(r.lastIndexOf('/') + 1);
+    const pure = PURE_BASENAMES.has(base) || base.endsWith('.test.ts');
+    return { zone: pure ? 'feature-model' : 'feature-view', feature: name };
+  }
+
+  const layer = /^src\/([^/]+)\//.exec(r);
+  return { zone: layer ? layer[1] : null, feature: null };
 }
 
 /** 1-based line number of a character offset. */
@@ -140,9 +164,9 @@ function lineAt(source, index) {
 }
 
 /**
- * Remove comments so that prose mentioning `document` or `fetch` is not mistaken
- * for code calling them. Block comments first, then line comments, so that a `//`
- * inside a block comment cannot split it incorrectly.
+ * Remove comments so prose mentioning `document` or `fetch` is not mistaken for
+ * code calling them. Block comments first, then line comments, so a `//` inside a
+ * block comment cannot split it incorrectly.
  */
 function stripComments(source) {
   return source
@@ -151,10 +175,8 @@ function stripComments(source) {
 }
 
 /**
- * Every module specifier in a file, with its offset.
- *
- * Handles multi-line `import {...} from '...'`, bare side-effect imports,
- * re-exports, and dynamic `import()`.
+ * Every module specifier in a file, with its offset. Handles multi-line
+ * `import {...} from '...'`, bare side-effect imports, re-exports, and `import()`.
  */
 function findImports(code) {
   const specifiers = [];
@@ -174,31 +196,26 @@ function findImports(code) {
   return specifiers.sort((a, b) => a.index - b.index);
 }
 
-/** Is this specifier a relative path to code inside the repo? */
+/**
+ * Resolve a specifier to a local code file, or null when it is not one.
+ *
+ * A relative non-asset specifier that does not resolve is returned with
+ * isFile:false so it is reported as `unresolved-import` rather than silently
+ * skipped. Silently ignoring it would let a typo pass the very check meant to
+ * catch bad wiring.
+ */
 function isLocalCode(fromFile, specifier) {
   if (!specifier.startsWith('.')) return null; // bare specifier: external package
 
   const ext = extname(specifier);
 
-  // A non-code extension is an asset the bundler owns — CSS, PNG, SVG. The layer
-  // rules say nothing about those, so they are skipped rather than misclassified.
+  // A non-code extension is an asset the bundler owns — CSS, PNG, SVG.
   if (ext !== '' && !CODE_EXT.has(ext)) return null;
 
   const target = resolve(dirname(fromFile), specifier);
   const candidate = CODE_EXT.has(extname(target)) ? target : `${target}.ts`;
 
-  // A relative non-asset specifier that does not resolve is a typo, and is
-  // reported rather than skipped. Silently ignoring it would let a broken import
-  // pass the very check meant to catch bad wiring.
-  return { target: candidate, isFile: exists(candidate) };
-}
-
-function exists(file) {
-  try {
-    return statSync(file).isFile();
-  } catch {
-    return false;
-  }
+  return { target: candidate, isFile: existsSync(candidate) };
 }
 
 const violations = [];
@@ -212,43 +229,45 @@ const files = walk(SRC);
 for (const file of files) {
   const source = readFileSync(file, 'utf8');
   const code = stripComments(source);
-  const layer = layerOf(file);
+  const { zone, feature } = zoneOf(file);
 
-  if (layer === null) {
-    // An ambient declaration file declares types for the compiler; it is not a
-    // module belonging to a layer, so it is exempt from classification.
-    if (!file.endsWith('.d.ts')) {
-      report(
-        file,
-        1,
-        'unknown-layer',
-        `${rel(file)} is not inside a known layer (${LAYERS.join(', ')}) and is not src/main.ts`,
-      );
+  if (zone === null) {
+    if (!rel(file).startsWith('src/') || rel(file) !== 'src/main.ts') {
+      if (!rel(file).endsWith('.d.ts')) {
+        report(
+          file,
+          1,
+          'unknown-layer',
+          `${rel(file)} is not inside a known layer (sim, data, dom, ui, features/) and is not src/main.ts`,
+        );
+      }
     }
     continue;
   }
 
-  // --- Layer boundaries -----------------------------------------------------
-  const permitted = ALLOWED[layer];
+  const permitted = ALLOWED[zone];
 
   if (!permitted) {
-    report(file, 1, 'unknown-layer', `layer "${layer}" has no entry in ALLOWED`);
+    report(file, 1, 'unknown-layer', `zone "${zone}" has no entry in ALLOWED`);
   } else {
     for (const { specifier, index } of findImports(code)) {
       const local = isLocalCode(file, specifier);
 
       if (local === null) continue;
 
-      // A specifier that does not resolve to a file is either an asset or a typo.
-      // Both are reported: a mistyped path should not silently pass.
       if (!local.isFile) {
-        report(file, lineAt(code, index), 'unresolved-import', `"${specifier}" does not resolve to a file`);
+        report(
+          file,
+          lineAt(code, index),
+          'unresolved-import',
+          `"${specifier}" does not resolve to a file`,
+        );
         continue;
       }
 
-      const targetLayer = layerOf(local.target);
+      const target = zoneOf(local.target);
 
-      if (targetLayer === null) {
+      if (target.zone === null) {
         report(
           file,
           lineAt(code, index),
@@ -258,23 +277,76 @@ for (const file of files) {
         continue;
       }
 
-      if (!permitted.includes(targetLayer)) {
+      // Intra-feature imports are governed by role, not by the zone table.
+      //
+      // A feature's files may import each other freely — model.ts needs its own
+      // types.ts, view.ts needs its own model.ts — so a zone table is the wrong
+      // tool here and would produce false positives on any file the role heuristic
+      // does not recognise. The single exception is a purity inversion: a model
+      // importing a view would let the DOM leak into pure logic.
+      if (feature !== null && target.feature !== null) {
+        if (feature === target.feature) {
+          if (zone === 'feature-model' && target.zone === 'feature-view') {
+            report(
+              file,
+              lineAt(code, index),
+              'purity-inversion',
+              `features/${feature}/model.ts may not import its own view ("${specifier}") — that would pull the DOM into pure logic; move shared values into the model`,
+            );
+          }
+          continue;
+        }
+
+        report(
+          file,
+          lineAt(code, index),
+          'cross-feature',
+          `features/${feature}/ may not import features/${target.feature}/ ("${specifier}") — pass shared state through RunState from main.ts instead`,
+        );
+        continue;
+      }
+
+      if (!permitted.includes(target.zone)) {
         report(
           file,
           lineAt(code, index),
           'layer-boundary',
-          `${layer}/ may not import ${targetLayer}/ ("${specifier}") — allowed: ${permitted.join(', ')}`,
+          `${zone}/ may not import ${target.zone}/ ("${specifier}") — allowed: ${permitted.join(', ')}`,
         );
       }
     }
   }
 
   // --- Banned APIs ----------------------------------------------------------
-  for (const rule of BANNED_APIS) {
-    if (rule.layers !== null && rule.layers.includes(layer)) continue;
-
+  for (const rule of ALWAYS_BANNED) {
     for (const match of code.matchAll(new RegExp(rule.api.source, 'g'))) {
       report(file, lineAt(code, match.index), rule.id, `${match[0]} — ${rule.reason}`);
+    }
+  }
+
+  const purityNote = PURE_ZONES.has(zone)
+    ? 'sim/ and features/*/model.ts must stay pure so the game stays unit testable'
+    : null;
+
+  if (!DOM_ZONES.has(zone)) {
+    for (const match of code.matchAll(new RegExp(DOM_APIS.source, 'g'))) {
+      report(
+        file,
+        lineAt(code, match.index),
+        'no-dom-in-pure-zone',
+        `${match[0]} — ${purityNote}`,
+      );
+    }
+  }
+
+  if (!NETWORK_ZONES.has(zone)) {
+    for (const match of code.matchAll(new RegExp(NETWORK_APIS.source, 'g'))) {
+      report(
+        file,
+        lineAt(code, match.index),
+        'no-network-outside-data',
+        `${match[0]} — all network access belongs to data/, so failures and fallbacks are handled in one place`,
+      );
     }
   }
 }
