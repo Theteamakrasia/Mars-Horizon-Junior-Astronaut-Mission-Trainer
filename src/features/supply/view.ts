@@ -51,9 +51,6 @@ import {
 /** How long a bubble fades out before the next one is written into it. */
 const SWAP_MS = 220;
 
-/** How long a fact is held on screen before it is replaced by the next. */
-const FACT_HOLD_MS = 2600;
-
 /** How long the wrong frame is held before the buttons come back. */
 const RETRY_DELAY_MS = 1100;
 
@@ -100,7 +97,7 @@ export function mountSupply(
   const answers = require<HTMLElement>(root, '[data-supply-answers]');
   const choiceList = require<HTMLUListElement>(root, '[data-supply-choices]');
   const result = require<HTMLParagraphElement>(root, '[data-supply-result]');
-  const skip = require<HTMLButtonElement>(root, '[data-supply-skip]');
+  const advance = require<HTMLButtonElement>(root, '[data-supply-next]');
   const cont = require<HTMLButtonElement>(root, '[data-supply-continue]');
 
   /*
@@ -114,16 +111,15 @@ export function mountSupply(
   const speaker = run?.astronautName?.trim() || 'Astronaut';
 
   /*
-   * Reduced motion shortens the hold rather than removing the facts.
-   *
-   * An earlier version treated "no run in progress" as a reason to skip straight
-   * to the question, on the grounds that the reveal was tied to a run. It was not:
-   * opening #/supply directly meant the five facts never appeared at all, so the
-   * teaching content was only reachable if you had played through from the
-   * briefing. The facts are the content. They always play.
-   */
-  const reduced = prefersReducedMotion();
-  const holdMs = reduced ? 900 : FACT_HOLD_MS;
+ * Reduced motion drops the crossfade; it does not remove content.
+ *
+ * An earlier version treated "no run in progress" as a reason to skip straight to
+ * the question, on the grounds that the reveal was tied to a run. It was not:
+ * opening #/supply directly meant the five facts never appeared at all, so the
+ * teaching content was only reachable if you had played through from the
+ * briefing. The facts are the content. They always play.
+ */
+const reduced = prefersReducedMotion();
 
   const setScene = (name: SceneName): void => {
     scene.src = SCENE_URLS[name];
@@ -210,19 +206,24 @@ export function mountSupply(
     setChoicesEnabled(true);
   };
 
-  const advance = (): void => {
+  const revealNext = (): void => {
     if (index >= RESOURCE_FACTS.length) {
       // He asks it. The sentence lives only here, never also in the rail.
-      swapTo(speaker, QUESTION_PROMPT, askQuestion);
+      //
+      // NEXT is hidden only now, once the question is actually up. Hiding it after
+      // the last fact - which is what this did first - left the player with no way
+      // to reach the question at all: five facts, then a dead screen.
+      swapTo(speaker, QUESTION_PROMPT, () => {
+        askQuestion();
+        advance.hidden = true;
+      });
       return;
     }
 
     const fact = RESOURCE_FACTS[index];
     index += 1;
 
-    swapTo(fact.label, fact.line, () => {
-      later(advance, holdMs);
-    });
+    swapTo(fact.label, fact.line);
   };
 
   /** Say why the pick was wrong, show the working, and let them try again. */
@@ -255,6 +256,7 @@ export function mountSupply(
     solved = true;
     setScene('right');
     setChoicesEnabled(false);
+    advance.hidden = true;
 
     swapTo(speaker, successSentence());
 
@@ -280,18 +282,6 @@ export function mountSupply(
     }
   }
 
-  const onSkip = (): void => {
-    // Cancel the pending chain, then go straight to the question. Without the
-    // clear, the next timed swap would fire over the top of the question bubble.
-    for (const timer of timers) window.clearTimeout(timer);
-    timers = [];
-
-    index = RESOURCE_FACTS.length;
-    skip.hidden = true;
-
-    swapTo(speaker, QUESTION_PROMPT, askQuestion);
-  };
-
   const onContinue = (): void => {
     // nextStop inserts the under-construction interstitial when the next scene is
     // not built, so this needs no special casing now or when later scenes land.
@@ -302,26 +292,19 @@ export function mountSupply(
     navigate(next);
   };
 
-  skip.addEventListener('click', onSkip);
+  advance.addEventListener('click', revealNext);
   cont.addEventListener('click', onContinue);
 
   // Start on the Mission Control frame with the checklist unticked, which is the
   // problem the player has been called in to fix.
   setScene('question');
 
-  /*
-   * The facts always play. Reduced motion only shortens the hold and drops the
-   * crossfade; it does not remove content, and neither does arriving with no run
-   * behind you. See the note on `holdMs` above for what the old condition cost.
-   */
-  if (reduced) {
-    skip.hidden = true;
-  }
-
-  advance();
+  // The opening line is already on screen when you arrive. Nobody should have to
+  // click to find out what the screen is.
+  revealNext();
 
   return () => {
-    skip.removeEventListener('click', onSkip);
+    advance.removeEventListener('click', revealNext);
     cont.removeEventListener('click', onContinue);
 
     for (const button of choiceButtons) {

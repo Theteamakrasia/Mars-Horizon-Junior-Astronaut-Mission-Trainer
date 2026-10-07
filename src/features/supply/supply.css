@@ -141,17 +141,49 @@
   color: var(--s-text);
 }
 
-/* ---------- THE RAIL ----------
-   Answers and the way out, down the left edge.
+/* ---------- NEXT ----------
+   With the speech, the way a reader turns a page. Not in the rail: it belongs to
+   what the astronaut is saying, not to the answer.
+*/
+.supply__advance {
+  margin-top: 0.5rem;
+  padding: 0.42rem 1rem;
+  border: 1px solid var(--s-line);
+  border-radius: 999px;
+  background: rgba(20, 46, 78, 0.9);
+  color: var(--s-text);
+  font-family: inherit;
+  font-size: clamp(0.72rem, 1.25vmin, 0.85rem);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease;
+}
 
-   The astronaut stands from about 24% across to 46%, and his head starts around
-   35% down. The rail stops short of 22% and is anchored to the bottom, so it sits
-   in the strip of wall and window to his left and covers none of him. He is the
-   subject of the picture; nothing may be laid over him.
+.supply__advance:hover {
+  background: rgba(45, 109, 163, 0.95);
+  border-color: var(--s-accent);
+}
+
+.supply__advance:focus-visible {
+  outline: 2px solid var(--s-accent);
+  outline-offset: 2px;
+}
+
+/* ---------- THE RAIL ----------
+   The answers, on the right.
+
+   The astronaut and his pointing hand own the left of the picture, and the
+   checklist he is pointing at owns the middle. The right is the only side that can
+   take the answer buttons without covering the story, so that is where they go.
+
+   It is bottom-anchored and stops short of the big MARS MISSION screen, which is
+   the focal point of the picture.
 */
 .supply__rail {
   position: absolute;
-  left: 1.5%;
+  right: 1.5%;
   bottom: 2.5%;
   width: 20%;
   display: flex;
@@ -231,43 +263,32 @@
 
 .supply__result {
   margin: 0.4rem 0 0;
+  padding-left: 0.4rem;
+  border-left: 2px solid var(--s-accent);
   font-size: clamp(0.68rem, 1.15vmin, 0.8rem);
   line-height: 1.4;
   color: var(--s-muted);
   animation: supply-rise 260ms ease-out both;
 }
 
-.supply__result {
-  padding-left: 0.4rem;
-  border-left: 2px solid var(--s-accent);
-}
-
 .supply[data-supply-state='right'] .supply__result {
   border-left-color: var(--s-good);
 }
 
-/* ---------- ACTIONS ---------- */
-
-.supply__actions {
-  display: flex;
-  gap: 0.35rem;
-  align-items: center;
-  flex-wrap: wrap;
-}
+/* ---------- THE WAY OUT ---------- */
 
 .supply__action {
-  flex: 1 1 auto;
-  padding: 0.4rem 0.5rem;
+  width: 100%;
+  padding: 0.45rem 0.5rem;
   border: 1px solid var(--s-line);
   border-radius: 4px;
   background: rgba(20, 46, 78, 0.85);
   color: var(--s-text);
   font-family: inherit;
-  font-size: clamp(0.66rem, 1.1vmin, 0.78rem);
+  font-size: clamp(0.7rem, 1.2vmin, 0.82rem);
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  white-space: nowrap;
   cursor: pointer;
   transition: background 140ms ease, border-color 140ms ease;
 }
@@ -295,7 +316,7 @@
 */
 @media (max-width: 48rem) {
   .supply__rail {
-    width: 24%;
+    width: 25%;
   }
 }
 
@@ -317,6 +338,7 @@
   .supply__bubble,
   .supply__rail,
   .supply__result,
+  .supply__advance,
   .supply__choice-button,
   .supply__action {
     animation: none;
