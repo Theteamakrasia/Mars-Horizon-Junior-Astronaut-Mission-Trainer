@@ -3,6 +3,7 @@ import './style.css';
 import astronautUrl from '../Assets/images/floating.png';
 import { startFloatingAstronaut } from './dom/floatAstronaut';
 import { createStarfield } from './dom/starfield';
+import type { RunState } from './sim/run';
 import { resolveScreen, screenMount } from './ui/registry';
 import { startRouter } from './ui/router';
 import type { Route } from './ui/routes';
@@ -45,6 +46,21 @@ let landingLayers: readonly HTMLElement[] = [];
 
 /** Teardown for the mounted screen, if any. */
 let activeScreen: (() => void) | null = null;
+
+/**
+ * The current run, owned here.
+ *
+ * The shell holds it rather than any screen, which is what lets naming create the
+ * run and briefing read the name from it without either importing the other. It
+ * lives in memory only: a refresh loses it, because persistence is deferred
+ * (D-003).
+ */
+let run: RunState | null = null;
+
+/** Hand the run to the shell. Screens get this rather than a shared global. */
+function setRun(next: RunState | null): void {
+  run = next;
+}
 
 /** Show the landing page, hiding any mounted screen's layer. */
 function showLanding(): void {
@@ -147,7 +163,7 @@ function mountScreen(route: Route): void {
   }
 
   hideLanding();
-  activeScreen = factory(root, null);
+  activeScreen = factory(root, run, setRun);
 }
 
 /**

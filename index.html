@@ -126,6 +126,41 @@
       </div>
     </section>
 
+    <!-- The mission briefing. Reached by naming the astronaut and pressing
+         START MISSION. No images: the copy is the whole screen. -->
+    <section id="briefing" class="briefing" aria-labelledby="briefing-title">
+      <header class="briefing__header">
+        <div class="briefing__brand">
+          <span class="briefing__brand-mark" aria-hidden="true">&#128640;</span>
+          <span class="briefing__brand-text">
+            <span class="briefing__brand-name">MARS HORIZON</span>
+            <span class="briefing__brand-sub">MISSION BRIEFING</span>
+          </span>
+        </div>
+        <nav class="briefing__nav" aria-label="Primary">Mission Control / Main Menu</nav>
+      </header>
+
+      <div class="briefing__body">
+        <h1 class="briefing__title" id="briefing-title">Mission Briefing</h1>
+        <p class="briefing__greeting" data-briefing-greeting role="status"></p>
+
+        <!-- The beats are generated in briefing/view.ts so the copy lives in
+             briefing/model.ts, where it is unit tested. -->
+        <ol class="briefing__stream" data-briefing-stream></ol>
+
+        <p class="briefing__hint" aria-live="polite"></p>
+
+        <div class="briefing__actions">
+          <button class="briefing__button" type="button" data-briefing-skip>
+            Skip Briefing
+          </button>
+          <button class="briefing__button" type="button" data-briefing-continue>
+            Continue
+          </button>
+        </div>
+      </div>
+    </section>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

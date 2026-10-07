@@ -11,7 +11,8 @@
 // Typed asset imports, so Vite fingerprints these and emits them into dist/.
 import astronautUrl from '../../../Assets/images/naming/astronaut.webp';
 import marsUrl from '../../../Assets/images/naming/mars.webp';
-import type { RunState } from '../../sim/run';
+import { newRun, type RunState } from '../../sim/run';
+import { nextStop } from '../../ui/registry';
 import { navigate } from '../../ui/router';
 
 import './naming.css';
@@ -38,7 +39,11 @@ function require<T extends HTMLElement>(root: HTMLElement, selector: string): T 
  * `run` is null until the player starts a mission; the screen works either way,
  * because naming a astronaut is the first thing they do.
  */
-export function mountNaming(root: HTMLElement, run: RunState | null): () => void {
+export function mountNaming(
+  root: HTMLElement,
+  run: RunState | null,
+  setRun: (next: RunState | null) => void,
+): () => void {
   const input = require<HTMLInputElement>(root, '[data-naming-input]');
   const form = require<HTMLFormElement>(root, '[data-naming-form]');
   const hint = require<HTMLParagraphElement>(root, '[data-naming-hint]');
@@ -83,21 +88,33 @@ export function mountNaming(root: HTMLElement, run: RunState | null): () => void
       return;
     }
 
-    // No scene exists after this one yet, so the screen says so plainly rather
-    // than navigating into a stub that would throw. When `landing-site` is built
-    // this becomes navigate('landing-site') with the run handed to it.
+    // The name is the first real piece of run state, so the run is created here
+    // and handed up to the shell rather than kept in this screen. Every later
+    // scene reads it from there, which is why screens never import each other.
+    setRun(newRun('', value));
+
     greeting.textContent = `Welcome aboard, ${value}.`;
-    setHint('Your journey begins here. The next scene is still under construction.');
+    setHint('Your journey begins here.');
 
     root.dataset.namingStarted = 'true';
     input.readOnly = true;
     submit.disabled = true;
+
+    // nextStop inserts the under-construction interstitial when the next scene
+    // is not built yet, so there is nothing to special-case here or later.
+    const next = nextStop('naming');
+
+    if (next !== null) {
+      navigate(next);
+    }
   };
 
   const onBack = (): void => {
-    // There is no main menu beyond this one yet, so this returns to the landing
-    // page, which is currently the only other screen that works.
-    navigate('landing');
+    // The naming menu *is* the main menu now (D-021), so going back means going
+    // to the entry route. This is deliberately not `landing`: forward and back
+    // must not be the same destination, which is how this screen used to be
+    // wired.
+    navigate('naming');
   };
 
   form.addEventListener('submit', onSubmit);
