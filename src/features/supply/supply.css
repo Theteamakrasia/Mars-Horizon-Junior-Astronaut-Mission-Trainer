@@ -1,5 +1,5 @@
 /* ==========================================================================
-   SUPPLY â€” the ration check at Mission Control
+   SUPPLY ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â the ration check at Mission Control
 
    The picture is a full Mission Control room with no empty space in it, so
    nothing here is laid out as a panel dropped on top of it. The text is dialogue:
@@ -7,7 +7,7 @@
    replaces the last. The bottom dock holds the question and the answers.
 
    Colours are sampled from the artwork rather than carried over from the other
-   screens â€” the room is navy and blue-lit with orange accents and green ticks, so
+   screens ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â the room is navy and blue-lit with orange accents and green ticks, so
    the UI borrows those. A grey-and-orange panel over this picture looked pasted
    in; these do not.
    ========================================================================== */
@@ -87,7 +87,6 @@
   top: 3.5%;
   left: 2.5%;
   max-width: 32%;
-  pointer-events: none;
 }
 
 .supply__bubble {
@@ -146,6 +145,12 @@
    what the astronaut is saying, not to the answer.
 */
 .supply__advance {
+  /* Opt back into hit-testing explicitly. This button sits inside .supply__speech,
+     and an ancestor with `pointer-events: none` makes its children unclickable
+     while leaving them perfectly visible - which is exactly how NEXT came to be
+     drawn and not work. Stating it here means a decoration rule on a container
+     cannot silently kill the screen's only control again. */
+  pointer-events: auto;
   margin-top: 0.5rem;
   padding: 0.42rem 1rem;
   border: 1px solid var(--s-line);
