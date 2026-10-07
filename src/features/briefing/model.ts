@@ -20,6 +20,13 @@ export interface BriefingBeat {
 /**
  * The beats, in order.
  *
+ * Five, not seven, and none longer than about ninety characters. An earlier
+ * version ran seven beats to up to 124 characters each, which was three screens
+ * of clicking before anything happened - long enough that a child stopped
+ * reading and started mashing. The arc is the same, just compressed: who you
+ * are, what you are building, that nobody is coming, the five things that run
+ * out, and go.
+ *
  * There is no pacing field and no read-time calculation. The reader clicks NEXT
  * and the next line appears, so how long a line ought to sit on screen is the
  * reader's decision rather than the model's. An earlier version weighted each
@@ -30,31 +37,23 @@ export interface BriefingBeat {
 export const BEATS: readonly BriefingBeat[] = [
   {
     id: 'crew',
-    text: 'You are the newest astronaut on the crew.',
-  },
-  {
-    id: 'veterans',
-    text: 'Two others have flown to space before. You have not. They know what a real mission looks like, and they will show you.',
+    text: 'You are the newest astronaut here. Two others have flown to space. You have not.',
   },
   {
     id: 'task',
-    text: 'The three of you have been sent to Mars to build an outpost. It has to keep your crew alive once the rocket leaves.',
+    text: 'The three of you are going to Mars to build an outpost that has to keep you alive.',
   },
   {
     id: 'never-alone',
-    text: 'Nobody is coming to help. There is no rescue mission. Whatever you build, you build it yourself.',
-  },
-  {
-    id: 'supplies',
-    text: 'Everything you need is already on the ship: power, air, water, food and shields against the radiation.',
+    text: 'Nobody is coming to help. Whatever you build, you build it yourself.',
   },
   {
     id: 'balance',
-    text: 'None of it lasts. Spend more of one and you have less of everything else. That is the whole job.',
+    text: 'Power, air, water, food, shields. None of it lasts. Spend more of one and you have less of everything else.',
   },
   {
     id: 'ready',
-    text: 'Your crew is waiting. Are you ready?',
+    text: 'Are you ready?',
   },
 ];
 
