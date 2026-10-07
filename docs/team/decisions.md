@@ -34,6 +34,40 @@ broken `npm test`.
 
 ---
 
+**D-021 — project owner · 2026-10-07**
+**Choice:** `naming` is the entry screen. The player names their astronaut and starts
+the journey from there. A login page is intended to sit in front of it later.
+**Why:** Stated by the owner — naming "will work as the menu where one set name and
+start the journey", with a login page in front of it in future. The intent is a
+clear progression: login (later) → naming → the cinematic sequence → landing site.
+**Rejected:** Keeping `landing` as the entry and putting naming after it. Rejected
+because naming *is* the menu; routing a player through a placeholder page before
+letting them start would be an extra click for no benefit. The landing page is not
+deleted — it stays reachable and is what BACK TO MAIN MENU returns to.
+**Consequence:** `DEFAULT_ROUTE` is now `'naming'` and `ROUTE_ORDER[0]` is `naming`.
+`landing` remains a real route, not a dead entry, so nothing that works was retired.
+Supabase is still deferred and unowned (TASK-022), so the login page in front of
+this is blocked on that decision, not on this screen.
+
+---
+
+**D-020 — project owner · 2026-10-07**
+**Choice:** The Mars rotates **behind** a static astronaut — the planet turns slowly
+in the image plane while the astronaut floats in front of it. Done in CSS keyframes.
+**Why:** Chosen by the owner over a whole-card sway or a continuous spin. It needs
+the two subjects separated, which is why the cutout sheet was supplied.
+**Rejected:** (a) A gentle 3D sway of the whole card — elegant, but it rotates the
+planet too, and the point of the cutouts was to keep them apart. (b) A continuous
+spin of the card — reads as a flat plane spinning, which looks like a bug.
+**Consequence:** the rotation is `rotate()` **in the image plane**, not a 3D axis.
+This is forced by physics of the asset rather than taste: a sphere spun about its
+own axis looks identical, so the animation would appear to do nothing. Both
+animations are disabled outright under `prefers-reduced-motion`, because they are
+continuous and self-triggered. No `requestAnimationFrame` is involved, so there is
+no loop to leak on navigation — which is why the menu needs no teardown for them.
+
+---
+
 **D-019 — project owner · 2026-10-06**
 **Choice:** `src/features/` and `src/data/` each get a `README.md` per folder, so the
 structure is visible in the repository. One `README.md` for the `features/` directory

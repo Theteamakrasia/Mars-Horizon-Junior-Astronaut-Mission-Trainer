@@ -72,6 +72,17 @@ const DOM_ZONES = new Set(['dom', 'ui', 'feature-view', 'entry']);
 const NETWORK_ZONES = new Set(['data']);
 
 /**
+ * The one composition seam.
+ *
+ * `ui/registry.ts` maps routes to feature views, so it has to import them —
+ * every other file in `ui/` must not. Named explicitly rather than widening
+ * `ui/`'s allow-list, because a zone-wide exception would let any future file in
+ * `ui/` reach into any feature and quietly dissolve the boundary. Only feature
+ * *views* are reachable from here; their models stay behind the registry.
+ */
+const COMPOSITION_SEAMS = new Set(['src/ui/registry.ts']);
+
+/**
  * Pre-existing violations that are tolerated for now.
  *
  * Each entry is `"<relative path>:<line>:<ruleId>"`. A matching violation is
@@ -306,7 +317,11 @@ for (const file of files) {
         continue;
       }
 
-      if (!permitted.includes(target.zone)) {
+      const isSeam = COMPOSITION_SEAMS.has(rel(file));
+      const allowed =
+        permitted.includes(target.zone) || (isSeam && target.zone === 'feature-view');
+
+      if (!allowed) {
         report(
           file,
           lineAt(code, index),

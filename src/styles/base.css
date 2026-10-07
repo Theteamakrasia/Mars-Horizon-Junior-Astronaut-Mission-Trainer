@@ -46,6 +46,22 @@
   box-sizing: border-box;
 }
 
+/*
+  Make the `hidden` attribute actually hide things.
+
+  The browser's own rule is `[hidden] { display: none }`, and it loses to any
+  author `display` declaration. Every routed screen sets `display: flex`, so
+  `element.hidden = true` silently did nothing: all of them stayed visible and
+  whichever came last in the document painted over the others. That is why the
+  briefing covered the naming menu.
+
+  `!important` is required to beat the screen rules. This is the standard remedy,
+  and scripts/check-markup.mjs fails the build if it is removed.
+*/
+[hidden] {
+  display: none !important;
+}
+
 html,
 body {
   height: 100%;

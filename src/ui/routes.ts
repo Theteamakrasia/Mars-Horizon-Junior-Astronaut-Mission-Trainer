@@ -11,20 +11,61 @@
  */
 
 /** Every screen the player can reach. */
-export type Route = 'landing' | 'landing-site' | 'base' | 'act' | 'debrief';
+export type Route =
+  | 'naming'
+  | 'briefing'
+  | 'supply'
+  | 'landing'
+  | 'landing-site'
+  | 'base'
+  | 'act'
+  | 'debrief';
 
 /**
- * The screens in play order, for progression and for the debrief's "what next"
- * affordance. `landing` is the placeholder page that ships until the game is 30%
- * built, so it is a real route rather than a dead end.
+ * The journey, in play order.
+ *
+ * One entry per distinct screen, no duplicates. The under-construction
+ * interstitial is NOT listed here — see `nextStop` in `registry.ts`, which knows
+ * which screens are actually built and inserts the placeholder itself.
+ *
+ * An earlier version spelled the interstitial out as repeated `landing` entries
+ * in this array. That was wrong: `nextRoute` uses `indexOf`, so from the first
+ * `landing` it always found the same `landing` and the player would have walked
+ * `landing-site -> landing -> landing-site` forever. Making the interstitial a
+ * computed step rather than a listed one removes the possibility entirely.
+ *
+ * `naming` is first because it is the entry screen: the player names their
+ * astronaut and starts the journey from there. A login page is intended to sit
+ * in front of it later, but it is not built — Supabase is deferred (D-003).
  */
-export const ROUTE_ORDER: readonly Route[] = ['landing', 'landing-site', 'base', 'act', 'debrief'];
+export const ROUTE_ORDER: readonly Route[] = [
+  'naming',
+  'briefing',
+  'supply',
+  'landing-site',
+  'base',
+  'act',
+  'debrief',
+];
+
+/** Alias kept for readability at call sites that care about journey order. */
+export const JOURNEY = ROUTE_ORDER;
 
 /** The route shown when there is no usable hash. */
-export const DEFAULT_ROUTE: Route = 'landing';
+export const DEFAULT_ROUTE: Route = 'naming';
+
+/**
+ * Every route that can be typed into the address bar.
+ *
+ * Wider than ROUTE_ORDER on purpose: `landing` is the under-construction
+ * interstitial and is not a stop in the journey, but it must stay a valid route
+ * so a player can reach it directly by URL. Keeping the two lists separate is
+ * what lets the journey order stay free of duplicates.
+ */
+export const ALL_ROUTES: readonly Route[] = [...ROUTE_ORDER, 'landing'];
 
 function isRoute(value: string): value is Route {
-  return (ROUTE_ORDER as readonly string[]).includes(value);
+  return (ALL_ROUTES as readonly string[]).includes(value);
 }
 
 /**
@@ -58,9 +99,11 @@ export function routeToHash(route: Route): string {
 }
 
 /**
- * The next screen in play order, or null at the end.
+ * The next screen in journey order, or null at the end.
  *
- * Used by the debrief to offer a next step without hard-coding the sequence.
+ * This is the raw sequence, with no knowledge of what is built. For the route a
+ * player actually walks — which skips through the under-construction
+ * interstitial — use `nextStop` in `registry.ts`.
  */
 export function nextRoute(route: Route): Route | null {
   const index = ROUTE_ORDER.indexOf(route);
@@ -69,7 +112,7 @@ export function nextRoute(route: Route): Route | null {
   return ROUTE_ORDER[index + 1];
 }
 
-/** The previous screen in play order, or null at the start. */
+/** The previous screen in journey order, or null at the start. */
 export function previousRoute(route: Route): Route | null {
   const index = ROUTE_ORDER.indexOf(route);
   return index <= 0 ? null : ROUTE_ORDER[index - 1];

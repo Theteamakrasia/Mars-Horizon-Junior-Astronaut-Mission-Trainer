@@ -8,6 +8,90 @@ than a documented one.
 
 ---
 
+## 2026-10-07 — Scene one: the naming menu
+
+Branch `feat/naming-menu`. First real feature, and the entry screen.
+
+**Did**
+
+- Measured the supplied cutout sheet before touching it: one 1670x941 PNG holding
+  **both** subjects side by side on transparency, 100 px apart, non-overlapping.
+  Alpha histogram showed 94% of pixels fully transparent or fully opaque.
+- Split it into two assets, padding the crop, and **normalised interior alpha from
+  252 to 255** — the cutout tool had written every solid pixel at 252, which
+  darkens the subject ~1% against a dark background.
+- Shipped as **WebP q82: 125 KB total, down from 1.3 MB of PNG** (10x). Verified
+  both files are `VP8X` with an alpha channel and decode at the right size with
+  transparency intact.
+- Sampled the design mockup's palette from actual pixels rather than eyeballing:
+  bg `#070E12`, panel `#131D24`, field `#152029`, border `#2E3C45`, text `#FCFCFC`,
+  muted `#515C63`, accent `#FA6200`. It turned out to be a near match for the
+  existing landing tokens, so this continues the design rather than replacing it.
+- Built the menu: `model.ts` (pure name rules), `model.test.ts` (21 tests, all
+  literal inputs), `view.ts` (DOM), `naming.css` (tokens + motion), plus markup in
+  `index.html`.
+- Wired hash routing into `main.ts`, made `naming` the default route, and made
+  `ui/registry.ts` real so routes map onto screens.
+- Implemented `createInitialStores` and `newRun` for real, because the menu needs
+  somewhere to put the name. `drainForSol` and `depletedStores` stay stubs.
+
+**Files**
+
+- Added: `Assets/images/naming/{astronaut,mars}.webp`,
+  `src/features/naming/{model.ts,model.test.ts,view.ts,naming.css}`
+- Rewritten: `src/ui/{routes.ts,routes.test.ts,registry.ts}`
+- Edited: `src/main.ts`, `src/sim/{run.ts,resources.ts}`, `index.html`,
+  `scripts/check-imports.mjs`, `docs/team/{issues,decisions,progress-log}.md`
+
+**Problems**
+
+1. **I corrupted a test file with a bad PowerShell filter.** My control-byte scrub
+   excluded TAB and CR but forgot LF, so every newline became the literal text
+   `\u000A` and `model.test.ts` collapsed to a single line. Recovered by replacing the
+   literal escape text back into real newlines, and verified: 119 lines, LF, no
+   control bytes, 21 tests green. **My first scan was also wrong** — it counted CR
+   as a control byte and flagged every file in `src/`, which would have sent me
+   chasing a non-existent repo-wide corruption. Both errors were caught only because
+   I inspected the output rather than trusting it.
+2. **My own checker caught a real design flaw.** `ui/registry.ts` importing
+   `features/naming/view` violated `layer-boundary`, because `ui/` may not import
+   `features/`. The registry *must* import feature views to map routes onto them.
+   Fixed in the rule rather than the code, by naming `src/ui/registry.ts` as the one
+   composition seam — a zone-wide exception would let any file in `ui/` reach into
+   any feature and dissolve the boundary. The checker is worth its keep.
+3. **A wrong import depth broke the build.** `view.ts` is three levels below the repo
+   root, so the asset import needed `../../../Assets/...`, not `../../`. Vite could
+   not resolve it and the build failed. Found by running the build, not by reading.
+4. **A temporal-dead-zone bug I introduced into `main.ts`.** I declared
+   `landingPage` *after* `bootstrap()` could already have run, and never assigned it.
+   Restructured so the state is declared before first use and populated in
+   `bootstrap`. Also replaced a `requireElement('#naming')` misuse — that helper
+   takes an id, not a selector — with a proper `querySelector` plus an explicit
+   throw.
+5. **Naming rules needed two decisions I had to make.** Length is counted in code
+   points so an emoji costs 1, not 2 — children will type emoji, and the alternative
+   silently eats their budget. And `displayName` strips control characters, because
+   it is the one string interpolated into markup.
+6. **ISS-015 fired again** — `frame.test.ts:81`, the same pre-existing 40% flake.
+   115 of 116 passed. Unrelated to this work.
+
+**Next**
+
+- **ISS-017:** START MISSION currently has nowhere to go. Build
+  `features/landing-site/` (TASK-028), then change one line in `onSubmit`.
+- **ISS-015:** still the highest-value fix. A suite that red 40% of the time
+  teaches six people to ignore red.
+- **ISS-018:** the 12 MB of cinematic PNGs. Convert each to WebP as its scene is
+  built, measured at ~10x. Not in `dist/` today — confirmed by inspecting the build.
+- **ISS-019 and ISS-020** need an owner and a decision, not code.
+
+**Doc updates made:** `docs/team/issues.md` (ISS-017 to ISS-020),
+`docs/team/decisions.md` (D-020, D-021), this entry. `docs/architecture.md` and
+`AGENTS.md` still describe `naming` as a stub and are **stale** — they are the next
+thing to fix. `README.md` unchanged and still wrong about the code (ISS-001).
+
+---
+
 ## 2026-10-06 — Typed stubs across the whole planned structure
 
 Fourth pass. Smallest change, and the one that was asked for three times before I got it
