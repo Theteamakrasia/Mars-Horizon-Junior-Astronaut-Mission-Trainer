@@ -109,7 +109,21 @@ positions.sort((a, b) => a.index - b.index);
   while the stage and the vignette are only ever found by class.
 */
 
-// --- Rule 4: every data hook a view queries is present -----------------------
+/*
+  --- Rule 4: the `hidden` attribute must be able to hide a screen at all.
+
+  This is the bug that cost the most time: every routed screen sets
+  `display: flex`, which beats the browser's `[hidden] { display: none }`, so
+  `element.hidden = true` did nothing and all screens rendered on top of each
+  other. Verified by injecting the removal and confirming this fails.
+*/
+const baseCss = readFileSync(join(ROOT, 'src', 'styles', 'base.css'), 'utf8');
+
+if (!/\[hidden\]\s*\{[^}]*display:\s*none\s*!important/s.test(baseCss)) {
+  fail(0, 'base.css has no `[hidden] { display: none !important }` rule — screens that set `display` cannot be hidden by the `hidden` attribute, so they render on top of each other');
+}
+
+// --- Rule 5: every data hook a view queries is present -----------------------
 const VIEWS = ['src/features/naming/view.ts', 'src/features/briefing/view.ts'];
 
 for (const file of VIEWS) {
