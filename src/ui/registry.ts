@@ -1,31 +1,93 @@
 /**
- * STUB — not implemented. Every export here throws.
+ * Maps a route to the screen that draws it.
  *
- * Maps a route to the screen that draws it. This is the join between ui/ and
- * features/, so it is the one file that is allowed to know about both.
- *
- * It deliberately imports NO feature yet. When it does, those features must
- * exist or `npm run check` fails them as `unresolved-import` — which is the
- * point: the registry cannot claim to route to a screen that is not built.
- *
- * Task: TASK-027. Wire the router into main.ts at the same time, and only when
- * at least one screen exists to route to.
+ * The one file allowed to know about both `ui/` and `features/`. Every feature
+ * is imported by name here, which is what keeps features from importing each
+ * other: a screen can reach its own model, and the router hands it the run.
  */
 
-import type { Route } from './routes';
+import { mountBriefing } from '../features/briefing/view';
+import { mountLaunch } from '../features/launch/view';
+import { mountNaming } from '../features/naming/view';
+import { mountSupply } from '../features/supply/view';
+import type { RunState } from '../sim/run';
+
+import { nextRoute, type Route } from './routes';
 
 /**
- * A screen: given a mount point, draw, and return a teardown.
+ * A screen: given a mount point, the current run, and a way to replace that run,
+ * draw and return a teardown.
  *
- * Teardown is required rather than optional because screens accumulate: without
- * it, navigating back and forth leaks every listener and timer from the screen
- * left behind.
+ * Teardown is required rather than optional because screens accumulate. Without
+ * it, navigating back and forth leaks every listener from the screen left behind.
+ *
+ * `setRun` is how a screen creates run state. The shell owns the run so that
+ * screens never have to reach each other for it: naming creates the run, and
+ * every later screen reads it. A fourth argument when a screen needs to start a
+ * run or change it is what keeps `cross-feature` from ever being needed.
  */
-export type ScreenFactory = (mount: HTMLElement, run: unknown) => () => void;
+export type ScreenFactory = (
+  mount: HTMLElement,
+  run: RunState | null,
+  setRun: (next: RunState | null) => void,
+) => () => void;
+
+/** Mount points live in index.html, keyed by route. */
+const SCREEN_MOUNTS: Readonly<Partial<Record<Route, string>>> = {
+  naming: '#naming',
+  briefing: '#briefing',
+  supply: '#supply',
+  launch: '#launch',
+};
+
+const SCREENS: Readonly<Partial<Record<Route, ScreenFactory>>> = {
+  naming: mountNaming,
+  briefing: mountBriefing,
+  supply: mountSupply,
+  launch: mountLaunch,
+};
+
+/**
+ * The mount point for a route, or null if that route has nothing built yet.
+ *
+ * Null rather than throwing: most routes are stubs right now, and the router
+ * needs to be able to say "not built" without the whole app failing.
+ */
+export function screenMount(route: Route): string | null {
+  return SCREEN_MOUNTS[route] ?? null;
+}
 
 /** The screen for a route, or null if that route has nothing built yet. */
-export function resolveScreen(_route: Route): ScreenFactory | null {
-  throw new Error(
-    'STUB: ui/registry.ts is not implemented. It gains feature imports when the first screen exists.',
-  );
+export function resolveScreen(route: Route): ScreenFactory | null {
+  return SCREENS[route] ?? null;
+}
+
+/**
+ * The mount selector for every route that has a screen.
+ *
+ * The shell uses this to toggle screens with `hidden`. They are all
+ * position:fixed at the same z-index, so without it two can be visible at once
+ * and the earlier one in the document silently covers the mounted one.
+ */
+export function allScreenMounts(): readonly string[] {
+  return Object.values(SCREEN_MOUNTS);
+}
+
+/**
+ * Where "continue" goes from the given route.
+ *
+ * Every scene that is not built yet is entered through `landing`, the
+ * under-construction interstitial. Applying that here rather than in the route
+ * table is deliberate: a new screen cannot be made reachable without its
+ * placeholder, because there is nothing to remember to add.
+ *
+ * As each scene gets built it simply stops being skipped, so the interstitial
+ * drops out of the journey on its own with no edit here.
+ */
+export function nextStop(route: Route): Route | null {
+  const next = nextRoute(route);
+
+  if (next === null) return null;
+
+  return resolveScreen(next) === null ? 'landing' : next;
 }

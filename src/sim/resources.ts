@@ -37,22 +37,34 @@ export interface ResourceStores {
   readonly shielding: number;
 }
 
-/** Starting stores for a fresh run, before any module is built. */
+/**
+ * The stores a run starts with, before anything is built.
+ *
+ * Deliberately a starting point rather than a full loadout: the player builds the
+ * outpost on the `base` screen, and what they leave out is the whole first
+ * decision. These numbers are provisional — decide units before any UI reads
+ * them, and change them here in one place.
+ */
 export function createInitialStores(_overrides?: Partial<ResourceStores>): ResourceStores {
-  throw new Error(
-    'STUB: sim/resources.ts is not implemented. See src/features/README.md for the contract.',
-  );
+  return {
+    power: 40,
+    oxygen: 100,
+    water: 90,
+    food: 80,
+    shielding: 20,
+    ..._overrides,
+  };
 }
 
-/** Apply one sol's drain. Must never mutate its argument. */
+/** Apply one sol's drain. Must never mutate its argument. STUB. */
 export function drainForSol(
   _stores: ResourceStores,
   _sol: number,
 ): ResourceStores {
-  throw new Error('STUB: sim/resources.ts is not implemented.');
+  throw new Error('STUB: drainForSol is not implemented. Task TASK-015.');
 }
 
-/** Which stores are at or below zero — i.e. how a run can end. */
+/** Which stores are at or below zero, i.e. how a run can end. STUB. */
 export function depletedStores(_stores: ResourceStores): readonly ResourceName[] {
-  throw new Error('STUB: sim/resources.ts is not implemented.');
+  throw new Error('STUB: depletedStores is not implemented. Task TASK-015.');
 }

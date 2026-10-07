@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   DEFAULT_ROUTE,
+  JOURNEY,
   nextRoute,
   parseRoute,
   previousRoute,
@@ -70,10 +71,20 @@ describe('routeToHash', () => {
 });
 
 describe('progression', () => {
-  it('walks forward through play order', () => {
-    expect(nextRoute('landing')).toBe('landing-site');
+  it('lists each screen exactly once', () => {
+    // The interstitial is computed by nextStop, never listed. An earlier version
+    // repeated `landing` in this array, which made nextRoute loop.
+    expect(new Set(ROUTE_ORDER).size).toBe(ROUTE_ORDER.length);
+  });
+
+  it('walks naming through briefing, supply and the launch cinematic', () => {
+    expect(nextRoute('naming')).toBe('briefing');
+    expect(nextRoute('briefing')).toBe('supply');
+    expect(nextRoute('supply')).toBe('launch');
+    expect(nextRoute('launch')).toBe('landing-site');
     expect(nextRoute('landing-site')).toBe('base');
     expect(nextRoute('base')).toBe('act');
+    expect(nextRoute('act')).toBe('debrief');
   });
 
   it('has nothing after the last screen', () => {
@@ -82,20 +93,38 @@ describe('progression', () => {
 
   it('walks backward through play order', () => {
     expect(previousRoute('debrief')).toBe('act');
-    expect(previousRoute('landing')).toBeNull();
+    expect(previousRoute('briefing')).toBe('naming');
   });
 
-  it('keeps the landing page in the sequence, not outside it', () => {
-    // The landing page ships until the game is 30% built (decision D-008), so it
-    // is a real step rather than a dead end.
-    expect(ROUTE_ORDER[0]).toBe('landing');
-    expect(DEFAULT_ROUTE).toBe('landing');
+  it('has nowhere to go back to from the entry screen', () => {
+    expect(previousRoute('naming')).toBeNull();
+  });
+
+  it('opens on the naming menu, because that is the entry screen', () => {
+    // The player names their astronaut and starts the journey from here. A login
+    // page is meant to sit in front of this later; it is not built (D-003).
+    expect(ROUTE_ORDER[0]).toBe('naming');
+    expect(DEFAULT_ROUTE).toBe('naming');
+  });
+
+  it('keeps the landing page reachable even though it is not a journey stop', () => {
+    // It is the interstitial, reached through nextStop, and it must stay a valid
+    // route so a player can reach it by URL.
+    expect(parseRoute('#/landing')).toBe('landing');
+  });
+
+  it('has no plan route, because act is built without one', () => {
+    // Deliberate, confirmed by the owner and recorded as D-018.
+    expect((ROUTE_ORDER as readonly string[])).not.toContain('plan');
   });
 
   it('agrees with itself in both directions', () => {
-    for (const route of ROUTE_ORDER) {
+    for (const route of JOURNEY) {
       const forward = nextRoute(route);
-      if (forward !== null) expect(previousRoute(forward)).toBe(route);
+
+      if (forward !== null) {
+        expect(previousRoute(forward)).toBe(route);
+      }
     }
   });
 });
