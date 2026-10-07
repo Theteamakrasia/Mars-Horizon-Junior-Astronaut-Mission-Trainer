@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Deploy to Vercel
 
 on:
   workflow_dispatch :
@@ -10,17 +10,37 @@ permissions:
   contents: read
 
 concurrency:
-  group: pages
+  group: vercel-production
   cancel-in-progress: true
 
 jobs:
-  build:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+  gate:
+    name: Require successful default-branch checks
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
+    if: ${{ always() }}
     steps:
-      - name: Check out validated revision
+      - name: Verify the completed code-check run
+        env:
+          CHECK_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          CHECK_EVENT: ${{ github.event.workflow_run.event }}
+          CHECK_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          if [[ "$CHECK_CONCLUSION" != "success" || "$CHECK_EVENT" != "push" || "$CHECK_BRANCH" != "$DEFAULT_BRANCH" ]]; then
+            echo "::error::Vercel deployment requires successful Code checks on the repository default branch."
+            exit 1
+          fi
+
+  deploy:
+    name: Deploy validated default-branch commit
+    needs: gate
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - name: Check out the validated commit
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
@@ -29,26 +49,21 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: Install locked dependencies
+      - name: Install locked project dependencies
         run: npm ci
-      - name: Build production bundle
-        run: npm run build
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
-
-  deploy:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    permissions:
-      pages: write
-      id-token: write
-    steps:
-      - name: Publish validated site
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Check Vercel credentials are configured
+        run: |
+          for name in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Configure the $name repository secret before enabling Vercel deployment."
+              exit 1
+            fi
+          done
+      - name: Install pinned Vercel CLI
+        run: npm install --global vercel@62.7.0
+      - name: Pull production project settings
+        run: vercel pull --yes --environment=production
+      - name: Build production output
+        run: vercel build --prod
+      - name: Deploy prebuilt output to Vercel
+        run: vercel deploy --prebuilt --prod

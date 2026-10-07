@@ -11,9 +11,10 @@ Versions will be assigned when the project begins publishing releases.
 
 ### Added
 
+- Deploy the validated default-branch build to Vercel from GitHub Actions using pinned Vercel CLI and repository secrets.
+- Disable Vercel's automatic Git deployments so an unchecked push cannot create a parallel deployment.
 - Add TypeScript, Vite, Vitest, and MIT license badges, the astronaut mascot, and a linked README index.
 - Add GitHub Actions checks for imports, TypeScript, tests, HTML validation, and production builds.
-- Gate GitHub Pages deployment on a successful code-check workflow and publish its validated build.
 - Add HTML validation configured to allow inline CSS while still reporting HTML errors.
 - Add this changelog and CI status badges to the project README.
 - Make the open-space simulation test deterministic so random wall impacts do not fail CI.

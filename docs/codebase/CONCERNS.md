@@ -24,8 +24,9 @@ tests, and inspect DOM changes in a browser.
 
 ## [ASK USER] Questions
 
-1. [ASK USER] Should GitHub Pages remain the production hosting target, or should the deploy
-   workflow be adapted to a future Vercel or other provider configuration?
+No unresolved deployment intent remains; the project owner requested Vercel production
+deployment after successful default-branch checks. The repository secrets
+`VERCEL_TOKEN`, `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID` remain operational prerequisites.
 
 ## Evidence
 

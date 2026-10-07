@@ -60,7 +60,9 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
 │   ├── architecture.md                 this file
 │   ├── CHANGELOG.md                    unreleased and deployed project changes
 │   ├── pull-requests/                   detailed PR descriptions
-│   │   └── 001-ci-deployment-gates.md
+│   │   ├── 001-ci-deployment-gates.md
+│   │   ├── 002-readme-polish.md
+│   │   └── 003-vercel-deployment-gate.md
 │   ├── codebase/                       evidence-backed repository map
 │   │   ├── STACK.md, STRUCTURE.md, ARCHITECTURE.md
 │   │   ├── CONVENTIONS.md, INTEGRATIONS.md, TESTING.md, CONCERNS.md
@@ -70,7 +72,8 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
 │       ├── goals.md  tasks.md  progress-log.md
 ├── .github/workflows/
 │   ├── ci.yml                          PR/main checks: typecheck, tests, HTML, build
-│   └── deploy.yml                      gated GitHub Pages deployment
+│   └── deploy.yml                      fails its gate on failed checks; deploys validated default-branch commit to Vercel
+├── vercel.json                         disables native Git deployments; Actions owns the deployment gate
 ├── .htmlvalidate.json                  HTML rules; inline CSS is allowed
 │
 ├── AGENTS.md                           complete   the orientation file
