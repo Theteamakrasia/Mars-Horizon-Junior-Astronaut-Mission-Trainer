@@ -1,0 +1,381 @@
+/* ==========================================================================
+   SUPPLY ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â the ration check at Mission Control
+
+   The picture is a full Mission Control room with no empty space in it, so
+   nothing here is laid out as a panel dropped on top of it. The text is dialogue:
+   one bubble beside the astronaut's head, tail pointing at him, and each fact
+   replaces the last. The bottom dock holds the question and the answers.
+
+   Colours are sampled from the artwork rather than carried over from the other
+   screens ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â the room is navy and blue-lit with orange accents and green ticks, so
+   the UI borrows those. A grey-and-orange panel over this picture looked pasted
+   in; these do not.
+   ========================================================================== */
+
+.supply {
+  /* Sampled from the artwork. */
+  --s-ink: #08101c;
+  --s-glass: rgba(8, 20, 38, 0.9);
+  --s-glass-solid: #0b1a2e;
+  --s-line: #2d6da3;
+  --s-text: #e9f3ff;
+  --s-muted: #a3bcd6;
+  --s-accent: #ff8a3d;
+  --s-good: #46d17f;
+  --s-bad: #ff5f56;
+
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: var(--s-ink);
+  color: var(--s-text);
+  font-family: var(--font-display);
+}
+
+.supply *,
+.supply *::before,
+.supply *::after {
+  box-sizing: border-box;
+}
+
+/* ---------- THE STAGE ----------
+   Locked to 16:9 and centred.
+
+   This is the whole reason the bubble lands where it is meant to. With
+   object-fit: cover the picture is cropped differently at every window size, so
+   anything positioned against it drifts away from the thing it points at. Here
+   nothing is ever cropped and the letterbox bars are plain background.
+
+   16:9 rather than one image's exact pixel size, because the four frames were
+   drawn at two different resolutions: 1364x768 and 1671x941. Both are within
+   0.12% of 16:9 - about 1.5px across a 1364px stage - so a single ratio holds
+   all of them, and it will still hold if new art arrives at another size close to
+   it. Hardcoding 1364/768 would have letterboxed the 1671-wide frames.
+*/
+.supply__stage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(100vw, calc(100vh * 16 / 9));
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+}
+
+.supply__scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Only dimmed enough to keep the UI legible. An earlier version dropped it to
+     0.62 behind an opaque panel and the room stopped reading as a room. */
+  opacity: 0.94;
+}
+
+.supply[data-supply-state='wrong'] .supply__scene {
+  filter: saturate(1.05) brightness(0.9);
+}
+
+.supply[data-supply-state='right'] .supply__scene {
+  filter: brightness(1.06);
+}
+
+/* ---------- THE BUBBLE ---------- */
+
+.supply__speech {
+  position: absolute;
+  /* Anchored in stage percentages so it sits beside the astronaut's head at any
+     window size. The head is at roughly 18% across and 48% down in the picture;
+     the bubble hangs above him and the tail points down at him. */
+  top: 3.5%;
+  left: 2.5%;
+  max-width: 32%;
+}
+
+.supply__bubble {
+  position: relative;
+  padding: 0.7rem 0.9rem 0.85rem;
+  border: 1px solid var(--s-line);
+  border-radius: 0.9rem;
+  background: var(--s-glass);
+  box-shadow: 0 0.5rem 1.6rem rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transform: translateY(0.5rem) scale(0.97);
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.supply__bubble[data-supply-phase='in'] {
+  opacity: 1;
+  transform: none;
+}
+
+.supply__bubble[data-supply-phase='out'] {
+  opacity: 0;
+  transform: translateY(-0.45rem) scale(0.99);
+}
+
+/*
+  Downward tail, so the bubble reads as coming from the astronaut below it.
+
+  At 50% rather than tucked to one side, because the two frames put him in
+  different places: his head sits at roughly 18-29% across in the explaining
+  frame and 24-38% in the question frame. The midpoint of the bubble lands under
+  the left edge of his head in both, which is as close as one position can get to
+  two drawings.
+*/
+.supply__bubble-tail {
+  position: absolute;
+  bottom: -0.75rem;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-top: 0.8rem solid var(--s-line);
+  border-right: 0.7rem solid transparent;
+  border-left: 0.7rem solid transparent;
+  transform: translateX(-50%);
+}
+
+.supply__bubble-label {
+  margin: 0 0 0.2rem;
+  font-size: clamp(0.7rem, 1.25vmin, 0.85rem);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--s-accent);
+}
+
+.supply__bubble-text {
+  margin: 0;
+  font-size: clamp(0.82rem, 1.55vmin, 1.05rem);
+  line-height: 1.42;
+  color: var(--s-text);
+}
+
+/* ---------- NEXT ----------
+   With the speech, the way a reader turns a page. Not in the rail: it belongs to
+   what the astronaut is saying, not to the answer.
+*/
+.supply__advance {
+  /* Opt back into hit-testing explicitly. This button sits inside .supply__speech,
+     and an ancestor with `pointer-events: none` makes its children unclickable
+     while leaving them perfectly visible - which is exactly how NEXT came to be
+     drawn and not work. Stating it here means a decoration rule on a container
+     cannot silently kill the screen's only control again. */
+  pointer-events: auto;
+  margin-top: 0.5rem;
+  padding: 0.42rem 1rem;
+  border: 1px solid var(--s-line);
+  border-radius: 999px;
+  background: rgba(20, 46, 78, 0.9);
+  color: var(--s-text);
+  font-family: inherit;
+  font-size: clamp(0.72rem, 1.25vmin, 0.85rem);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+
+.supply__advance:hover {
+  background: rgba(45, 109, 163, 0.95);
+  border-color: var(--s-accent);
+}
+
+.supply__advance:focus-visible {
+  outline: 2px solid var(--s-accent);
+  outline-offset: 2px;
+}
+
+/* ---------- THE RAIL ----------
+   The answers, on the right.
+
+   The astronaut and his pointing hand own the left of the picture, and the
+   checklist he is pointing at owns the middle. The right is the only side that can
+   take the answer buttons without covering the story, so that is where they go.
+
+   It is bottom-anchored and stops short of the big MARS MISSION screen, which is
+   the focal point of the picture.
+*/
+.supply__rail {
+  position: absolute;
+  right: 1.5%;
+  bottom: 2.5%;
+  width: 20%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: clamp(0.4rem, 1.2vmin, 0.8rem);
+  border: 1px solid var(--s-line);
+  border-radius: 0.7rem;
+  background: var(--s-glass);
+  box-shadow: 0 0.4rem 1.4rem rgba(0, 0, 0, 0.45);
+  animation: supply-rise 260ms ease-out both;
+}
+
+@keyframes supply-rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.6rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* A short label only. The question is said by the astronaut, in the bubble, and
+   is deliberately not repeated here. */
+.supply__ask {
+  margin: 0 0 0.4rem;
+  font-size: clamp(0.68rem, 1.2vmin, 0.82rem);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--s-muted);
+}
+
+.supply__choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.supply__choice-button {
+  width: 100%;
+  padding: 0.5rem 0.3rem;
+  border: 1px solid var(--s-line);
+  border-radius: 4px;
+  background: rgba(20, 46, 78, 0.85);
+  color: var(--s-text);
+  font-family: inherit;
+  font-size: clamp(0.9rem, 1.9vmin, 1.3rem);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+
+.supply__choice-button:hover:not(:disabled) {
+  background: rgba(45, 109, 163, 0.9);
+  border-color: var(--s-accent);
+}
+
+.supply__choice-button:focus-visible {
+  outline: 2px solid var(--s-accent);
+  outline-offset: 2px;
+}
+
+/* Dimmed rather than invisible, so a button's place is already known when it
+   becomes clickable. */
+.supply__choice-button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/*
+  A retired wrong answer.
+
+  Still visible, struck through, because the remaining options have to be
+  reasoned about and a button that vanishes gives the child nothing to rule out.
+  Only the ability to repeat the mistake is taken away.
+*/
+.supply__choice-button.is-locked {
+  opacity: 0.32;
+  border-style: dashed;
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+  cursor: not-allowed;
+}
+
+/* ---------- VERDICT ---------- */
+
+.supply__result {
+  margin: 0.4rem 0 0;
+  padding-left: 0.4rem;
+  border-left: 2px solid var(--s-accent);
+  font-size: clamp(0.68rem, 1.15vmin, 0.8rem);
+  line-height: 1.4;
+  color: var(--s-muted);
+  animation: supply-rise 260ms ease-out both;
+}
+
+.supply[data-supply-state='right'] .supply__result {
+  border-left-color: var(--s-good);
+}
+
+/* ---------- THE WAY OUT ---------- */
+
+.supply__action {
+  width: 100%;
+  padding: 0.45rem 0.5rem;
+  border: 1px solid var(--s-line);
+  border-radius: 4px;
+  background: rgba(20, 46, 78, 0.85);
+  color: var(--s-text);
+  font-family: inherit;
+  font-size: clamp(0.7rem, 1.2vmin, 0.82rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+
+.supply__action:hover {
+  background: rgba(45, 109, 163, 0.9);
+  border-color: var(--s-accent);
+}
+
+.supply__action:focus-visible {
+  outline: 2px solid var(--s-accent);
+  outline-offset: 2px;
+}
+
+.supply__action--primary {
+  background: var(--s-accent);
+  border-color: var(--s-accent);
+  color: #1b0c00;
+}
+
+/* ---------- NARROW ----------
+   The bubble and the rail both track the picture, so they shrink with the stage
+   rather than being re-laid-out. The rail widens a little because its labels are
+   short and it is the only interactive part.
+*/
+@media (max-width: 48rem) {
+  .supply__rail {
+    width: 25%;
+  }
+}
+
+/* ---------- SHORT ---------- */
+
+@media (max-height: 32rem) {
+  .supply__speech {
+    max-width: 38%;
+  }
+
+  .supply__bubble-text {
+    font-size: 0.8rem;
+  }
+}
+
+/* ---------- REDUCED MOTION ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .supply__bubble,
+  .supply__rail,
+  .supply__result,
+  .supply__advance,
+  .supply__choice-button,
+  .supply__action {
+    animation: none;
+    transition: none;
+  }
+}

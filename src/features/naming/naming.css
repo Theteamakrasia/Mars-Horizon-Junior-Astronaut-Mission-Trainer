@@ -1,0 +1,372 @@
+/* ==========================================================================
+   NAMING ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the main menu
+   Colours sampled from the design mockup rather than guessed:
+     background #070E12 Ãƒâ€šÃ‚Â· panel #131D24 Ãƒâ€šÃ‚Â· field #152029 Ãƒâ€šÃ‚Â· border #2E3C45
+     text #FCFCFC Ãƒâ€šÃ‚Â· muted #515C63 Ãƒâ€šÃ‚Â· accent #FA6200
+   Imported by ./view.ts only. Never added to src/style.css ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â that is the
+   landing page's stylesheet and it becomes a merge magnet (AGENTS.md R-15).
+   ========================================================================== */
+
+.naming {
+  --n-bg: #070e12;
+  --n-panel: #131d24;
+  --n-field: #152029;
+  --n-border: #2e3c45;
+  --n-text: #fcfcfc;
+  --n-muted: #515c63;
+  --n-accent: #fa6200;
+
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding: clamp(0.75rem, 2.2vmin, 2rem);
+  gap: clamp(0.75rem, 2vmin, 1.75rem);
+  background: var(--n-bg);
+  color: var(--n-text);
+  font-family: var(--font-display);
+  overflow: hidden;
+}
+
+.naming *,
+.naming *::before,
+.naming *::after {
+  box-sizing: border-box;
+}
+
+/* ---------- HEADER ---------- */
+.naming__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex: 0 0 auto;
+  padding: 0.55rem 0.85rem;
+  border: 1px solid var(--n-border);
+  border-radius: 4px;
+  background: var(--n-panel);
+}
+
+.naming__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.naming__brand-mark {
+  display: grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 5px;
+  background: var(--n-accent);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.naming__brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.naming__brand-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.naming__brand-sub {
+  font-size: 0.58rem;
+  letter-spacing: 0.16em;
+  color: var(--n-muted);
+}
+
+.naming__nav {
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  color: var(--n-muted);
+  text-transform: uppercase;
+}
+
+/* ---------- BODY ---------- */
+.naming__body {
+  display: flex;
+  align-items: center;
+  gap: clamp(1rem, 3vmin, 3rem);
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Left column: heading, name field, actions, trainer note. */
+.naming__panel {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1rem, 2.4vmin, 2rem);
+  width: min(30rem, 46%);
+  height: 100%;
+  min-height: 0;
+}
+
+.naming__title {
+  margin: 0;
+  font-size: clamp(1.9rem, 6.2vw, 4.4rem);
+  font-weight: 900;
+  line-height: 0.92;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.naming__greeting {
+  margin: 0;
+  min-height: 1.3em;
+  font-size: clamp(0.85rem, 1.5vw, 1.05rem);
+  color: var(--n-accent);
+  letter-spacing: 0.03em;
+}
+
+.naming__form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.naming__input {
+  width: 100%;
+  padding: 0.85rem 1.1rem;
+  border: 1px solid var(--n-border);
+  border-radius: 4px;
+  background: var(--n-field);
+  color: var(--n-text);
+  font: inherit;
+  font-size: clamp(1rem, 2vw, 1.35rem);
+  letter-spacing: 0.06em;
+}
+
+.naming__input::placeholder {
+  color: var(--n-muted);
+  letter-spacing: 0.08em;
+}
+
+/* A visible focus ring. The whole point of the screen is one input. */
+.naming__input:focus-visible {
+  outline: 2px solid var(--n-accent);
+  outline-offset: 2px;
+}
+
+.naming__hint {
+  margin: 0;
+  min-height: 1.1em;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  color: var(--n-muted);
+}
+
+.naming__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+}
+
+.naming__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.15rem;
+  border: 1px solid var(--n-border);
+  border-radius: 4px;
+  background: var(--n-panel);
+  color: var(--n-text);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.naming__button:hover:not(:disabled) {
+  border-color: var(--n-accent);
+  color: var(--n-accent);
+}
+
+.naming__button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.naming__button:focus-visible {
+  outline: 2px solid var(--n-accent);
+  outline-offset: 2px;
+}
+
+/* Disabled until the name is usable: a child should not be able to press a
+   button that cannot work. */
+.naming__button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.naming__trainer {
+  margin-top: auto;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--n-border);
+  border-radius: 4px;
+  background: var(--n-panel);
+}
+
+.naming__trainer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.naming__trainer-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--n-accent);
+}
+
+.naming__trainer-state {
+  color: var(--n-accent);
+}
+
+.naming__trainer-note {
+  margin: 0.45rem 0 0;
+  font-size: 0.68rem;
+  line-height: 1.45;
+  color: var(--n-muted);
+}
+
+/* ---------- STAGE: the card ----------
+   Composition verified by rendering the card to a PNG and looking at it against
+   the design mockup, rather than by eyeballing CSS percentages. The numbers
+   below are the ones that reproduced the mockup.
+
+   The relationship that matters: the astronaut sits LEFT of centre and IN FRONT
+   of the planet, and the planet bleeds off the right edge so it reads as larger
+   than the card. An earlier pass centred both layers, which put him inside the
+   planet's disc and looked nothing like the mockup. */
+.naming__stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+.naming__card {
+  position: relative;
+  width: min(100%, calc(68vh * 1.566));
+  aspect-ratio: 1060 / 677;
+  overflow: hidden;
+  border: 1px solid var(--n-border);
+  border-radius: 6px;
+  background: linear-gradient(180deg, #050b12, #02060a);
+}
+
+/* Deepest layer: the planet, filling the right side and running off the edge. */
+.naming__mars {
+  position: absolute;
+  top: 50%;
+  left: 88%;
+  width: 78%;
+  height: auto;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  object-fit: contain;
+  animation: naming-mars-turn 150s linear infinite;
+  will-change: transform;
+}
+
+/* Middle layer: the astronaut, left of centre, cropped by the card's bottom
+   edge rather than floating whole inside it. */
+.naming__astronaut {
+  position: absolute;
+  bottom: -10%;
+  left: 30%;
+  width: 45%;
+  height: auto;
+  transform: translateX(-50%);
+  object-fit: contain;
+  animation: naming-astronaut-float 9s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+/*
+  A sphere spun about its own axis looks identical, so the planet's rotation is
+  in the image plane instead: the surface features turn, which is what reads as
+  a planet spinning. A rotateY would appear to do nothing at all.
+*/
+@keyframes naming-mars-turn {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+/* Vertical only, so his left-of-centre placement is preserved. */
+@keyframes naming-astronaut-float {
+  from {
+    transform: translateX(-50%) translateY(0);
+  }
+  to {
+    transform: translateX(-50%) translateY(-1.8%);
+  }
+}
+
+
+/* ---------- REDUCED MOTION ----------
+   Both animations are continuous and self-triggered, which is exactly what the
+   preference is about, so both are removed outright rather than slowed. The
+   screen stays completely usable. */
+@media (prefers-reduced-motion: reduce) {
+  .naming__mars,
+  .naming__astronaut {
+    animation: none;
+  }
+
+  .naming__button {
+    transition: none;
+  }
+}
+
+/* ---------- NARROW / SHORT VIEWPORTS ----------
+   The card is decorative. Below this width the astronaut and planet would crowd
+   the form, so the stage is dropped and the panel takes the full width. */
+@media (max-width: 720px), (max-height: 480px) {
+  .naming__body {
+    align-items: flex-start;
+    overflow-y: auto;
+  }
+
+  .naming__panel {
+    width: 100%;
+    height: auto;
+  }
+
+  .naming__stage {
+    display: none;
+  }
+}
+
+.naming__visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

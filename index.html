@@ -22,33 +22,232 @@
     />
   </head>
   <body>
-    <!-- Layer 0/1: deep-space background + pulsing starfield (decorative) -->
-    <div id="starfield" class="starfield" aria-hidden="true"></div>
+    <!-- ============ THE LANDING PAGE ============
+         Everything inside #landing belongs to the placeholder page. main.ts hides all
+         of it when a routed screen is mounted, so never add a routed screen inside
+         this element. scripts/check-markup.mjs enforces that. -->
+    <div id="landing">
+      <!-- Layer 0/1: deep-space background + pulsing starfield (decorative) -->
+      <div id="starfield" class="starfield" aria-hidden="true"></div>
 
-    <!-- Layer 2: the astronaut. Three nested elements, each owning exactly one
-         transform, so nothing fights over `transform`:
-           .astronaut        translate3d  — position, driven by JS
-           .astronaut__deform rotate+scale — squash on impact, driven by JS
-           .astronaut__img   sway+breathe  — idle life, driven by CSS
-         Also pick-up-able: the pointer handlers live in pointerGrab.ts. -->
-    <div id="astronaut" class="astronaut">
-      <div id="astronaut-deform" class="astronaut__deform">
-        <!-- html-validate-disable-next element-required-attributes -->
-        <img id="astronaut-img" class="astronaut__img" alt="Cartoon astronaut floating in space, draggable" />
+      <!-- Layer 2: the astronaut. Three nested elements, each owning exactly one
+           transform, so nothing fights over `transform`:
+             .astronaut        translate3d  — position, driven by JS
+             .astronaut__deform rotate+scale — squash on impact, driven by JS
+             .astronaut__img   sway+breathe  — idle life, driven by CSS
+           Also pick-up-able: the pointer handlers live in pointerGrab.ts. -->
+      <div id="astronaut" class="astronaut">
+        <div id="astronaut-deform" class="astronaut__deform">
+          <img id="astronaut-img" class="astronaut__img" alt="Cartoon astronaut floating in space, draggable" />
+        </div>
       </div>
+
+      <!-- Layer 3: the message. Sits above the astronaut so the drifting sprite
+           passes behind the letters and the text stays legible at all times. -->
+      <main class="stage">
+        <h1 class="stage__title">
+          <span class="stage__title-text">Under Construction</span
+          ><span class="stage__cursor" aria-hidden="true">_</span>
+        </h1>
+      </main>
+
+      <!-- Layer 4: vignette, boosts contrast against the text -->
+      <div class="vignette" aria-hidden="true"></div>
     </div>
+    <!-- The main menu. The stage images get their src from
+         features/naming/view.ts so Vite fingerprints them; data-naming-img only
+         says which file goes in which slot. -->
+    <section id="naming" class="naming" aria-labelledby="naming-title">
+      <header class="naming__header">
+        <div class="naming__brand">
+          <span class="naming__brand-mark" aria-hidden="true">&#128640;</span>
+          <span class="naming__brand-text">
+            <span class="naming__brand-name">MARS HORIZON</span>
+            <span class="naming__brand-sub">TRAINER MODE</span>
+          </span>
+        </div>
+        <nav class="naming__nav" aria-label="Primary">Mission Control / Main Menu</nav>
+      </header>
 
-    <!-- Layer 3: the message. Sits above the astronaut so the drifting sprite
-         passes behind the letters and the text stays legible at all times. -->
-    <main class="stage">
-      <h1 class="stage__title">
-        <span class="stage__title-text">Under Construction</span
-        ><span class="stage__cursor" aria-hidden="true">_</span>
-      </h1>
-    </main>
+      <div class="naming__body">
+        <div class="naming__panel">
+          <h1 class="naming__title" id="naming-title">Welcome<br />Astronaut</h1>
+          <p class="naming__greeting" data-naming-greeting role="status" aria-live="polite"></p>
 
-    <!-- Layer 4: vignette, boosts contrast against the text -->
-    <div class="vignette" aria-hidden="true"></div>
+          <form class="naming__form" data-naming-form novalidate>
+            <label class="naming__visually-hidden" for="naming-input">Your astronaut's name</label>
+            <input
+              class="naming__input"
+              id="naming-input"
+              type="text"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="[ Enter name ]"
+              data-naming-input
+            />
+            <p class="naming__hint" data-naming-hint aria-live="polite"></p>
+            <div class="naming__actions">
+              <button class="naming__button" type="submit" data-naming-submit disabled>
+                Start Mission
+              </button>
+              <button class="naming__button" type="button" data-naming-back>
+                Back to Main Menu
+              </button>
+            </div>
+          </form>
+
+          <aside class="naming__trainer">
+            <p class="naming__trainer-head">
+              <span class="naming__trainer-flag">
+                <span aria-hidden="true">&#9673;</span> Trainer Mode
+              </span>
+              <span class="naming__trainer-state">Active</span>
+            </p>
+            <p class="naming__trainer-note">
+              Learn to become an expert. We support crew-voice guided missions,
+              safe bot at all times.
+            </p>
+          </aside>
+        </div>
+
+        <div class="naming__stage">
+          <div class="naming__card">
+            <img
+              class="naming__mars"
+              data-naming-img="mars"
+              alt=""
+              aria-hidden="true"
+              decoding="async"
+            />
+            <img
+              class="naming__astronaut"
+              data-naming-img="astronaut"
+              alt="A cartoon astronaut in a white spacesuit, floating in front of Mars"
+              decoding="async"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- The mission briefing. Reached by naming the astronaut and pressing
+         START MISSION. No images: the copy is the whole screen. -->
+    <section id="briefing" class="briefing" aria-labelledby="briefing-title">
+      <header class="briefing__header">
+        <div class="briefing__brand">
+          <span class="briefing__brand-mark" aria-hidden="true">&#128640;</span>
+          <span class="briefing__brand-text">
+            <span class="briefing__brand-name">MARS HORIZON</span>
+            <span class="briefing__brand-sub">MISSION BRIEFING</span>
+          </span>
+        </div>
+        <nav class="briefing__nav" aria-label="Primary">Mission Control / Main Menu</nav>
+      </header>
+
+      <div class="briefing__body">
+        <h1 class="briefing__title" id="briefing-title">Mission Briefing</h1>
+        <p class="briefing__greeting" data-briefing-greeting role="status"></p>
+
+        <!-- The beats are generated in briefing/view.ts so the copy lives in
+             briefing/model.ts, where it is unit tested. -->
+        <ol class="briefing__stream" data-briefing-stream></ol>
+
+        <p class="briefing__hint" data-briefing-hint aria-live="polite"></p>
+
+        <!-- NEXT brings up the next line and is the only thing that does. There is no
+             Skip: it was a second button whose only job was what NEXT does.
+
+             There is also no Continue. The briefing is not optional, so a button
+             that let you leave before reading it was the wrong affordance; once
+             every beat has been shown the screen moves on by itself. -->
+        <div class="briefing__actions">
+          <button class="briefing__button" type="button" data-briefing-next>
+            Next
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- The supply check. Reached from the briefing.
+
+         Comic-book layout, driven by that the picture is a full Mission Control
+         room with no empty space in it:
+
+           - ALL speech is in one bubble beside the astronaut, with a tail
+             pointing at him, and each line REPLACES the one before it. The five
+             facts, then the question, then the verdict.
+           - Only the ANSWER BUTTONS sit anywhere else, in a rail down the left
+             edge, in the strip of wall that is clear of the astronaut. He is the
+             subject of the picture and nothing may cover him.
+
+         The question text appears once, in the bubble. An earlier version repeated
+         it in a dock as well, which printed the same sentence twice on one screen.
+
+         The art sits inside .supply__stage, locked to the image's own aspect
+         ratio. That matters: with object-fit: cover the artwork is cropped
+         differently at every window size, so anything positioned against it would
+         drift away from the thing it was meant to point at. Locking the ratio
+         makes the bubble land in the same place in the picture at any size.
+
+         Every element supply/view.ts queries carries a data hook below.
+         scripts/check-markup.mjs fails the build if one is removed. -->
+    <section id="supply" class="supply" aria-label="Supply check at Mission Control">
+      <div class="supply__stage">
+        <!-- No src here on purpose: supply/view.ts imports the three frames as
+             modules so Vite fingerprints and bundles them, and assigns one in the
+             same tick it mounts. A hand-written path would be a second place to
+             update and would 404 in the build. -->
+        <img
+          class="supply__scene"
+          data-supply-scene
+          alt=""
+          aria-hidden="true"
+          decoding="async"
+        />
+
+        <!-- One bubble, reused. aria-live so each replacement is announced, since
+             the previous line is genuinely removed rather than scrolled past. -->
+        <div class="supply__speech" role="status" aria-live="polite">
+          <div class="supply__bubble" data-supply-bubble hidden>
+            <p class="supply__bubble-label" data-supply-bubble-label></p>
+            <p class="supply__bubble-text" data-supply-bubble-text></p>
+            <span class="supply__bubble-tail" aria-hidden="true"></span>
+          </div>
+
+          <!-- NEXT sits with the speech, the way a reader turns a page. It is the
+               only thing that brings up the next line. -->
+          <button class="supply__advance" type="button" data-supply-next>Next</button>
+        </div>
+
+        <!-- The answers, on the RIGHT. The astronaut and his pointing hand own the
+             left of the picture and the checklist owns the middle, so the right is
+             the only side that can take them without covering the story. -->
+        <div class="supply__rail">
+          <div class="supply__answers" data-supply-answers hidden>
+            <!-- A short label only. The question itself is in the bubble, said by
+                 the astronaut, and is not repeated here. -->
+            <p class="supply__ask">How many packs?</p>
+
+            <!-- Four buttons, generated in supply/view.ts from the model, so the
+                 numbers on screen are the numbers under test. -->
+            <ul class="supply__choices" data-supply-choices></ul>
+
+            <!-- The working, in small type, so the question stays on screen in the
+                 bubble beside it. -->
+            <p class="supply__result" data-supply-result hidden></p>
+          </div>
+
+          <button
+            class="supply__action supply__action--primary"
+            type="button"
+            data-supply-continue
+            hidden
+          >
+            Continue
+          </button>
+        </div>
+      </div>
+    </section>
 
     <script type="module" src="/src/main.ts"></script>
   </body>

@@ -135,9 +135,11 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │                                             main.ts** — no features exist to route to, and
     │                                             half-wiring it could break the landing page.
     │                                             DOM behaviour UNVERIFIED in a browser.
-    │   # registry.ts                   STUB        Exports ScreenFactory, resolveScreen. Imports
-    │                                             NO feature yet, so it cannot claim to route to a
-    │                                             screen that does not exist. Throws.
+    │   # registry.ts                   complete   the one composition seam. Exports ScreenFactory,
+    │                                             screenMount, resolveScreen. Maps routes onto
+    │                                             feature views; the only file permitted to import
+    │                                             them. Returns null for routes with nothing built,
+    │                                             so the router can fall through instead of throwing.
     │
     ├── dom/                            landing-page side effects only. Untested (ISS-011).
     │   ├── floatAstronaut.ts           complete   218 lines. The rAF loop, the two transforms, the
@@ -156,12 +158,26 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   └── spaceweather.ts             STUB       Exports SpaceWeatherEvent, SpaceWeatherSource,
     │                                             fetchSpaceWeather, lastSource. All throw.
     │
-    ├── features/                       STUB + contracts. Every folder present, none built. Each
-    │   │                               file throws, so nothing here silently returns undefined.
+    ├── features/                       one folder per screen. naming is BUILT; the rest are stubs.
+    │   │                               Every stub throws, so nothing silently returns undefined.
     │   ├── README.md                   the layout contract: four files, depth 2, which rules are
     │   │                               enforced vs convention
-    │   ├── landing-site/               STUB       TASK-028. Best first task: no dependency on the
-    │   │   ├── README.md                           resource model.
+    │   ├── naming/                     COMPLETE   Scene one. The entry screen.
+    │   │   ├── README.md                           the contract
+    │   │   ├── model.ts                 complete   104 lines. Exports MAX_NAME_LENGTH (24),
+    │   │   │                                     NameProblem, NameCheck, normaliseName,
+    │   │   │                                     checkName, displayName. Pure; length counted in
+    │   │   │                                     code points so an emoji costs 1, not 2.
+    │   │   ├── model.test.ts            complete   21 tests, every input a literal
+    │   │   ├── view.ts                  complete   mountNaming(root, run) -> teardown. Validates on
+    │   │   │                                     every keystroke; START MISSION disabled until the
+    │   │   │                                     name is usable. Says plainly that the next scene
+    │   │   │                                     is not built (ISS-017).
+    │   │   └── naming.css               complete   measured palette + naming-mars-turn (150s) and
+    │   │                                         naming-astronaut-float (9s), both removed under
+    │   │                                         prefers-reduced-motion
+    │   ├── landing-site/               STUB       TASK-028. Now blocks START MISSION (ISS-017).
+    │   │   ├── README.md                           the contract
     │   │   ├── model.ts                           SiteAxis, SITE_AXES, SiteScore, Region,
     │   │   │                                       REGIONS, scoreRegion, tradeoffSummary
     │   │   ├── view.ts                            mountLandingSite
@@ -272,8 +288,17 @@ startFloatingAstronaut → rAF tick → stepAstronaut (pure) → render transfor
              └────────────────> impact()/stretch() <────┘
 
 ui/router.ts → location.hash → parseRoute (pure) → onRoute(route) → main.ts
-             ╰─ NOT CONNECTED: main.ts does not import router.ts yet
+             → registry.resolveScreen → features/*/view.ts → teardown on navigate away
 ```
+
+The rotation behind the menu is **CSS keyframes**, not JavaScript: `naming-mars-turn`
+(150s) and `naming-astronaut-float` (9s), both removed under
+`prefers-reduced-motion`. No `requestAnimationFrame` is involved, so there is no loop
+to leak on navigation and the menu needs no teardown for them.
+
+The planet rotates **in the image plane** (`rotate()`), not on a 3D axis. This is
+forced by the asset: a sphere spun about its own axis looks identical, so a `rotateY`
+would appear to do nothing (D-020).
 
 Zero network calls, zero storage. There is no game state.
 
@@ -294,9 +319,13 @@ Zero network calls, zero storage. There is no game state.
     `startFloatingAstronaut`, storing the teardown.
 11. The `change` listener attaches **only** when no URL override was requested.
 12. The first `requestAnimationFrame` is scheduled.
+13. `main.ts` collects the landing page's own layers into `landingLayers`, then
+    `startScreenRouter()` calls `startRouter`, which resolves the hash — defaulting to
+    `naming` — and mounts that screen, hiding the landing layers behind it.
 
-Routing does not appear here because it is not wired. When it is: start the router after
-the landing page is up, and let `main.ts` own `RunState` and pass it to each screen.
+Routing is last because it is not wired until a screen exists to route to.
+`BACK TO MAIN MENU` returns to `landing`, which keeps running behind the mounted
+screen.
 
 ## Module contracts
 
@@ -320,14 +349,22 @@ the landing page is up, and let `main.ts` own `RunState` and pass it to each scr
 | | `stepAstronaut` | `(frame, dt, grab, options) -> AstronautFrame`; steps the spring unconditionally |
 | | `releaseAstronaut` | clamps into the viewport; discards throws under reduced motion |
 | | `DRAG_FOLLOW_RATE` 14, `DRAG_STRETCH_SPEED` 3400, `MIN_THROW_SPEED` 60 | tunables |
-| `ui/routes` | `Route` | `'landing' \| 'landing-site' \| 'base' \| 'act' \| 'debrief'` |
-| | `ROUTE_ORDER` | the five routes in play order |
-| | `DEFAULT_ROUTE` | `'landing'` |
+| `ui/routes` | `Route` | `'naming' \| 'landing' \| 'landing-site' \| 'base' \| 'act' \| 'debrief'` |
+| | `ROUTE_ORDER` | the six routes in play order, `naming` first |
+| | `DEFAULT_ROUTE` | `'naming'` — the entry screen (D-021) |
 | | `parseRoute` | `(hash) -> Route \| null`; tolerant of missing/duplicated `/`, whitespace, case, query string. Returns null rather than throwing |
 | | `routeToHash` | `(route) -> '#/<route>'` |
 | | `nextRoute`, `previousRoute` | `(route) -> Route \| null`; null at the ends |
 | `ui/router` | `startRouter` | `({onRoute, onUnknownHash?}) -> teardown`; fires `onRoute` once immediately and on every `hashchange`; normalises an unknown hash via `replaceState` |
 | | `navigate` | `(route) => void`; assigns `location.hash` so Back works |
+| `ui/registry` | `screenMount` | `(route) => selector \| null`; null when nothing is built for that route |
+| | `resolveScreen` | `(route) => ScreenFactory \| null`; null when nothing is built |
+| | `ScreenFactory` | `(mount, run) => teardown`; teardown is mandatory, not optional |
+| `features/naming/model` | `MAX_NAME_LENGTH` | 24, counted in code points |
+| | `normaliseName` | trims and collapses whitespace runs |
+| | `checkName` | `(raw) -> {ok, value, problem}`; returns the normalised value so a caller never normalises twice |
+| | `displayName` | strips control characters and caps length — the one string interpolated into markup |
+| `features/naming/view` | `mountNaming` | `(root, run) -> teardown`; START MISSION disabled until the name is usable |
 | `dom/floatAstronaut` | `startFloatingAstronaut` | `(wrapper, {deformLayer, reducedMotion}) -> teardown`; cancels rAF, removes the resize listener, detaches the grab, clears the transform |
 | `dom/pointerGrab` | `attachGrab` | `(target, handlers, options) -> teardown` |
 | `dom/starfield` | `createStarfield` | `(container) => void`; appends, never clears |

@@ -12,6 +12,10 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
 | ISS-015 | `frame.test.ts:81` fails ~40% of runs (flaky) | high | agent | fixed | adc5767 |
+| ISS-017 | `START MISSION` has no destination; next scene is a stub | medium | unassigned | open | — |
+| ISS-018 | Seven cinematic PNGs committed, 12 MB, never referenced | medium | unassigned | open | — |
+| ISS-019 | Cinematics mix three visual styles | low | unassigned | open | — |
+| ISS-020 | NASA insignia appears on children's suits and props | low | unassigned | open | — |
 | ISS-001 | README claims no installable build exists | high | unassigned | open | — |
 | ISS-006 | `.gitignore` omits `.env*`, leaking API keys | high | unassigned | open | — |
 | ISS-008 | DONKI CORS and reachability unverified | high | unassigned | blocked | needs a browser check |
@@ -108,6 +112,86 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
   DOM-bearing, so it may not be imported by that feature's `model.ts`. That is the
   conservative direction: it prompts a rename rather than silently permitting DOM into
   pure logic.
+
+## ISS-017 — `START MISSION` has no destination; the next scene is a stub
+
+- **Reported by:** building the naming menu, 2026-10-07
+- **Where:** `src/features/naming/view.ts`, `onSubmit`
+- **Problem:** pressing START MISSION validates the name, shows a greeting, and then
+  says *"Your journey begins here. The next scene is still under construction."*
+  It deliberately does not navigate. The route after `naming` in play order is
+  `landing`, which is the placeholder page, and the intended next stop is
+  `landing-site`, whose `view.ts` is a stub that throws.
+- **Cause:** `landing-site` has not been built. Navigating into a throwing stub
+  would take the page down in front of the player, which is worse than an honest
+  message.
+- **Risk:** low, and it is the safe direction — the flow is visibly incomplete
+  rather than broken. It does mean the menu cannot demonstrate a completed
+  journey, which matters for the Nov 14 demo.
+- **Fix:** build `features/landing-site/` (TASK-028), then change `onSubmit` to
+  call `navigate('landing-site')` and hand over the run state. The comment in
+  `onSubmit` marks the exact spot.
+
+## ISS-018 — Seven cinematic PNGs committed, 12 MB, never referenced
+
+- **Reported by:** measuring the repo after the cinematic frames were pushed,
+  2026-10-07
+- **Where:** `Assets/images/Cinematics frames/`
+- **Problem:** 7 PNGs totalling **12 MB** in a repository whose entire production
+  bundle is under 200 KB. They are 1670x942, photographic-style illustrations
+  stored as PNG. Nothing in `src/` imports them, so Vite never bundles them —
+  they are dead weight in the clone, not in the build.
+- **Measured:** `near mars.png` 1.69 MB, `walk to rocket.png` 1.97 MB,
+  `detach body parts.png` 1.91 MB, `light cross on earth.png` 1.95 MB,
+  `press conference.png` 1.75 MB, `choose supply.png` 1.53 MB,
+  `naming.png` 1.53 MB.
+- **Cause:** uploaded via the GitHub web interface rather than built or optimised.
+- **Risk:** slow clone for all six developers; 12 MB of history that stays in every
+  clone forever even if deleted later. Not a runtime risk, since `publicDir: false`
+  keeps them out of `dist/`.
+- **Fix:** convert to WebP at q82 as each scene is actually built. Measured on the
+  naming cutouts: 1.3 MB of PNG became 125 KB of WebP, roughly a 10x cut, with no
+  visible loss. Do not delete them until the scenes exist — they are the design
+  reference. Shown not to be in the build: `dist/` after the naming work contained
+  no PNG over 200 KB.
+
+## ISS-019 — Cinematics mix three visual styles
+
+- **Reported by:** viewing all seven frames, 2026-10-07
+- **Where:** `Assets/images/Cinematics frames/`
+- **Problem:** the seven frames are not one consistent set. Anime cel-shaded
+  illustration: `walk to rocket`, `press conference`, `choose supply`, and
+  `naming`. Photoreal: `detach body parts` and `near mars`. Painterly: `light cross
+  on earth`. A further mismatch: `near mars.png` (the newer version, replacing the
+  one committed on 2026-10-06) is photoreal where the earlier copy was not.
+- **Also:** the existing `floating.png` is pixel art, so it does not match the
+  cinematics either.
+- **Risk:** low for correctness, high for polish. Consecutive frames in the same
+  sequence will visibly change style mid-story, which reads as a mistake rather
+  than a choice.
+- **Fix:** decide deliberately — either restyle `near mars` and `detach body parts`
+  to the anime treatment, or accept the mix and use style changes as scene breaks.
+  Worth an explicit answer before the cinematic sequence is assembled.
+
+## ISS-020 — NASA insignia appears on children's suits and props
+
+- **Reported by:** viewing the cinematic frames, 2026-10-07
+- **Where:** `walk to rocket.png`, `press conference.png`, `choose supply.png`
+- **Problem:** the frames depict four child astronauts wearing suits with the NASA
+  insignia on the chest and shoulder, walking past a NASA building, standing at a
+  podium with a NASA banner, and sitting in Mission Control with the logo on the
+  wall, on a mug and on a folder.
+- **Why it matters:** the project README states the insignia is used *"only to
+  identify the challenge this project responds to and to credit NASA as the source
+  of the open data."* These frames depict NASA as running a fictional children's
+  Mars mission, which is what the disclaimer exists to rule out.
+- **Risk:** reputational rather than technical. NASA Space Apps entries commonly
+  use NASA imagery, so this is not fatal. But it should be a decision taken
+  deliberately, not something noticed after submission.
+- **Fix:** an explicit decision from the project owner, recorded in
+  `docs/team/decisions.md`. Options include keeping the insignia with the existing
+  disclaimer, removing it from the children's suits specifically, or adding a
+  line to the README making the fictional framing explicit.
 
 ## ISS-001 — README claims no installable build exists
 
@@ -362,4 +446,4 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-**Next free id: ISS-017.**
+**Next free id: ISS-021.**

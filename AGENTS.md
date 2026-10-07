@@ -17,12 +17,15 @@ That is what lets 94 tests run in ~15ms with no browser and no mocks, so the gam
 asserted on rather than eyeballed. Everything else here exists to protect it. If you are
 unsure where code goes: if it touches the DOM it is not pure.
 
-**Current reality, stated plainly: there is still no game code.** What works is the
-polished landing page, the astronaut's physics in `sim/`, and hash routing in `ui/` that
-is **not yet wired into `main.ts`**. Everything else — `sim/{resources,sol,run}.ts`,
-`ui/registry.ts`, `data/spaceweather.ts` and all four features — is a **stub**: real
-types, real signatures, every function body `throw`s. No resource model, no screens, no
-save, no network call. The README describes the game; the code is the landing page.
+**Current reality: the game has one screen.** The **naming menu is built and is the
+entry route** — the player names their astronaut and presses START MISSION, which
+currently says the next scene is still under construction (ISS-017). The polished
+landing page still works behind it and is what BACK TO MAIN MENU returns to.
+
+Everything else is a **stub**: real types, real signatures, every body `throw`s —
+`sim/{sol,resources}` partly, `sim/run.ts` partly, `data/spaceweather.ts`, and the
+`landing-site`, `base`, `act` and `debrief` features. No sol loop, no screens beyond
+one, no save, no network call.
 
 **A stub is not an implementation.** If a file says STUB, calling it throws. That is
 deliberate: it fails loudly instead of silently returning `undefined`.
@@ -38,6 +41,7 @@ human upholds it and nothing catches you.
 | R-2 | `data/` imports only `data/`, `sim/` | **enforced** | `layer-boundary` |
 | R-3 | `dom/` imports only `dom/`, `data/`, `sim/` | **enforced** | `layer-boundary` |
 | R-4 | `ui/` imports only `ui/`, `dom/`, `data/`, `sim/` | **enforced** | `layer-boundary` |
+| R-4b | Only `ui/registry.ts` may import a feature's `view.ts` | **enforced** | `layer-boundary` |
 | R-5 | **A feature never imports another feature** | **enforced** | `cross-feature` |
 | R-6 | `model.ts`, `types.ts`, `constants.ts`, `*.test.ts` stay pure | **enforced** | `no-dom-in-pure-zone` |
 | R-7 | A `model.ts` may not import its own `view.ts` | **enforced** | `purity-inversion` |
@@ -68,15 +72,20 @@ with no automated check; it is on every reviewer.
 ## 3. Data flow
 
 ```
-index.html → main.ts → { createStarfield, startFloatingAstronaut }
+main.ts → { createStarfield, startFloatingAstronaut, startRouter }
 startFloatingAstronaut → rAF tick → stepAstronaut (pure) → render transforms
 stepAstronaut → stepDrift (bounce maths) + stepDeform (spring maths)
 
-ui/router.ts → window.location.hash → parseRoute (pure) → onRoute(route)
-                 ↑ implemented and tested, NOT yet connected to main.ts
+startRouter → location.hash → parseRoute (pure) → onRoute
+            → registry.resolveScreen → features/naming/view.ts
+            → unmount the previous screen first
 ```
 
-Two DOM reads, **zero network calls, zero storage**. There is no game state.
+The menu's rotation is **CSS keyframes**, not JS — no `requestAnimationFrame`, so no
+loop to leak when you navigate away.
+
+**Zero network calls, zero storage.** The player's name lives in memory only and is
+lost on refresh.
 
 ## 4. Boot order
 
@@ -92,9 +101,10 @@ Two DOM reads, **zero network calls, zero storage**. There is no game state.
 10. `startFloatingAstronaut()` starts the loop; teardown handle stored.
 11. The motion `change` listener attaches **only** without a URL override.
 12. First `requestAnimationFrame` scheduled.
+13. `startScreenRouter()` resolves the hash — **defaulting to `naming`** — mounts that
+    screen, and hides the landing layers behind it.
 
-**Routing is not in this list — it is not wired yet.** When it is, the router starts
-after the landing page is up, and `main.ts` owns `RunState` and passes it to each screen.
+`BACK TO MAIN MENU` returns to `landing`, which keeps running behind the menu.
 
 ## 5. Doc update matrix
 
@@ -163,8 +173,12 @@ opening its folder — that is the whole point of the layout.
 | Pointer grab, throw velocity, pointer capture | `src/dom/pointerGrab.ts` |
 | Star generation and twinkle randomness | `src/dom/starfield.ts` |
 | Hash routing, route table | `src/ui/router.ts`, `src/ui/routes.ts` |
-| Route → screen mapping | `src/ui/registry.ts` — **STUB, throws** |
-| Boot, element lookup, `?motion=`, owning `RunState` | `src/main.ts` |
+| Route → screen mapping | `src/ui/registry.ts` — **the only file that imports a feature's view** |
+| **The player's name, and the entry screen** | `src/features/naming/` — **built** |
+| Name length, trimming, emoji, validation | `src/features/naming/model.ts` — pure, 21 tests |
+| The rotating Mars-behind-astronaut stage | `src/features/naming/naming.css` |
+| Where START MISSION goes | `onSubmit` in `src/features/naming/view.ts` — **nowhere yet**, ISS-017 |
+| Boot, element lookup, `?motion=`, mounting screens | `src/main.ts` |
 | Page structure, element ids, font link | `index.html` |
 | Landing-page colours and tokens | `src/styles/base.css` |
 | Astronaut transforms, cursor, sway/breathe | `src/styles/astronaut.css` |
@@ -185,7 +199,7 @@ opening its folder — that is the whole point of the layout.
 npm install
 npm run dev        # Vite dev server
 npm run check      # layer + banned-API check, then tsc --noEmit   <- run this
-npm test           # vitest, 94 tests                             <- 40% flaky, ISS-015
+npm test           # vitest, 116 tests                            <- 40% flaky, ISS-015
 npm run build      # to dist/
 npm run preview    # serve the build
 npm run typecheck  # tsc alone
@@ -203,8 +217,10 @@ Do not build any of these. Stop, ask, and get a decision recorded in
 - **Live DONKI fetching** until ISS-008 is answered in a real browser.
 - **A plan phase.** Act is built without one — confirmed by the owner. Do not add
   `features/plan/` unasked.
-- **Wiring `ui/router.ts` into `main.ts`** before at least one feature exists to route
-  to. Half-wiring it with nothing to switch to can break the landing page.
+- **A login page in front of `naming`.** Intended, not built — Supabase is deferred and
+  unowned (D-003, TASK-022).
+- **Persisting the player's name.** In memory only. Adding storage without Supabase is
+  a decision to make deliberately, not a convenience.
 - Moving the landing page out of `src/` root — it is live code until the game is 30%
   built (D-008).
 - Multiplayer, leaderboards, analytics, telemetry. No backend.
