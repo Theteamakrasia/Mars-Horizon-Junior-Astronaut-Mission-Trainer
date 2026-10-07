@@ -1,5 +1,9 @@
 # 🚀 Mars Horizon — Junior Astronaut Mission Trainer
 
+<p align="center">
+  <img src="Assets/images/floating.png" alt="Pixel-art astronaut mascot" width="160">
+</p>
+
 [![Code checks](https://github.com/MdRasB/mars-horizon/actions/workflows/ci.yml/badge.svg)](https://github.com/MdRasB/mars-horizon/actions/workflows/ci.yml)
 [![Deploy to GitHub Pages](https://github.com/MdRasB/mars-horizon/actions/workflows/deploy.yml/badge.svg)](https://github.com/MdRasB/mars-horizon/actions/workflows/deploy.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -7,9 +11,11 @@
 [![Vitest](https://img.shields.io/badge/Vitest-3.2-6E9F18?logo=vitest&logoColor=white)](https://vitest.dev/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-<p align="center">
-  <img src="Assets/images/floating.png" alt="Pixel-art astronaut mascot" width="160">
-</p>
+**A space-survival strategy game where kids learn to run a real Martian outpost.**
+
+You are a newly chosen junior astronaut. You have been trained for months, but you have
+never actually *been* anywhere. Your rocket has arrived at Mars, and from here on out,
+every decision is yours.
 
 ## Index
 
@@ -34,12 +40,6 @@
 - [Project Status](#project-status)
 - [Screenshot Index](#screenshot-index)
 - [Keep Exploring](#keep-exploring)
-
-**A space-survival strategy game where kids learn to run a real Martian outpost.**
-
-You are a newly chosen junior astronaut. You have been trained for months, but you have
-never actually *been* anywhere. Your rocket has arrived at Mars, and from here on out,
-every decision is yours.
 
 Where do you land? How much power do you build? Do you spend your water on the crew or
 save it for the greenhouse? When a dust storm is three sols away, what do you fix first?

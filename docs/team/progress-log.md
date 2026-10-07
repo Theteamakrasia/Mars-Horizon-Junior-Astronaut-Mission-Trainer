@@ -8,6 +8,29 @@ than a documented one.
 
 ---
 
+## 2026-10-07 — README header order for PR #2
+
+**Did**
+
+- Reordered the README header to title, astronaut image, badges, short description, then
+  index, as requested.
+- Moved the existing four-sentence opening description intact; other README prose remains
+  unchanged.
+
+**Files**
+
+- Updated: `README.md`, `docs/pull-requests/002-readme-polish.md`, this log, and TASK-034.
+
+**Problems**
+
+- None. The reordering leaves all index IDs and targets unchanged.
+
+**Next**
+
+- Push the update to PR #2 and refresh its description.
+
+**Doc updates made:** PR description, task TASK-034, and this progress log.
+
 ## 2026-10-07 — README polish on a separate PR branch
 
 **Did**

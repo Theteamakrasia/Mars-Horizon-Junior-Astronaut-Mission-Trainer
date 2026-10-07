@@ -6,18 +6,20 @@
 ## Summary
 
 Improve the README's project identity and navigation without rewriting its existing
-prose. Add relevant project and license badges, use the astronaut sprite already in the
-repository as a small header image, and add a linked index for the existing sections.
+prose. Present the header in this order: title, astronaut image, badges, a four-sentence
+short description, and the index.
 
 ## Changes
 
 - Keep the existing Code checks and GitHub Pages workflow badges.
 - Add TypeScript, Vite, Vitest, and MIT license badges based on this repository's stack.
 - Display `Assets/images/floating.png` as a centered 160-pixel astronaut mascot image with
-  descriptive alternative text.
+  descriptive alternative text, directly below the title.
+- Place the existing four-sentence opening description after the badges and before the index.
 - Add an index linking to the README's existing sections and subsections. Explicit anchor
   IDs keep links stable for headings that include emoji or numbered titles.
-- Leave all existing descriptive text unchanged.
+- Keep the existing description wording unchanged while moving it into the requested order;
+  leave all other README text unchanged.
 - Record the README update in `docs/CHANGELOG.md` and the team progress/task logs.
 
 ## Validation
@@ -31,6 +33,7 @@ repository as a small header image, and add a linked index for the existing sect
 
 - [x] Branch is based on the latest `origin/main`.
 - [x] Existing README prose is unchanged.
+- [x] Header order is title, image, badges, short description, then index.
 - [x] New badges reflect dependencies and license declared by the repository.
 - [x] Header image is a project asset with alt text.
 - [x] Index links have explicit matching anchors.
