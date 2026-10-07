@@ -51,6 +51,8 @@ repository; GitHub Pages is the target chosen in decision D-021.
 ### Documentation and test stability
 
 - Added CI and deployment badges to `README.md`.
+- Added TypeScript, Vite, Vitest, and MIT badges, the existing astronaut mascot image, and
+  an explicit linked index without rewriting the README's existing prose.
 - Added `docs/CHANGELOG.md` and seven evidence-backed documents under `docs/codebase/`.
 - Updated the architecture and team tracking documents, including ISS-012 and ISS-015.
 - Replaced the randomized starting state in the open-space simulation test with a fixed

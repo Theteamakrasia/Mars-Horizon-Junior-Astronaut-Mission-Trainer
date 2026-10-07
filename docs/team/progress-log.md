@@ -8,6 +8,31 @@ than a documented one.
 
 ---
 
+## 2026-10-07 — README badges, mascot, and index
+
+**Did**
+
+- Added TypeScript, Vite, Vitest, and MIT license badges alongside the existing Actions badges.
+- Used the repository's astronaut sprite as a small centered README image and added a linked
+  index covering the document's existing sections.
+- Preserved all existing README prose; stable anchors make the index work with emoji headings.
+
+**Files**
+
+- Updated: `README.md`, `docs/CHANGELOG.md`, `docs/pull-requests/001-ci-deployment-gates.md`,
+  this progress log, and TASK-034 in `docs/team/tasks.md`.
+
+**Problems**
+
+- Emoji and numbered headings do not always produce predictable anchors, so the index uses
+  explicit HTML anchor IDs next to the headings.
+
+**Next**
+
+- Push the README update to the existing PR #1 and refresh its body from the PR description.
+
+**Doc updates made:** changelog, PR description, task TASK-034, and this progress log.
+
 ## 2026-10-07 — PR #1 review document
 
 **Did**
