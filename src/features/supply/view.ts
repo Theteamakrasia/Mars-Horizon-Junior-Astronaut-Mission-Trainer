@@ -33,6 +33,7 @@ import type { RunState } from '../../sim/run';
 
 import './supply.css';
 
+import chooseUrl from '../../../Assets/images/supply/choose.webp';
 import questionUrl from '../../../Assets/images/supply/question.webp';
 import rightUrl from '../../../Assets/images/supply/right.webp';
 import wrongUrl from '../../../Assets/images/supply/wrong.webp';
@@ -54,8 +55,25 @@ const SWAP_MS = 220;
 /** How long the wrong frame is held before the buttons come back. */
 const RETRY_DELAY_MS = 1100;
 
-/** Illustrations, by state. Imported so Vite fingerprints and bundles them. */
+/**
+ * Illustrations, by state. Imported so Vite fingerprints and bundles them.
+ *
+ * One frame per phase, chosen to match what is happening:
+ *
+ *   choose   - the astronaut turned to the room with a clipboard, explaining.
+ *              Used while he is speaking the resource facts through.
+ *   question - him pointing at the checklist with RATIONS still unticked and
+ *              marked with a question mark. Used once he actually asks.
+ *   wrong    - the alarm state.
+ *   right    - the checklist complete.
+ *
+ * An earlier version showed the question frame for the whole screen, including
+ * the five facts he was speaking before it. So the room did not change at the
+ * moment he stopped explaining and started asking, which is the one beat the
+ * picture most needs to move on.
+ */
 const SCENE_URLS = {
+  choose: chooseUrl,
   question: questionUrl,
   wrong: wrongUrl,
   right: rightUrl,
@@ -199,6 +217,11 @@ const reduced = prefersReducedMotion();
 
   /** Put the buttons on screen with nothing judged yet. */
   const askQuestion = (): void => {
+    // The room changes here. He has finished explaining and is now asking, so the
+    // pointing-at-the-checklist frame arrives with the question instead of sitting
+    // under the whole conversation.
+    setScene('question');
+
     answers.hidden = false;
     result.hidden = true;
     result.textContent = '';
@@ -245,9 +268,17 @@ const reduced = prefersReducedMotion();
     result.hidden = false;
 
     // Bring the buttons back after a beat, so the wrong frame registers before the
-    // retry. Guarded on `solved` because a timer can outlive the answer.
+    // retry, and take the room back to the question frame so the player is not
+    // left trying to think under the alarm while they work it out.
+    //
+    // Guarded on `solved` because a timer can outlive the answer: without the
+    // check, answering correctly during this window would be undone by a pending
+    // revert firing afterwards.
     later(() => {
-      if (!solved) setChoicesEnabled(true);
+      if (solved) return;
+
+      setScene('question');
+      setChoicesEnabled(true);
     }, RETRY_DELAY_MS);
   };
 
@@ -295,9 +326,9 @@ const reduced = prefersReducedMotion();
   advance.addEventListener('click', revealNext);
   cont.addEventListener('click', onContinue);
 
-  // Start on the Mission Control frame with the checklist unticked, which is the
-  // problem the player has been called in to fix.
-  setScene('question');
+  // Open on the astronaut explaining, with the clipboard. The pointing-at-the-
+  // checklist frame waits for the question, which is what he is pointing at.
+  setScene('choose');
 
   // The opening line is already on screen when you arrive. Nobody should have to
   // click to find out what the screen is.

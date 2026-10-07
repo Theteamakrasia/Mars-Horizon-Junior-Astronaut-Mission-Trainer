@@ -41,20 +41,26 @@
 }
 
 /* ---------- THE STAGE ----------
-   Locked to the artwork's own aspect ratio and centred.
+   Locked to 16:9 and centred.
 
    This is the whole reason the bubble lands where it is meant to. With
    object-fit: cover the picture is cropped differently at every window size, so
    anything positioned against it drifts away from the thing it points at. Here
    nothing is ever cropped and the letterbox bars are plain background.
+
+   16:9 rather than one image's exact pixel size, because the four frames were
+   drawn at two different resolutions: 1364x768 and 1671x941. Both are within
+   0.12% of 16:9 - about 1.5px across a 1364px stage - so a single ratio holds
+   all of them, and it will still hold if new art arrives at another size close to
+   it. Hardcoding 1364/768 would have letterboxed the 1671-wide frames.
 */
 .supply__stage {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: min(100vw, calc(100vh * 1364 / 768));
-  aspect-ratio: 1364 / 768;
+  width: min(100vw, calc(100vh * 16 / 9));
+  aspect-ratio: 16 / 9;
   overflow: hidden;
 }
 
@@ -111,11 +117,19 @@
   transform: translateY(-0.45rem) scale(0.99);
 }
 
-/* Downward tail, so the bubble reads as coming from the astronaut below it. */
+/*
+  Downward tail, so the bubble reads as coming from the astronaut below it.
+
+  At 50% rather than tucked to one side, because the two frames put him in
+  different places: his head sits at roughly 18-29% across in the explaining
+  frame and 24-38% in the question frame. The midpoint of the bubble lands under
+  the left edge of his head in both, which is as close as one position can get to
+  two drawings.
+*/
 .supply__bubble-tail {
   position: absolute;
   bottom: -0.75rem;
-  left: 30%;
+  left: 50%;
   width: 0;
   height: 0;
   border-top: 0.8rem solid var(--s-line);
