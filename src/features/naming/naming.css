@@ -1,9 +1,9 @@
 /* ==========================================================================
-   NAMING — the main menu
+   NAMING ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the main menu
    Colours sampled from the design mockup rather than guessed:
-     background #070E12 · panel #131D24 · field #152029 · border #2E3C45
-     text #FCFCFC · muted #515C63 · accent #FA6200
-   Imported by ./view.ts only. Never added to src/style.css — that is the
+     background #070E12 Ãƒâ€šÃ‚Â· panel #131D24 Ãƒâ€šÃ‚Â· field #152029 Ãƒâ€šÃ‚Â· border #2E3C45
+     text #FCFCFC Ãƒâ€šÃ‚Â· muted #515C63 Ãƒâ€šÃ‚Â· accent #FA6200
+   Imported by ./view.ts only. Never added to src/style.css ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â that is the
    landing page's stylesheet and it becomes a merge magnet (AGENTS.md R-15).
    ========================================================================== */
 
@@ -245,7 +245,15 @@
   color: var(--n-muted);
 }
 
-/* ---------- STAGE: the rotating card ---------- */
+/* ---------- STAGE: the card ----------
+   Composition verified by rendering the card to a PNG and looking at it against
+   the design mockup, rather than by eyeballing CSS percentages. The numbers
+   below are the ones that reproduced the mockup.
+
+   The relationship that matters: the astronaut sits LEFT of centre and IN FRONT
+   of the planet, and the planet bleeds off the right edge so it reads as larger
+   than the card. An earlier pass centred both layers, which put him inside the
+   planet's disc and looked nothing like the mockup. */
 .naming__stage {
   display: flex;
   align-items: center;
@@ -255,27 +263,21 @@
   min-height: 0;
 }
 
-/*
-  The card is a fixed-aspect box with everything absolutely positioned inside, so
-  the two layers can move independently and neither can push the layout around.
-*/
 .naming__card {
   position: relative;
-  width: min(100%, 62vh);
-  aspect-ratio: 16 / 11;
+  width: min(100%, calc(68vh * 1.566));
+  aspect-ratio: 1060 / 677;
   overflow: hidden;
   border: 1px solid var(--n-border);
   border-radius: 6px;
-  background:
-    radial-gradient(120% 90% at 20% 15%, rgba(14, 165, 233, 0.1), transparent 60%),
-    linear-gradient(180deg, #050b12, #02060a);
+  background: linear-gradient(180deg, #050b12, #02060a);
 }
 
-/* Deepest layer: the planet, slowly turning on its own axis. */
+/* Deepest layer: the planet, filling the right side and running off the edge. */
 .naming__mars {
   position: absolute;
   top: 50%;
-  left: 52%;
+  left: 88%;
   width: 78%;
   height: auto;
   aspect-ratio: 1;
@@ -285,12 +287,13 @@
   will-change: transform;
 }
 
-/* Middle layer: the astronaut, in front, floating gently. */
+/* Middle layer: the astronaut, left of centre, cropped by the card's bottom
+   edge rather than floating whole inside it. */
 .naming__astronaut {
   position: absolute;
-  bottom: -6%;
-  left: 50%;
-  width: 58%;
+  bottom: -10%;
+  left: 30%;
+  width: 45%;
   height: auto;
   transform: translateX(-50%);
   object-fit: contain;
@@ -300,8 +303,8 @@
 
 /*
   A sphere spun about its own axis looks identical, so the planet's rotation is
-  in the image plane instead — the surface features turn, which is what reads as
-  a planet spinning.
+  in the image plane instead: the surface features turn, which is what reads as
+  a planet spinning. A rotateY would appear to do nothing at all.
 */
 @keyframes naming-mars-turn {
   from {
@@ -312,14 +315,16 @@
   }
 }
 
+/* Vertical only, so his left-of-centre placement is preserved. */
 @keyframes naming-astronaut-float {
   from {
     transform: translateX(-50%) translateY(0);
   }
   to {
-    transform: translateX(-50%) translateY(-2.2%);
+    transform: translateX(-50%) translateY(-1.8%);
   }
 }
+
 
 /* ---------- REDUCED MOTION ----------
    Both animations are continuous and self-triggered, which is exactly what the
