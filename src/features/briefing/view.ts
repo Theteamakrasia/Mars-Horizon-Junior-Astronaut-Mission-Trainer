@@ -70,11 +70,17 @@ export function mountBriefing(
   let index = 0;
 
   const showLine = (item: HTMLElement): void => {
+    /*
+     * Un-hide first, then mark it revealed. The class only decorates the
+     * appearance; the content is readable the moment `hidden` comes off.
+     *
+     * An earlier version animated max-width from 0, which meant a line stayed
+     * invisible whenever its animation did not run — leaving the briefing as an
+     * empty column with a heading and two buttons.
+     */
     item.hidden = false;
-
-    // The typing effect is a CSS width animation on the line's own text; the
-    // timer below only decides when it starts.
-    item.classList.add('is-typing');
+    item.classList.remove('is-typing');
+    item.classList.add('is-revealed');
   };
 
   /** Reveal everything now and stop all pending timers. */
@@ -83,9 +89,7 @@ export function mountBriefing(
     timers = [];
 
     for (const item of lines) {
-      item.hidden = false;
-      item.classList.remove('is-typing');
-      item.classList.add('is-revealed');
+      showLine(item);
     }
 
     index = lines.length;
