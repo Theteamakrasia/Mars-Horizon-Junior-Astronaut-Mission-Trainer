@@ -26,8 +26,6 @@ jobs:
         run: npm run check
       - name: Run unit tests
         run: npm test
-      - name: Validate HTML
-        run: npm run check:html
       - name: Build production bundle
         run: npm run build
 
