@@ -1,16 +1,18 @@
 /**
- * The mission briefing, revealed one line at a time.
+ * The mission briefing, read one beat at a time.
  *
- * DOM and timing only. The words live in ./model and are unit tested there; the
- * reveal is deliberately kept out of the model so it can be asserted on without a
- * browser, which is what made `sim/` reliable.
+ * DOM only. The words live in ./model and are unit tested there; this file is
+ * just the drawing and the two buttons.
  *
- * Three ways out, in order of preference for the player:
- *   1. SKIP reveals everything at once. Always available, and always first in
- *      the tab order, because waiting out a timed animation with no way to cut it
- *      short is a trap for anyone who is in a hurry or has read it before.
- *   2. prefers-reduced-motion reveals everything immediately, with no animation.
- *   3. Otherwise the lines type themselves in, paced by the model.
+ * The reader drives it. NEXT brings up the next line and nothing else does - the
+ * screen holds still until asked. An earlier version revealed on a timer and
+ * offered SKIP to jump ahead, which is the wrong shape for two reasons: it took
+ * away the pace, and SKIP was a button whose only job was to do what NEXT does.
+ * One control, one action.
+ *
+ * There are no timers in this file at all now, which is why teardown is two
+ * removeEventListener calls. The reveal has nothing outstanding to cancel, so it
+ * cannot fire into a detached node or arrive after the player has moved on.
  */
 
 import { nextStop } from '../../ui/registry';
@@ -19,7 +21,7 @@ import type { RunState } from '../../sim/run';
 
 import './briefing.css';
 
-import { BEATS, beatDuration, greetingFor } from './model';
+import { BEATS, greetingFor } from './model';
 
 function require<T extends HTMLElement>(root: HTMLElement, selector: string): T {
   const element = root.querySelector<T>(selector);
@@ -31,11 +33,6 @@ function require<T extends HTMLElement>(root: HTMLElement, selector: string): T 
   return element;
 }
 
-/** True when the visitor asked for less motion. Read live, not once at boot. */
-function prefersReducedMotion(): boolean {
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-}
-
 export function mountBriefing(
   root: HTMLElement,
   run: RunState | null,
@@ -43,7 +40,7 @@ export function mountBriefing(
 ): () => void {
   const greeting = require<HTMLParagraphElement>(root, '[data-briefing-greeting]');
   const stream = require<HTMLOListElement>(root, '[data-briefing-stream]');
-  const skip = require<HTMLButtonElement>(root, '[data-briefing-skip]');
+  const advance = require<HTMLButtonElement>(root, '[data-briefing-next]');
   const cont = require<HTMLButtonElement>(root, '[data-briefing-continue]');
   const hint = require<HTMLParagraphElement>(root, '[data-briefing-hint]');
 
@@ -53,9 +50,9 @@ export function mountBriefing(
 
   greeting.textContent = greetingFor(run?.astronautName ?? '');
 
-  // Build every beat up front, hidden. The reveal then only un-hides them in
-  // order, so the DOM order is the reading order and a screen reader gets the
-  // whole briefing regardless of how the animation is going.
+  // Every beat is built up front, hidden. NEXT then only un-hides them in order,
+  // so the DOM order is the reading order and a screen reader gets the whole
+  // briefing whether or not anyone clicks.
   const lines = BEATS.map((beat) => {
     const item = document.createElement('li');
     item.className = 'briefing__line';
@@ -66,61 +63,37 @@ export function mountBriefing(
     return item;
   });
 
-  let timers: number[] = [];
+  /** How many beats have been shown. The reader owns this by clicking. */
   let index = 0;
 
-  const showLine = (item: HTMLElement): void => {
-    /*
-     * Un-hide first, then mark it revealed. The class only decorates the
-     * appearance; the content is readable the moment `hidden` comes off.
-     *
-     * An earlier version animated max-width from 0, which meant a line stayed
-     * invisible whenever its animation did not run — leaving the briefing as an
-     * empty column with a heading and two buttons.
-     */
-    item.hidden = false;
-    item.classList.remove('is-typing');
-    item.classList.add('is-revealed');
-  };
-
-  /** Reveal everything now and stop all pending timers. */
-  const revealAll = (): void => {
-    for (const timer of timers) window.clearTimeout(timer);
-    timers = [];
-
-    for (const item of lines) {
-      showLine(item);
-    }
-
-    index = lines.length;
-    skip.hidden = true;
-  };
-
   /**
-   * Start the next line, scheduling the one after it.
+   * Show the next unrevealed beat, or get out of the way when there is none.
    *
-   * Timeouts are tracked so teardown can cancel them: a pending timer that fires
-   * after the screen is unmounted would write into a detached node, and on a
-   * fast navigation several could pile up.
+   * The button hides itself on the last beat rather than disabling: a control
+   * that has nothing left to do is noise, and a greyed-out button invites
+   * pressing it twice to find out.
    */
-  const advance = (): void => {
+  const revealNext = (): void => {
     if (index >= lines.length) {
-      skip.hidden = true;
+      advance.hidden = true;
       return;
     }
 
     const item = lines[index];
-    const beat = BEATS[index];
 
-    showLine(item);
+    // Un-hide first, then mark it revealed. The class only decorates the
+    // appearance; the content is readable the moment `hidden` comes off.
+    //
+    // An earlier version animated max-width from 0, which meant a line stayed
+    // invisible whenever its animation did not run â€” leaving the briefing as an
+    // empty column with a heading and two buttons.
+    item.hidden = false;
+    item.classList.remove('is-typing');
+    item.classList.add('is-revealed');
+
     index += 1;
 
-    const nextDelay = beatDuration(beat);
-    timers.push(window.setTimeout(advance, nextDelay));
-  };
-
-  const onSkip = (): void => {
-    revealAll();
+    if (index >= lines.length) advance.hidden = true;
   };
 
   const onContinue = (): void => {
@@ -143,27 +116,15 @@ export function mountBriefing(
     navigate(next);
   };
 
-  skip.addEventListener('click', onSkip);
+  advance.addEventListener('click', revealNext);
   cont.addEventListener('click', onContinue);
 
-  /*
-   * Reduced motion, or no run in progress, means show everything at once.
-   *
-   * The `run === null` case matters: this screen is reachable by typing
-   * `#/briefing` into the address bar, with no run behind it. Without this the
-   * reveal would start against a run that does not exist.
-   */
-  if (prefersReducedMotion() || run === null || run.status !== 'active') {
-    revealAll();
-  } else {
-    advance();
-  }
+  // The opening line is already on screen when you arrive; nobody should have to
+  // click to find out what the screen is.
+  revealNext();
 
   return () => {
-    skip.removeEventListener('click', onSkip);
+    advance.removeEventListener('click', revealNext);
     cont.removeEventListener('click', onContinue);
-
-    for (const timer of timers) window.clearTimeout(timer);
-    timers = [];
   };
 }

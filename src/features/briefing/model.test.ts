@@ -2,17 +2,13 @@ import { describe, expect, it } from 'vitest';
 
 import {
   BEATS,
-  beatDuration,
   beatsThrough,
-  CHARS_PER_SECOND,
-  MAX_BEAT_MS,
-  totalWeight,
   greetingFor,
 } from './model';
 
 /**
  * Every input is a literal. Nothing here reaches for Math.random or a clock, so
- * this file cannot flake — the defect recorded as ISS-015.
+ * this file cannot flake â€” the defect recorded as ISS-015.
  */
 
 describe('BEATS', () => {
@@ -30,9 +26,11 @@ describe('BEATS', () => {
     }
   });
 
-  it('gives every beat a positive weight', () => {
+  it('carries no pacing field, because the reader owns the pace', () => {
+    // The reveal is click-driven, so a read-time weight has nothing to do. This
+    // asserts its absence so it cannot quietly come back and be trusted.
     for (const beat of BEATS) {
-      expect(beat.weight).toBeGreaterThan(0);
+      expect(Object.keys(beat).sort()).toEqual(['id', 'text']);
     }
   });
 
@@ -67,17 +65,6 @@ describe('BEATS', () => {
   });
 });
 
-describe('totalWeight', () => {
-  it('sums every beat', () => {
-    const expected = BEATS.reduce((sum, beat) => sum + beat.weight, 0);
-    expect(totalWeight()).toBe(expected);
-  });
-
-  it('is zero for no beats', () => {
-    expect(totalWeight([])).toBe(0);
-  });
-});
-
 describe('beatsThrough', () => {
   it('returns everything up to and including the named beat', () => {
     const result = beatsThrough('crew');
@@ -98,46 +85,6 @@ describe('beatsThrough', () => {
   it('preserves order', () => {
     const ids = beatsThrough('task').map((beat) => beat.id);
     expect(ids).toEqual(BEATS.slice(0, ids.length).map((beat) => beat.id));
-  });
-});
-
-describe('beatDuration', () => {
-  it('is proportional to length for equal weights', () => {
-    const short = { id: 's', text: 'a'.repeat(20), weight: 1 };
-    const long = { id: 'l', text: 'a'.repeat(60), weight: 1 };
-
-    expect(beatDuration(long)).toBeGreaterThan(beatDuration(short));
-  });
-
-  it('scales with weight', () => {
-    const beat = { id: 'x', text: 'a'.repeat(50), weight: 1 };
-    expect(beatDuration({ ...beat, weight: 2 })).toBeGreaterThan(beatDuration(beat));
-  });
-
-  it('never exceeds the cap, however long the line', () => {
-    // Otherwise a long beat reads as a hang.
-    const huge = { id: 'h', text: 'a'.repeat(2000), weight: 3 };
-    expect(beatDuration(huge)).toBeLessThanOrEqual(MAX_BEAT_MS);
-  });
-
-  it('is positive for any real beat', () => {
-    for (const beat of BEATS) {
-      expect(beatDuration(beat)).toBeGreaterThan(0);
-    }
-  });
-
-  it('honours a custom characters-per-second', () => {
-    // Slower means longer: at 20 chars/s a 50-character line takes 2500ms, at
-    // 50 chars/s it takes 1000ms. Both sit under MAX_BEAT_MS (2600), so neither
-    // result is clipped and the comparison is testing the rate rather than the
-    // cap. Weight is 0.5 to halve both and keep them clear of the ceiling.
-    const beat = { id: 'x', text: 'a'.repeat(50), weight: 0.5 };
-    expect(beatDuration(beat, 20)).toBeGreaterThan(beatDuration(beat, 50));
-  });
-
-  it('paces slowly enough to be readable', () => {
-    // This is an eight-year-old's briefing.
-    expect(CHARS_PER_SECOND).toBeLessThan(40);
   });
 });
 
