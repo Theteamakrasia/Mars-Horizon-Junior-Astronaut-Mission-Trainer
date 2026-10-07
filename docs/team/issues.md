@@ -11,7 +11,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
-| ISS-015 | `frame.test.ts:81` fails ~40% of runs (flaky) | high | agent | fixed | this branch |
+| ISS-015 | `frame.test.ts:81` fails ~40% of runs (flaky) | high | agent | fixed | adc5767 |
 | ISS-001 | README claims no installable build exists | high | unassigned | open | — |
 | ISS-006 | `.gitignore` omits `.env*`, leaking API keys | high | unassigned | open | — |
 | ISS-008 | DONKI CORS and reachability unverified | high | unassigned | blocked | needs a browser check |
@@ -24,7 +24,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | ISS-004 | `package.json` has no `license` field | low | unassigned | open | — |
 | ISS-010 | `src/core/` held DOM modules - name did not match | low | unassigned | fixed | this branch |
 | ISS-016 | Feature-role classifier produced false positives | low | agent | fixed | this branch |
-| ISS-012 | No CI; nothing runs checks on push | low | agent | fixed | this branch |
+| ISS-012 | No CI; nothing runs checks on push | low | agent | fixed | adc5767 |
 | ISS-013 | Vitest runs node-env, no jsdom, so DOM is untestable | low | unassigned | open | — |
 | ISS-014 | `base.css` calls the page non-interactive while draggable | low | unassigned | open | — |
 
