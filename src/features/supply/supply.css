@@ -278,6 +278,21 @@
   cursor: default;
 }
 
+/*
+  A retired wrong answer.
+
+  Still visible, struck through, because the remaining options have to be
+  reasoned about and a button that vanishes gives the child nothing to rule out.
+  Only the ability to repeat the mistake is taken away.
+*/
+.supply__choice-button.is-locked {
+  opacity: 0.32;
+  border-style: dashed;
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+  cursor: not-allowed;
+}
+
 /* ---------- VERDICT ---------- */
 
 .supply__result {

@@ -42,9 +42,10 @@ import {
   CHOICES,
   CORRECT_ANSWER,
   QUESTION_PROMPT,
-  RESOURCE_FACTS,
-  explainChoice,
+  SUPPLY_BEATS,
+  hintFor,
   isCorrect,
+  judge,
   successSentence,
   workingSentence,
 } from './model';
@@ -148,7 +149,15 @@ const reduced = prefersReducedMotion();
   const setChoicesEnabled = (enabled: boolean): void => {
     // Disabled rather than hidden, so a button is never a tab stop the player can
     // reach before there is a question to answer.
-    for (const button of choiceButtons) button.disabled = !enabled;
+    //
+    // Locked options are skipped. Re-enabling the whole list on retry - which is
+    // what this did first - quietly brought every retired wrong answer back, so
+    // the same mistake could be made over and over and the lock meant nothing.
+    for (const button of choiceButtons) {
+      if (button.dataset.supplyLocked === 'true') continue;
+
+      button.disabled = !enabled;
+    }
   };
 
   /*
@@ -193,16 +202,16 @@ const reduced = prefersReducedMotion();
     }, SWAP_MS);
   };
 
-  /** Build the four answer buttons from the model. */
-  const choiceButtons: HTMLButtonElement[] = CHOICES.map((choice) => {
+  /** Build the answer buttons from the model. */
+  const choiceButtons: HTMLButtonElement[] = CHOICES.map((value) => {
     const item = document.createElement('li');
     item.className = 'supply__choice';
 
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'supply__choice-button';
-    button.dataset.supplyChoice = String(choice.value);
-    button.textContent = String(choice.value);
+    button.dataset.supplyChoice = String(value);
+    button.textContent = String(value);
     button.disabled = true;
     button.addEventListener('click', onChoiceClick);
 
@@ -210,6 +219,35 @@ const reduced = prefersReducedMotion();
     choiceList.appendChild(item);
     return button;
   });
+
+  /**
+   * The button for a given amount, so a wrong pick can be locked.
+   *
+   * A Map rather than a lookup through the DOM: the click handler already knows the
+   * number it was asked about, and searching for a matching data attribute would
+   * be a second way to get the same answer.
+   */
+  const buttonFor = new Map<number, HTMLButtonElement>(
+    CHOICES.map((value, i) => [value, choiceButtons[i]]),
+  );
+
+  /**
+   * Retire an option for good.
+   *
+   * A wrong answer teaches once. Leaving it clickable means a child can pick the
+   * same wrong number over and over and read the same sentence, which is not
+   * practice - it is a button that does not seem to work. The `is-locked` class
+   * keeps it visible so the remaining options can be reasoned about; only the
+   * ability to repeat the mistake goes away.
+   */
+  const lockChoice = (value: number): void => {
+    const button = buttonFor.get(value);
+    if (button === undefined) return;
+
+    button.disabled = true;
+    button.classList.add('is-locked');
+    button.dataset.supplyLocked = 'true';
+  };
 
   let index = 0;
   /** True once the right answer has been given, which ends the interaction. */
@@ -230,7 +268,7 @@ const reduced = prefersReducedMotion();
   };
 
   const revealNext = (): void => {
-    if (index >= RESOURCE_FACTS.length) {
+    if (index >= SUPPLY_BEATS.length) {
       // He asks it. The sentence lives only here, never also in the rail.
       //
       // NEXT is hidden only now, once the question is actually up. Hiding it after
@@ -243,23 +281,33 @@ const reduced = prefersReducedMotion();
       return;
     }
 
-    const fact = RESOURCE_FACTS[index];
+    const fact = SUPPLY_BEATS[index];
     index += 1;
 
     swapTo(fact.label, fact.line);
   };
 
-  /** Say why the pick was wrong, show the working, and let them try again. */
+  /**
+   * Judge a wrong pick: say which way to move, show the working, retire the option.
+   */
   const showWrong = (value: number): void => {
     setScene('wrong');
+
+    // Locked straight away, before anything is said about it. If this ran after the
+    // retry timer, a fast double-click could pick the same number twice.
+    lockChoice(value);
+
+    // Everything is off during the alarm, not just the locked one, so the frame
+    // reads as "stop" rather than leaving three live buttons under a red light.
     setChoicesEnabled(false);
 
-    const why = explainChoice(value);
+    const hint = hintFor(judge(value, CORRECT_ANSWER));
+
     swapTo(
       speaker,
-      why === null
-        ? 'That is not one of the amounts on the board. Read the two numbers in the question again.'
-        : why,
+      hint === null
+        ? 'That is not one of the amounts on the board. Read the two numbers again.'
+        : hint,
     );
 
     // The working goes in the rail, not the bubble, so the question stays on
@@ -267,9 +315,9 @@ const reduced = prefersReducedMotion();
     result.textContent = workingSentence();
     result.hidden = false;
 
-    // Bring the buttons back after a beat, so the wrong frame registers before the
-    // retry, and take the room back to the question frame so the player is not
-    // left trying to think under the alarm while they work it out.
+    // Bring the remaining buttons back after a beat, so the wrong frame registers
+    // before the retry, and take the room back to the question frame so the player
+    // is not left working it out under the alarm.
     //
     // Guarded on `solved` because a timer can outlive the answer: without the
     // check, answering correctly during this window would be undone by a pending

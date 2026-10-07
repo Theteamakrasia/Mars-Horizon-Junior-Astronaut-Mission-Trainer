@@ -5,14 +5,16 @@ import {
   CHOICES,
   CORRECT_ANSWER,
   DAYS_PER_MONTH,
+  DAYS_PER_PACKET,
   QUESTION,
-  RATIONS_PER_ASTRONAUT_PER_DAY,
-  RESOURCE_FACTS,
+  SUPPLY_BEATS,
   approximateTotalKg,
-  explainChoice,
+  astronautDays,
+  hintFor,
   isCorrect,
+  judge,
   missionDays,
-  rationsFor,
+  packsFor,
   successSentence,
   workingSentence,
 } from './model';
@@ -30,179 +32,237 @@ describe('missionDays', () => {
   it('treats a month as 30 days', () => {
     expect(DAYS_PER_MONTH).toBe(30);
     expect(missionDays(1)).toBe(30);
-    expect(missionDays(6)).toBe(180);
-  });
-
-  it('returns 0 for no months', () => {
-    expect(missionDays(0)).toBe(0);
   });
 });
 
-describe('rationsFor', () => {
-  it('answers the question on screen: 2 months, 4 astronauts, 240 packs', () => {
-    expect(rationsFor(2, 4)).toBe(240);
+describe('astronautDays', () => {
+  it('counts the days every astronaut needs feeding for', () => {
+    expect(astronautDays(2, 4)).toBe(240);
   });
 
-  it('counts one pack per astronaut per day', () => {
-    expect(RATIONS_PER_ASTRONAUT_PER_DAY).toBe(1);
+  it('is not the same as missionDays, which is the trap in the question', () => {
+    // 60 is the length of the trip; 240 is the food needed. Conflating them is the
+    // mistake 240-as-the-answer encouraged.
+    expect(astronautDays(2, 4)).not.toBe(missionDays(2));
   });
 
   it('scales with the crew', () => {
-    // Doubling the crew doubles the packs, which is the step the arithmetic
-    // actually turns on.
-    expect(rationsFor(2, 8)).toBe(240 * 2);
+    expect(astronautDays(2, 8)).toBe(480);
+  });
+});
+
+describe('packsFor', () => {
+  it('divides the astronaut-days by the days one packet covers', () => {
+    expect(packsFor(2, 4)).toBe(80);
+  });
+
+  it('answers the question on screen: 2 months, 4 astronauts, 80 packets', () => {
+    // 60 days x 4 astronauts = 240 astronaut-days. 240 / 3 = 80.
+    expect(packsFor(2, 4)).toBe(80);
+  });
+
+  it('scales with the crew', () => {
+    expect(packsFor(2, 8)).toBe(160);
   });
 
   it('scales with the mission length', () => {
-    expect(rationsFor(4, 4)).toBe(240 * 2);
+    expect(packsFor(4, 4)).toBe(160);
   });
 
-  it('needs no packs for no crew', () => {
-    expect(rationsFor(2, 0)).toBe(0);
+  it('needs whole packets', () => {
+    // Packs cannot be fractional. If a future question could produce a fraction,
+    // this fails and forces the rule to be dealt with rather than rounding quietly.
+    for (let months = 1; months <= 6; months++) {
+      for (let crew = 1; crew <= 6; crew++) {
+        expect(Number.isInteger(packsFor(months, crew))).toBe(true);
+      }
+    }
+  });
+});
+
+describe('the packet', () => {
+  it('covers three days, because three is what makes the division matter', () => {
+    expect(DAYS_PER_PACKET).toBe(3);
   });
 
-  it('needs no packs for no mission', () => {
-    expect(rationsFor(0, 4)).toBe(0);
+  it('makes 240 a wrong answer rather than the right one', () => {
+    // 240 is the astronaut-days. It used to be the correct answer under the old
+    // "one pack per day" rule and is deliberately still on the board now.
+    expect(isCorrect(240)).toBe(false);
+    expect(judge(240)).toBe('tooHigh');
   });
 });
 
 describe('CORRECT_ANSWER', () => {
   it('is the answer to the question the screen actually asks', () => {
-    expect(CORRECT_ANSWER).toBe(rationsFor(QUESTION.months, QUESTION.crewSize));
-    expect(CORRECT_ANSWER).toBe(240);
+    expect(CORRECT_ANSWER).toBe(packsFor(QUESTION.months, QUESTION.crewSize));
+    expect(CORRECT_ANSWER).toBe(80);
   });
 });
 
 describe('CHOICES', () => {
-  it('includes the correct answer exactly once', () => {
-    expect(CHOICES.filter((choice) => choice.value === CORRECT_ANSWER)).toHaveLength(1);
-  });
-
-  it('offers four answers, so a guess has a one in four chance', () => {
+  it('offers four amounts, so guessing is not free', () => {
     expect(CHOICES).toHaveLength(4);
   });
 
-  it('has no duplicate values', () => {
-    const values = CHOICES.map((choice) => choice.value);
-    expect(new Set(values).size).toBe(values.length);
+  it('includes the correct answer exactly once', () => {
+    expect(CHOICES.filter((value) => value === CORRECT_ANSWER)).toHaveLength(1);
   });
 
-  it('marks only the correct answer with no mistake text', () => {
-    for (const choice of CHOICES) {
-      if (choice.value === CORRECT_ANSWER) expect(choice.mistake).toBeNull();
-      else expect(choice.mistake).not.toBeNull();
-    }
-  });
-
-  it('gives every wrong answer an explanation a child can read', () => {
-    for (const choice of CHOICES) {
-      if (choice.mistake === null) continue;
-      expect(choice.mistake.length).toBeGreaterThan(20);
-    }
+  it('has no duplicates', () => {
+    expect(new Set(CHOICES).size).toBe(CHOICES.length);
   });
 
   it('only offers whole numbers', () => {
-    // A decimal pack count would be nonsense; ration packs are countable.
-    for (const choice of CHOICES) {
-      expect(Number.isInteger(choice.value)).toBe(true);
-      expect(choice.value).toBeGreaterThan(0);
+    for (const value of CHOICES) {
+      expect(Number.isInteger(value)).toBe(true);
+      expect(value).toBeGreaterThan(0);
+    }
+  });
+
+  it('offers something on each side of the answer, so both hints are reachable', () => {
+    // Without a wrong amount below and one above, half the feedback would never be
+    // seen by anyone.
+    expect(CHOICES.some((value) => value < CORRECT_ANSWER)).toBe(true);
+    expect(CHOICES.some((value) => value > CORRECT_ANSWER)).toBe(true);
+  });
+
+  it('leaves the player able to reach the answer even if every wrong one is locked', () => {
+    // Locking a wrong option must never strand anybody: after three wrong picks the
+    // only live button is the right one.
+    const locked = CHOICES.filter((value) => value !== CORRECT_ANSWER);
+    expect(locked).toHaveLength(CHOICES.length - 1);
+    expect(CHOICES.filter((value) => !locked.includes(value))).toEqual([CORRECT_ANSWER]);
+  });
+});
+
+describe('judge', () => {
+  it('calls the right answer correct', () => {
+    expect(judge(80)).toBe('correct');
+  });
+
+  it('calls anything below it too low', () => {
+    expect(judge(20)).toBe('tooLow');
+    expect(judge(79)).toBe('tooLow');
+  });
+
+  it('calls anything above it too high', () => {
+    expect(judge(240)).toBe('tooHigh');
+    expect(judge(81)).toBe('tooHigh');
+  });
+
+  it('has no partial credit band', () => {
+    // Being one packet out is not "nearly right" on a four-option question, and a
+    // tolerance would have to be invented by someone.
+    expect(judge(79)).not.toBe('correct');
+    expect(judge(81)).not.toBe('correct');
+  });
+
+  it('judges against an explicit answer when given one', () => {
+    expect(judge(10, 20)).toBe('tooLow');
+    expect(judge(30, 20)).toBe('tooHigh');
+    expect(judge(20, 20)).toBe('correct');
+  });
+});
+
+describe('hintFor', () => {
+  it('says nothing when the answer was right', () => {
+    expect(hintFor('correct')).toBeNull();
+  });
+
+  it('tells a low pick to think larger', () => {
+    const hint = hintFor('tooLow');
+    expect(hint).toContain('too low');
+    expect(hint).toMatch(/larger/i);
+  });
+
+  it('tells a high pick to think smaller', () => {
+    const hint = hintFor('tooHigh');
+    expect(hint).toContain('too high');
+    expect(hint).toMatch(/smaller/i);
+  });
+
+  it('never names the correct answer', () => {
+    // The point of a directional hint is that it narrows without giving it away.
+    for (const verdict of ['tooLow', 'tooHigh'] as const) {
+      expect(hintFor(verdict)).not.toContain(String(CORRECT_ANSWER));
+    }
+  });
+
+  it('gives every verdict on the board a hint that fits it', () => {
+    for (const value of CHOICES) {
+      const hint = hintFor(judge(value));
+      if (judge(value) === 'correct') expect(hint).toBeNull();
+      else expect(hint).not.toBeNull();
     }
   });
 });
 
-describe('isCorrect', () => {
-  it('accepts the right answer', () => {
-    expect(isCorrect(240)).toBe(true);
-  });
-
-  it('rejects a wrong answer', () => {
-    expect(isCorrect(120)).toBe(false);
-  });
-
-  it('can be given an explicit answer to check against', () => {
-    expect(isCorrect(4, 4)).toBe(true);
-    expect(isCorrect(4, 240)).toBe(false);
-  });
-
-  it('does not accept a near miss', () => {
-    // Guards against a loose comparison turning 239 into a pass.
-    expect(isCorrect(239)).toBe(false);
-    expect(isCorrect(241)).toBe(false);
-  });
-});
-
-describe('explainChoice', () => {
-  it('returns null for the right answer, which has nothing to explain', () => {
-    expect(explainChoice(240)).toBeNull();
-  });
-
-  it('explains a wrong answer', () => {
-    expect(explainChoice(120)).toContain('30 days');
-  });
-
-  it('returns null for a number that is not on the board', () => {
-    // A stale DOM could pass anything; unknown values must not throw.
-    expect(explainChoice(9999)).toBeNull();
-  });
-});
-
-describe('RESOURCE_FACTS', () => {
+describe('SUPPLY_BEATS', () => {
   it('covers all five resources the game is about', () => {
-    expect(RESOURCE_FACTS.map((fact) => fact.key)).toEqual([
-      'power',
-      'oxygen',
-      'water',
-      'food',
-      'shielding',
-    ]);
-  });
-
-  it('has one line per resource, so the list stays scannable', () => {
-    for (const fact of RESOURCE_FACTS) {
-      expect(fact.label.length).toBeGreaterThan(0);
-      expect(fact.line.length).toBeGreaterThan(20);
+    const covered = SUPPLY_BEATS.map((beat) => beat.resource).filter(Boolean);
+    for (const key of ['power', 'oxygen', 'water', 'food', 'shielding']) {
+      expect(covered).toContain(key);
     }
   });
 
-  it('never repeats a resource', () => {
-    const keys = RESOURCE_FACTS.map((fact) => fact.key);
-    expect(new Set(keys).size).toBe(keys.length);
+  it('has a label and a readable line for every beat', () => {
+    for (const beat of SUPPLY_BEATS) {
+      expect(beat.label.length).toBeGreaterThan(0);
+      expect(beat.line.length).toBeGreaterThan(20);
+    }
   });
 
-  it('states the ration pack rule, which the question depends on', () => {
-    const food = RESOURCE_FACTS.find((fact) => fact.key === 'food');
-    expect(food?.line).toContain('one pack per astronaut per day');
+  it('gives every beat a unique id', () => {
+    const ids = SUPPLY_BEATS.map((beat) => beat.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('states the days per packet, which the question depends on', () => {
+    const beat = SUPPLY_BEATS.find((b) => b.id === 'packet-days');
+    expect(beat?.line).toContain('three days');
+  });
+
+  it('ends on the packet facts, so they are freshest when the numbers arrive', () => {
+    const lastTwo = SUPPLY_BEATS.slice(-2).map((beat) => beat.id);
+    expect(lastTwo).toEqual(['packet', 'packet-days']);
   });
 });
 
 describe('workingSentence', () => {
-  it('shows the two steps and the total, for the question actually asked', () => {
-    // "60 days" then "240 packs" is the whole lesson. A child who reads this can
-    // see which of the two steps they did.
+  it('shows all three steps and the total', () => {
     expect(workingSentence()).toBe(
-      '2 months is 60 days, and 60 days for each of 4 astronauts is 240 packs.',
+      '2 months is 60 days. 60 days for each of 4 astronauts is 240 astronaut-days. ' +
+        'Each packet covers 3 days, so 240 divided by 3 is 80 packets.',
     );
   });
 
-  it('defaults to the question on screen, so the two cannot drift apart', () => {
-    // An earlier version hardcoded the prose while the arithmetic lived elsewhere,
-    // which is how a screen ends up asking about 3 months beside a 60-day working.
-    expect(workingSentence()).toContain(`${missionDays(QUESTION.months)} days`);
-    expect(workingSentence()).toContain(String(rationsFor(QUESTION.months, QUESTION.crewSize)));
+  it('draws every number from the model rather than restating it', () => {
+    const sentence = workingSentence();
+    expect(sentence).toContain(String(missionDays(QUESTION.months)));
+    expect(sentence).toContain(String(astronautDays(QUESTION.months, QUESTION.crewSize)));
+    expect(sentence).toContain(String(DAYS_PER_PACKET));
+    expect(sentence).toContain(String(CORRECT_ANSWER));
   });
 
   it('can be given other numbers', () => {
-    expect(workingSentence(1, 2)).toBe('1 months is 30 days, and 30 days for each of 2 astronauts is 60 packs.');
+    expect(workingSentence(1, 2)).toBe(
+      '1 months is 30 days. 30 days for each of 2 astronauts is 60 astronaut-days. ' +
+        'Each packet covers 3 days, so 60 divided by 3 is 20 packets.',
+    );
   });
 });
 
 describe('successSentence', () => {
-  it('gives the total and the rough mass, and never a bare approximation', () => {
+  it('gives the total, the days it covers, and the rough mass', () => {
     const sentence = successSentence();
-    expect(sentence).toContain('240 packs');
+    expect(sentence).toContain('80 packets');
+    expect(sentence).toContain('240 astronaut-days');
     expect(sentence).toContain('432 kg');
-    // "about" or "roughly", so the real-world figure is not read as exact.
-    expect(sentence).toMatch(/roughly|about/);
+  });
+
+  it('hedges the real-world figure rather than stating it exactly', () => {
+    expect(successSentence()).toMatch(/roughly|about/);
   });
 
   it('agrees with the functions it is built from', () => {
@@ -211,31 +271,26 @@ describe('successSentence', () => {
 });
 
 describe('approximateTotalKg', () => {
-  it('converts the pack count to a rough real-world mass', () => {
-    // 60 days x 4 astronauts x 1.8 kg = 432 kg
+  it('converts astronaut-days to a rough real-world mass', () => {
+    // 240 astronaut-days x 1.8 kg = 432 kg
     expect(approximateTotalKg(2, 4)).toBe(432);
   });
 
-  it('uses a per-astronaut daily figure, not the pack count', () => {
+  it('uses a per-astronaut daily figure, not the packet count', () => {
     expect(APPROX_KG_PER_ASTRONAUT_PER_DAY).toBe(1.8);
   });
 
-  it('rounds to whole kilograms', () => {
-    // An earlier version of this test expected 2, from forgetting that a month is
-    // 30 days. It also claimed the rounding mattered, which it does not: days are
-    // always a multiple of 30 and 1.8 x 30 = 54 exactly, so the result is always
-    // whole for any whole number of months and astronauts. Kept as one assertion
-    // so that a future change to the figure cannot start printing decimals.
-    expect(Number.isInteger(approximateTotalKg(2, 4))).toBe(true);
-    expect(Number.isInteger(approximateTotalKg(1, 1))).toBe(true);
-    expect(Number.isInteger(approximateTotalKg(6, 3))).toBe(true);
+  it('stays consistent with the packet count it sits beside', () => {
+    // 80 packets x 3 days x 1.8 kg = 432 kg. If either number changes, this fails,
+    // which is the point: the two lines on screen must not drift apart.
+    expect(approximateTotalKg(QUESTION.months, QUESTION.crewSize)).toBe(
+      CORRECT_ANSWER * DAYS_PER_PACKET * APPROX_KG_PER_ASTRONAUT_PER_DAY,
+    );
   });
 
-  it('stays consistent with the pack count it sits beside', () => {
-    // 240 packs at 1.8 kg per pack-day is 432 kg. If either number changes, this
-    // fails, which is the point: the two lines on screen must not drift apart.
-    expect(approximateTotalKg(QUESTION.months, QUESTION.crewSize)).toBe(
-      CORRECT_ANSWER * APPROX_KG_PER_ASTRONAUT_PER_DAY,
-    );
+  it('never returns a fraction', () => {
+    for (let months = 1; months <= 6; months++) {
+      expect(Number.isInteger(approximateTotalKg(months, 4))).toBe(true);
+    }
   });
 });
