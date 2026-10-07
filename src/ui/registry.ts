@@ -8,6 +8,7 @@
 
 import { mountBriefing } from '../features/briefing/view';
 import { mountNaming } from '../features/naming/view';
+import { mountSupply } from '../features/supply/view';
 import type { RunState } from '../sim/run';
 
 import { nextRoute, type Route } from './routes';
@@ -34,11 +35,13 @@ export type ScreenFactory = (
 const SCREEN_MOUNTS: Readonly<Partial<Record<Route, string>>> = {
   naming: '#naming',
   briefing: '#briefing',
+  supply: '#supply',
 };
 
 const SCREENS: Readonly<Partial<Record<Route, ScreenFactory>>> = {
   naming: mountNaming,
   briefing: mountBriefing,
+  supply: mountSupply,
 };
 
 /**

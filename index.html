@@ -165,6 +165,75 @@
       </div>
     </section>
 
+    <!-- The supply check. Reached from the briefing. The illustration is the
+         Mission Control room, and the checklist on its board is the thing the
+         player has been called in to fix, so the scene is full-bleed and the
+         facts and answers sit in a panel over the left of it.
+
+         Every element supply/view.ts queries carries a data hook below.
+         scripts/check-markup.mjs fails the build if one is removed. -->
+    <section id="supply" class="supply" aria-labelledby="supply-title">
+      <!-- No src here on purpose: supply/view.ts imports the three frames as
+           modules so Vite fingerprints and bundles them, and assigns one in the
+           same tick it mounts. A hand-written path would be a second place to
+           update and would 404 in the build. -->
+      <img
+        class="supply__scene"
+        data-supply-scene
+        alt=""
+        aria-hidden="true"
+        decoding="async"
+      />
+
+      <div class="supply__panel">
+        <header class="supply__header">
+          <div class="supply__brand">
+            <span class="supply__brand-mark" aria-hidden="true">&#128640;</span>
+            <span class="supply__brand-text">
+              <span class="supply__brand-name">MARS HORIZON</span>
+              <span class="supply__brand-sub">SUPPLY CHECK</span>
+            </span>
+          </div>
+          <nav class="supply__nav" aria-label="Primary">Mission Control / Main Menu</nav>
+        </header>
+
+        <h1 class="supply__title" id="supply-title">What does the crew need?</h1>
+
+        <!-- One line per resource. The copy lives in supply/model.ts, so these
+             are generated in supply/view.ts rather than written here. -->
+        <ul class="supply__facts" data-supply-facts></ul>
+
+        <!-- Hidden until the five facts have been read, or SKIP is pressed. -->
+        <div class="supply__question" data-supply-question hidden>
+          <p class="supply__prompt">
+            The mission lasts two months. Your crew has four astronauts. How many
+            ration packs must you pack?
+          </p>
+
+          <!-- Four buttons, generated in supply/view.ts from the model, so the
+               numbers on screen are the numbers under test. -->
+          <ul class="supply__choices" data-supply-choices></ul>
+
+          <p class="supply__feedback" data-supply-feedback aria-live="polite" hidden></p>
+          <p class="supply__result" data-supply-result aria-live="polite" hidden></p>
+        </div>
+
+        <div class="supply__actions">
+          <button class="supply__action" type="button" data-supply-skip>
+            Skip Facts
+          </button>
+          <button
+            class="supply__action supply__action--primary"
+            type="button"
+            data-supply-continue
+            hidden
+          >
+            Continue
+          </button>
+        </div>
+      </div>
+    </section>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

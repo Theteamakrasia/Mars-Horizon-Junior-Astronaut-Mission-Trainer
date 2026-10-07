@@ -14,6 +14,7 @@
 export type Route =
   | 'naming'
   | 'briefing'
+  | 'supply'
   | 'landing'
   | 'landing-site'
   | 'base'
@@ -40,6 +41,7 @@ export type Route =
 export const ROUTE_ORDER: readonly Route[] = [
   'naming',
   'briefing',
+  'supply',
   'landing-site',
   'base',
   'act',

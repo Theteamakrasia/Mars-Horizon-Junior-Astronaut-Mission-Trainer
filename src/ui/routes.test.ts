@@ -77,9 +77,10 @@ describe('progression', () => {
     expect(new Set(ROUTE_ORDER).size).toBe(ROUTE_ORDER.length);
   });
 
-  it('walks naming through briefing', () => {
+  it('walks naming through briefing and supply', () => {
     expect(nextRoute('naming')).toBe('briefing');
-    expect(nextRoute('briefing')).toBe('landing-site');
+    expect(nextRoute('briefing')).toBe('supply');
+    expect(nextRoute('supply')).toBe('landing-site');
     expect(nextRoute('landing-site')).toBe('base');
     expect(nextRoute('base')).toBe('act');
     expect(nextRoute('act')).toBe('debrief');

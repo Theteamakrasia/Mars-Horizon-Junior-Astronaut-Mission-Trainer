@@ -1,0 +1,376 @@
+/* ==========================================================================
+   SUPPLY — the ration check at Mission Control
+
+   Full-bleed illustration with the facts and the answers in a panel over it,
+   because the artwork is the room: the checklist on the Mission Control board is
+   the thing the player is being asked to fix, so it has to stay visible.
+
+   Palette reused from the briefing so the three screens read as one product; no
+   new colours are introduced here. Imported by ./view.ts only (AGENTS.md R-15).
+   ========================================================================== */
+
+.supply {
+  --s-bg: #070e12;
+  --s-panel: rgba(9, 17, 22, 0.9);
+  --s-panel-solid: #0d1a21;
+  --s-border: #2e3c45;
+  --s-text: #fcfcfc;
+  --s-muted: #9aa8b0;
+  --s-accent: #fa6200;
+  --s-good: #4fd07a;
+  --s-bad: #ff5a52;
+
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: var(--s-bg);
+  color: var(--s-text);
+  font-family: var(--font-display);
+}
+
+.supply *,
+.supply *::before,
+.supply *::after {
+  box-sizing: border-box;
+}
+
+/* ---------- THE SCENE ---------- */
+
+.supply__scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* The panel needs to be readable over any part of the artwork, so the scene is
+     dimmed a little. Slight, or the illustration stops reading as a room. */
+  opacity: 0.62;
+}
+
+.supply[data-supply-state='wrong'] .supply__scene {
+  opacity: 0.5;
+}
+
+.supply[data-supply-state='right'] .supply__scene {
+  opacity: 0.72;
+}
+
+/* ---------- THE PANEL ---------- */
+
+.supply__panel {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.6rem, 1.6vmin, 1.15rem);
+  height: 100%;
+  box-sizing: border-box;
+  padding: clamp(0.75rem, 2.2vmin, 2rem);
+  /* Only the left side carries the panel, so the Mission Control board on the
+     right of the artwork stays readable. */
+  width: min(46rem, 100%);
+}
+
+.supply__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex: 0 0 auto;
+  padding: 0.55rem 0.85rem;
+  border: 1px solid var(--s-border);
+  border-radius: 4px;
+  background: var(--s-panel-solid);
+}
+
+.supply__title {
+  flex: 0 0 auto;
+  margin: 0;
+  font-size: clamp(1rem, 2.3vmin, 1.5rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ---------- BRAND AND NAV ---------- */
+
+.supply__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.supply__brand-mark {
+  display: grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 5px;
+  background: var(--s-accent);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.supply__brand-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.supply__brand-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.supply__brand-sub {
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--s-muted);
+}
+
+.supply__nav {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  color: var(--s-muted);
+  white-space: nowrap;
+}
+
+/* ---------- THE FIVE FACTS ---------- */
+
+.supply__facts {
+  flex: 0 1 auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  /* Scrolls rather than overflows. On a short window the five lines plus the
+     question will not fit, and the question must stay on screen. */
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.supply__fact {
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+  padding: 0.5rem 0.7rem;
+  border-left: 2px solid var(--s-border);
+  background: var(--s-panel);
+  font-size: clamp(0.82rem, 1.5vmin, 1rem);
+  line-height: 1.45;
+}
+
+.supply__fact.is-revealed {
+  animation: supply-fade 300ms ease-out both;
+}
+
+/* Deliberately opacity, never width: see the note in ./view.ts on showFact. */
+@keyframes supply-fade {
+  from {
+    opacity: 0;
+    transform: translateY(0.35rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.supply__fact-label {
+  flex: 0 0 auto;
+  font-weight: 700;
+  color: var(--s-accent);
+  min-width: 7.5rem;
+}
+
+.supply__fact-line {
+  color: var(--s-text);
+}
+
+/* ---------- THE QUESTION ---------- */
+
+.supply__question {
+  flex: 0 0 auto;
+  padding: clamp(0.6rem, 1.6vmin, 1rem);
+  border: 1px solid var(--s-border);
+  border-radius: 4px;
+  background: var(--s-panel-solid);
+}
+
+.supply__prompt {
+  margin: 0 0 0.65rem;
+  font-size: clamp(0.9rem, 1.7vmin, 1.15rem);
+  line-height: 1.45;
+}
+
+.supply__choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.supply__button {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--s-border);
+  border-radius: 4px;
+  background: #16242c;
+  color: var(--s-text);
+  font-family: inherit;
+  font-size: clamp(0.9rem, 1.7vmin, 1.1rem);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+
+.supply__button:hover:not(:disabled) {
+  background: #1e3440;
+  border-color: var(--s-accent);
+}
+
+.supply__button:focus-visible {
+  outline: 2px solid var(--s-accent);
+  outline-offset: 2px;
+}
+
+/* Greyed rather than invisible, so the button's position is already known when it
+   becomes clickable. */
+.supply__button:disabled {
+  opacity: 0.42;
+  cursor: default;
+}
+
+/* ---------- FEEDBACK ---------- */
+
+.supply__feedback,
+.supply__result {
+  margin: 0.6rem 0 0;
+  padding: 0.55rem 0.7rem;
+  border-radius: 4px;
+  font-size: clamp(0.82rem, 1.5vmin, 1rem);
+  line-height: 1.45;
+}
+
+.supply__feedback {
+  border-left: 2px solid var(--s-bad);
+  background: rgba(255, 90, 82, 0.12);
+}
+
+.supply__result {
+  border-left: 2px solid var(--s-accent);
+  background: rgba(250, 98, 0, 0.12);
+}
+
+.supply[data-supply-state='right'] .supply__result {
+  border-left-color: var(--s-good);
+  background: rgba(79, 208, 122, 0.14);
+}
+
+/* ---------- ACTIONS ---------- */
+
+.supply__actions {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: auto;
+}
+
+.supply__action {
+  padding: 0.6rem 1.1rem;
+  border: 1px solid var(--s-border);
+  border-radius: 4px;
+  background: #16242c;
+  color: var(--s-text);
+  font-family: inherit;
+  font-size: clamp(0.82rem, 1.5vmin, 1rem);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+
+.supply__action:hover {
+  background: #1e3440;
+  border-color: var(--s-accent);
+}
+
+.supply__action:focus-visible {
+  outline: 2px solid var(--s-accent);
+  outline-offset: 2px;
+}
+
+.supply__action--primary {
+  background: var(--s-accent);
+  border-color: var(--s-accent);
+  color: #150800;
+}
+
+/* ---------- VISUALLY HIDDEN ---------- */
+
+.supply__visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---------- NARROW ---------- */
+
+@media (max-width: 60rem) {
+  .supply__panel {
+    width: 100%;
+  }
+
+  .supply__choices {
+    grid-template-columns: 1fr;
+  }
+
+  .supply__fact {
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .supply__fact-label {
+    min-width: 0;
+  }
+}
+
+/* ---------- SHORT ---------- */
+
+@media (max-height: 40rem) {
+  .supply__panel {
+    gap: 0.5rem;
+  }
+
+  .supply__fact {
+    padding: 0.35rem 0.55rem;
+  }
+}
+
+/* ---------- REDUCED MOTION ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .supply__fact.is-revealed {
+    animation: none;
+  }
+
+  .supply__button,
+  .supply__action {
+    transition: none;
+  }
+}

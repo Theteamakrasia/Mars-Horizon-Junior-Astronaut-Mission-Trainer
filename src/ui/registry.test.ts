@@ -13,6 +13,7 @@ import type { Route } from './routes';
 const ALL: readonly Route[] = [
   'naming',
   'briefing',
+  'supply',
   'landing',
   'landing-site',
   'base',
@@ -40,9 +41,15 @@ describe('nextStop', () => {
     expect(nextStop('naming')).toBe('briefing');
   });
 
+  it('walks the built supply screen straight after the briefing', () => {
+    // Adding a built scene needed no change here. That is the property the
+    // computed-interstitial rule exists for.
+    expect(nextStop('briefing')).toBe('supply');
+  });
+
   it('inserts the interstitial before a screen that is not built', () => {
-    // landing-site is a stub, so the player sees the placeholder first.
-    expect(nextStop('briefing')).toBe('landing');
+    // landing-site is a stub, so the player sees the placeholder after supply.
+    expect(nextStop('supply')).toBe('landing');
   });
 
   it('skips the interstitial entirely once the next screen is built', () => {
@@ -75,7 +82,15 @@ describe('nextStop', () => {
 
 /** The raw next route, used by the invariant test above. */
 function nextRouteOf(route: Route): Route {
-  const order: readonly Route[] = ['naming', 'briefing', 'landing-site', 'base', 'act', 'debrief'];
+  const order: readonly Route[] = [
+    'naming',
+    'briefing',
+    'supply',
+    'landing-site',
+    'base',
+    'act',
+    'debrief',
+  ];
   const index = order.indexOf(route);
   return order[index + 1];
 }
