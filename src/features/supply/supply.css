@@ -1,5 +1,5 @@
 /* ==========================================================================
-   SUPPLY — the ration check at Mission Control
+   SUPPLY â€” the ration check at Mission Control
 
    The picture is a full Mission Control room with no empty space in it, so
    nothing here is laid out as a panel dropped on top of it. The text is dialogue:
@@ -7,7 +7,7 @@
    replaces the last. The bottom dock holds the question and the answers.
 
    Colours are sampled from the artwork rather than carried over from the other
-   screens — the room is navy and blue-lit with orange accents and green ticks, so
+   screens â€” the room is navy and blue-lit with orange accents and green ticks, so
    the UI borrows those. A grey-and-orange panel over this picture looked pasted
    in; these do not.
    ========================================================================== */
@@ -141,22 +141,27 @@
   color: var(--s-text);
 }
 
-/* ---------- THE DOCK ---------- */
+/* ---------- THE RAIL ----------
+   Answers and the way out, down the left edge.
 
-.supply__dock {
+   The astronaut stands from about 24% across to 46%, and his head starts around
+   35% down. The rail stops short of 22% and is anchored to the bottom, so it sits
+   in the strip of wall and window to his left and covers none of him. He is the
+   subject of the picture; nothing may be laid over him.
+*/
+.supply__rail {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  left: 1.5%;
+  bottom: 2.5%;
+  width: 20%;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: clamp(0.5rem, 1.5vmin, 1rem) clamp(0.6rem, 2vmin, 1.5rem);
-  border-top: 1px solid var(--s-line);
+  gap: 0.45rem;
+  padding: clamp(0.4rem, 1.2vmin, 0.8rem);
+  border: 1px solid var(--s-line);
+  border-radius: 0.7rem;
   background: var(--s-glass);
-}
-
-.supply__answers {
+  box-shadow: 0 0.4rem 1.4rem rgba(0, 0, 0, 0.45);
   animation: supply-rise 260ms ease-out both;
 }
 
@@ -171,16 +176,21 @@
   }
 }
 
-.supply__prompt {
-  margin: 0 0 0.55rem;
-  font-size: clamp(0.88rem, 1.65vmin, 1.1rem);
-  line-height: 1.4;
+/* A short label only. The question is said by the astronaut, in the bubble, and
+   is deliberately not repeated here. */
+.supply__ask {
+  margin: 0 0 0.4rem;
+  font-size: clamp(0.68rem, 1.2vmin, 0.82rem);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--s-muted);
 }
 
 .supply__choices {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.5rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -188,13 +198,13 @@
 
 .supply__choice-button {
   width: 100%;
-  padding: 0.55rem 0.5rem;
+  padding: 0.5rem 0.3rem;
   border: 1px solid var(--s-line);
   border-radius: 4px;
   background: rgba(20, 46, 78, 0.85);
   color: var(--s-text);
   font-family: inherit;
-  font-size: clamp(1rem, 2.1vmin, 1.4rem);
+  font-size: clamp(0.9rem, 1.9vmin, 1.3rem);
   font-weight: 700;
   cursor: pointer;
   transition: background 140ms ease, border-color 140ms ease;
@@ -219,50 +229,45 @@
 
 /* ---------- VERDICT ---------- */
 
-.supply__feedback,
 .supply__result {
-  margin: 0.5rem 0 0;
-  padding: 0.45rem 0.65rem;
-  border-radius: 4px;
-  font-size: clamp(0.8rem, 1.45vmin, 1rem);
+  margin: 0.4rem 0 0;
+  font-size: clamp(0.68rem, 1.15vmin, 0.8rem);
   line-height: 1.4;
+  color: var(--s-muted);
   animation: supply-rise 260ms ease-out both;
 }
 
-.supply__feedback {
-  border-left: 3px solid var(--s-bad);
-  background: rgba(255, 95, 86, 0.14);
-}
-
 .supply__result {
-  border-left: 3px solid var(--s-line);
-  background: rgba(45, 109, 163, 0.2);
+  padding-left: 0.4rem;
+  border-left: 2px solid var(--s-accent);
 }
 
 .supply[data-supply-state='right'] .supply__result {
   border-left-color: var(--s-good);
-  background: rgba(70, 209, 127, 0.16);
 }
 
 /* ---------- ACTIONS ---------- */
 
 .supply__actions {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.35rem;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .supply__action {
-  padding: 0.45rem 0.95rem;
+  flex: 1 1 auto;
+  padding: 0.4rem 0.5rem;
   border: 1px solid var(--s-line);
   border-radius: 4px;
   background: rgba(20, 46, 78, 0.85);
   color: var(--s-text);
   font-family: inherit;
-  font-size: clamp(0.72rem, 1.3vmin, 0.88rem);
+  font-size: clamp(0.66rem, 1.1vmin, 0.78rem);
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
+  white-space: nowrap;
   cursor: pointer;
   transition: background 140ms ease, border-color 140ms ease;
 }
@@ -284,12 +289,13 @@
 }
 
 /* ---------- NARROW ----------
-   The bubble tracks the picture, so on a narrow window it shrinks with the stage
-   rather than being re-laid-out. Only the dock adapts.
+   The bubble and the rail both track the picture, so they shrink with the stage
+   rather than being re-laid-out. The rail widens a little because its labels are
+   short and it is the only interactive part.
 */
 @media (max-width: 48rem) {
-  .supply__choices {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .supply__rail {
+    width: 24%;
   }
 }
 
@@ -297,10 +303,7 @@
 
 @media (max-height: 32rem) {
   .supply__speech {
-    /* On a squat window the dock takes most of the picture, so the bubble moves
-       up and stops competing with it. */
-    top: 2%;
-    max-width: 40%;
+    max-width: 38%;
   }
 
   .supply__bubble-text {
@@ -312,8 +315,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .supply__bubble,
-  .supply__answers,
-  .supply__feedback,
+  .supply__rail,
   .supply__result,
   .supply__choice-button,
   .supply__action {

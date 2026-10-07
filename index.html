@@ -167,14 +167,21 @@
 
     <!-- The supply check. Reached from the briefing.
 
-         The illustration is a full Mission Control room and there is no empty
-         space in it, so the text is not laid over it in panels. Instead the
-         astronaut speaks: one bubble at a time, anchored beside his head with a
-         tail pointing at him, and each fact REPLACES the one before it. That way
-         the room stays visible instead of being covered by a stack of boxes.
+         Comic-book layout, driven by that the picture is a full Mission Control
+         room with no empty space in it:
 
-         The art sits inside .supply__stage, which is locked to the image's own
-         aspect ratio. That matters: with object-fit: cover the artwork is cropped
+           - ALL speech is in one bubble beside the astronaut, with a tail
+             pointing at him, and each line REPLACES the one before it. The five
+             facts, then the question, then the verdict.
+           - Only the ANSWER BUTTONS sit anywhere else, in a rail down the left
+             edge, in the strip of wall that is clear of the astronaut. He is the
+             subject of the picture and nothing may cover him.
+
+         The question text appears once, in the bubble. An earlier version repeated
+         it in a dock as well, which printed the same sentence twice on one screen.
+
+         The art sits inside .supply__stage, locked to the image's own aspect
+         ratio. That matters: with object-fit: cover the artwork is cropped
          differently at every window size, so anything positioned against it would
          drift away from the thing it was meant to point at. Locking the ratio
          makes the bubble land in the same place in the picture at any size.
@@ -196,7 +203,7 @@
         />
 
         <!-- One bubble, reused. aria-live so each replacement is announced, since
-             the previous fact is genuinely removed rather than scrolled past. -->
+             the previous line is genuinely removed rather than scrolled past. -->
         <div class="supply__speech" role="status" aria-live="polite">
           <div class="supply__bubble" data-supply-bubble hidden>
             <p class="supply__bubble-label" data-supply-bubble-label></p>
@@ -205,24 +212,26 @@
           </div>
         </div>
 
-        <!-- One bottom dock, so the question, the answers, the verdict and the
-             way out are a single object at the foot of the picture rather than
-             several competing bars. -->
-        <div class="supply__dock">
-          <!-- Hidden until the five facts have been read, or Skip is pressed. -->
+        <!-- The rail: answers and the way out. Answers are hidden until the five
+             facts have been read or Skip is pressed; the actions are not, because
+             Skip has to be reachable during the facts. -->
+        <div class="supply__rail">
           <div class="supply__answers" data-supply-answers hidden>
-            <p class="supply__prompt" data-supply-prompt></p>
+            <!-- A short label only. The question itself is in the bubble, said by
+                 the astronaut, and is not repeated here. -->
+            <p class="supply__ask">How many packs?</p>
 
             <!-- Four buttons, generated in supply/view.ts from the model, so the
                  numbers on screen are the numbers under test. -->
             <ul class="supply__choices" data-supply-choices></ul>
 
-            <p class="supply__feedback" data-supply-feedback hidden></p>
+            <!-- The working, in small type, so the question stays on screen in the
+                 bubble beside it. -->
             <p class="supply__result" data-supply-result hidden></p>
           </div>
 
           <div class="supply__actions">
-            <button class="supply__action" type="button" data-supply-skip>Skip Facts</button>
+            <button class="supply__action" type="button" data-supply-skip>Skip</button>
             <button
               class="supply__action supply__action--primary"
               type="button"

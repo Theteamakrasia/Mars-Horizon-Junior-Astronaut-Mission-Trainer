@@ -10,7 +10,7 @@
  * The artwork is a full Mission Control room with no empty space in it. An
  * earlier version laid the five facts out as a scrolling list inside a
  * 46rem panel down the left, and it read as a dialog box dropped on top of a
- * picture — the panel covered the astronaut, whose job in the scene is to be
+ * picture â€” the panel covered the astronaut, whose job in the scene is to be
  * pointing at the checklist, and it fought the board the whole scene is about.
  *
  * So the text is dialogue instead: one bubble beside the astronaut's head, with a
@@ -98,12 +98,32 @@ export function mountSupply(
   const bubbleLabel = require<HTMLParagraphElement>(root, '[data-supply-bubble-label]');
   const bubbleText = require<HTMLParagraphElement>(root, '[data-supply-bubble-text]');
   const answers = require<HTMLElement>(root, '[data-supply-answers]');
-  const prompt = require<HTMLParagraphElement>(root, '[data-supply-prompt]');
   const choiceList = require<HTMLUListElement>(root, '[data-supply-choices]');
-  const feedback = require<HTMLParagraphElement>(root, '[data-supply-feedback]');
   const result = require<HTMLParagraphElement>(root, '[data-supply-result]');
   const skip = require<HTMLButtonElement>(root, '[data-supply-skip]');
   const cont = require<HTMLButtonElement>(root, '[data-supply-continue]');
+
+  /*
+   * Who the bubble is attributed to.
+   *
+   * The player's own name, because the astronaut in the picture is them. An
+   * earlier version labelled every bubble "MISSION CONTROL", which duplicated the
+   * words already painted on the wall behind him and made it read as a caption
+   * board rather than as somebody talking.
+   */
+  const speaker = run?.astronautName?.trim() || 'Astronaut';
+
+  /*
+   * Reduced motion shortens the hold rather than removing the facts.
+   *
+   * An earlier version treated "no run in progress" as a reason to skip straight
+   * to the question, on the grounds that the reveal was tied to a run. It was not:
+   * opening #/supply directly meant the five facts never appeared at all, so the
+   * teaching content was only reachable if you had played through from the
+   * briefing. The facts are the content. They always play.
+   */
+  const reduced = prefersReducedMotion();
+  const holdMs = reduced ? 900 : FACT_HOLD_MS;
 
   const setScene = (name: SceneName): void => {
     scene.src = SCENE_URLS[name];
@@ -145,7 +165,7 @@ export function mountSupply(
    * collapses to a plain swap there.
    */
   const swapTo = (label: string, text: string, then?: () => void): void => {
-    if (prefersReducedMotion() || bubble.hidden) {
+    if (reduced || bubble.hidden) {
       render(label, text);
       if (then) then();
       return;
@@ -181,12 +201,9 @@ export function mountSupply(
   /** True once the right answer has been given, which ends the interaction. */
   let solved = false;
 
-  /** Put the question on screen with the buttons live and nothing judged yet. */
+  /** Put the buttons on screen with nothing judged yet. */
   const askQuestion = (): void => {
-    prompt.textContent = QUESTION_PROMPT;
     answers.hidden = false;
-    feedback.hidden = true;
-    feedback.textContent = '';
     result.hidden = true;
     result.textContent = '';
     cont.hidden = true;
@@ -195,7 +212,8 @@ export function mountSupply(
 
   const advance = (): void => {
     if (index >= RESOURCE_FACTS.length) {
-      swapTo('Mission Control', QUESTION_PROMPT, askQuestion);
+      // He asks it. The sentence lives only here, never also in the rail.
+      swapTo(speaker, QUESTION_PROMPT, askQuestion);
       return;
     }
 
@@ -203,7 +221,7 @@ export function mountSupply(
     index += 1;
 
     swapTo(fact.label, fact.line, () => {
-      later(advance, FACT_HOLD_MS);
+      later(advance, holdMs);
     });
   };
 
@@ -213,14 +231,15 @@ export function mountSupply(
     setChoicesEnabled(false);
 
     const why = explainChoice(value);
-    feedback.textContent =
+    swapTo(
+      speaker,
       why === null
         ? 'That is not one of the amounts on the board. Read the two numbers in the question again.'
-        : why;
-    feedback.hidden = false;
+        : why,
+    );
 
-    // The working goes up alongside the explanation. A child told only that they
-    // were wrong has nothing to correct.
+    // The working goes in the rail, not the bubble, so the question stays on
+    // screen beside it while the child reads what went wrong.
     result.textContent = workingSentence();
     result.hidden = false;
 
@@ -237,10 +256,10 @@ export function mountSupply(
     setScene('right');
     setChoicesEnabled(false);
 
-    result.textContent = successSentence();
-    result.hidden = false;
-    feedback.hidden = true;
-    feedback.textContent = '';
+    swapTo(speaker, successSentence());
+
+    result.hidden = true;
+    result.textContent = '';
     cont.hidden = false;
   };
 
@@ -270,7 +289,7 @@ export function mountSupply(
     index = RESOURCE_FACTS.length;
     skip.hidden = true;
 
-    swapTo('Mission Control', QUESTION_PROMPT, askQuestion);
+    swapTo(speaker, QUESTION_PROMPT, askQuestion);
   };
 
   const onContinue = (): void => {
@@ -291,19 +310,15 @@ export function mountSupply(
   setScene('question');
 
   /*
-   * Reduced motion, or no run in progress, goes straight to the question with no
-   * animation. The `run === null` case matters: #/supply is reachable by typing it
-   * into the address bar, and the reveal must not start a timed chain behind a run
-   * that does not exist.
+   * The facts always play. Reduced motion only shortens the hold and drops the
+   * crossfade; it does not remove content, and neither does arriving with no run
+   * behind you. See the note on `holdMs` above for what the old condition cost.
    */
-  if (prefersReducedMotion() || run === null || run.status !== 'active') {
+  if (reduced) {
     skip.hidden = true;
-    askQuestion();
-    // The question still belongs in the bubble, even when nothing animated.
-    render('Mission Control', QUESTION_PROMPT);
-  } else {
-    advance();
   }
+
+  advance();
 
   return () => {
     skip.removeEventListener('click', onSkip);
