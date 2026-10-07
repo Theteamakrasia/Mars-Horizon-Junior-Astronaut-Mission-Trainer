@@ -193,13 +193,24 @@
          scripts/check-markup.mjs fails the build if one is removed. -->
     <section id="supply" class="supply" aria-label="Supply check at Mission Control">
       <div class="supply__stage">
-        <!-- No src here on purpose: supply/view.ts imports the three frames as
-             modules so Vite fingerprints and bundles them, and assigns one in the
-             same tick it mounts. A hand-written path would be a second place to
-             update and would 404 in the build. -->
+        <!-- Two scene images, stacked, because you cannot crossfade one element into
+             itself: whichever is front is opaque, the other sits behind it at zero
+             opacity, and changing the illustration swaps which is which.
+
+             No src on either, on purpose: supply/view.ts imports the four frames as
+             modules so Vite fingerprints and bundles them, and assigns them itself.
+             A hand-written path would be a second place to update and would 404 in
+             the build. -->
+        <img
+          class="supply__scene is-front"
+          data-supply-scene
+          alt=""
+          aria-hidden="true"
+          decoding="async"
+        />
         <img
           class="supply__scene"
-          data-supply-scene
+          data-supply-scene-b
           alt=""
           aria-hidden="true"
           decoding="async"

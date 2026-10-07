@@ -53,6 +53,19 @@ import {
 /** How long a bubble fades out before the next one is written into it. */
 const SWAP_MS = 220;
 
+/**
+ * How long to wait for a frame before showing it anyway.
+ *
+ * A crossfade that stalls waiting for a decode is worse than a hard cut, so this
+ * is the escape hatch. Same reasoning as the briefing reveal: an animation must
+ * never be load-bearing for content appearing.
+ *
+ * The dissolve's own duration is not here — it lives in supply.css, on the
+ * opacity transition, and having the number in both files would be two sources
+ * of truth for one effect.
+ */
+const SCENE_LOAD_FALLBACK_MS = 700;
+
 /** How long the wrong frame is held before the buttons come back. */
 const RETRY_DELAY_MS = 1100;
 
@@ -110,6 +123,7 @@ export function mountSupply(
   _setRun: (next: RunState | null) => void,
 ): () => void {
   const scene = require<HTMLImageElement>(root, '[data-supply-scene]');
+  const sceneB = require<HTMLImageElement>(root, '[data-supply-scene-b]');
   const bubble = require<HTMLDivElement>(root, '[data-supply-bubble]');
   const bubbleLabel = require<HTMLParagraphElement>(root, '[data-supply-bubble-label]');
   const bubbleText = require<HTMLParagraphElement>(root, '[data-supply-bubble-text]');
@@ -140,10 +154,90 @@ export function mountSupply(
  */
 const reduced = prefersReducedMotion();
 
+  /*
+   * The two stacked scene images.
+   *
+   * `front` is whichever currently holds the visible frame. Changing the
+   * illustration writes the next one onto the back layer, waits for it to be
+   * ready, then swaps which layer is in front - the CSS opacity transition does
+   * the dissolve.
+   */
+  let front: HTMLImageElement = scene;
+  let back: HTMLImageElement = sceneB;
+
+  /**
+   * Run `then` once `img` has pixels, or once it has clearly given up trying.
+   *
+   * The timeout matters: an image whose decode resolves without a `load` event, or
+   * a frame that 404s, would otherwise strand the sequence with the previous
+   * picture still showing and no explanation.
+   */
+  const whenReady = (img: HTMLImageElement, then: () => void): void => {
+    if (img.complete && img.naturalWidth > 0) {
+      then();
+      return;
+    }
+
+    let settled = false;
+
+    const finish = (): void => {
+      if (settled) return;
+      settled = true;
+      img.removeEventListener('load', finish);
+      then();
+    };
+
+    img.addEventListener('load', finish);
+    later(finish, SCENE_LOAD_FALLBACK_MS);
+  };
+
+  /**
+   * Dissolve to another frame of the room.
+   *
+   * Under reduced motion there is no dissolve at all - the frame is simply
+   * replaced. That is what reduced motion means, and it is why `whenReady` needs
+   * its fallback: the picture must never be the thing waiting on an animation.
+   */
   const setScene = (name: SceneName): void => {
-    scene.src = SCENE_URLS[name];
+    const url = SCENE_URLS[name];
+
     // Read by the stylesheet, so the room can tint to match the verdict.
     root.dataset.supplyState = name;
+
+    const apply = (): void => {
+      front.classList.remove('is-front');
+      back.classList.add('is-front');
+
+      const spare = front;
+      front = back;
+      back = spare;
+    };
+
+    if (reduced) {
+      back.src = url;
+      apply();
+      return;
+    }
+
+    // Wait for pixels before swapping layers, so the dissolve never fades through
+    // an empty image and a flash of bare background.
+    back.src = url;
+    whenReady(back, apply);
+  };
+
+  /**
+   * Fetch all four frames now, while the player is reading.
+   *
+   * A crossfade only looks smooth if the incoming frame is already decoded. By the
+   * time anyone has clicked through a few facts it will be in cache anyway, but
+   * nothing fetches it until a transition asks for it - so ask now.
+   */
+  const warmFrames = (): void => {
+    for (const url of Object.values(SCENE_URLS)) {
+      const img = new Image();
+      img.decoding = 'async';
+      img.src = url;
+    }
   };
 
   const setChoicesEnabled = (enabled: boolean): void => {
@@ -377,6 +471,10 @@ const reduced = prefersReducedMotion();
   // Open on the astronaut explaining, with the clipboard. The pointing-at-the-
   // checklist frame waits for the question, which is what he is pointing at.
   setScene('choose');
+
+  // Fetch the other three frames while they read the facts, so no later dissolve
+  // has to wait on the network.
+  warmFrames();
 
   // The opening line is already on screen when you arrive. Nobody should have to
   // click to find out what the screen is.

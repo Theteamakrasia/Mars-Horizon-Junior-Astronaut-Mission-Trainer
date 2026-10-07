@@ -64,6 +64,15 @@
   overflow: hidden;
 }
 
+/*
+  Two of these, stacked. A crossfade cannot happen inside one element, so the
+  illustration is a pair: one is fully opaque, the other sits behind it at zero,
+  and changing frames swaps which is which.
+
+  The dissolve itself is the opacity transition below. 500ms is long on purpose -
+  a shorter one reads as the room snapping rather than as the light changing in
+  the same room.
+*/
 .supply__scene {
   position: absolute;
   inset: 0;
@@ -72,14 +81,21 @@
   object-fit: cover;
   /* Only dimmed enough to keep the UI legible. An earlier version dropped it to
      0.62 behind an opaque panel and the room stopped reading as a room. */
+  opacity: 0;
+  transition: opacity 500ms ease-in-out;
+}
+
+.supply__scene.is-front {
   opacity: 0.94;
 }
 
-.supply[data-supply-state='wrong'] .supply__scene {
+/* The verdict tint sits on the front layer only, so it changes with the frame
+   rather than fading in separately and doubling the transition. */
+.supply[data-supply-state='wrong'] .supply__scene.is-front {
   filter: saturate(1.05) brightness(0.9);
 }
 
-.supply[data-supply-state='right'] .supply__scene {
+.supply[data-supply-state='right'] .supply__scene.is-front {
   filter: brightness(1.06);
 }
 
@@ -369,6 +385,7 @@
 /* ---------- REDUCED MOTION ---------- */
 
 @media (prefers-reduced-motion: reduce) {
+  .supply__scene,
   .supply__bubble,
   .supply__rail,
   .supply__result,
