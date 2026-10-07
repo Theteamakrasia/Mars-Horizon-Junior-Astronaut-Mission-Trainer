@@ -229,6 +229,26 @@ function hasClass(value, name) {
   return value.split(/\s+/).includes(name);
 }
 
+/** Line number of `index` within `source`. */
+function lineOfIn(source, index) {
+  let line = 1;
+  for (let i = 0; i < index && i < source.length; i++) {
+    if (source[i] === '\n') line++;
+  }
+  return line;
+}
+
+/** Every stylesheet in a feature folder, as workspace-relative posix paths. */
+function cssFilesIn(dir) {
+  if (!existsSync(dir)) return [];
+
+  const feature = dir.split(/[\\/]/).pop();
+
+  return readdirSync(dir, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith('.css'))
+    .map((entry) => `src/features/${feature}/${entry.name}`);
+}
+
 /** Every class name used anywhere inside an element's markup. */
 function classNamesIn(markupSlice) {
   return [...markupSlice.matchAll(/class="([^"]*)"/g)].flatMap((match) =>
@@ -247,7 +267,45 @@ function classNamesIn(markupSlice) {
 const LANDING_IDS = ['starfield', 'astronaut'];
 const LANDING_CLASSES = ['stage', 'vignette'];
 
-// --- Rule 8: the landing wrapper holds exactly the landing layers -------------
+/*
+  --- Rule 8: no `pointer-events: none` in a feature stylesheet.
+
+  The second invisible-but-unclickable bug, and the same shape as the `[hidden`
+  one above. A button was rendered correctly inside a speech container, looked
+  fine, and did nothing when clicked - because an ancestor rule set
+  `pointer-events: none`, which disables hit-testing for the whole subtree while
+  leaving everything fully visible.
+
+  Nothing on these screens needs it: the artwork behind the UI is an image, so
+  there is nothing underneath for a click to reach. It is banned rather than
+  discouraged, because the failure mode is invisible in every screenshot and in
+  every type check.
+
+  If a rule genuinely needs it, put the element in the KNOWN set in
+  check-imports.mjs with the reason, so the exception is a decision on the record
+  rather than a rule nobody noticed.
+*/
+for (const entry of readdirSync(join(ROOT, 'src', 'features'), { withFileTypes: true })) {
+  if (!entry.isDirectory()) continue;
+
+  for (const name of cssFilesIn(join(ROOT, 'src', 'features', entry.name))) {
+    const raw2 = readFileSync(join(ROOT, name), 'utf8');
+
+    /*
+      Comments are blanked rather than deleted, so line numbers still line up.
+      Without this the rule matched its own explanation of itself: the comment on
+      .supply__advance names `pointer-events: none` while explaining why it is
+      banned, and the first version of this check failed on it.
+    */
+    const source = raw2.replace(/\/\*[\s\S]*?\*\//g, (match) => match.replace(/[^\n]/g, ' '));
+
+    for (const hit of source.matchAll(/pointer-events:\s*none/g)) {
+      fail(0, `${name}:${lineOfIn(source, hit.index)} sets pointer-events: none - it disables clicks for the whole subtree while leaving it visible, which is how a working button ends up dead on screen`);
+    }
+  }
+}
+
+// --- Rule 9: the landing wrapper holds exactly the landing layers -------------
 if (landing !== null) {
   const inside = markup.slice(landing.start, landing.end);
   const ids = [...inside.matchAll(/\bid="([\w-]+)"/g)].map((m) => m[1]);
