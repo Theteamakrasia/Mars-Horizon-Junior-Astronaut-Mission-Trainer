@@ -197,6 +197,25 @@
   color: var(--b-accent);
 }
 
+/*
+  YES, the answer to the closing question.
+
+  Given its own treatment because it is not another step along the same road - it
+  is the affirmative. It takes the accent fill, the way CONTINUE used to before the
+  briefing grew a NEXT, so the eye goes to it the moment the last line lands.
+*/
+.briefing__button--yes {
+  border-color: var(--b-accent);
+  background: var(--b-accent);
+  color: #150800;
+}
+
+.briefing__button--yes:hover {
+  background: var(--b-text);
+  border-color: var(--b-text);
+  color: #150800;
+}
+
 .briefing__button:active {
   transform: translateY(1px);
 }

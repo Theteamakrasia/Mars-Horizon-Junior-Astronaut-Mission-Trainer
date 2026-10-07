@@ -158,11 +158,22 @@
              Skip: it was a second button whose only job was what NEXT does.
 
              There is also no Continue. The briefing is not optional, so a button
-             that let you leave before reading it was the wrong affordance; once
-             every beat has been shown the screen moves on by itself. -->
+             that let you leave before reading it was the wrong affordance.
+
+             The closing beat asks "Are you ready?", so YES appears with it. The
+             screen still moves on by itself if nobody presses it - YES is the fast
+             path, not the only one. -->
         <div class="briefing__actions">
           <button class="briefing__button" type="button" data-briefing-next>
             Next
+          </button>
+          <button
+            class="briefing__button briefing__button--yes"
+            type="button"
+            data-briefing-yes
+            hidden
+          >
+            Yes!!
           </button>
         </div>
       </div>

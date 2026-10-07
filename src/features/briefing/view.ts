@@ -58,6 +58,7 @@ export function mountBriefing(
   const greeting = require<HTMLParagraphElement>(root, '[data-briefing-greeting]');
   const stream = require<HTMLOListElement>(root, '[data-briefing-stream]');
   const advance = require<HTMLButtonElement>(root, '[data-briefing-next]');
+  const yes = require<HTMLButtonElement>(root, '[data-briefing-yes]');
   const hint = require<HTMLParagraphElement>(root, '[data-briefing-hint]');
 
   greeting.textContent = greetingFor(run?.astronautName ?? '');
@@ -79,23 +80,48 @@ export function mountBriefing(
   let index = 0;
   let timers: number[] = [];
 
+  /** The next stop, or null at the end of the journey. Resolved once, on mount. */
+  const destination = nextStop('briefing');
+
   /**
-   * Move on by itself once the briefing has been read in full.
+   * Go on to the next scene.
+   *
+   * Any pending hand-off is cancelled first. Without that, pressing YES while the
+   * fallback timer is still running leaves two navigations queued, and the second
+   * fires on a screen that is already gone - which reads as the app jumping on
+   * its own a moment after you told it where to go.
+   */
+  const goOn = (): void => {
+    for (const timer of timers) window.clearTimeout(timer);
+    timers = [];
+
+    if (destination === null) return;
+
+    navigate(destination);
+  };
+
+  /**
+   * Offer YES, and move on by itself if nobody does.
+   *
+   * The last beat asks "Are you ready?", so the answer deserves a button rather
+   * than a countdown - a child who has already decided should not have to wait out
+   * a timer to say so.
+   *
+   * The timer stays as a floor, not as the alternative: a screen that waits
+   * forever for a click is a dead end, and anyone who drifted off without
+   * pressing anything would be stranded on the closing line. YES is the fast path.
    *
    * Reaching the end of the journey is a real state, not an error, so it says so
-   * instead of leaving the player on a dead screen. That is the alternative to a
-   * control that silently does nothing, which is the worst possible failure for a
-   * child.
+   * and offers no button rather than leaving a control that silently does nothing.
    */
   const handOff = (): void => {
-    const next = nextStop('briefing');
-
-    if (next === null) {
+    if (destination === null) {
       hint.textContent = 'That is the end of the journey for now.';
       return;
     }
 
-    timers.push(window.setTimeout(() => navigate(next), CLOSING_READ_MS));
+    yes.hidden = false;
+    timers.push(window.setTimeout(goOn, CLOSING_READ_MS));
   };
 
   /**
@@ -129,6 +155,7 @@ export function mountBriefing(
   };
 
   advance.addEventListener('click', revealNext);
+  yes.addEventListener('click', goOn);
 
   // The opening line is already on screen when you arrive; nobody should have to
   // click to find out what the screen is.
@@ -136,6 +163,7 @@ export function mountBriefing(
 
   return () => {
     advance.removeEventListener('click', revealNext);
+    yes.removeEventListener('click', goOn);
 
     for (const timer of timers) window.clearTimeout(timer);
     timers = [];
