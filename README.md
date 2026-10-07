@@ -4,8 +4,8 @@
   <img src="Assets/images/floating.png" alt="Pixel-art astronaut mascot" width="160">
 </p>
 
-[![Code checks](https://github.com/MdRasB/mars-horizon/actions/workflows/ci.yml/badge.svg)](https://github.com/MdRasB/mars-horizon/actions/workflows/ci.yml)
-[![Deploy to GitHub Pages](https://github.com/MdRasB/mars-horizon/actions/workflows/deploy.yml/badge.svg)](https://github.com/MdRasB/mars-horizon/actions/workflows/deploy.yml)
+[![Code checks](https://github.com/Theteamakrasia/Mars-Horizon-Junior-Astronaut-Mission-Trainer/actions/workflows/ci.yml/badge.svg)](https://github.com/Theteamakrasia/Mars-Horizon-Junior-Astronaut-Mission-Trainer/actions/workflows/ci.yml)
+[![Deploy to Vercel](https://github.com/Theteamakrasia/Mars-Horizon-Junior-Astronaut-Mission-Trainer/actions/workflows/deploy.yml/badge.svg)](https://github.com/Theteamakrasia/Mars-Horizon-Junior-Astronaut-Mission-Trainer/actions/workflows/deploy.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-7.3-646CFF?logo=vite&logoColor=white)](https://vite.dev/)
 [![Vitest](https://img.shields.io/badge/Vitest-3.2-6E9F18?logo=vitest&logoColor=white)](https://vitest.dev/)

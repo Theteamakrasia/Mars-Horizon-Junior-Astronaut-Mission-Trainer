@@ -8,6 +8,36 @@ than a documented one.
 
 ---
 
+## 2026-10-07 — Replace Pages deployment with a Vercel CI gate
+
+**Did**
+
+- Replaced GitHub Pages publishing with a Vercel CLI deployment that runs only after the
+  `Code checks` workflow succeeds for a push to the default branch.
+- Made the deploy workflow fail its gate when checks fail, and prevented native Vercel Git
+  deployments from creating an ungated parallel deployment.
+- Updated README workflow badges to point to the original repository and Vercel workflow.
+
+**Files**
+
+- Updated: `.github/workflows/deploy.yml`, `README.md`, `docs/CHANGELOG.md`, architecture
+  and codebase deployment docs, task TASK-032/TASK-035, and this log.
+- Added: `vercel.json` with Git integration deployments disabled and
+  `docs/pull-requests/003-vercel-deployment-gate.md`.
+
+**Problems**
+
+- Deployment requires the Vercel project identifiers and API token to be configured as
+  GitHub repository secrets. The workflow fails with a direct setup message if any is absent.
+
+**Next**
+
+- Set `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID` in the original repository,
+  link its Vercel project, then verify a passing default-branch run deploys successfully.
+
+**Doc updates made:** changelog, deployment decision D-022, architecture/codebase contracts,
+PR description, tasks, and this progress log.
+
 ## 2026-10-07 — README header order for PR #2
 
 **Did**

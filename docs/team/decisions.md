@@ -10,6 +10,19 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+**D-022 — project owner · 2026-10-07**
+**Choice:** Deploy production builds to Vercel from GitHub Actions only after the `Code
+checks` workflow succeeds on the repository's default branch. Disable Vercel's native Git
+deployments so they cannot bypass this gate.
+**Why:** The owner selected Vercel instead of GitHub Pages and wants failed changes kept
+out of Vercel deployment. The workflow checks the completed CI run, checks out that exact
+commit, builds with the Vercel CLI, and deploys the prebuilt output.
+**Rejected:** Keep GitHub Pages; allow Vercel's automatic Git integration to deploy
+unchecked commits or run parallel deployments.
+**Consequence:** Add `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID` as GitHub
+repository secrets and link the Vercel project to the repository. This supersedes the
+GitHub Pages deployment choice recorded for PR #1.
+
 **D-021 — agent · 2026-10-07**
 **Choice:** Use GitHub Pages as the deployment target; deploy only after the `Code checks`
 workflow succeeds on `main`. Validate the repository HTML with html-validate while

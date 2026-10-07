@@ -7,9 +7,10 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 
 | id | task | goal | owner | status | blocked by | notes |
 | --- | --- | --- | --- | --- | --- | --- |
+| TASK-035 | Gate Vercel production deployment behind successful default-branch CI | G-6 | agent | done | Vercel secrets | No Pages; `vercel.json` disables Git auto-deploy; PR doc 003 |
 | TASK-034 | Improve README badges, hero image, and linked index | G-6 | agent | done | — | `docs/pull-requests/002-readme-polish.md`; requested header order |
 | TASK-033 | Write detailed Markdown description for PR #1 | G-6 | agent | done | — | `docs/pull-requests/001-ci-deployment-gates.md` |
-| TASK-032 | Add CI quality gates, gated Pages deploy, HTML checks, and changelog | G-6 | agent | done | — | ISS-012. This branch |
+| TASK-032 | Add CI quality gates, gated Vercel deploy, HTML checks, and changelog | G-6 | agent | done | — | ISS-012; Vercel gate in `deploy.yml` |
 | TASK-025 | Folder structure: `sim/` rename, feature zones, cross-feature rule | G-6 | agent | done | — | D-013..D-018. Branch `docs/agent-orientation` |
 | TASK-026 | `src/ui/routes.ts` + `router.ts`, hash routing | G-4 | agent | done | — | 15 tests. **Not wired** — D-014 |
 | TASK-027 | Write `ui/registry.ts`, wire the router into `main.ts` | G-4 | unassigned | open | TASK-028 | arrives with the first feature |

@@ -29,7 +29,8 @@ to calculate each frame. Hash routing exists separately and is not wired into `m
 ## Patterns
 
 Pure functions compose simulation state; `main.ts` is the composition root; layer rules are
-checked by a custom source scanner. CI runs those checks before Pages deployment.
+checked by a custom source scanner. CI runs those checks before the Vercel deployment
+workflow can deploy the validated default-branch commit.
 
 ## Risks
 

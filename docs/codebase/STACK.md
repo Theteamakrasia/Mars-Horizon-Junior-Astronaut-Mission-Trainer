@@ -35,8 +35,10 @@ npm run build
 
 ## Environment and Evidence
 
-There are no code-read environment variables documented. CI uses Node.js 22. Build output
-is `dist/`; Vite uses a relative base and disables its public directory.
+The Vercel workflow uses Node.js 22 and requires GitHub repository secrets
+`VERCEL_TOKEN`, `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID`. The pinned Vercel CLI builds the
+production output; Vite's standalone output is `dist/` and it uses a relative base with its
+public directory disabled.
 
 - `package.json`, `package-lock.json`
 - `tsconfig.json`, `vite.config.ts`
