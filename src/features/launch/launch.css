@@ -1,0 +1,328 @@
+/* ==========================================================================
+   LAUNCH — the launch cinematic
+
+   Two stills and a title card, five and a quarter seconds, no skip.
+
+   Durations and delays arrive as custom properties written by launch/view.ts from
+   launch/model.ts. Anything that cannot be a custom property is written here as a
+   fixed value and cross-checked by scripts/check-markup.mjs, because two files
+   quietly disagreeing about a timing is exactly how a camera move ends up starting
+   before the shot it belongs to.
+
+   Two hard-won constraints shape this file:
+
+   1. `var()` does not work inside `@keyframes`. A percentage offset cannot be
+      passed in from the model, so every keyframe here is written by hand and the
+      *durations* are what get injected. That is why a shot's fade is a separate
+      animation with the fade as its duration rather than a percentage stop.
+
+   2. An animation is never load-bearing. Every element's resting CSS state is the
+      state that should be on screen if no animation ever runs. Animations only
+      decorate. That is what stops a suppressed animation - reduced motion, a
+      backgrounded tab, an old engine - from leaving the screen blank.
+   ========================================================================== */
+
+.launch {
+  /* Sampled from the artwork so the chrome belongs to the picture. */
+  --l-black: #05070d;
+  --l-text: #eaf3ff;
+
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: var(--l-black);
+  color: var(--l-text);
+  font-family: var(--font-display);
+}
+
+.launch *,
+.launch *::before,
+.launch *::after {
+  box-sizing: border-box;
+}
+
+/* ---------- THE STAGE ----------
+   Locked to 16:9 like the supply screen, so the two read as one product.
+   The cinematic art is 1670x942 — 0.28% off 16:9, about 4.7px across, which the
+   letterbox absorbs entirely.
+*/
+.launch__stage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(100vw, calc(100vh * 16 / 9));
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--l-black);
+}
+
+/* ---------- A SHOT ----------
+   Hidden until its own delay, fades up over its own fade duration, then holds.
+
+   It never fades back out: the next shot fades in *on top of* it, which is the
+   cross-dissolve, and an outgoing fade would only fight it. A two-shot sequence
+   gets this for free; it would need revisiting at three or more.
+*/
+.launch__shot {
+  position: absolute;
+  inset: 0;
+  /* The resting state is hidden, so before mount - and if the animation never runs -
+     nothing is stacked on top of anything else. */
+  opacity: 0;
+  animation: launch-fade-in var(--launch-fade, 0ms) linear var(--launch-shot-delay, 0ms) both;
+}
+
+@keyframes launch-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ---------- THE CAMERA ----------
+   A slow push on the press conference, a slow pan across the pad. Both are plain
+   scale and translate, written by the model.
+*/
+.launch__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform-origin: var(--launch-camera-origin, 50% 50%);
+  animation: launch-camera var(--launch-camera-dur, 0ms) linear var(--launch-shot-delay, 0ms) both;
+}
+
+@keyframes launch-camera {
+  from {
+    transform: var(--launch-camera-from, scale(1));
+  }
+  to {
+    transform: var(--launch-camera-to, scale(1));
+  }
+}
+
+/* ---------- THE PRESS ----------
+   Camera flashes from the crowd, which sits along the bottom edge of the frame.
+
+   Three spikes, hand-placed. They mirror FLASH_TIMES in launch/model.ts, and
+   check-markup.mjs fails the build if the two ever stop matching - the spacing is
+   the photosensitivity guarantee, so it is checked rather than trusted.
+
+   No pointer-events here either, deliberately: it is decorative and must never
+   intercept anything, and the ancestor rule that silently killed the supply
+   screen's NEXT button is exactly what this avoids.
+*/
+.launch__flash {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: radial-gradient(
+    ellipse 78% 58% at 50% 108%,
+    rgba(255, 255, 255, 0.98) 0%,
+    rgba(255, 255, 255, 0.6) 34%,
+    rgba(255, 255, 255, 0.22) 60%,
+    rgba(255, 255, 255, 0) 78%
+  );
+  opacity: 0;
+  animation: launch-flash var(--launch-flash-dur, 0ms) linear both;
+}
+
+/*
+  Three spikes at 12, 33 and 59, each rising over 4% and falling over the 9%
+  after that — so 12/16/25, 33/37/46, 59/63/72. Derived from FLASH_TIMES,
+  FLASH_RISE_PCT and FLASH_FALL_PCT in the model; check-markup.mjs fails the build
+  if these stops stop matching, because the spacing is a photosensitivity guarantee.
+*/
+@keyframes launch-flash {
+  0%,
+  12% {
+    opacity: 0;
+  }
+  16% {
+    opacity: 1;
+  }
+  25%,
+  33% {
+    opacity: 0;
+  }
+  37% {
+    opacity: 0.95;
+  }
+  46%,
+  59% {
+    opacity: 0;
+  }
+  63% {
+    opacity: 1;
+  }
+  72%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ---------- THE TITLE CARD ----------
+   Black, holding, then fading to reveal the first shot underneath. Its fade-out is
+   timed to land exactly where the first shot's fade-in begins.
+*/
+.launch__title-card {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  background: var(--l-black);
+  animation: launch-title-out var(--launch-title-out-dur, 0ms) linear var(--launch-title-out-delay, 0ms) both;
+}
+
+@keyframes launch-title-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.launch__title-text {
+  margin: 0;
+  font-size: clamp(1.4rem, 5.2vmin, 3.4rem);
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-indent: 0.22em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+/* ---------- THE LETTERBOX ----------
+   Bars that slide in over the first half second and stay. Costs nothing, and reads
+   as "this is a film" faster than anything else here.
+*/
+.launch__bars {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+}
+
+.launch__bars::before,
+.launch__bars::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 8.5%;
+  background: var(--l-black);
+  transform: scaleY(0);
+  animation: launch-bars var(--launch-bars-dur, 0ms) cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+.launch__bars::before {
+  top: 0;
+  transform-origin: top;
+}
+
+.launch__bars::after {
+  bottom: 0;
+  transform-origin: bottom;
+}
+
+@keyframes launch-bars {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+/* ---------- REDUCED MOTION ----------
+   Not a skip and not a shorter runtime. The same title and the same pictures, held
+   still for as long as they would have moved, so nothing is lost but the motion.
+   A shorter static hold would give a motion-sensitive player less of the scene than
+   everyone else gets, which is the opposite of what the accommodation is for.
+
+   The first shot is the one held. Both cannot be shown at once with the movement
+   gone, so the sequence rests on the opening frame rather than the last.
+
+   Every `animation: none` here leaves the element at its declared CSS state, which
+   is why the base rules above are written to be correct on their own.
+*/
+.launch[data-launch-motion='reduced'] .launch__shot {
+  animation: none;
+  opacity: 1;
+}
+
+.launch[data-launch-motion='reduced'] .launch__shot[data-launch-index='2'] {
+  display: none;
+}
+
+.launch[data-launch-motion='reduced'] .launch__img {
+  animation: none;
+  transform: none;
+}
+
+.launch[data-launch-motion='reduced'] .launch__flash {
+  display: none;
+}
+
+.launch[data-launch-motion='reduced'] .launch__title-card {
+  animation: none;
+  opacity: 0;
+}
+
+.launch[data-launch-motion='reduced'] .launch__bars::before,
+.launch[data-launch-motion='reduced'] .launch__bars::after {
+  animation: none;
+  transform: scaleY(1);
+}
+
+/* ---------- OS REDUCED MOTION ----------
+   The same fallback when the setting is on but the feature has not been told. A
+   URL can be opened before mount, and the OS preference should hold regardless of
+   what JavaScript got to.
+*/
+@media (prefers-reduced-motion: reduce) {
+  .launch__shot,
+  .launch__img,
+  .launch__flash,
+  .launch__title-card,
+  .launch__bars::before,
+  .launch__bars::after {
+    animation: none;
+  }
+
+  .launch__shot {
+    opacity: 1;
+  }
+
+  .launch__img {
+    transform: none;
+  }
+
+  .launch__flash {
+    display: none;
+  }
+
+  .launch__title-card {
+    opacity: 0;
+  }
+}
+
+/* ---------- VISUALLY HIDDEN ---------- */
+
+.launch__visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

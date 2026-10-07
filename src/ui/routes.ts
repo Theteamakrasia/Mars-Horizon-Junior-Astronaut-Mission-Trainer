@@ -2,7 +2,7 @@
  * Route table and pure hash parsing.
  *
  * Split from `router.ts` deliberately: this half has no DOM at all, so it can be
- * unit tested the way `sim/` is. `router.ts` is then only the thin browser glue —
+ * unit tested the way `sim/` is. `router.ts` is then only the thin browser glue â€”
  * read `location.hash`, listen for `hashchange`, call back.
  *
  * Hash routing is used rather than separate HTML pages because there is no
@@ -15,6 +15,7 @@ export type Route =
   | 'naming'
   | 'briefing'
   | 'supply'
+  | 'launch'
   | 'landing'
   | 'landing-site'
   | 'base'
@@ -25,7 +26,7 @@ export type Route =
  * The journey, in play order.
  *
  * One entry per distinct screen, no duplicates. The under-construction
- * interstitial is NOT listed here — see `nextStop` in `registry.ts`, which knows
+ * interstitial is NOT listed here â€” see `nextStop` in `registry.ts`, which knows
  * which screens are actually built and inserts the placeholder itself.
  *
  * An earlier version spelled the interstitial out as repeated `landing` entries
@@ -36,12 +37,13 @@ export type Route =
  *
  * `naming` is first because it is the entry screen: the player names their
  * astronaut and starts the journey from there. A login page is intended to sit
- * in front of it later, but it is not built — Supabase is deferred (D-003).
+ * in front of it later, but it is not built â€” Supabase is deferred (D-003).
  */
 export const ROUTE_ORDER: readonly Route[] = [
   'naming',
   'briefing',
   'supply',
+  'launch',
   'landing-site',
   'base',
   'act',
@@ -102,8 +104,8 @@ export function routeToHash(route: Route): string {
  * The next screen in journey order, or null at the end.
  *
  * This is the raw sequence, with no knowledge of what is built. For the route a
- * player actually walks — which skips through the under-construction
- * interstitial — use `nextStop` in `registry.ts`.
+ * player actually walks â€” which skips through the under-construction
+ * interstitial â€” use `nextStop` in `registry.ts`.
  */
 export function nextRoute(route: Route): Route | null {
   const index = ROUTE_ORDER.indexOf(route);

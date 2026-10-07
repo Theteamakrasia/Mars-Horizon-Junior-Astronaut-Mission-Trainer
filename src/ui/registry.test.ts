@@ -5,7 +5,7 @@ import type { Route } from './routes';
 
 /**
  * These tests need no DOM. `registry.ts` only holds plain lookup tables, so
- * asking it what exists and where it goes is pure data — which is the whole
+ * asking it what exists and where it goes is pure data â€” which is the whole
  * reason the interstitial rule lives here rather than in a screen.
  */
 
@@ -14,6 +14,7 @@ const ALL: readonly Route[] = [
   'naming',
   'briefing',
   'supply',
+  'launch',
   'landing',
   'landing-site',
   'base',
@@ -47,9 +48,18 @@ describe('nextStop', () => {
     expect(nextStop('briefing')).toBe('supply');
   });
 
+  it('walks into the launch cinematic, which is built and plays itself', () => {
+    // The cinematic hands itself off, so nothing has to press anything to get past
+    // it. It still had to be registered or the placeholder would have taken its
+    // place.
+    expect(resolveScreen('launch')).not.toBeNull();
+    expect(nextStop('supply')).toBe('launch');
+  });
+
   it('inserts the interstitial before a screen that is not built', () => {
-    // landing-site is a stub, so the player sees the placeholder after supply.
-    expect(nextStop('supply')).toBe('landing');
+    // landing-site is a stub, so the player sees the placeholder after the
+    // cinematic rather than straight after supply.
+    expect(nextStop('launch')).toBe('landing');
   });
 
   it('skips the interstitial entirely once the next screen is built', () => {
@@ -86,6 +96,7 @@ function nextRouteOf(route: Route): Route {
     'naming',
     'briefing',
     'supply',
+    'launch',
     'landing-site',
     'base',
     'act',

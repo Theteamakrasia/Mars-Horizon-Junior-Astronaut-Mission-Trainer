@@ -271,6 +271,56 @@
       </div>
     </section>
 
+    <!-- The launch cinematic. Two stills, a title card, and the camera moves between
+         them. It plays through and hands itself to the next stop; there is no skip
+         and no control of any kind, which is why launch/view.ts sets exactly one
+         timer and it is the only way off this screen.
+
+         Both frames are alt="" here because they are pictures that are shown in
+         sequence with motion between them. The description a screen reader gets is
+         one coherent passage written by launch/view.ts from the model's copy, rather
+         than two separate alt attributes firing at once and out of order.
+
+         Every element launch/view.ts queries carries a data hook below.
+         scripts/check-markup.mjs fails the build if one is removed. -->
+    <section id="launch" class="launch" aria-label="The mission begins">
+      <div class="launch__stage" data-launch-stage>
+        <div class="launch__shot" data-launch-shot data-launch-index="1">
+          <img
+            class="launch__img"
+            data-launch-img
+            alt=""
+            aria-hidden="true"
+            decoding="async"
+          />
+
+          <!-- Camera flashes from the crowd at the bottom of the frame. The
+               keyframes are hand-written in launch.css and cross-checked against
+               the model's FLASH_TIMES, because the spacing is a photosensitivity
+               guarantee rather than a matter of taste. -->
+          <div class="launch__flash" data-launch-flash aria-hidden="true"></div>
+        </div>
+
+        <div class="launch__shot" data-launch-shot data-launch-index="2">
+          <img
+            class="launch__img"
+            data-launch-img
+            alt=""
+            aria-hidden="true"
+            decoding="async"
+          />
+        </div>
+
+        <div class="launch__title-card" aria-hidden="true">
+          <p class="launch__title-text" data-launch-title></p>
+        </div>
+
+        <div class="launch__bars" aria-hidden="true"></div>
+      </div>
+
+      <p class="launch__visually-hidden" data-launch-description></p>
+    </section>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

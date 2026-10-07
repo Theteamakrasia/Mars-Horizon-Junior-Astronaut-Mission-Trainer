@@ -77,10 +77,11 @@ describe('progression', () => {
     expect(new Set(ROUTE_ORDER).size).toBe(ROUTE_ORDER.length);
   });
 
-  it('walks naming through briefing and supply', () => {
+  it('walks naming through briefing, supply and the launch cinematic', () => {
     expect(nextRoute('naming')).toBe('briefing');
     expect(nextRoute('briefing')).toBe('supply');
-    expect(nextRoute('supply')).toBe('landing-site');
+    expect(nextRoute('supply')).toBe('launch');
+    expect(nextRoute('launch')).toBe('landing-site');
     expect(nextRoute('landing-site')).toBe('base');
     expect(nextRoute('base')).toBe('act');
     expect(nextRoute('act')).toBe('debrief');
