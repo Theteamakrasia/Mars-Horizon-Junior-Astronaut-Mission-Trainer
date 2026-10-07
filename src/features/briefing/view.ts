@@ -2,17 +2,24 @@
  * The mission briefing, read one beat at a time.
  *
  * DOM only. The words live in ./model and are unit tested there; this file is
- * just the drawing and the two buttons.
+ * just the drawing, one button, and the hand-off.
  *
  * The reader drives it. NEXT brings up the next line and nothing else does - the
  * screen holds still until asked. An earlier version revealed on a timer and
  * offered SKIP to jump ahead, which is the wrong shape for two reasons: it took
  * away the pace, and SKIP was a button whose only job was to do what NEXT does.
- * One control, one action.
  *
- * There are no timers in this file at all now, which is why teardown is two
- * removeEventListener calls. The reveal has nothing outstanding to cancel, so it
- * cannot fire into a detached node or arrive after the player has moved on.
+ * There is no CONTINUE. The briefing is not optional, so a button that let you
+ * leave before you had read it was the wrong affordance; and once every beat has
+ * been shown there is nothing to decide, so the screen hands off to the next stop
+ * by itself.
+ *
+ * That hand-off is the one timer in this file. It exists so the closing line can
+ * be read before the scene changes underneath it - navigating in the same tick
+ * that reveals the last beat would flash it past in a single frame. It is tracked
+ * so teardown can cancel it, because a pending navigation firing after the player
+ * has already gone somewhere else is exactly the sort of thing that looks like a
+ * random jump.
  */
 
 import { nextStop } from '../../ui/registry';
@@ -22,6 +29,16 @@ import type { RunState } from '../../sim/run';
 import './briefing.css';
 
 import { BEATS, greetingFor } from './model';
+
+/**
+ * How long the final beat sits there before the screen moves on.
+ *
+ * The closing line is "Your crew is waiting. Are you ready?" - about forty
+ * characters. This is a read-aloud pace for an eight-year-old, not a fixed
+ * animation, and the point is that the screen waits for the child rather than the
+ * child chasing the screen.
+ */
+const CLOSING_READ_MS = 2600;
 
 function require<T extends HTMLElement>(root: HTMLElement, selector: string): T {
   const element = root.querySelector<T>(selector);
@@ -41,12 +58,7 @@ export function mountBriefing(
   const greeting = require<HTMLParagraphElement>(root, '[data-briefing-greeting]');
   const stream = require<HTMLOListElement>(root, '[data-briefing-stream]');
   const advance = require<HTMLButtonElement>(root, '[data-briefing-next]');
-  const cont = require<HTMLButtonElement>(root, '[data-briefing-continue]');
   const hint = require<HTMLParagraphElement>(root, '[data-briefing-hint]');
-
-  // True when continue has somewhere real to go. If the briefing is the last
-  // built screen, the button says so instead of doing nothing.
-  const hasNextStop = nextStop('briefing') !== null;
 
   greeting.textContent = greetingFor(run?.astronautName ?? '');
 
@@ -65,19 +77,36 @@ export function mountBriefing(
 
   /** How many beats have been shown. The reader owns this by clicking. */
   let index = 0;
+  let timers: number[] = [];
 
   /**
-   * Show the next unrevealed beat, or get out of the way when there is none.
+   * Move on by itself once the briefing has been read in full.
+   *
+   * Reaching the end of the journey is a real state, not an error, so it says so
+   * instead of leaving the player on a dead screen. That is the alternative to a
+   * control that silently does nothing, which is the worst possible failure for a
+   * child.
+   */
+  const handOff = (): void => {
+    const next = nextStop('briefing');
+
+    if (next === null) {
+      hint.textContent = 'That is the end of the journey for now.';
+      return;
+    }
+
+    timers.push(window.setTimeout(() => navigate(next), CLOSING_READ_MS));
+  };
+
+  /**
+   * Show the next unrevealed beat, or finish if there is none.
    *
    * The button hides itself on the last beat rather than disabling: a control
    * that has nothing left to do is noise, and a greyed-out button invites
-   * pressing it twice to find out.
+   * pressing it twice to find out why.
    */
   const revealNext = (): void => {
-    if (index >= lines.length) {
-      advance.hidden = true;
-      return;
-    }
+    if (index >= lines.length) return;
 
     const item = lines[index];
 
@@ -85,7 +114,7 @@ export function mountBriefing(
     // appearance; the content is readable the moment `hidden` comes off.
     //
     // An earlier version animated max-width from 0, which meant a line stayed
-    // invisible whenever its animation did not run â€” leaving the briefing as an
+    // invisible whenever its animation did not run - leaving the briefing as an
     // empty column with a heading and two buttons.
     item.hidden = false;
     item.classList.remove('is-typing');
@@ -93,31 +122,13 @@ export function mountBriefing(
 
     index += 1;
 
-    if (index >= lines.length) advance.hidden = true;
-  };
-
-  const onContinue = (): void => {
-    // Hands off to the next stop. nextStop inserts the under-construction
-    // interstitial when the following scene is not built yet, so this needs no
-    // special casing now or when landing-site is built.
-    const next = nextStop('briefing');
-
-    if (next === null) return;
-
-    // Reaching the end of the journey is a real state, not an error, so say so
-    // rather than leaving the button dead. That is the alternative to every
-    // button on a screen silently doing nothing, which is the worst possible
-    // failure for a child.
-    if (next === 'debrief' && !hasNextStop) {
-      hint.textContent = 'That is the end of the journey for now.';
-      return;
+    if (index >= lines.length) {
+      advance.hidden = true;
+      handOff();
     }
-
-    navigate(next);
   };
 
   advance.addEventListener('click', revealNext);
-  cont.addEventListener('click', onContinue);
 
   // The opening line is already on screen when you arrive; nobody should have to
   // click to find out what the screen is.
@@ -125,6 +136,8 @@ export function mountBriefing(
 
   return () => {
     advance.removeEventListener('click', revealNext);
-    cont.removeEventListener('click', onContinue);
+
+    for (const timer of timers) window.clearTimeout(timer);
+    timers = [];
   };
 }

@@ -154,14 +154,15 @@
 
         <p class="briefing__hint" data-briefing-hint aria-live="polite"></p>
 
-        <!-- NEXT brings up the next line and is the only thing that does. There is
-             no Skip: it was a second button whose only job was what NEXT does. -->
+        <!-- NEXT brings up the next line and is the only thing that does. There is no
+             Skip: it was a second button whose only job was what NEXT does.
+
+             There is also no Continue. The briefing is not optional, so a button
+             that let you leave before reading it was the wrong affordance; once
+             every beat has been shown the screen moves on by itself. -->
         <div class="briefing__actions">
           <button class="briefing__button" type="button" data-briefing-next>
             Next
-          </button>
-          <button class="briefing__button" type="button" data-briefing-continue>
-            Continue
           </button>
         </div>
       </div>
