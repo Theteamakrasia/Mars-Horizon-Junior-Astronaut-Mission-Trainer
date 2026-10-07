@@ -57,6 +57,17 @@ export function resolveScreen(route: Route): ScreenFactory | null {
 }
 
 /**
+ * The mount selector for every route that has a screen.
+ *
+ * The shell uses this to toggle screens with `hidden`. They are all
+ * position:fixed at the same z-index, so without it two can be visible at once
+ * and the earlier one in the document silently covers the mounted one.
+ */
+export function allScreenMounts(): readonly string[] {
+  return Object.values(SCREEN_MOUNTS);
+}
+
+/**
  * Where "continue" goes from the given route.
  *
  * Every scene that is not built yet is entered through `landing`, the

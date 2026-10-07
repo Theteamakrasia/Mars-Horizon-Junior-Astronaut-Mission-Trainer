@@ -45,6 +45,11 @@ export function mountBriefing(
   const stream = require<HTMLOListElement>(root, '[data-briefing-stream]');
   const skip = require<HTMLButtonElement>(root, '[data-briefing-skip]');
   const cont = require<HTMLButtonElement>(root, '[data-briefing-continue]');
+  const hint = require<HTMLParagraphElement>(root, '[data-briefing-hint]');
+
+  // True when continue has somewhere real to go. If the briefing is the last
+  // built screen, the button says so instead of doing nothing.
+  const hasNextStop = nextStop('briefing') !== null;
 
   greeting.textContent = greetingFor(run?.astronautName ?? '');
 
@@ -120,17 +125,31 @@ export function mountBriefing(
     // special casing now or when landing-site is built.
     const next = nextStop('briefing');
 
-    if (next !== null) {
-      navigate(next);
+    if (next === null) return;
+
+    // Reaching the end of the journey is a real state, not an error, so say so
+    // rather than leaving the button dead. That is the alternative to every
+    // button on a screen silently doing nothing, which is the worst possible
+    // failure for a child.
+    if (next === 'debrief' && !hasNextStop) {
+      hint.textContent = 'That is the end of the journey for now.';
+      return;
     }
+
+    navigate(next);
   };
 
   skip.addEventListener('click', onSkip);
   cont.addEventListener('click', onContinue);
 
-  // Reduced motion, or the visitor arrived with a fragment already read: show
-  // everything rather than animating it.
-  if (prefersReducedMotion() || run?.status !== 'active') {
+  /*
+   * Reduced motion, or no run in progress, means show everything at once.
+   *
+   * The `run === null` case matters: this screen is reachable by typing
+   * `#/briefing` into the address bar, with no run behind it. Without this the
+   * reveal would start against a run that does not exist.
+   */
+  if (prefersReducedMotion() || run === null || run.status !== 'active') {
     revealAll();
   } else {
     advance();

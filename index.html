@@ -22,37 +22,41 @@
     />
   </head>
   <body>
-    <!-- Layer 0/1: deep-space background + pulsing starfield (decorative) -->
-    <div id="starfield" class="starfield" aria-hidden="true"></div>
+    <!-- ============ THE LANDING PAGE ============
+         Everything inside #landing belongs to the placeholder page. main.ts hides all
+         of it when a routed screen is mounted, so never add a routed screen inside
+         this element. scripts/check-markup.mjs enforces that. -->
+    <div id="landing">
+      <!-- Layer 0/1: deep-space background + pulsing starfield (decorative) -->
+      <div id="starfield" class="starfield" aria-hidden="true"></div>
 
-    <!-- Layer 2: the astronaut. Three nested elements, each owning exactly one
-         transform, so nothing fights over `transform`:
-           .astronaut        translate3d  — position, driven by JS
-           .astronaut__deform rotate+scale — squash on impact, driven by JS
-           .astronaut__img   sway+breathe  — idle life, driven by CSS
-         Also pick-up-able: the pointer handlers live in pointerGrab.ts. -->
-    <div id="astronaut" class="astronaut">
-      <div id="astronaut-deform" class="astronaut__deform">
-        <img id="astronaut-img" class="astronaut__img" alt="Cartoon astronaut floating in space, draggable" />
+      <!-- Layer 2: the astronaut. Three nested elements, each owning exactly one
+           transform, so nothing fights over `transform`:
+             .astronaut        translate3d  — position, driven by JS
+             .astronaut__deform rotate+scale — squash on impact, driven by JS
+             .astronaut__img   sway+breathe  — idle life, driven by CSS
+           Also pick-up-able: the pointer handlers live in pointerGrab.ts. -->
+      <div id="astronaut" class="astronaut">
+        <div id="astronaut-deform" class="astronaut__deform">
+          <img id="astronaut-img" class="astronaut__img" alt="Cartoon astronaut floating in space, draggable" />
+        </div>
       </div>
+
+      <!-- Layer 3: the message. Sits above the astronaut so the drifting sprite
+           passes behind the letters and the text stays legible at all times. -->
+      <main class="stage">
+        <h1 class="stage__title">
+          <span class="stage__title-text">Under Construction</span
+          ><span class="stage__cursor" aria-hidden="true">_</span>
+        </h1>
+      </main>
+
+      <!-- Layer 4: vignette, boosts contrast against the text -->
+      <div class="vignette" aria-hidden="true"></div>
     </div>
-
-    <!-- Layer 3: the message. Sits above the astronaut so the drifting sprite
-         passes behind the letters and the text stays legible at all times. -->
-    <main class="stage">
-      <h1 class="stage__title">
-        <span class="stage__title-text">Under Construction</span
-        ><span class="stage__cursor" aria-hidden="true">_</span>
-      </h1>
-    </main>
-
-    <!-- Layer 4: vignette, boosts contrast against the text -->
-    <div class="vignette" aria-hidden="true"></div>
-
-    <!-- The main menu. Shown by ui/router.ts; the landing page above keeps
-         working behind it and is what BACK TO MAIN MENU returns to. The stage
-         images get their src from features/naming/view.ts so Vite fingerprints
-         them; data-naming-img only says which file goes in which slot. -->
+    <!-- The main menu. The stage images get their src from
+         features/naming/view.ts so Vite fingerprints them; data-naming-img only
+         says which file goes in which slot. -->
     <section id="naming" class="naming" aria-labelledby="naming-title">
       <header class="naming__header">
         <div class="naming__brand">
@@ -148,7 +152,7 @@
              briefing/model.ts, where it is unit tested. -->
         <ol class="briefing__stream" data-briefing-stream></ol>
 
-        <p class="briefing__hint" aria-live="polite"></p>
+        <p class="briefing__hint" data-briefing-hint aria-live="polite"></p>
 
         <div class="briefing__actions">
           <button class="briefing__button" type="button" data-briefing-skip>
