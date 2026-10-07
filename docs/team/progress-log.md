@@ -8,6 +8,65 @@ than a documented one.
 
 ---
 
+## 2026-10-07 — PR #1 review document
+
+**Did**
+
+- Wrote a detailed PR description covering both workflows, HTML validation behavior, the
+  deterministic test fix, deployment prerequisites, and command results.
+- Kept application source unchanged; the document records the previously validated scope.
+
+**Files**
+
+- Added: `docs/pull-requests/001-ci-deployment-gates.md`.
+- Updated: architecture tree, codebase structure map, and TASK-033 tracking.
+
+**Problems**
+
+- GitHub Pages still requires repository-level setup before a successful workflow can
+  publish; the PR document calls out that prerequisite.
+
+**Next**
+
+- Add this document to PR #1 and use its full description as the PR body.
+
+**Doc updates made:** architecture file tree, codebase structure map, task TASK-033, and
+this progress log.
+
+## 2026-10-07 — CI gates, HTML validation, and Pages deployment
+
+**Did**
+
+- Added a pull-request and `main` CI workflow for imports/typecheck, tests, HTML validation,
+  and the production build. Added a separate Pages workflow that runs only after CI succeeds.
+- Added HTML validation with inline style attributes and `<style>` elements allowed, a
+  changelog, and workflow badges in the project README.
+- Narrowed the HTML validator exception to the astronaut image populated by `main.ts`, and
+  removed randomness from the existing open-space physics test without relaxing it.
+- Mapped the repository into seven evidence-backed documents under `docs/codebase/`.
+
+**Files**
+
+- Added: `.github/workflows/{ci,deploy}.yml`, `.htmlvalidate.json`, `docs/CHANGELOG.md`,
+  and `docs/codebase/*.md`.
+- Updated: `package.json`, `package-lock.json`, `README.md`, architecture and team tracking
+  documents. ISS-012/ISS-015 are fixed; TASK-004/TASK-011/TASK-032 are done.
+
+**Problems**
+
+- No hosting provider was previously configured. GitHub Pages is now the declared target;
+  repository Pages settings must be enabled before deployments can publish.
+- Dependency installation reported three audit findings (one moderate, two critical),
+  which need separate review before treating dependency security as clean.
+
+**Next**
+
+- Commit and push this branch, then open a PR against `main`.
+- Enable Pages in repository settings if the team wants the gated workflow to publish.
+
+**Doc updates made:** changelog, architecture file tree, decisions D-021, issue ISS-012,
+task TASK-011/TASK-032, and this progress log. README badges added.
+
 ## 2026-10-06 — Typed stubs across the whole planned structure
 
 Fourth pass. Smallest change, and the one that was asked for three times before I got it

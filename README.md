@@ -1,5 +1,8 @@
 # 🚀 Mars Horizon — Junior Astronaut Mission Trainer
 
+[![Code checks](https://github.com/MdRasB/mars-horizon/actions/workflows/ci.yml/badge.svg)](https://github.com/MdRasB/mars-horizon/actions/workflows/ci.yml)
+[![Deploy to GitHub Pages](https://github.com/MdRasB/mars-horizon/actions/workflows/deploy.yml/badge.svg)](https://github.com/MdRasB/mars-horizon/actions/workflows/deploy.yml)
+
 **A space-survival strategy game where kids learn to run a real Martian outpost.**
 
 You are a newly chosen junior astronaut. You have been trained for months, but you have
@@ -347,6 +350,8 @@ This game is built for young players first, and every decision follows from that
 ---
 
 ## 🛠 Project Status
+
+Release and deployment updates are tracked in the [changelog](docs/CHANGELOG.md).
 
 **Mars Horizon is currently in the design and prototype stage.** This repository holds the
 project documentation, the game design notes and the UI mockups.
