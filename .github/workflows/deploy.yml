@@ -1,10 +1,10 @@
 name: Deploy to GitHub Pages
 
 on:
-  workflow_run:
-    workflows: [Code checks]
-    types: [completed]
-    branches: [main]
+  workflow_dispatch :
+    # workflows: [Code checks]
+    # types: [completed]
+    # branches: [main]
 
 permissions:
   contents: read
