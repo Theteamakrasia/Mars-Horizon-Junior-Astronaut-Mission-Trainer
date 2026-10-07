@@ -17,6 +17,28 @@ You are a newly chosen junior astronaut. You have been trained for months, but y
 never actually *been* anywhere. Your rocket has arrived at Mars, and from here on out,
 every decision is yours.
 
+
+Where do you land? How much power do you build? Do you spend your water on the crew or
+save it for the greenhouse? When a dust storm is three sols away, what do you fix first?
+
+**There are no enemies. The hardest thing you'll fight is a resource budget.**
+
+| | |
+| --- | --- |
+| 🏆 **Event** | [2026 NASA Space Apps Challenge](https://www.spaceappschallenge.org/) — November 14–15, 2026 |
+| 📚 **Subjects** | Space Exploration, Games, Planets & Moons, Software, The Sun |
+| 🎯 **Difficulty** | Beginner / Youth · Intermediate |
+| 👦 **Audience** | Ages ~8–16, families, classrooms |
+| 🛠 **Status** | Design & prototype stage |
+
+> **Attribution.** This project is a student entry in the 2026 NASA Space Apps Challenge.
+> It is **not** produced, endorsed, or operated by NASA. NASA, the NASA insignia, and the
+> Space Apps Challenge name are trademarks of the National Aeronautics and Space Administration,
+> used here only to identify the challenge this project responds to and to credit NASA as
+> the source of the open data it is built on.
+
+---
+
 ## Index
 
 - [What Is This Game?](#what-is-this-game)
@@ -40,25 +62,6 @@ every decision is yours.
 - [Project Status](#project-status)
 - [Screenshot Index](#screenshot-index)
 - [Keep Exploring](#keep-exploring)
-
-Where do you land? How much power do you build? Do you spend your water on the crew or
-save it for the greenhouse? When a dust storm is three sols away, what do you fix first?
-
-**There are no enemies. The hardest thing you'll fight is a resource budget.**
-
-| | |
-| --- | --- |
-| 🏆 **Event** | [2026 NASA Space Apps Challenge](https://www.spaceappschallenge.org/) — November 14–15, 2026 |
-| 📚 **Subjects** | Space Exploration, Games, Planets & Moons, Software, The Sun |
-| 🎯 **Difficulty** | Beginner / Youth · Intermediate |
-| 👦 **Audience** | Ages ~8–16, families, classrooms |
-| 🛠 **Status** | Design & prototype stage |
-
-> **Attribution.** This project is a student entry in the 2026 NASA Space Apps Challenge.
-> It is **not** produced, endorsed, or operated by NASA. NASA, the NASA insignia, and the
-> Space Apps Challenge name are trademarks of the National Aeronautics and Space Administration,
-> used here only to identify the challenge this project responds to and to credit NASA as
-> the source of the open data it is built on.
 
 ---
 
