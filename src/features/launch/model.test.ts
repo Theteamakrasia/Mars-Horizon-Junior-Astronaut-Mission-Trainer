@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  BARS_MS,
   FLASH_FALL_PCT,
   FLASH_RISE_PCT,
   FLASH_TIMES,
@@ -11,6 +10,8 @@ import {
   TITLE_DURATION_MS,
   TITLE_FADE_MS,
   TOTAL_DURATION_MS,
+  VIDEO_DESCRIPTION,
+  VIDEO_DURATION_MS,
 } from './model';
 
 /**
@@ -92,17 +93,31 @@ describe('the walk camera', () => {
   });
 });
 
-describe('TOTAL_DURATION_MS', () => {
-  it('is the title plus every shot', () => {
-    const shots = SHOTS.reduce((total, shot) => total + shot.durationMs, 0);
-    expect(TOTAL_DURATION_MS).toBe(TITLE_DURATION_MS + shots);
+describe('the film', () => {
+  it('is the rendered launch video', () => {
+    // 150 frames at 30fps. The hand-off timer is derived from this, so a
+    // re-render at a different length has to update it.
+    expect(VIDEO_DURATION_MS).toBe(5000);
   });
 
-  it('lands near the five seconds the sequence was specified at', () => {
+  it('describes the film for anyone who cannot see it', () => {
+    // The film is the content of the scene, so an empty description would leave
+    // a screen-reader user with nothing at all.
+    expect(VIDEO_DESCRIPTION.trim().length).toBeGreaterThan(60);
+  });
+});
+
+describe('TOTAL_DURATION_MS', () => {
+  it('is the title, every shot and the film', () => {
+    const shots = SHOTS.reduce((total, shot) => total + shot.durationMs, 0);
+    expect(TOTAL_DURATION_MS).toBe(TITLE_DURATION_MS + shots + VIDEO_DURATION_MS);
+  });
+
+  it('lands near the ten seconds the sequence was specified at', () => {
     // Guards against a shot being added and the runtime quietly doubling. It is the
     // only exit off this screen, so its length is a promise to the player.
-    expect(TOTAL_DURATION_MS).toBeGreaterThan(4500);
-    expect(TOTAL_DURATION_MS).toBeLessThan(6000);
+    expect(TOTAL_DURATION_MS).toBeGreaterThan(9000);
+    expect(TOTAL_DURATION_MS).toBeLessThan(12000);
   });
 
   it('holds every shot long enough to read with nothing moving', () => {
@@ -130,10 +145,6 @@ describe('the title card', () => {
     // seventeen characters that is about right for a title card, not for a sentence.
     expect(TITLE_DURATION_MS - TITLE_FADE_MS * 2).toBeGreaterThan(300);
     expect(TITLE.length).toBeLessThan(30);
-  });
-
-  it('lets the letterbox bars arrive without a shot waiting on them', () => {
-    expect(BARS_MS).toBeLessThan(TITLE_DURATION_MS);
   });
 });
 
@@ -170,8 +181,8 @@ describe('the camera flashes', () => {
   });
 
   it('does not overlap its own flashes', () => {
-    // Two flashes whose rises and falls overlap read as one long smear rather than
-    // as separate pops.
+    // Two flashes whose rises and falls overlap read as one long smear rather
+    // than as separate pops.
     for (let i = 1; i < FLASH_TIMES.length; i++) {
       const span = FLASH_RISE_PCT + FLASH_FALL_PCT;
       expect(FLASH_TIMES[i] - FLASH_TIMES[i - 1]).toBeGreaterThan(span);

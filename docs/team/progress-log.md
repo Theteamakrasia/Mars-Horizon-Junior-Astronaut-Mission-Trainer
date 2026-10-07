@@ -3,8 +3,42 @@
 Newest entry on top. Four bullets: **Did**, **Files**, **Problems**, **Next**.
 
 **Problems is the one people skip and the one that matters.** If a change went cleanly,
-say so and say why — a clean change with an unexplained problem underneath it is worse
+say so and say why - a clean change with an unexplained problem underneath is worse
 than a documented one.
+
+---
+
+## 2026-10-07 - Restore the stills ahead of the film (ISS-022)
+
+**Did**
+
+- Restored the press conference and walk-to-rocket stills verbatim: same shots,
+  camera moves, flashes, model tests and markup checker rule.
+- Added the film as the final beat: it cross-dissolves in over the walk shot
+  starting one fade before the walk ends, playback begins when the walk ends,
+  and the hand-off fires the moment the film does.
+- Reduced motion now keeps every opacity fade (they are how the sequence is
+  timed) and removes only the camera moves and flashes; the film is parked on
+  the pad frame for its full duration.
+
+**Files**
+
+- Updated: `src/features/launch/{model,model.test,view}.ts`, `launch.css`,
+  `index.html`, `scripts/check-markup.mjs`, `docs/architecture.md`,
+  `docs/team/issues.md`, this log.
+
+**Problems**
+
+- The first cut of this fix (ISS-021) deleted the stills outright. Caught by the
+  player before any commit; see ISS-022. The lesson is the one the stand-in
+  comment already said: a stand-in that looks finished gets removed by the next
+  person who arrives, so the stills should have been marked as content, not
+  placeholder.
+
+**Next**
+
+- The player confirms the full sequence on the demo machine: title, conference,
+  walk, film, hand-off.
 
 ---
 
@@ -37,6 +71,44 @@ than a documented one.
 
 **Doc updates made:** changelog, deployment decision D-022, architecture/codebase contracts,
 PR description, tasks, and this progress log.
+
+---
+
+
+## 2026-10-07 - Wire the launch film into the launch screen (ISS-021)
+
+**Did**
+
+- Moved the rendered film to `Assets/images/launch/launch-cinematic.mp4`, the
+  feature's own asset folder.
+- Rebuilt the launch screen around it: the title card holds for 900ms, lifts,
+  and the film plays once underneath; the hand-off fires at
+  `TOTAL_DURATION_MS` (title + film, derived in the model).
+- Reduced motion holds one frame of the film (0.5s, the pad) for the same
+  runtime instead of playing it.
+- Removed the two-still CSS cinematic: the shots, the camera moves, the press
+  flashes, and the checker rule that cross-checked their timings.
+
+**Files**
+
+- Updated: `src/features/launch/{model,model.test,view}.ts`, `launch.css`,
+  `index.html`, `scripts/check-markup.mjs`, `docs/architecture.md`,
+  `docs/team/issues.md`, this log.
+- Moved: `Assets/images/launch-cinematic.mp4` -> `Assets/images/launch/launch-cinematic.mp4`.
+
+**Problems**
+
+- The Gyan FFmpeg build has no `-filter_complex_script`, so the filter graph
+  was passed inline as a variable instead. No effect on the output.
+- `press.webp` and `walk.webp` are now unused. Left in place rather than
+  deleted — removing assets is the owner's call.
+
+**Next**
+
+- The player confirms the film plays after the title on the demo machine.
+- If the stills are wanted again, they are one import away in `view.ts`.
+
+---
 
 ## 2026-10-07 — README header order for PR #2
 

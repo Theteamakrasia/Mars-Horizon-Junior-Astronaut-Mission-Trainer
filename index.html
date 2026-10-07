@@ -271,15 +271,21 @@
       </div>
     </section>
 
-    <!-- The launch cinematic. Two stills, a title card, and the camera moves between
-         them. It plays through and hands itself to the next stop; there is no skip
-         and no control of any kind, which is why launch/view.ts sets exactly one
-         timer and it is the only way off this screen.
+    <!-- The launch cinematic. Two stills, the launch film, and the title card. It
+         plays through and hands itself to the next stop; there is no skip and no
+         control of any kind, which is why launch/view.ts sets exactly one timer
+         and it is the only way off this screen.
 
-         Both frames are alt="" here because they are pictures that are shown in
+         Both stills are alt="" here because they are pictures that are shown in
          sequence with motion between them. The description a screen reader gets is
-         one coherent passage written by launch/view.ts from the model's copy, rather
-         than two separate alt attributes firing at once and out of order.
+         one coherent passage written by launch/view.ts from the model's copy —
+         the two stills' descriptions and the film's, end to end — rather than
+         separate alt attributes firing at once and out of order.
+
+         No src on the video, on purpose: launch/view.ts imports the film as a
+         module so Vite fingerprints and bundles it, and assigns it itself. A
+         hand-written path would be a second place to update and would 404 in
+         the build.
 
          Every element launch/view.ts queries carries a data hook below.
          scripts/check-markup.mjs fails the build if one is removed. -->
@@ -311,11 +317,22 @@
           />
         </div>
 
+        <!-- The launch film, stacked above the stills so it cross-dissolves in over
+             the walk shot. It carries no src: launch/view.ts assigns the imported
+             module so Vite fingerprints it. -->
+        <video
+          class="launch__video"
+          data-launch-video
+          muted
+          playsinline
+          preload="auto"
+          aria-hidden="true"
+        ></video>
+
         <div class="launch__title-card" aria-hidden="true">
           <p class="launch__title-text" data-launch-title></p>
         </div>
 
-        <div class="launch__bars" aria-hidden="true"></div>
       </div>
 
       <p class="launch__visually-hidden" data-launch-description></p>

@@ -368,6 +368,15 @@ screen.
 | | `checkName` | `(raw) -> {ok, value, problem}`; returns the normalised value so a caller never normalises twice |
 | | `displayName` | strips control characters and caps length — the one string interpolated into markup |
 | `features/naming/view` | `mountNaming` | `(root, run) -> teardown`; START MISSION disabled until the name is usable |
+| `features/launch/model` | `TITLE` | `'THE MISSION BEGINS'` — the card that holds before the first still |
+| | `TITLE_DURATION_MS` | 900 — the card alone; 200ms in and out leaves 500ms of readability |
+| | `FADE_MS` | 350 — every dissolve: the title lift, each shot, the film's arrival |
+| | `SHOTS` | the two stills, press then walk, with their camera moves and alt copy |
+| | `FLASH_TIMES`, `FLASH_RISE_PCT`, `FLASH_FALL_PCT` | the press flashes; spacing is a photosensitivity guarantee, cross-checked against `launch.css` |
+| | `VIDEO_DURATION_MS` | 5000 — the rendered launch film, matched frame-for-frame |
+| | `VIDEO_DESCRIPTION` | what the film shows, for screen readers |
+| | `TOTAL_DURATION_MS` | title + shots + film; the screen's only exit is a timer set from this |
+| `features/launch/view` | `mountLaunch` | `(root, run) -> teardown`; plays the stills, then the film once, hands off at `TOTAL_DURATION_MS`; reduced motion holds every picture still for the same runtime |
 | `dom/floatAstronaut` | `startFloatingAstronaut` | `(wrapper, {deformLayer, reducedMotion}) -> teardown`; cancels rAF, removes the resize listener, detaches the grab, clears the transform |
 | `dom/pointerGrab` | `attachGrab` | `(target, handlers, options) -> teardown` |
 | `dom/starfield` | `createStarfield` | `(container) => void`; appends, never clears |

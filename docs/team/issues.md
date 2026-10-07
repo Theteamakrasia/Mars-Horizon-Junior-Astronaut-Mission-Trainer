@@ -446,4 +446,40 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-**Next free id: ISS-021.**
+## ISS-021 — The rendered launch film was never wired into the launch screen
+
+- **Reported by:** the player, 2026-10-07
+- **Where:** `src/features/launch/view.ts`, `index.html`
+- **Problem:** pressing START MISSION walks naming -> briefing -> supply -> launch,
+  and the launch screen plays the two-still CSS cinematic under the title card.
+  The rendered MP4 exists at `Assets/images/launch/launch-cinematic.mp4`, but
+  nothing imports or plays it, so the film never appears.
+- **Cause:** the film was rendered outside the repo and never handed to the
+  feature. The stills were always the stand-in; the film is the real content.
+- **Risk:** the screen looks finished while showing the wrong thing — worse than
+  an honest placeholder, because nobody can tell from a screenshot.
+- **Fix:** the title card lifts onto the film, which plays once, then the screen
+  hands itself to the next stop. Reduced motion holds one frame for the same
+  runtime. **Fixed in this pass, then corrected by ISS-022.**
+
+---
+
+## ISS-022 — The ISS-021 fix dropped the conference and walk scenes
+
+- **Reported by:** the player, 2026-10-07
+- **Where:** `src/features/launch/*`, `index.html`
+- **Problem:** the first fix for ISS-021 replaced the whole cinematic with the
+  film. The press conference and the walk to the rocket — already coded, tested
+  and shipped — were deleted, and the film played alone after the title.
+- **Cause:** the stills were treated as a stand-in for the film. They are not:
+  they are the departure, and the film is the launch. The sequence is title ->
+  conference -> walk -> film, and removing the first two broke the story.
+- **Risk:** the mission begins with a rocket already on the pad; the crew and
+  the press, the reason anyone is watching, are gone.
+- **Fix:** both stills restored verbatim — same shots, same camera moves, same
+  flashes, same tests — with the film added after them as the final beat.
+  **Fixed in this pass.**
+
+---
+
+**Next free id: ISS-023.**

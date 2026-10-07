@@ -1,8 +1,8 @@
 /**
- * The launch cinematic: two stills, five seconds, and the camera moves between them.
+ * The launch cinematic: two stills, the launch film, and the title card.
  *
  * Pure: no DOM, no timer, no randomness. Every test input is a literal, so this
- * file cannot flake â€” the defect recorded as ISS-015.
+ * file cannot flake — the defect recorded as ISS-015.
  *
  * Where the camera points, and why
  * -------------------------------
@@ -23,11 +23,19 @@
  *     therefore: the camera travels left and down, off the rocket and onto them.
  *     In a CSS transform that means the *image* moves right and up.
  *
+ * The film
+ * --------
+ * The two stills are the departure; the film is the launch itself. The rendered
+ * MP4 at `Assets/images/launch/launch-cinematic.mp4` plays once after the walk
+ * shot, cross-dissolving in over it, and the screen hands itself to the next stop
+ * the moment it ends. The camera moves, the shake and the grade are baked into
+ * the film, so this model only carries its length and its description.
+ *
  * On the timings
  * --------------
  * There is no skip. The screen's only exit is the single timer in view.ts, which
- * makes the total the most load-bearing number in the feature â€” hence
- * TOTAL_DURATION_MS being derived from the shots rather than typed alongside them,
+ * makes the total the most load-bearing number in the feature — hence
+ * TOTAL_DURATION_MS being derived from the parts rather than typed alongside them,
  * where the two could disagree.
  */
 
@@ -84,9 +92,6 @@ export const TITLE_DURATION_MS = 900;
 
 /** When the title text fades in and out, inside TITLE_DURATION_MS. */
 export const TITLE_FADE_MS = 200;
-
-/** How long the letterbox bars take to slide in. */
-export const BARS_MS = 500;
 
 export const SHOTS: readonly Shot[] = [
   {
@@ -169,18 +174,42 @@ export const FLASH_FALL_PCT = 9;
 export const PRESS_SHOT = SHOTS[0];
 
 /**
+ * The launch film, in milliseconds.
+ *
+ * Matches the rendered MP4 frame-for-frame: 150 frames at 30fps. If the film is
+ * ever re-rendered at a different length, this is the one number to update —
+ * the hand-off timer is derived from it, so the screen cannot outlive its
+ * content.
+ */
+export const VIDEO_DURATION_MS = 5000;
+
+/**
+ * What the film shows, for anyone who cannot see it.
+ *
+ * One passage describing the whole sequence, rather than a caption per shot:
+ * the film is a single video element, so a screen reader announces this once,
+ * the way it would a single clip.
+ */
+export const VIDEO_DESCRIPTION =
+  'A rocket stands on its launch pad in front of a building carrying a NASA logo ' +
+  'and a Mars Mission poster. It lifts off in a cloud of smoke, climbs into the ' +
+  'blue sky trailing fire, sheds its first stage in black space above the ' +
+  'curve of the Earth, and sails on alone with its solar panels spread wide.';
+
+/**
  * The whole runtime, title included.
  *
- * Derived, so it cannot drift from the shots. view.ts sets exactly one timer from
+ * Derived, so it cannot drift from the parts. view.ts sets exactly one timer from
  * this number, and it is the only way off the screen.
  *
  * Note there is no separate reduced-motion duration, and that is deliberate.
- * Reduced motion removes the movement, not the information: each shot is held
- * still for exactly as long as it would have moved, so both pictures and the
- * title are seen for the same time by everyone. A shorter static hold would give
- * a motion-sensitive player less of the scene than everyone else gets, which is
- * the opposite of what the accommodation is for. An earlier version had a
- * REDUCED_MOTION_MS constant for exactly that and a test failed on it.
+ * Reduced motion removes the movement, not the information: every picture and the
+ * film are held still for exactly as long as they would have moved, so a
+ * motion-sensitive player sees the same scene for the same time as everyone else.
+ * A shorter static hold would give them less of the scene than everyone else
+ * gets, which is the opposite of what the accommodation is for.
  */
 export const TOTAL_DURATION_MS =
-  TITLE_DURATION_MS + SHOTS.reduce((total, shot) => total + shot.durationMs, 0);
+  TITLE_DURATION_MS +
+  SHOTS.reduce((total, shot) => total + shot.durationMs, 0) +
+  VIDEO_DURATION_MS;
