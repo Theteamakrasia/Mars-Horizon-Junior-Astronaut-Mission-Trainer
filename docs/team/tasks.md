@@ -7,6 +7,7 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 
 | id | task | goal | owner | status | blocked by | notes |
 | --- | --- | --- | --- | --- | --- | --- |
+| TASK-034 | Improve README badges, hero image, and linked index | G-6 | agent | done | — | `docs/pull-requests/002-readme-polish.md`; no prose rewritten |
 | TASK-033 | Write detailed Markdown description for PR #1 | G-6 | agent | done | — | `docs/pull-requests/001-ci-deployment-gates.md` |
 | TASK-032 | Add CI quality gates, gated Pages deploy, HTML checks, and changelog | G-6 | agent | done | — | ISS-012. This branch |
 | TASK-025 | Folder structure: `sim/` rename, feature zones, cross-feature rule | G-6 | agent | done | — | D-013..D-018. Branch `docs/agent-orientation` |

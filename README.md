@@ -2,6 +2,38 @@
 
 [![Code checks](https://github.com/MdRasB/mars-horizon/actions/workflows/ci.yml/badge.svg)](https://github.com/MdRasB/mars-horizon/actions/workflows/ci.yml)
 [![Deploy to GitHub Pages](https://github.com/MdRasB/mars-horizon/actions/workflows/deploy.yml/badge.svg)](https://github.com/MdRasB/mars-horizon/actions/workflows/deploy.yml)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Vite](https://img.shields.io/badge/Vite-7.3-646CFF?logo=vite&logoColor=white)](https://vite.dev/)
+[![Vitest](https://img.shields.io/badge/Vitest-3.2-6E9F18?logo=vitest&logoColor=white)](https://vitest.dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+<p align="center">
+  <img src="Assets/images/floating.png" alt="Pixel-art astronaut mascot" width="160">
+</p>
+
+## Index
+
+- [What Is This Game?](#what-is-this-game)
+  - [The Design Promise](#the-design-promise)
+- [The Challenge We're Answering](#the-challenge-were-answering)
+- [Your Mission](#your-mission)
+  - [The Ten Missions](#the-ten-missions)
+- [Gameplay Walkthrough](#gameplay-walkthrough)
+  - [Choose Your Landing Site](#choose-your-landing-site)
+  - [Establish Your Base](#establish-your-base)
+  - [Plan Phase — Read the Situation](#plan-phase-read-the-situation)
+  - [Act Phase — Make Your Move](#act-phase-make-your-move)
+  - [Debrief — Learn From What Happened](#debrief-learn-from-what-happened)
+  - [Final — A Self-Sustaining Outpost](#final-a-self-sustaining-outpost)
+- [What You Learn](#what-you-learn)
+  - [The Science Is Real](#the-science-is-real)
+  - [On the International Space Station](#on-the-international-space-station)
+- [Why This Matters for Earth](#why-this-matters-for-earth)
+- [NASA Data Sources](#nasa-data-sources)
+- [Kid-Friendly by Design](#kid-friendly-by-design)
+- [Project Status](#project-status)
+- [Screenshot Index](#screenshot-index)
+- [Keep Exploring](#keep-exploring)
 
 **A space-survival strategy game where kids learn to run a real Martian outpost.**
 
@@ -30,6 +62,7 @@ save it for the greenhouse? When a dust storm is three sols away, what do you fi
 
 ---
 
+<a id="what-is-this-game"></a>
 ## 🎮 What Is This Game?
 
 **Mars Horizon** is an interactive simulation where you manage a small research outpost on
@@ -49,6 +82,7 @@ You manage five things that never stop draining:
 Every choice you make improves one of those and costs you another. That's the whole game —
 and it's also the whole job.
 
+<a id="the-design-promise"></a>
 ### The Design Promise
 
 Most space games fall into one of two traps:
@@ -62,6 +96,7 @@ Just engineering — the real kind, made playable.
 
 ---
 
+<a id="the-challenge-were-answering"></a>
 ## 🧩 The Challenge We're Answering
 
 The 2026 Space Apps brief identifies a real gap:
@@ -81,6 +116,7 @@ who succeed do it by thinking like engineers — building margin before they nee
 
 ---
 
+<a id="your-mission"></a>
 ## 🗺 Your Mission
 
 From rocket touchdown to a self-sustaining outpost, the game follows one clear arc:
@@ -103,6 +139,7 @@ From rocket touchdown to a self-sustaining outpost, the game follows one clear a
 📝 DEBRIEF                     ← what worked, what didn't, and why
 ```
 
+<a id="the-ten-missions"></a>
 ### The Ten Missions
 
 | # | Mission | What you're learning |
@@ -125,10 +162,12 @@ From rocket touchdown to a self-sustaining outpost, the game follows one clear a
 
 ---
 
+<a id="gameplay-walkthrough"></a>
 ## 🎬 Gameplay Walkthrough
 
 Every screenshot below is a real screen from the game, placed in the order you'll meet it.
 
+<a id="choose-your-landing-site"></a>
 ### 1. Choose Your Landing Site
 
 Your rocket is in orbit. Five regions are marked on the map — and **there is no perfect
@@ -151,6 +190,7 @@ one with great sun and no water. Real landing-site selection is exactly this —
 Jezero Crater not because it's the *best* place, but because its combination of ancient
 river deposits and workable terrain makes it the most **interesting** place to explore.
 
+<a id="establish-your-base"></a>
 ### 2. Establish Your Base
 
 You touch down and lay out your first modules: habitat, life support, solar array, and
@@ -164,6 +204,7 @@ landed, and you already have a problem. That warning is the game teaching you to
 The button at the bottom — **Build New Module** — is the core of the whole strategy layer.
 Every module you add improves one system and increases what every other system has to support.
 
+<a id="plan-phase-read-the-situation"></a>
 ### 3. Plan Phase — Read the Situation
 
 At the start of each sol you get a planning screen. Nothing is decided yet. This is where
@@ -181,6 +222,7 @@ This is the heart of the game, and it teaches four ideas at once:
 - **You get deliveries, but you can't count on them.** A supply pod arriving on Sol 30 is a
   *scheduled* event. Survive until it lands and you can breathe again.
 
+<a id="act-phase-make-your-move"></a>
 ### 4. Act Phase — Make Your Move
 
 Now you commit. This is where a good plan meets a real constraint.
@@ -201,6 +243,7 @@ That's not a made-up puzzle. It's the exact reason NASA's rovers and habitats re
 on **nuclear power** rather than solar alone. The trade-off is real, and the game makes a
 child feel it.
 
+<a id="debrief-learn-from-what-happened"></a>
 ### 5. Debrief — Learn From What Happened
 
 ![Debrief screen summarising the mission outcome with a breakdown of resources consumed, tasks completed and lessons learned for the astronaut to review](Assets/README_ref/debrief.png)
@@ -213,6 +256,7 @@ The debrief is where the learning actually lands. You see:
 
 A run that ends badly is the most educational run in the game.
 
+<a id="final-a-self-sustaining-outpost"></a>
 ### 6. Final — A Self-Sustaining Outpost
 
 ![Final screen celebrating the creation of a fully self-sustaining Mars outpost, showing the crew and the astronaut's final achievement summary](Assets/README_ref/Final.png)
@@ -221,6 +265,7 @@ You win by reaching a place where the outpost genuinely runs itself: food is gro
 water is recycled, power is balanced day and night, and the crew needs nothing shipped from
 Earth.
 
+<a id="what-you-learn"></a>
 ## 🎓 What You Learn
 
 Playing Mars Horizon is really a systems-thinking lesson wearing a spacesuit. Here's what
@@ -237,6 +282,7 @@ a player takes away without ever being told a lesson:
 | **Reading real NASA data** | Site conditions and space weather come from actual NASA sources, not made-up numbers |
 | **Second attempts** | Losing teaches more than winning, because the debrief explains exactly *why* |
 
+<a id="the-science-is-real"></a>
 ### The Science Is Real
 
 We don't invent numbers when we don't have to. A few things the game models, straight from
@@ -258,6 +304,7 @@ NASA:
 - **Space storms are real and tracked.** Solar flares and coronal mass ejections are monitored
   by NASA every day — that's what DONKI does.
 
+<a id="on-the-international-space-station"></a>
 ### On the International Space Station
 
 The systems in this game aren't sci-fi. The ISS has been quietly proving them out for
@@ -276,6 +323,7 @@ gets to cheat with resupply ships. On Mars, you can't.
 
 ---
 
+<a id="why-this-matters-for-earth"></a>
 ## 🌍 Why This Matters for Earth
 
 It's easy to think of a Mars outpost game as pure entertainment. It isn't. The exact
@@ -308,6 +356,7 @@ humans have ever attempted.
 
 ---
 
+<a id="nasa-data-sources"></a>
 ## 🛰️ NASA Data Sources
 
 Every technical value in this project is grounded in real, publicly available NASA
@@ -332,6 +381,7 @@ exact opposite of what this game is for.
 
 ---
 
+<a id="kid-friendly-by-design"></a>
 ## 👦 Kid-Friendly by Design
 
 This game is built for young players first, and every decision follows from that:
@@ -349,6 +399,7 @@ This game is built for young players first, and every decision follows from that
 
 ---
 
+<a id="project-status"></a>
 ## 🛠 Project Status
 
 Release and deployment updates are tracked in the [changelog](docs/CHANGELOG.md).
@@ -374,6 +425,7 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
 
 ---
 
+<a id="screenshot-index"></a>
 ## 🖼 Screenshot Index
 
 | # | Screen | File | Shown in |
@@ -387,6 +439,7 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
 
 ---
 
+<a id="keep-exploring"></a>
 ## 🪐 Keep Exploring
 
 If this game sparks your curiosity, these are genuinely good places to keep going — all

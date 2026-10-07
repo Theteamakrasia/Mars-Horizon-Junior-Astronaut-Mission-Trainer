@@ -8,6 +8,31 @@ than a documented one.
 
 ---
 
+## 2026-10-07 — README polish on a separate PR branch
+
+**Did**
+
+- Confirmed the merged CI PR did not include the proposed README polish, then branched from
+  the updated `origin/main` to prepare a separate PR.
+- Added TypeScript, Vite, Vitest, and MIT badges, the existing astronaut sprite, and an
+  index for the existing README sections. Left existing prose untouched.
+
+**Files**
+
+- Updated: `README.md`, `docs/CHANGELOG.md`, this log, and TASK-034 in `docs/team/tasks.md`.
+- Added: `docs/pull-requests/002-readme-polish.md`.
+
+**Problems**
+
+- Emoji and numbered headings make generated anchors inconsistent; explicit IDs are used
+  for reliable index navigation.
+
+**Next**
+
+- Commit and push this branch, then create PR #2 against `main`.
+
+**Doc updates made:** changelog, PR description, task TASK-034, and this progress log.
+
 ## 2026-10-07 — PR #1 review document
 
 **Did**
