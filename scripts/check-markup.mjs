@@ -12,7 +12,7 @@
  * Run with `npm run check`.
  */
 
-import { readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -124,15 +124,95 @@ if (!/\[hidden\]\s*\{[^}]*display:\s*none\s*!important/s.test(baseCss)) {
 }
 
 // --- Rule 5: every data hook a view queries is present -----------------------
-const VIEWS = ['src/features/naming/view.ts', 'src/features/briefing/view.ts'];
+/*
+  Discovered on disk rather than listed. A hard-coded list is exactly the mistake
+  `nextStop` was built to avoid: the day someone adds a screen, a listed list
+  quietly stops checking it, and the failure mode is a screen that throws on mount
+  with every other check green. Same reasoning as the computed interstitial.
+*/
+const featureDirs = readdirSync(join(ROOT, 'src', 'features'), { withFileTypes: true })
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => join('src', 'features', entry.name));
 
-for (const file of VIEWS) {
+const views = featureDirs
+  .filter((dir) => existsSync(join(ROOT, dir, 'view.ts')))
+  .map((dir) => join(dir, 'view.ts').replace(/\\/g, '/'));
+
+if (views.length === 0) {
+  fail(0, 'no feature views found under src/features — the discovery is broken, not the app');
+}
+
+for (const file of views) {
   const source = readFileSync(join(ROOT, file), 'utf8');
   const hooks = new Set([...source.matchAll(/\[data-([\w-]+)\]/g)].map((m) => `data-${m[1]}`));
 
   for (const hook of hooks) {
     if (!markup.includes(hook)) {
       fail(0, `${file} queries ${hook} but index.html does not contain it — the screen would throw on mount`);
+    }
+  }
+}
+
+/*
+  --- Rule 6: a mounted screen's hooks are inside that screen's own section.
+
+  Rule 5 only asks whether a hook exists anywhere in the page. That is not enough
+  once there is more than one screen: a hook belonging to the briefing, found only
+  inside #supply, means the briefing throws on mount while every other check is
+  green. Scope each hook to the section that claims it.
+*/
+for (const id of mounts) {
+  const section = spanOf(id);
+  if (section === null) continue; // already reported by Rule 2
+
+  const file = views.find((view) => readFileSync(join(ROOT, view), 'utf8').includes(`"#${id}"`));
+  if (file === undefined) continue;
+
+  const source = readFileSync(join(ROOT, file), 'utf8');
+  const hooks = new Set([...source.matchAll(/\[data-([\w-]+)\]/g)].map((m) => `data-${m[1]}`));
+  const inside = markup.slice(section.start, section.end);
+
+  for (const hook of hooks) {
+    if (!inside.includes(hook)) {
+      fail(section.start, `${hook} is queried by ${file} but is not inside #${id} — the screen would throw on mount`);
+    }
+  }
+}
+
+// --- Rule 7: a built feature has all four files, and imports its own CSS ------
+/*
+  The four-file layout is decision D-014 and CSS-in-view is R-15. Both are
+  conventions with nothing enforcing them, which is how conventions rot.
+
+  "Built" is read from registry.ts, not guessed from the files on disk: a stub
+  feature has a view.ts too — it just throws — so its presence proves nothing.
+  The registry mapping is what the router actually reaches.
+*/
+const builtFeatures = new Set(
+  [...registry.matchAll(/from '\.\.\/features\/([\w-]+)\/view'/g)].map((match) => match[1]),
+);
+
+for (const dir of featureDirs) {
+  // featureDirs was built with join(), so it is backslashed on Windows. Normalise
+  // before splitting, or the last segment is the whole path.
+  const name = dir.replace(/\\/g, '/').split('/').pop();
+  const isBuilt = builtFeatures.has(name);
+
+  // A stub feature is model, view and README. A built one is four files.
+  const expected = isBuilt
+    ? ['model.ts', 'model.test.ts', 'view.ts', `${name}.css`]
+    : ['model.ts', 'view.ts'];
+
+  for (const file of expected) {
+    if (!existsSync(join(ROOT, dir, file))) {
+      fail(0, `features/${name} is missing ${file} — a built feature keeps four files (D-014)`);
+    }
+  }
+
+  if (isBuilt) {
+    const source = readFileSync(join(ROOT, dir, 'view.ts'), 'utf8');
+    if (!source.includes(`import './${name}.css'`)) {
+      fail(0, `features/${name}/view.ts does not import './${name}.css' — feature CSS is imported by its own view.ts (R-15)`);
     }
   }
 }
@@ -167,7 +247,7 @@ function classNamesIn(markupSlice) {
 const LANDING_IDS = ['starfield', 'astronaut'];
 const LANDING_CLASSES = ['stage', 'vignette'];
 
-// --- Rule 5: the landing wrapper holds exactly the landing layers -------------
+// --- Rule 8: the landing wrapper holds exactly the landing layers -------------
 if (landing !== null) {
   const inside = markup.slice(landing.start, landing.end);
   const ids = [...inside.matchAll(/\bid="([\w-]+)"/g)].map((m) => m[1]);
