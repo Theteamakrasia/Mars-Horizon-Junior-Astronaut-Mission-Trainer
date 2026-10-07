@@ -71,6 +71,7 @@ describe('routeToHash', () => {
 
 describe('progression', () => {
   it('walks forward through play order', () => {
+    expect(nextRoute('naming')).toBe('landing');
     expect(nextRoute('landing')).toBe('landing-site');
     expect(nextRoute('landing-site')).toBe('base');
     expect(nextRoute('base')).toBe('act');
@@ -82,14 +83,20 @@ describe('progression', () => {
 
   it('walks backward through play order', () => {
     expect(previousRoute('debrief')).toBe('act');
-    expect(previousRoute('landing')).toBeNull();
+    expect(previousRoute('naming')).toBeNull();
+  });
+
+  it('opens on the naming menu, because that is the entry screen', () => {
+    // The player names their astronaut and starts the journey from here. A login
+    // page is meant to sit in front of this later; it is not built (D-003).
+    expect(ROUTE_ORDER[0]).toBe('naming');
+    expect(DEFAULT_ROUTE).toBe('naming');
   });
 
   it('keeps the landing page in the sequence, not outside it', () => {
-    // The landing page ships until the game is 30% built (decision D-008), so it
-    // is a real step rather than a dead end.
-    expect(ROUTE_ORDER[0]).toBe('landing');
-    expect(DEFAULT_ROUTE).toBe('landing');
+    // It stays reachable as the "main menu" target until the game is 30% built
+    // (D-008), rather than being deleted from the routes.
+    expect(ROUTE_ORDER).toContain('landing');
   });
 
   it('agrees with itself in both directions', () => {

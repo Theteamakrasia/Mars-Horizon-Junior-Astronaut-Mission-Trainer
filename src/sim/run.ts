@@ -9,7 +9,7 @@
  * the page does. Supabase is deferred — see decision D-003.
  */
 
-import type { ResourceStores } from './resources';
+import { createInitialStores, type ResourceStores } from './resources';
 
 /** A run is active, or ended one way or the other. No third state. */
 export type RunStatus = 'active' | 'lost' | 'won';
@@ -17,27 +17,39 @@ export type RunStatus = 'active' | 'lost' | 'won';
 /**
  * Everything a screen needs, and nothing it does not.
  *
- * `region` is the id chosen in landing-site, not the whole region object: a
- * screen that needs the axis scores should be handed them, not left to re-derive.
+ * `regionId` is set by the `landing-site` screen. `astronautName` is set by the
+ * `naming` menu — in memory only, so a refresh loses it (D-003, no persistence).
  */
 export interface RunState {
   readonly sol: number;
   readonly regionId: string;
+  readonly astronautName: string;
   readonly stores: ResourceStores;
   readonly status: RunStatus;
 }
 
-/** Begin a run in the chosen region. Called once, from main.ts. */
-export function newRun(_regionId: string): RunState {
-  throw new Error('STUB: sim/run.ts is not implemented.');
+/**
+ * Begin a run in the chosen region. Called once, from main.ts.
+ *
+ * Sol starts at 0, meaning "arrived, nothing done yet", so the first advance is
+ * sol 1.
+ */
+export function newRun(_regionId: string, _astronautName = ''): RunState {
+  return {
+    sol: 0,
+    regionId: _regionId,
+    astronautName: _astronautName,
+    stores: createInitialStores(),
+    status: 'active',
+  };
 }
 
 /**
- * Replace one field, returning new state.
+ * Replace some fields, returning new state.
  *
- * Deliberately shallow rather than a merge helper: a store or a sol changes at a
- * time, and a merge hides which field a caller thought it was changing.
+ * Shallow rather than a merge helper: stores and sol change one at a time, and a
+ * general merge hides which field a caller thought it was changing.
  */
-export function withState(_state: RunState, _change: Partial<RunState>): RunState {
-  throw new Error('STUB: sim/run.ts is not implemented.');
+export function withState(state: RunState, change: Partial<RunState>): RunState {
+  return { ...state, ...change };
 }

@@ -1,31 +1,44 @@
 /**
- * STUB — not implemented. Every export here throws.
+ * Maps a route to the screen that draws it.
  *
- * Maps a route to the screen that draws it. This is the join between ui/ and
- * features/, so it is the one file that is allowed to know about both.
- *
- * It deliberately imports NO feature yet. When it does, those features must
- * exist or `npm run check` fails them as `unresolved-import` — which is the
- * point: the registry cannot claim to route to a screen that is not built.
- *
- * Task: TASK-027. Wire the router into main.ts at the same time, and only when
- * at least one screen exists to route to.
+ * The one file allowed to know about both `ui/` and `features/`. Every feature
+ * is imported by name here, which is what keeps features from importing each
+ * other: a screen can reach its own model, and the router hands it the run.
  */
+
+import { mountNaming } from '../features/naming/view';
+import type { RunState } from '../sim/run';
 
 import type { Route } from './routes';
 
 /**
- * A screen: given a mount point, draw, and return a teardown.
+ * A screen: given a mount point and the current run, draw, and return a teardown.
  *
- * Teardown is required rather than optional because screens accumulate: without
- * it, navigating back and forth leaks every listener and timer from the screen
- * left behind.
+ * Teardown is required rather than optional because screens accumulate. Without
+ * it, navigating back and forth leaks every listener from the screen left behind.
  */
-export type ScreenFactory = (mount: HTMLElement, run: unknown) => () => void;
+export type ScreenFactory = (mount: HTMLElement, run: RunState | null) => () => void;
+
+/** Mount points live in index.html, keyed by route. */
+const SCREEN_MOUNTS: Readonly<Partial<Record<Route, string>>> = {
+  naming: '#naming',
+};
+
+const SCREENS: Readonly<Partial<Record<Route, ScreenFactory>>> = {
+  naming: mountNaming,
+};
+
+/**
+ * The mount point for a route, or null if that route has nothing built yet.
+ *
+ * Null rather than throwing: most routes are stubs right now, and the router
+ * needs to be able to say "not built" without the whole app failing.
+ */
+export function screenMount(route: Route): string | null {
+  return SCREEN_MOUNTS[route] ?? null;
+}
 
 /** The screen for a route, or null if that route has nothing built yet. */
-export function resolveScreen(_route: Route): ScreenFactory | null {
-  throw new Error(
-    'STUB: ui/registry.ts is not implemented. It gains feature imports when the first screen exists.',
-  );
+export function resolveScreen(route: Route): ScreenFactory | null {
+  return SCREENS[route] ?? null;
 }

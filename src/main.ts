@@ -3,6 +3,9 @@ import './style.css';
 import astronautUrl from '../Assets/images/floating.png';
 import { startFloatingAstronaut } from './dom/floatAstronaut';
 import { createStarfield } from './dom/starfield';
+import { resolveScreen, screenMount } from './ui/registry';
+import { startRouter } from './ui/router';
+import type { Route } from './ui/routes';
 
 /**
  * Resolves an element by id, throwing a clear error if the markup and the
@@ -30,6 +33,27 @@ function readMotionOverride(): boolean | null {
   if (requested === 'reduce') return true;
 
   return null;
+}
+
+/**
+ * The landing page's layers, hidden while a routed screen is mounted over them.
+ *
+ * Declared before bootstrap runs, and assigned there, because bootstrap can be
+ * called synchronously at module evaluation when the document is already parsed.
+ */
+let landingLayers: readonly HTMLElement[] = [];
+
+/** Teardown for the mounted screen, if any. */
+let activeScreen: (() => void) | null = null;
+
+/** Show the landing page, hiding any mounted screen's layer. */
+function showLanding(): void {
+  for (const layer of landingLayers) layer.hidden = false;
+}
+
+/** Hide the landing page, revealing whatever is mounted over it. */
+function hideLanding(): void {
+  for (const layer of landingLayers) layer.hidden = true;
 }
 
 function bootstrap(): void {
@@ -80,6 +104,68 @@ function bootstrap(): void {
   }
 
   applyMotionPreference();
+
+  // The landing page's own layers, hidden while a routed screen sits over them.
+  const stage = document.querySelector<HTMLElement>('.stage');
+  const vignette = document.querySelector<HTMLElement>('.vignette');
+  landingLayers = [starfield, astronaut, stage, vignette].filter(
+    (layer): layer is HTMLElement => layer !== null,
+  );
+
+  startScreenRouter();
+}
+
+/**
+ * Mount the routed screen, and unmount whatever was mounted before.
+ *
+ * Only one screen is live at a time and teardown is mandatory: a screen that
+ * leaves its listeners attached would double up every time the player navigates
+ * back to it.
+ */
+function mountScreen(route: Route): void {
+  const teardown = activeScreen;
+  activeScreen = null;
+
+  if (teardown !== null) {
+    teardown();
+  }
+
+  const selector = screenMount(route);
+  const factory = resolveScreen(route);
+
+  // A route with nothing built yet is not an error. Most screens are stubs, and
+  // the router must be able to fall through rather than take the page down.
+  if (selector === null || factory === null) {
+    showLanding();
+    return;
+  }
+
+  const root = document.querySelector<HTMLElement>(selector);
+
+  if (root === null) {
+    throw new Error(`Missing screen mount point: ${selector}`);
+  }
+
+  hideLanding();
+  activeScreen = factory(root, null);
+}
+
+/**
+ * Start hash routing.
+ *
+ * The landing page keeps running behind whichever screen is mounted: it is the
+ * only visual that works today and BACK TO MAIN MENU returns to it, so retiring
+ * it before the game reaches 30% built would remove something that still works.
+ */
+function startScreenRouter(): void {
+  const stopRouter = startRouter({ onRoute: mountScreen });
+
+  // Unmount on unload so nothing is left attached to a document going away.
+  window.addEventListener('pagehide', () => {
+    stopRouter();
+    activeScreen?.();
+    activeScreen = null;
+  }, { once: true });
 }
 
 if (document.readyState === 'loading') {

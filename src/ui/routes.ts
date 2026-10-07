@@ -11,17 +11,31 @@
  */
 
 /** Every screen the player can reach. */
-export type Route = 'landing' | 'landing-site' | 'base' | 'act' | 'debrief';
+export type Route = 'naming' | 'landing' | 'landing-site' | 'base' | 'act' | 'debrief';
 
 /**
  * The screens in play order, for progression and for the debrief's "what next"
- * affordance. `landing` is the placeholder page that ships until the game is 30%
- * built, so it is a real route rather than a dead end.
+ * affordance.
+ *
+ * `naming` is first because it is the entry screen: the player names their
+ * astronaut and starts the journey from there. A login page is intended to sit
+ * in front of it later, but it is not implemented and not built — Supabase is
+ * deferred (D-003).
+ *
+ * `landing` is the placeholder page that ships until the game is 30% built
+ * (D-008), and stays reachable as the "main menu" target.
  */
-export const ROUTE_ORDER: readonly Route[] = ['landing', 'landing-site', 'base', 'act', 'debrief'];
+export const ROUTE_ORDER: readonly Route[] = [
+  'naming',
+  'landing',
+  'landing-site',
+  'base',
+  'act',
+  'debrief',
+];
 
 /** The route shown when there is no usable hash. */
-export const DEFAULT_ROUTE: Route = 'landing';
+export const DEFAULT_ROUTE: Route = 'naming';
 
 function isRoute(value: string): value is Route {
   return (ROUTE_ORDER as readonly string[]).includes(value);
