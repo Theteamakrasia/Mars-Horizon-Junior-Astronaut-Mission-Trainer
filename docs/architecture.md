@@ -58,10 +58,20 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
 │
 ├── docs/
 │   ├── architecture.md                 this file
+│   ├── CHANGELOG.md                    unreleased and deployed project changes
+│   ├── pull-requests/                   detailed PR descriptions
+│   │   └── 001-ci-deployment-gates.md
+│   ├── codebase/                       evidence-backed repository map
+│   │   ├── STACK.md, STRUCTURE.md, ARCHITECTURE.md
+│   │   ├── CONVENTIONS.md, INTEGRATIONS.md, TESTING.md, CONCERNS.md
 │   └── team/
 │       ├── decisions.md                complete   numbered, newest first
 │       ├── issues.md                   complete   15 issues, ISS-001..ISS-015
 │       ├── goals.md  tasks.md  progress-log.md
+├── .github/workflows/
+│   ├── ci.yml                          PR/main checks: typecheck, tests, HTML, build
+│   └── deploy.yml                      gated GitHub Pages deployment
+├── .htmlvalidate.json                  HTML rules; inline CSS is allowed
 │
 ├── AGENTS.md                           complete   the orientation file
 ├── README.md                           STALE      accurate about the game, WRONG about the
@@ -99,7 +109,7 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         DRAG_STRETCH_SPEED 3400, MIN_THROW_SPEED 60.
     │   ├── drift.test.ts               complete   30 tests
     │   ├── deform.test.ts              complete   30 tests
-    │   ├── frame.test.ts               PARTIAL    19 tests, one 40% flaky — ISS-015
+    │   ├── frame.test.ts               complete   19 tests; open-space trajectory is deterministic
     │   ├── resources.ts                STUB       62 lines. Exports ResourceName,
     │   │                                         RESOURCE_NAMES, ResourceStores,
     │   │                                         createInitialStores, drainForSol,

@@ -8,89 +8,112 @@ than a documented one.
 
 ---
 
-## 2026-10-07 — Scene one: the naming menu
-
-Branch `feat/naming-menu`. First real feature, and the entry screen.
+## 2026-10-07 — README header order for PR #2
 
 **Did**
 
-- Measured the supplied cutout sheet before touching it: one 1670x941 PNG holding
-  **both** subjects side by side on transparency, 100 px apart, non-overlapping.
-  Alpha histogram showed 94% of pixels fully transparent or fully opaque.
-- Split it into two assets, padding the crop, and **normalised interior alpha from
-  252 to 255** — the cutout tool had written every solid pixel at 252, which
-  darkens the subject ~1% against a dark background.
-- Shipped as **WebP q82: 125 KB total, down from 1.3 MB of PNG** (10x). Verified
-  both files are `VP8X` with an alpha channel and decode at the right size with
-  transparency intact.
-- Sampled the design mockup's palette from actual pixels rather than eyeballing:
-  bg `#070E12`, panel `#131D24`, field `#152029`, border `#2E3C45`, text `#FCFCFC`,
-  muted `#515C63`, accent `#FA6200`. It turned out to be a near match for the
-  existing landing tokens, so this continues the design rather than replacing it.
-- Built the menu: `model.ts` (pure name rules), `model.test.ts` (21 tests, all
-  literal inputs), `view.ts` (DOM), `naming.css` (tokens + motion), plus markup in
-  `index.html`.
-- Wired hash routing into `main.ts`, made `naming` the default route, and made
-  `ui/registry.ts` real so routes map onto screens.
-- Implemented `createInitialStores` and `newRun` for real, because the menu needs
-  somewhere to put the name. `drainForSol` and `depletedStores` stay stubs.
+- Reordered the README header to title, astronaut image, badges, short description, then
+  index, as requested.
+- Moved the existing four-sentence opening description intact; other README prose remains
+  unchanged.
 
 **Files**
 
-- Added: `Assets/images/naming/{astronaut,mars}.webp`,
-  `src/features/naming/{model.ts,model.test.ts,view.ts,naming.css}`
-- Rewritten: `src/ui/{routes.ts,routes.test.ts,registry.ts}`
-- Edited: `src/main.ts`, `src/sim/{run.ts,resources.ts}`, `index.html`,
-  `scripts/check-imports.mjs`, `docs/team/{issues,decisions,progress-log}.md`
+- Updated: `README.md`, `docs/pull-requests/002-readme-polish.md`, this log, and TASK-034.
 
 **Problems**
 
-1. **I corrupted a test file with a bad PowerShell filter.** My control-byte scrub
-   excluded TAB and CR but forgot LF, so every newline became the literal text
-   `\u000A` and `model.test.ts` collapsed to a single line. Recovered by replacing the
-   literal escape text back into real newlines, and verified: 119 lines, LF, no
-   control bytes, 21 tests green. **My first scan was also wrong** — it counted CR
-   as a control byte and flagged every file in `src/`, which would have sent me
-   chasing a non-existent repo-wide corruption. Both errors were caught only because
-   I inspected the output rather than trusting it.
-2. **My own checker caught a real design flaw.** `ui/registry.ts` importing
-   `features/naming/view` violated `layer-boundary`, because `ui/` may not import
-   `features/`. The registry *must* import feature views to map routes onto them.
-   Fixed in the rule rather than the code, by naming `src/ui/registry.ts` as the one
-   composition seam — a zone-wide exception would let any file in `ui/` reach into
-   any feature and dissolve the boundary. The checker is worth its keep.
-3. **A wrong import depth broke the build.** `view.ts` is three levels below the repo
-   root, so the asset import needed `../../../Assets/...`, not `../../`. Vite could
-   not resolve it and the build failed. Found by running the build, not by reading.
-4. **A temporal-dead-zone bug I introduced into `main.ts`.** I declared
-   `landingPage` *after* `bootstrap()` could already have run, and never assigned it.
-   Restructured so the state is declared before first use and populated in
-   `bootstrap`. Also replaced a `requireElement('#naming')` misuse — that helper
-   takes an id, not a selector — with a proper `querySelector` plus an explicit
-   throw.
-5. **Naming rules needed two decisions I had to make.** Length is counted in code
-   points so an emoji costs 1, not 2 — children will type emoji, and the alternative
-   silently eats their budget. And `displayName` strips control characters, because
-   it is the one string interpolated into markup.
-6. **ISS-015 fired again** — `frame.test.ts:81`, the same pre-existing 40% flake.
-   115 of 116 passed. Unrelated to this work.
+- None. The reordering leaves all index IDs and targets unchanged.
 
 **Next**
 
-- **ISS-017:** START MISSION currently has nowhere to go. Build
-  `features/landing-site/` (TASK-028), then change one line in `onSubmit`.
-- **ISS-015:** still the highest-value fix. A suite that red 40% of the time
-  teaches six people to ignore red.
-- **ISS-018:** the 12 MB of cinematic PNGs. Convert each to WebP as its scene is
-  built, measured at ~10x. Not in `dist/` today — confirmed by inspecting the build.
-- **ISS-019 and ISS-020** need an owner and a decision, not code.
+- Push the update to PR #2 and refresh its description.
 
-**Doc updates made:** `docs/team/issues.md` (ISS-017 to ISS-020),
-`docs/team/decisions.md` (D-020, D-021), this entry. `docs/architecture.md` and
-`AGENTS.md` still describe `naming` as a stub and are **stale** — they are the next
-thing to fix. `README.md` unchanged and still wrong about the code (ISS-001).
+**Doc updates made:** PR description, task TASK-034, and this progress log.
 
----
+## 2026-10-07 — README polish on a separate PR branch
+
+**Did**
+
+- Confirmed the merged CI PR did not include the proposed README polish, then branched from
+  the updated `origin/main` to prepare a separate PR.
+- Added TypeScript, Vite, Vitest, and MIT badges, the existing astronaut sprite, and an
+  index for the existing README sections. Left existing prose untouched.
+
+**Files**
+
+- Updated: `README.md`, `docs/CHANGELOG.md`, this log, and TASK-034 in `docs/team/tasks.md`.
+- Added: `docs/pull-requests/002-readme-polish.md`.
+
+**Problems**
+
+- Emoji and numbered headings make generated anchors inconsistent; explicit IDs are used
+  for reliable index navigation.
+
+**Next**
+
+- Commit and push this branch, then create PR #2 against `main`.
+
+**Doc updates made:** changelog, PR description, task TASK-034, and this progress log.
+
+## 2026-10-07 — PR #1 review document
+
+**Did**
+
+- Wrote a detailed PR description covering both workflows, HTML validation behavior, the
+  deterministic test fix, deployment prerequisites, and command results.
+- Kept application source unchanged; the document records the previously validated scope.
+
+**Files**
+
+- Added: `docs/pull-requests/001-ci-deployment-gates.md`.
+- Updated: architecture tree, codebase structure map, and TASK-033 tracking.
+
+**Problems**
+
+- GitHub Pages still requires repository-level setup before a successful workflow can
+  publish; the PR document calls out that prerequisite.
+
+**Next**
+
+- Add this document to PR #1 and use its full description as the PR body.
+
+**Doc updates made:** architecture file tree, codebase structure map, task TASK-033, and
+this progress log.
+
+## 2026-10-07 — CI gates, HTML validation, and Pages deployment
+
+**Did**
+
+- Added a pull-request and `main` CI workflow for imports/typecheck, tests, HTML validation,
+  and the production build. Added a separate Pages workflow that runs only after CI succeeds.
+- Added HTML validation with inline style attributes and `<style>` elements allowed, a
+  changelog, and workflow badges in the project README.
+- Narrowed the HTML validator exception to the astronaut image populated by `main.ts`, and
+  removed randomness from the existing open-space physics test without relaxing it.
+- Mapped the repository into seven evidence-backed documents under `docs/codebase/`.
+
+**Files**
+
+- Added: `.github/workflows/{ci,deploy}.yml`, `.htmlvalidate.json`, `docs/CHANGELOG.md`,
+  and `docs/codebase/*.md`.
+- Updated: `package.json`, `package-lock.json`, `README.md`, architecture and team tracking
+  documents. ISS-012/ISS-015 are fixed; TASK-004/TASK-011/TASK-032 are done.
+
+**Problems**
+
+- No hosting provider was previously configured. GitHub Pages is now the declared target;
+  repository Pages settings must be enabled before deployments can publish.
+- Dependency installation reported three audit findings (one moderate, two critical),
+  which need separate review before treating dependency security as clean.
+
+**Next**
+
+- Commit and push this branch, then open a PR against `main`.
+- Enable Pages in repository settings if the team wants the gated workflow to publish.
+
+**Doc updates made:** changelog, architecture file tree, decisions D-021, issue ISS-012,
+task TASK-011/TASK-032, and this progress log. README badges added.
 
 ## 2026-10-06 — Typed stubs across the whole planned structure
 

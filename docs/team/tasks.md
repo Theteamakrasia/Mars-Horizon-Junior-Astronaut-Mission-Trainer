@@ -7,6 +7,9 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 
 | id | task | goal | owner | status | blocked by | notes |
 | --- | --- | --- | --- | --- | --- | --- |
+| TASK-034 | Improve README badges, hero image, and linked index | G-6 | agent | done | — | `docs/pull-requests/002-readme-polish.md`; requested header order |
+| TASK-033 | Write detailed Markdown description for PR #1 | G-6 | agent | done | — | `docs/pull-requests/001-ci-deployment-gates.md` |
+| TASK-032 | Add CI quality gates, gated Pages deploy, HTML checks, and changelog | G-6 | agent | done | — | ISS-012. This branch |
 | TASK-025 | Folder structure: `sim/` rename, feature zones, cross-feature rule | G-6 | agent | done | — | D-013..D-018. Branch `docs/agent-orientation` |
 | TASK-026 | `src/ui/routes.ts` + `router.ts`, hash routing | G-4 | agent | done | — | 15 tests. **Not wired** — D-014 |
 | TASK-027 | Write `ui/registry.ts`, wire the router into `main.ts` | G-4 | unassigned | open | TASK-028 | arrives with the first feature |
@@ -20,14 +23,14 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 | TASK-001 | Documentation and workflow system (AGENTS.md, architecture, decisions, issues, goals, tasks, progress log) | G-6 | agent | done | — | first pass, same branch |
 | TASK-002 | `scripts/check-imports.mjs` + `npm run check` | G-2, G-6 | agent | done | — | rewritten for zones; verified by fixtures |
 | TASK-003 | Split `src/core/` into pure `core/` and `dom/` | G-2 | agent | done | — | ISS-010. Runtime unverified |
-| TASK-004 | Fix ISS-015 flaky test (`frame.test.ts:81`) | G-2 | unassigned | open | — | 40% failure. Blocks CI and G-1 |
+| TASK-004 | Fix ISS-015 flaky test (`frame.test.ts:81`) | G-2 | agent | done | — | Deterministic open-space trajectory |
 | TASK-005 | Add `.gitattributes`, renormalise once | G-6 | unassigned | open | — | ISS-005. Cheapest item on the board |
 | TASK-006 | Add `.env*` to `.gitignore`, commit `.env.example` | G-5 | unassigned | open | — | ISS-006. **Before any `.env.local` exists** |
 | TASK-007 | Establish DONKI CORS behaviour in a real browser | G-5 | unassigned | blocked | needs a human with a browser | ISS-008. Blocks all data-layer work |
 | TASK-008 | Register a personal api.nasa.gov key | G-5 | unassigned | open | — | ISS-009 |
 | TASK-009 | Add jsdom/happy-dom, test DOM teardown and cancel paths | G-3 | unassigned | open | — | ISS-011, ISS-013 |
 | TASK-010 | Look at the starfield in a browser, then fix or drop ISS-002 | G-3 | unassigned | open | needs a human with a browser | do not fix blind |
-| TASK-011 | Add CI running `npm run check` + `npm test` | G-6 | unassigned | open | TASK-004 | ISS-012. A 40% flaky job gets disabled |
+| TASK-011 | Add CI running `npm run check` + `npm test` | G-6 | agent | done | — | ISS-012. CI also validates HTML and builds |
 | TASK-012 | Self-host the Orbitron font, drop the CDN request | G-1 | unassigned | open | — | ISS-007. Needed for offline `dist/` |
 | TASK-013 | Rewrite README project-status section | G-6 | unassigned | open | — | ISS-001. Deferred by D-011 |
 | TASK-014 | One-line cleanups: stale comments, `license` field, ISS-003/ISS-004/ISS-014 | G-6 | unassigned | open | — | four separate one-liners, all unowned |
@@ -53,8 +56,8 @@ about the zone, so nothing needs adding when the code lands.
 dependency on the resource model, and it is the only screen whose rules are fully
 specified by the README.
 
-**TASK-004 is still the priority.** A test suite that fails 40% of the time trains six
-people to ignore red, and it blocks TASK-011.
+**TASK-004 is complete on this branch.** The open-space test uses a deterministic trajectory;
+CI can run the suite without the known random launch causing false failures.
 
 **TASK-022 has no owner and no date.** Supabase auth is a known requirement (login, save
 state) explicitly deferred (D-003) with nothing scheduled against the Nov 8 freeze. If it

@@ -11,7 +11,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
-| ISS-015 | `frame.test.ts:81` fails ~40% of runs (flaky) | high | unassigned | open | — |
+| ISS-015 | `frame.test.ts:81` fails ~40% of runs (flaky) | high | agent | fixed | adc5767 |
 | ISS-017 | `START MISSION` has no destination; next scene is a stub | medium | unassigned | open | — |
 | ISS-018 | Seven cinematic PNGs committed, 12 MB, never referenced | medium | unassigned | open | — |
 | ISS-019 | Cinematics mix three visual styles | low | unassigned | open | — |
@@ -28,7 +28,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | ISS-004 | `package.json` has no `license` field | low | unassigned | open | — |
 | ISS-010 | `src/core/` held DOM modules - name did not match | low | unassigned | fixed | this branch |
 | ISS-016 | Feature-role classifier produced false positives | low | agent | fixed | this branch |
-| ISS-012 | No CI; nothing runs checks on push | low | unassigned | open | — |
+| ISS-012 | No CI; nothing runs checks on push | low | agent | fixed | adc5767 |
 | ISS-013 | Vitest runs node-env, no jsdom, so DOM is untestable | low | unassigned | open | — |
 | ISS-014 | `base.css` calls the page non-interactive while draggable | low | unassigned | open | — |
 
@@ -78,6 +78,9 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
   result was wrong, caused by a non-ASCII `×` in a PowerShell regex being mangled into
   a different codepoint so the failure pattern never matched. Re-measured with an
   ASCII-only pattern, the failure rate is real.
+- **Resolution:** replaced the randomized launch state with a known open-space trajectory.
+  The test keeps its settled and scale assertions at their original tolerances; all 94
+  tests passed on this branch.
 
 ## ISS-016 — Feature-role classifier produced false positives
 
@@ -410,6 +413,9 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
   author, usually at the worst moment.
 - **Fix:** add a GitHub Actions workflow running `npm run check` and `npm test` on push
   and pull request. Cheap, and the `check` script already exists to call.
+- **Resolution:** `.github/workflows/ci.yml` runs those checks plus HTML validation and
+  a production build on pull requests and pushes to `main`. `.github/workflows/deploy.yml`
+  deploys only after successful checks on `main`.
 
 ## ISS-013 — Vitest runs node-env, so DOM modules cannot be tested
 

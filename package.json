@@ -13,6 +13,7 @@
     "check": "node scripts/check-imports.mjs && node scripts/check-markup.mjs && tsc --noEmit"
   },
   "devDependencies": {
+    "html-validate": "^11.16.2",
     "typescript": "^5.9.3",
     "vite": "^7.3.6",
     "vitest": "^3.2.7"

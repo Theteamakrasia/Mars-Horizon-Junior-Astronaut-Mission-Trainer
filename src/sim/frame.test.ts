@@ -72,7 +72,10 @@ function afterImpact(frames: number): AstronautFrame {
 
 describe('stepAstronaut — deformation rings out after an impact', () => {
   it('produces no deformation while drifting through open space', () => {
-    const fresh = createAstronautFrame(SPRITE, VIEWPORT, SPEED);
+    const fresh: AstronautFrame = {
+      drift: { position: { x: 200, y: 350 }, velocity: { x: 80, y: 0 } },
+      deform: createDeform(),
+    };
     const after = advance(fresh, 120, NORMAL);
 
     expect(isDeformSettled(after.deform)).toBe(true);
