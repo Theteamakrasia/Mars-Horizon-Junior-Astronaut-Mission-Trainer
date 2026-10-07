@@ -305,7 +305,64 @@ for (const entry of readdirSync(join(ROOT, 'src', 'features'), { withFileTypes: 
   }
 }
 
-// --- Rule 9: the landing wrapper holds exactly the landing layers -------------
+/*
+  --- Rule 9: the hand-written flash keyframes still match the model's timings.
+
+  `var()` does not work inside `@keyframes`, so the three camera flashes in
+  launch.css are written by hand while their positions live in
+  src/features/launch/model.ts. That is a duplicated constant, and the spacing is a
+  photosensitivity guarantee rather than a matter of taste - WCAG 2.3.1 caps it at
+  three flashes a second. Two files quietly disagreeing would put a strobe in a
+  children's game with nothing left to notice.
+
+  So the numbers are compared rather than trusted. The spike stops are derived from
+  the model's own constants, including the rise and fall, so moving a flash in the
+  model fails here until the CSS follows it.
+*/
+const launchModel = join(ROOT, 'src', 'features', 'launch', 'model.ts');
+const launchCss = join(ROOT, 'src', 'features', 'launch', 'launch.css');
+
+if (existsSync(launchModel) && existsSync(launchCss)) {
+  const modelSource = readFileSync(launchModel, 'utf8');
+  const cssSource = readFileSync(launchCss, 'utf8');
+
+  const declared = /FLASH_TIMES:\s*readonly number\[\]\s*=\s*\[([^\]]+)\]/.exec(modelSource);
+  const riseMatch = /FLASH_RISE_PCT\s*=\s*(\d+)/.exec(modelSource);
+  const fallMatch = /FLASH_FALL_PCT\s*=\s*(\d+)/.exec(modelSource);
+
+  if (!declared || !riseMatch || !fallMatch) {
+    fail(0, 'cannot read FLASH_TIMES / FLASH_RISE_PCT / FLASH_FALL_PCT from features/launch/model.ts - the parse is broken, not the app');
+  } else {
+    const times = declared[1].split(',').map((part) => Number(part.trim()));
+    const rise = Number(riseMatch[1]);
+    const fall = Number(fallMatch[1]);
+
+    // Each spike needs a stop where it starts, at its peak, and after it falls.
+    const expected = new Set();
+    for (const at of times) {
+      expected.add(`${at}%`);
+      expected.add(`${at + rise}%`);
+      expected.add(`${at + rise + fall}%`);
+    }
+
+    const block = /@keyframes launch-flash \{([\s\S]*?)\n\}/.exec(cssSource);
+
+    if (block === null) {
+      fail(0, 'launch.css has no @keyframes launch-flash rule, but the model declares flash timings');
+    } else {
+      const written = new Set(
+        [...block[1].matchAll(/([\d.]+)%/g)].map((match) => `${Number(match[1])}%`),
+      );
+
+      const missing = [...expected].filter((stop) => !written.has(stop)).sort();
+      if (missing.length > 0) {
+        fail(0, `launch.css @keyframes launch-flash is missing stop(s) ${missing.join(', ')} that features/launch/model.ts expects from FLASH_TIMES - the flash spacing is a photosensitivity guarantee, not a matter of taste`);
+      }
+    }
+  }
+}
+
+// --- Rule 10: the landing wrapper holds exactly the landing layers -------------
 if (landing !== null) {
   const inside = markup.slice(landing.start, landing.end);
   const ids = [...inside.matchAll(/\bid="([\w-]+)"/g)].map((m) => m[1]);
