@@ -10,6 +10,17 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+**D-021 — agent · 2026-10-07**
+**Choice:** Use GitHub Pages as the deployment target; deploy only after the `Code checks`
+workflow succeeds on `main`. Validate the repository HTML with html-validate while
+allowing inline style attributes and style elements.
+**Why:** No hosting provider was configured. Pages provides a repository-native target,
+and the completed-check gate prevents failed changes from being published.
+**Rejected:** Configure Vercel without an existing project or deploy credentials; deploy
+without waiting for code checks.
+**Consequence:** GitHub Pages must be enabled with GitHub Actions as its source. The
+workflow uploads and deploys the built site only after checks pass.
+
 **D-020 — project owner · 2026-10-06**
 **Choice:** `sim/{resources,sol,run}.ts`, `ui/registry.ts`, `data/spaceweather.ts` and all
 four features get **typed stubs** — real types, real signatures, every body
