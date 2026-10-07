@@ -1,26 +1,30 @@
 /**
- * The supply check: five facts about what a crew has to take, then the ration
- * arithmetic, then Mission Control's verdict.
+ * The supply check: the astronaut explains what a crew has to take, then asks the
+ * ration question, then Mission Control rules on it.
  *
  * DOM, images and timing only. The words, the numbers and the scoring all live in
- * ./model and are unit tested there. This file is the part I cannot run a test
- * against, so it is written to fail loudly: every element it needs is looked up
- * with `require`, which throws with the selector in the message rather than
- * leaving a half-drawn screen with dead buttons.
+ * ./model and are unit tested there.
  *
- * Three states, each with its own illustration:
- *   question - the four answer buttons, one of them right
- *   wrong    - a miss, the working, and the same buttons again
- *   right    - the total, and CONTINUE hands off to the next stop
+ * How the text is shown, and why it is not a list:
  *
- * A wrong answer is retryable by design. That means a child can guess their way
- * through, which is a soft failure: the attempt is cheap and the explanation that
- * follows a miss is the part that teaches. The alternative - saying why it was
- * wrong and moving on - gives up the retry, which was the choice made here.
+ * The artwork is a full Mission Control room with no empty space in it. An
+ * earlier version laid the five facts out as a scrolling list inside a
+ * 46rem panel down the left, and it read as a dialog box dropped on top of a
+ * picture — the panel covered the astronaut, whose job in the scene is to be
+ * pointing at the checklist, and it fought the board the whole scene is about.
  *
- * Note on the numbers: the question asked on screen is QUESTION from the model,
- * not one rebuilt from run state. Nothing in RunState can drift out of step with
- * the arithmetic under test.
+ * So the text is dialogue instead: one bubble beside the astronaut's head, with a
+ * tail pointing at him, and each fact REPLACES the previous one. The room stays
+ * visible, the bubble is small enough to read as speech rather than as chrome,
+ * and a child who looks away misses one line rather than a wall of five.
+ *
+ * Every replacement is a crossfade through `swapTo`, which fades the old line out
+ * before writing the new one in. Timing is done with a timer rather than
+ * `transitionend`, because a transition that never fires - a hidden element, a
+ * background tab, reduced motion - would otherwise strand the sequence and leave
+ * the bubble blank forever. That is the same class of bug as the briefing's
+ * width animation, and the reason nothing on this screen depends on an animation
+ * completing to become readable.
  */
 
 import { nextStop } from '../../ui/registry';
@@ -36,16 +40,22 @@ import wrongUrl from '../../../Assets/images/supply/wrong.webp';
 import {
   CHOICES,
   CORRECT_ANSWER,
+  QUESTION_PROMPT,
   RESOURCE_FACTS,
   explainChoice,
   isCorrect,
   successSentence,
   workingSentence,
-  type ResourceFact,
 } from './model';
 
-/** Milliseconds each fact is held before the next one appears. */
-const FACT_INTERVAL_MS = 1900;
+/** How long a bubble fades out before the next one is written into it. */
+const SWAP_MS = 220;
+
+/** How long a fact is held on screen before it is replaced by the next. */
+const FACT_HOLD_MS = 2600;
+
+/** How long the wrong frame is held before the buttons come back. */
+const RETRY_DELAY_MS = 1100;
 
 /** Illustrations, by state. Imported so Vite fingerprints and bundles them. */
 const SCENE_URLS = {
@@ -54,7 +64,6 @@ const SCENE_URLS = {
   right: rightUrl,
 } as const;
 
-/** Which of the three illustrations the screen is showing. */
 type SceneName = keyof typeof SCENE_URLS;
 
 /**
@@ -85,63 +94,81 @@ export function mountSupply(
   _setRun: (next: RunState | null) => void,
 ): () => void {
   const scene = require<HTMLImageElement>(root, '[data-supply-scene]');
-  const factList = require<HTMLUListElement>(root, '[data-supply-facts]');
-  const skip = require<HTMLButtonElement>(root, '[data-supply-skip]');
-  const questionBlock = require<HTMLElement>(root, '[data-supply-question]');
+  const bubble = require<HTMLDivElement>(root, '[data-supply-bubble]');
+  const bubbleLabel = require<HTMLParagraphElement>(root, '[data-supply-bubble-label]');
+  const bubbleText = require<HTMLParagraphElement>(root, '[data-supply-bubble-text]');
+  const answers = require<HTMLElement>(root, '[data-supply-answers]');
+  const prompt = require<HTMLParagraphElement>(root, '[data-supply-prompt]');
   const choiceList = require<HTMLUListElement>(root, '[data-supply-choices]');
   const feedback = require<HTMLParagraphElement>(root, '[data-supply-feedback]');
   const result = require<HTMLParagraphElement>(root, '[data-supply-result]');
+  const skip = require<HTMLButtonElement>(root, '[data-supply-skip]');
   const cont = require<HTMLButtonElement>(root, '[data-supply-continue]');
 
   const setScene = (name: SceneName): void => {
     scene.src = SCENE_URLS[name];
-    // Read by the stylesheet, so a state can change the frame's tint.
+    // Read by the stylesheet, so the room can tint to match the verdict.
     root.dataset.supplyState = name;
   };
 
   const setChoicesEnabled = (enabled: boolean): void => {
-    // Disabled rather than hidden, so the buttons are never tab stops the player
-    // can reach before there is anything to answer.
+    // Disabled rather than hidden, so a button is never a tab stop the player can
+    // reach before there is a question to answer.
     for (const button of choiceButtons) button.disabled = !enabled;
   };
 
   /*
-   * Build the five facts up front, hidden, and reveal them in order. Same shape
-   * as the briefing: the DOM order is the reading order, so a screen reader gets
-   * all five regardless of how the animation is going.
+   * Write one line into the bubble and make it visible.
+   *
+   * Text is written *before* the bubble is shown, never revealed by animating a
+   * property that decides whether it can be read.
    */
-  const factItems: HTMLLIElement[] = RESOURCE_FACTS.map((fact: ResourceFact) => {
-    const item = document.createElement('li');
-    item.className = 'supply__fact';
-    item.dataset.supplyFact = fact.key;
-    item.hidden = true;
+  const render = (label: string, text: string): void => {
+    bubbleLabel.textContent = label;
+    bubbleText.textContent = text;
+    bubble.hidden = false;
+    bubble.dataset.supplyPhase = 'in';
+  };
 
-    const label = document.createElement('span');
-    label.className = 'supply__fact-label';
-    label.textContent = fact.label;
+  let timers: number[] = [];
 
-    const line = document.createElement('span');
-    line.className = 'supply__fact-line';
-    line.textContent = fact.line;
+  const later = (fn: () => void, ms: number): void => {
+    timers.push(window.setTimeout(fn, ms));
+  };
 
-    item.append(label, line);
-    factList.appendChild(item);
-    return item;
-  });
-
-  /*
-   * Build the four answer buttons from the model, so the numbers on screen and
-   * the numbers under test cannot disagree.
+  /**
+   * Crossfade to a new line, then continue.
+   *
+   * The fade-out is timed rather than event-driven so the chain cannot stall: if
+   * the transition is suppressed the timer still fires and the text still lands.
+   * `then` runs immediately under reduced motion, which is why the whole reveal
+   * collapses to a plain swap there.
    */
+  const swapTo = (label: string, text: string, then?: () => void): void => {
+    if (prefersReducedMotion() || bubble.hidden) {
+      render(label, text);
+      if (then) then();
+      return;
+    }
+
+    bubble.dataset.supplyPhase = 'out';
+
+    later(() => {
+      render(label, text);
+      if (then) then();
+    }, SWAP_MS);
+  };
+
+  /** Build the four answer buttons from the model. */
   const choiceButtons: HTMLButtonElement[] = CHOICES.map((choice) => {
     const item = document.createElement('li');
     item.className = 'supply__choice';
 
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = 'supply__button';
+    button.className = 'supply__choice-button';
     button.dataset.supplyChoice = String(choice.value);
-    button.textContent = `${choice.value} packs`;
+    button.textContent = String(choice.value);
     button.disabled = true;
     button.addEventListener('click', onChoiceClick);
 
@@ -150,33 +177,14 @@ export function mountSupply(
     return button;
   });
 
-  let timers: number[] = [];
   let index = 0;
   /** True once the right answer has been given, which ends the interaction. */
   let solved = false;
 
-  const showFact = (item: HTMLElement): void => {
-    // Un-hide first, then decorate. Content must be readable the moment `hidden`
-    // comes off; the class is decoration only. An earlier version of the briefing
-    // animated max-width from 0 and left the screen blank whenever the animation
-    // did not run, so this is a correctness rule, not a stylistic one.
-    item.hidden = false;
-    item.classList.add('is-revealed');
-  };
-
-  const revealAllFacts = (): void => {
-    for (const timer of timers) window.clearTimeout(timer);
-    timers = [];
-
-    for (const item of factItems) showFact(item);
-
-    index = factItems.length;
-    skip.hidden = true;
-  };
-
   /** Put the question on screen with the buttons live and nothing judged yet. */
   const askQuestion = (): void => {
-    questionBlock.hidden = false;
+    prompt.textContent = QUESTION_PROMPT;
+    answers.hidden = false;
     feedback.hidden = true;
     feedback.textContent = '';
     result.hidden = true;
@@ -186,16 +194,17 @@ export function mountSupply(
   };
 
   const advance = (): void => {
-    if (index >= factItems.length) {
-      skip.hidden = true;
-      askQuestion();
+    if (index >= RESOURCE_FACTS.length) {
+      swapTo('Mission Control', QUESTION_PROMPT, askQuestion);
       return;
     }
 
-    showFact(factItems[index]);
+    const fact = RESOURCE_FACTS[index];
     index += 1;
 
-    timers.push(window.setTimeout(advance, FACT_INTERVAL_MS));
+    swapTo(fact.label, fact.line, () => {
+      later(advance, FACT_HOLD_MS);
+    });
   };
 
   /** Say why the pick was wrong, show the working, and let them try again. */
@@ -215,13 +224,11 @@ export function mountSupply(
     result.textContent = workingSentence();
     result.hidden = false;
 
-    // Re-enable after a beat so the wrong frame is seen before the retry. The
-    // timer is tracked so teardown can cancel it.
-    timers.push(
-      window.setTimeout(() => {
-        if (!solved) setChoicesEnabled(true);
-      }, 900),
-    );
+    // Bring the buttons back after a beat, so the wrong frame registers before the
+    // retry. Guarded on `solved` because a timer can outlive the answer.
+    later(() => {
+      if (!solved) setChoicesEnabled(true);
+    }, RETRY_DELAY_MS);
   };
 
   /** Show the real answer and offer the way on. */
@@ -255,8 +262,15 @@ export function mountSupply(
   }
 
   const onSkip = (): void => {
-    revealAllFacts();
-    askQuestion();
+    // Cancel the pending chain, then go straight to the question. Without the
+    // clear, the next timed swap would fire over the top of the question bubble.
+    for (const timer of timers) window.clearTimeout(timer);
+    timers = [];
+
+    index = RESOURCE_FACTS.length;
+    skip.hidden = true;
+
+    swapTo('Mission Control', QUESTION_PROMPT, askQuestion);
   };
 
   const onContinue = (): void => {
@@ -277,18 +291,17 @@ export function mountSupply(
   setScene('question');
 
   /*
-   * Reduced motion, or no run in progress, shows all five at once with no
+   * Reduced motion, or no run in progress, goes straight to the question with no
    * animation. The `run === null` case matters: #/supply is reachable by typing it
-   * into the address bar, and the reveal must not start a timed sequence behind a
-   * run that does not exist.
+   * into the address bar, and the reveal must not start a timed chain behind a run
+   * that does not exist.
    */
   if (prefersReducedMotion() || run === null || run.status !== 'active') {
-    revealAllFacts();
+    skip.hidden = true;
     askQuestion();
+    // The question still belongs in the bubble, even when nothing animated.
+    render('Mission Control', QUESTION_PROMPT);
   } else {
-    // The question stays out of the way until the last fact has been read.
-    questionBlock.hidden = true;
-    setChoicesEnabled(false);
     advance();
   }
 

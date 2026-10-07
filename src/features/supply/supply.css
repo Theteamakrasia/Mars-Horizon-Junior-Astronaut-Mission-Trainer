@@ -1,31 +1,35 @@
 /* ==========================================================================
    SUPPLY — the ration check at Mission Control
 
-   Full-bleed illustration with the facts and the answers in a panel over it,
-   because the artwork is the room: the checklist on the Mission Control board is
-   the thing the player is being asked to fix, so it has to stay visible.
+   The picture is a full Mission Control room with no empty space in it, so
+   nothing here is laid out as a panel dropped on top of it. The text is dialogue:
+   one bubble beside the astronaut's head, tail pointing at him, and each fact
+   replaces the last. The bottom dock holds the question and the answers.
 
-   Palette reused from the briefing so the three screens read as one product; no
-   new colours are introduced here. Imported by ./view.ts only (AGENTS.md R-15).
+   Colours are sampled from the artwork rather than carried over from the other
+   screens — the room is navy and blue-lit with orange accents and green ticks, so
+   the UI borrows those. A grey-and-orange panel over this picture looked pasted
+   in; these do not.
    ========================================================================== */
 
 .supply {
-  --s-bg: #070e12;
-  --s-panel: rgba(9, 17, 22, 0.9);
-  --s-panel-solid: #0d1a21;
-  --s-border: #2e3c45;
-  --s-text: #fcfcfc;
-  --s-muted: #9aa8b0;
-  --s-accent: #fa6200;
-  --s-good: #4fd07a;
-  --s-bad: #ff5a52;
+  /* Sampled from the artwork. */
+  --s-ink: #08101c;
+  --s-glass: rgba(8, 20, 38, 0.9);
+  --s-glass-solid: #0b1a2e;
+  --s-line: #2d6da3;
+  --s-text: #e9f3ff;
+  --s-muted: #a3bcd6;
+  --s-accent: #ff8a3d;
+  --s-good: #46d17f;
+  --s-bad: #ff5f56;
 
   position: fixed;
   inset: 0;
   z-index: 10;
   box-sizing: border-box;
   overflow: hidden;
-  background: var(--s-bg);
+  background: var(--s-ink);
   color: var(--s-text);
   font-family: var(--font-display);
 }
@@ -36,7 +40,23 @@
   box-sizing: border-box;
 }
 
-/* ---------- THE SCENE ---------- */
+/* ---------- THE STAGE ----------
+   Locked to the artwork's own aspect ratio and centred.
+
+   This is the whole reason the bubble lands where it is meant to. With
+   object-fit: cover the picture is cropped differently at every window size, so
+   anything positioned against it drifts away from the thing it points at. Here
+   nothing is ever cropped and the letterbox bars are plain background.
+*/
+.supply__stage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(100vw, calc(100vh * 1364 / 768));
+  aspect-ratio: 1364 / 768;
+  overflow: hidden;
+}
 
 .supply__scene {
   position: absolute;
@@ -44,136 +64,106 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  /* The panel needs to be readable over any part of the artwork, so the scene is
-     dimmed a little. Slight, or the illustration stops reading as a room. */
-  opacity: 0.62;
+  /* Only dimmed enough to keep the UI legible. An earlier version dropped it to
+     0.62 behind an opaque panel and the room stopped reading as a room. */
+  opacity: 0.94;
 }
 
 .supply[data-supply-state='wrong'] .supply__scene {
-  opacity: 0.5;
+  filter: saturate(1.05) brightness(0.9);
 }
 
 .supply[data-supply-state='right'] .supply__scene {
-  opacity: 0.72;
+  filter: brightness(1.06);
 }
 
-/* ---------- THE PANEL ---------- */
+/* ---------- THE BUBBLE ---------- */
 
-.supply__panel {
+.supply__speech {
+  position: absolute;
+  /* Anchored in stage percentages so it sits beside the astronaut's head at any
+     window size. The head is at roughly 18% across and 48% down in the picture;
+     the bubble hangs above him and the tail points down at him. */
+  top: 3.5%;
+  left: 2.5%;
+  max-width: 32%;
+  pointer-events: none;
+}
+
+.supply__bubble {
   position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  gap: clamp(0.6rem, 1.6vmin, 1.15rem);
-  height: 100%;
-  box-sizing: border-box;
-  padding: clamp(0.75rem, 2.2vmin, 2rem);
-  /* Only the left side carries the panel, so the Mission Control board on the
-     right of the artwork stays readable. */
-  width: min(46rem, 100%);
+  padding: 0.7rem 0.9rem 0.85rem;
+  border: 1px solid var(--s-line);
+  border-radius: 0.9rem;
+  background: var(--s-glass);
+  box-shadow: 0 0.5rem 1.6rem rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transform: translateY(0.5rem) scale(0.97);
+  transition: opacity 220ms ease, transform 220ms ease;
 }
 
-.supply__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  flex: 0 0 auto;
-  padding: 0.55rem 0.85rem;
-  border: 1px solid var(--s-border);
-  border-radius: 4px;
-  background: var(--s-panel-solid);
+.supply__bubble[data-supply-phase='in'] {
+  opacity: 1;
+  transform: none;
 }
 
-.supply__title {
-  flex: 0 0 auto;
-  margin: 0;
-  font-size: clamp(1rem, 2.3vmin, 1.5rem);
+.supply__bubble[data-supply-phase='out'] {
+  opacity: 0;
+  transform: translateY(-0.45rem) scale(0.99);
+}
+
+/* Downward tail, so the bubble reads as coming from the astronaut below it. */
+.supply__bubble-tail {
+  position: absolute;
+  bottom: -0.75rem;
+  left: 30%;
+  width: 0;
+  height: 0;
+  border-top: 0.8rem solid var(--s-line);
+  border-right: 0.7rem solid transparent;
+  border-left: 0.7rem solid transparent;
+  transform: translateX(-50%);
+}
+
+.supply__bubble-label {
+  margin: 0 0 0.2rem;
+  font-size: clamp(0.7rem, 1.25vmin, 0.85rem);
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
+  color: var(--s-accent);
 }
 
-/* ---------- BRAND AND NAV ---------- */
-
-.supply__brand {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-}
-
-.supply__brand-mark {
-  display: grid;
-  place-items: center;
-  width: 1.9rem;
-  height: 1.9rem;
-  border-radius: 5px;
-  background: var(--s-accent);
-  font-size: 1rem;
-  line-height: 1;
-}
-
-.supply__brand-text {
-  display: flex;
-  flex-direction: column;
-}
-
-.supply__brand-name {
-  font-size: 0.95rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-
-.supply__brand-sub {
-  font-size: 0.7rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--s-muted);
-}
-
-.supply__nav {
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
-  color: var(--s-muted);
-  white-space: nowrap;
-}
-
-/* ---------- THE FIVE FACTS ---------- */
-
-.supply__facts {
-  flex: 0 1 auto;
+.supply__bubble-text {
   margin: 0;
-  padding: 0;
-  list-style: none;
+  font-size: clamp(0.82rem, 1.55vmin, 1.05rem);
+  line-height: 1.42;
+  color: var(--s-text);
+}
+
+/* ---------- THE DOCK ---------- */
+
+.supply__dock {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
-  /* Scrolls rather than overflows. On a short window the five lines plus the
-     question will not fit, and the question must stay on screen. */
-  overflow-y: auto;
-  min-height: 0;
+  gap: 0.5rem;
+  padding: clamp(0.5rem, 1.5vmin, 1rem) clamp(0.6rem, 2vmin, 1.5rem);
+  border-top: 1px solid var(--s-line);
+  background: var(--s-glass);
 }
 
-.supply__fact {
-  display: flex;
-  gap: 0.6rem;
-  align-items: baseline;
-  padding: 0.5rem 0.7rem;
-  border-left: 2px solid var(--s-border);
-  background: var(--s-panel);
-  font-size: clamp(0.82rem, 1.5vmin, 1rem);
-  line-height: 1.45;
+.supply__answers {
+  animation: supply-rise 260ms ease-out both;
 }
 
-.supply__fact.is-revealed {
-  animation: supply-fade 300ms ease-out both;
-}
-
-/* Deliberately opacity, never width: see the note in ./view.ts on showFact. */
-@keyframes supply-fade {
+@keyframes supply-rise {
   from {
     opacity: 0;
-    transform: translateY(0.35rem);
+    transform: translateY(0.6rem);
   }
   to {
     opacity: 1;
@@ -181,127 +171,104 @@
   }
 }
 
-.supply__fact-label {
-  flex: 0 0 auto;
-  font-weight: 700;
-  color: var(--s-accent);
-  min-width: 7.5rem;
-}
-
-.supply__fact-line {
-  color: var(--s-text);
-}
-
-/* ---------- THE QUESTION ---------- */
-
-.supply__question {
-  flex: 0 0 auto;
-  padding: clamp(0.6rem, 1.6vmin, 1rem);
-  border: 1px solid var(--s-border);
-  border-radius: 4px;
-  background: var(--s-panel-solid);
-}
-
 .supply__prompt {
-  margin: 0 0 0.65rem;
-  font-size: clamp(0.9rem, 1.7vmin, 1.15rem);
-  line-height: 1.45;
+  margin: 0 0 0.55rem;
+  font-size: clamp(0.88rem, 1.65vmin, 1.1rem);
+  line-height: 1.4;
 }
 
 .supply__choices {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.5rem;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.supply__button {
+.supply__choice-button {
   width: 100%;
-  padding: 0.6rem 0.75rem;
-  border: 1px solid var(--s-border);
+  padding: 0.55rem 0.5rem;
+  border: 1px solid var(--s-line);
   border-radius: 4px;
-  background: #16242c;
+  background: rgba(20, 46, 78, 0.85);
   color: var(--s-text);
   font-family: inherit;
-  font-size: clamp(0.9rem, 1.7vmin, 1.1rem);
+  font-size: clamp(1rem, 2.1vmin, 1.4rem);
   font-weight: 700;
   cursor: pointer;
   transition: background 140ms ease, border-color 140ms ease;
 }
 
-.supply__button:hover:not(:disabled) {
-  background: #1e3440;
+.supply__choice-button:hover:not(:disabled) {
+  background: rgba(45, 109, 163, 0.9);
   border-color: var(--s-accent);
 }
 
-.supply__button:focus-visible {
+.supply__choice-button:focus-visible {
   outline: 2px solid var(--s-accent);
   outline-offset: 2px;
 }
 
-/* Greyed rather than invisible, so the button's position is already known when it
+/* Dimmed rather than invisible, so a button's place is already known when it
    becomes clickable. */
-.supply__button:disabled {
-  opacity: 0.42;
+.supply__choice-button:disabled {
+  opacity: 0.4;
   cursor: default;
 }
 
-/* ---------- FEEDBACK ---------- */
+/* ---------- VERDICT ---------- */
 
 .supply__feedback,
 .supply__result {
-  margin: 0.6rem 0 0;
-  padding: 0.55rem 0.7rem;
+  margin: 0.5rem 0 0;
+  padding: 0.45rem 0.65rem;
   border-radius: 4px;
-  font-size: clamp(0.82rem, 1.5vmin, 1rem);
-  line-height: 1.45;
+  font-size: clamp(0.8rem, 1.45vmin, 1rem);
+  line-height: 1.4;
+  animation: supply-rise 260ms ease-out both;
 }
 
 .supply__feedback {
-  border-left: 2px solid var(--s-bad);
-  background: rgba(255, 90, 82, 0.12);
+  border-left: 3px solid var(--s-bad);
+  background: rgba(255, 95, 86, 0.14);
 }
 
 .supply__result {
-  border-left: 2px solid var(--s-accent);
-  background: rgba(250, 98, 0, 0.12);
+  border-left: 3px solid var(--s-line);
+  background: rgba(45, 109, 163, 0.2);
 }
 
 .supply[data-supply-state='right'] .supply__result {
   border-left-color: var(--s-good);
-  background: rgba(79, 208, 122, 0.14);
+  background: rgba(70, 209, 127, 0.16);
 }
 
 /* ---------- ACTIONS ---------- */
 
 .supply__actions {
-  flex: 0 0 auto;
   display: flex;
-  gap: 0.6rem;
+  gap: 0.5rem;
   align-items: center;
-  flex-wrap: wrap;
-  margin-top: auto;
 }
 
 .supply__action {
-  padding: 0.6rem 1.1rem;
-  border: 1px solid var(--s-border);
+  padding: 0.45rem 0.95rem;
+  border: 1px solid var(--s-line);
   border-radius: 4px;
-  background: #16242c;
+  background: rgba(20, 46, 78, 0.85);
   color: var(--s-text);
   font-family: inherit;
-  font-size: clamp(0.82rem, 1.5vmin, 1rem);
+  font-size: clamp(0.72rem, 1.3vmin, 0.88rem);
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   cursor: pointer;
   transition: background 140ms ease, border-color 140ms ease;
 }
 
 .supply__action:hover {
-  background: #1e3440;
+  background: rgba(45, 109, 163, 0.9);
   border-color: var(--s-accent);
 }
 
@@ -313,64 +280,44 @@
 .supply__action--primary {
   background: var(--s-accent);
   border-color: var(--s-accent);
-  color: #150800;
+  color: #1b0c00;
 }
 
-/* ---------- VISUALLY HIDDEN ---------- */
-
-.supply__visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
-/* ---------- NARROW ---------- */
-
-@media (max-width: 60rem) {
-  .supply__panel {
-    width: 100%;
-  }
-
+/* ---------- NARROW ----------
+   The bubble tracks the picture, so on a narrow window it shrinks with the stage
+   rather than being re-laid-out. Only the dock adapts.
+*/
+@media (max-width: 48rem) {
   .supply__choices {
-    grid-template-columns: 1fr;
-  }
-
-  .supply__fact {
-    flex-direction: column;
-    gap: 0.15rem;
-  }
-
-  .supply__fact-label {
-    min-width: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 /* ---------- SHORT ---------- */
 
-@media (max-height: 40rem) {
-  .supply__panel {
-    gap: 0.5rem;
+@media (max-height: 32rem) {
+  .supply__speech {
+    /* On a squat window the dock takes most of the picture, so the bubble moves
+       up and stops competing with it. */
+    top: 2%;
+    max-width: 40%;
   }
 
-  .supply__fact {
-    padding: 0.35rem 0.55rem;
+  .supply__bubble-text {
+    font-size: 0.8rem;
   }
 }
 
 /* ---------- REDUCED MOTION ---------- */
 
 @media (prefers-reduced-motion: reduce) {
-  .supply__fact.is-revealed {
-    animation: none;
-  }
-
-  .supply__button,
+  .supply__bubble,
+  .supply__answers,
+  .supply__feedback,
+  .supply__result,
+  .supply__choice-button,
   .supply__action {
+    animation: none;
     transition: none;
   }
 }

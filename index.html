@@ -165,71 +165,73 @@
       </div>
     </section>
 
-    <!-- The supply check. Reached from the briefing. The illustration is the
-         Mission Control room, and the checklist on its board is the thing the
-         player has been called in to fix, so the scene is full-bleed and the
-         facts and answers sit in a panel over the left of it.
+    <!-- The supply check. Reached from the briefing.
+
+         The illustration is a full Mission Control room and there is no empty
+         space in it, so the text is not laid over it in panels. Instead the
+         astronaut speaks: one bubble at a time, anchored beside his head with a
+         tail pointing at him, and each fact REPLACES the one before it. That way
+         the room stays visible instead of being covered by a stack of boxes.
+
+         The art sits inside .supply__stage, which is locked to the image's own
+         aspect ratio. That matters: with object-fit: cover the artwork is cropped
+         differently at every window size, so anything positioned against it would
+         drift away from the thing it was meant to point at. Locking the ratio
+         makes the bubble land in the same place in the picture at any size.
 
          Every element supply/view.ts queries carries a data hook below.
          scripts/check-markup.mjs fails the build if one is removed. -->
-    <section id="supply" class="supply" aria-labelledby="supply-title">
-      <!-- No src here on purpose: supply/view.ts imports the three frames as
-           modules so Vite fingerprints and bundles them, and assigns one in the
-           same tick it mounts. A hand-written path would be a second place to
-           update and would 404 in the build. -->
-      <img
-        class="supply__scene"
-        data-supply-scene
-        alt=""
-        aria-hidden="true"
-        decoding="async"
-      />
+    <section id="supply" class="supply" aria-label="Supply check at Mission Control">
+      <div class="supply__stage">
+        <!-- No src here on purpose: supply/view.ts imports the three frames as
+             modules so Vite fingerprints and bundles them, and assigns one in the
+             same tick it mounts. A hand-written path would be a second place to
+             update and would 404 in the build. -->
+        <img
+          class="supply__scene"
+          data-supply-scene
+          alt=""
+          aria-hidden="true"
+          decoding="async"
+        />
 
-      <div class="supply__panel">
-        <header class="supply__header">
-          <div class="supply__brand">
-            <span class="supply__brand-mark" aria-hidden="true">&#128640;</span>
-            <span class="supply__brand-text">
-              <span class="supply__brand-name">MARS HORIZON</span>
-              <span class="supply__brand-sub">SUPPLY CHECK</span>
-            </span>
+        <!-- One bubble, reused. aria-live so each replacement is announced, since
+             the previous fact is genuinely removed rather than scrolled past. -->
+        <div class="supply__speech" role="status" aria-live="polite">
+          <div class="supply__bubble" data-supply-bubble hidden>
+            <p class="supply__bubble-label" data-supply-bubble-label></p>
+            <p class="supply__bubble-text" data-supply-bubble-text></p>
+            <span class="supply__bubble-tail" aria-hidden="true"></span>
           </div>
-          <nav class="supply__nav" aria-label="Primary">Mission Control / Main Menu</nav>
-        </header>
-
-        <h1 class="supply__title" id="supply-title">What does the crew need?</h1>
-
-        <!-- One line per resource. The copy lives in supply/model.ts, so these
-             are generated in supply/view.ts rather than written here. -->
-        <ul class="supply__facts" data-supply-facts></ul>
-
-        <!-- Hidden until the five facts have been read, or SKIP is pressed. -->
-        <div class="supply__question" data-supply-question hidden>
-          <p class="supply__prompt">
-            The mission lasts two months. Your crew has four astronauts. How many
-            ration packs must you pack?
-          </p>
-
-          <!-- Four buttons, generated in supply/view.ts from the model, so the
-               numbers on screen are the numbers under test. -->
-          <ul class="supply__choices" data-supply-choices></ul>
-
-          <p class="supply__feedback" data-supply-feedback aria-live="polite" hidden></p>
-          <p class="supply__result" data-supply-result aria-live="polite" hidden></p>
         </div>
 
-        <div class="supply__actions">
-          <button class="supply__action" type="button" data-supply-skip>
-            Skip Facts
-          </button>
-          <button
-            class="supply__action supply__action--primary"
-            type="button"
-            data-supply-continue
-            hidden
-          >
-            Continue
-          </button>
+        <!-- One bottom dock, so the question, the answers, the verdict and the
+             way out are a single object at the foot of the picture rather than
+             several competing bars. -->
+        <div class="supply__dock">
+          <!-- Hidden until the five facts have been read, or Skip is pressed. -->
+          <div class="supply__answers" data-supply-answers hidden>
+            <p class="supply__prompt" data-supply-prompt></p>
+
+            <!-- Four buttons, generated in supply/view.ts from the model, so the
+                 numbers on screen are the numbers under test. -->
+            <ul class="supply__choices" data-supply-choices></ul>
+
+            <p class="supply__feedback" data-supply-feedback hidden></p>
+            <p class="supply__result" data-supply-result hidden></p>
+          </div>
+
+          <div class="supply__actions">
+            <button class="supply__action" type="button" data-supply-skip>Skip Facts</button>
+            <button
+              class="supply__action supply__action--primary"
+              type="button"
+              data-supply-continue
+              hidden
+            >
+              Continue
+            </button>
+          </div>
         </div>
       </div>
     </section>
