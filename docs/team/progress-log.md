@@ -8,6 +8,31 @@ than a documented one.
 
 ---
 
+## 2026-10-07 — PR #1 review document
+
+**Did**
+
+- Wrote a detailed PR description covering both workflows, HTML validation behavior, the
+  deterministic test fix, deployment prerequisites, and command results.
+- Kept application source unchanged; the document records the previously validated scope.
+
+**Files**
+
+- Added: `docs/pull-requests/001-ci-deployment-gates.md`.
+- Updated: architecture tree, codebase structure map, and TASK-033 tracking.
+
+**Problems**
+
+- GitHub Pages still requires repository-level setup before a successful workflow can
+  publish; the PR document calls out that prerequisite.
+
+**Next**
+
+- Add this document to PR #1 and use its full description as the PR body.
+
+**Doc updates made:** architecture file tree, codebase structure map, task TASK-033, and
+this progress log.
+
 ## 2026-10-07 — CI gates, HTML validation, and Pages deployment
 
 **Did**

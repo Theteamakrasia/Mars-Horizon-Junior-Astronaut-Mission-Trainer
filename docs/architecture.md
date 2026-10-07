@@ -59,6 +59,8 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
 ├── docs/
 │   ├── architecture.md                 this file
 │   ├── CHANGELOG.md                    unreleased and deployed project changes
+│   ├── pull-requests/                   detailed PR descriptions
+│   │   └── 001-ci-deployment-gates.md
 │   ├── codebase/                       evidence-backed repository map
 │   │   ├── STACK.md, STRUCTURE.md, ARCHITECTURE.md
 │   │   ├── CONVENTIONS.md, INTEGRATIONS.md, TESTING.md, CONCERNS.md

@@ -10,6 +10,7 @@
 | `src/ui/` | Routing and screen registry contracts | `src/ui/*.ts` |
 | `src/data/` | Isolated external data boundary; current client is a stub | `src/data/README.md` |
 | `docs/` | Architecture, team records, changelog, and codebase map | `docs/` |
+| `docs/pull-requests/` | Review-ready pull request documentation | `docs/pull-requests/` |
 | `.github/workflows/` | CI and gated GitHub Pages deployment | `.github/workflows/*.yml` |
 | `Assets/` | Sprite and design reference images | `Assets/` |
 
