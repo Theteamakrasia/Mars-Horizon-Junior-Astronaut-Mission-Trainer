@@ -7,6 +7,7 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 
 | id | task | goal | owner | status | blocked by | notes |
 | --- | --- | --- | --- | --- | --- | --- |
+| TASK-037 | Render the "meet the spacecraft" segment | G-7 | agent | done | — | D-024. `tools/render-parts.py` + `Assets/video/parts.mp4`; PIL/numpy/cv2, no new dependency |
 | TASK-036 | Render the 3-second docking clip | G-7 | agent | done | — | D-023. `tools/render-docking.py` + `Assets/video/docking.mp4`; PIL/numpy/cv2, no new dependency |
 | TASK-035 | Gate Vercel production deployment behind successful default-branch CI | G-6 | agent | done | Vercel secrets | No Pages; `vercel.json` disables Git auto-deploy; PR doc 003 |
 | TASK-034 | Improve README badges, hero image, and linked index | G-6 | agent | done | — | `docs/pull-requests/002-readme-polish.md`; requested header order |

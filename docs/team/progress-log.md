@@ -8,6 +8,45 @@ than a documented one.
 
 ---
 
+## 2026-10-21 — Render the "meet the spacecraft" segment (D-024)
+
+**Did**
+
+- Measured the five stills. The four part stills are one base render (1364x768) with a
+  different part outlined and a baked label card; the overview is a separate render
+  (1671x941). The craft is the same scale in both (height 0.932 vs 0.931 of the frame), so
+  only the baked cards differ.
+- Wrote `tools/render-parts.py`: cross-dissolves the four part stills under a slow push-in,
+  draws a lower-third description bar for each, and fades through black in and out of the
+  overview. Encodes `Assets/video/parts.mp4` (6.6s, 1920x1080, 30fps, mp4v, silent).
+- Added the four descriptions (propulsion, habitat, logistics/safe haven, Orion).
+- Converted the five source images to WebP in `Assets/images/parts/`.
+
+**Files**
+
+- Added: `tools/render-parts.py`, `Assets/images/parts/{overview,propulsion,habitat,logistics,orion}.webp`,
+  `Assets/video/parts.mp4`, and the docs below.
+- Updated: `docs/architecture.md`, `docs/team/decisions.md`, `docs/team/issues.md`, this log.
+
+**Problems**
+
+- I mapped the four source filenames to the wrong parts — the names carry no hint — so the
+  first render paired each description with the wrong image. Caught by viewing the
+  keyframes; logged as ISS-025 and fixed by regenerating the assets.
+- Two description bars overlapped during a cross-dissolve, because both shots' bars sit at
+  the same place. Fixed by staggering the bar fades so only one is ever on screen.
+- The overview is a different render, so cross-dissolving it with the stills ghosted both
+  sets of baked label cards. Fixed with a fade-through-black for the two overview
+  transitions.
+
+**Next**
+
+- The player checks the segment in their editor and confirms the descriptions.
+- If a description needs rewording, it is one line in `PARTS` in `tools/render-parts.py`,
+  then re-render.
+
+---
+
 ## 2026-10-21 — Render the 3-second docking clip (D-023)
 
 **Did**

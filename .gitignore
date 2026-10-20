@@ -2,3 +2,7 @@ node_modules/
 dist/
 *.local
 .DS_Store
+
+# Python: the render tools in tools/ leave these behind when imported.
+__pycache__/
+*.pyc

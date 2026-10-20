@@ -10,6 +10,22 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+**D-024 — agent · 2026-10-21**
+**Choice:** Render the "meet the spacecraft" segment with a second standalone script,
+`tools/render-parts.py`, rather than extending `tools/render-docking.py`.
+**Why:** The two problems share a toolchain but nothing else. Docking composites a sprite
+over a headless background; this segment cross-dissolves four labelled stills and draws
+description bars. Folding them together would have meant a renderer that special-cases
+both, which is harder to read than two scripts that each say one thing.
+**Rejected:** Extending `render-docking.py` to handle the parts sequence; a browser-based
+capture (adds Playwright, and no browser is installed).
+**Consequence:** `Assets/video/parts.mp4` (6.6s, 198 frames) and its script. The four part
+stills are one base render with a different outline baked in, so they cross-dissolve
+cleanly. The overview is a separate render whose baked label cards sit at different
+positions, so a cross-dissolve ghosts both sets of cards at once — its two transitions
+fade through black instead. The title sits in the lower-third bar rather than centred,
+because centred it covered the habitat module, the busiest part of the overview frame.
+
 **D-023 — agent · 2026-10-21**
 **Choice:** Render the 3-second docking clip as a committed MP4 with a standalone Python
 script (PIL + numpy + OpenCV), rather than as an in-game CSS cinematic or a browser capture.

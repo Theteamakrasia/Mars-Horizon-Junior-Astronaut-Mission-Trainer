@@ -11,6 +11,8 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
+| ISS-026 | Parts renderer put two description bars on screen at once during a dissolve | low | agent | fixed | this branch |
+| ISS-025 | Parts renderer mapped the four source filenames to the wrong parts | low | agent | fixed | this branch |
 | ISS-023 | Docking renderer first pass showed a hard black rectangle | low | agent | fixed | this branch |
 | ISS-024 | `architecture.md` file tree omits launch, briefing and supply features and their images | low | unassigned | open | — |
 | ISS-015 | `frame.test.ts:81` fails ~40% of runs (flaky) | high | agent | fixed | adc5767 |
@@ -35,6 +37,36 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | ISS-014 | `base.css` calls the page non-interactive while draggable | low | unassigned | open | — |
 
 ---
+
+## ISS-026 — Parts renderer put two description bars on screen at once during a dissolve
+
+- **Reported by:** viewing the first keyframes, 2026-10-21, while building the parts
+  segment (TASK-037)
+- **Where:** `tools/render-parts.py`, `overlay_weights_for`
+- **Problem:** a cross-dissolve puts both shots' lower-third bars at the same place at the
+  same time, so the outgoing and incoming text overlapped into an unreadable smudge.
+- **Cause:** the bars were weighted by the same blend as the images.
+- **Fix:** give the text its own weights — the outgoing bar fades out over the first half
+  of the dissolve and the incoming one fades in over the second, so only one is ever on
+  screen.
+- **Pre-existing:** no. Introduced by TASK-037 and fixed in the same work.
+
+## ISS-025 — Parts renderer mapped the four source filenames to the wrong parts
+
+- **Reported by:** viewing the first keyframes, 2026-10-21, while building the parts
+  segment (TASK-037)
+- **Where:** `tools/render-parts.py`, the `SHOT_FILES` mapping
+- **Problem:** each description was paired with the wrong image. `cgy3vn…` was mapped to
+  `habitat` when it is the logistics frame, `hr9plb…` to `logistics` when it is the
+  propulsion frame, and `jpt6o1…` to `propulsion` when it is the habitat frame.
+- **Cause:** the source filenames are opaque. The mapping was guessed from the order the
+  images happened to be read in, and nothing in the filename says which part is outlined.
+- **Fix:** regenerate `Assets/images/parts/` with the mapping checked against each image
+  (a contact sheet of the four, read back after writing). Fixed in this branch.
+- **Pre-existing:** no. Introduced by TASK-037 and fixed in the same work.
+- **Note:** the correct mapping is `propulsion = hr9plb…`, `habitat = jpt6o1…`,
+  `logistics = cgy3vn…`, `orion = ry0kfz…`. Worth recording because the names will not
+  help the next person either.
 
 ## ISS-023 — Docking renderer first pass showed a hard black rectangle
 

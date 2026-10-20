@@ -51,19 +51,31 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
 │   ├── images/docking/                 complete   3 WebP stills, ~150 KB each: the separated
 │   │                                             spacecraft, the docked craft and the assembled
 │   │                                             station. Read by tools/render-docking.py.
+│   ├── images/parts/                   complete   5 WebP stills: the all-parts overview and one
+│   │                                             per part (propulsion, habitat, logistics,
+│   │                                             Orion), each with a different part outlined and a
+│   │                                             baked label card. Read by tools/render-parts.py.
 │   └── README_ref/*.png                complete   6 UI mockups, ~2.4 MB. Never bundled
 │                                                 (publicDir:false exists to exclude them).
 ├── Assets/video/
-│   └── docking.mp4                     complete   5.1 MB. 3.0s, 1920x1080, 30fps, mp4v, silent.
-│                                                 The rendered docking clip, committed like the
-│                                                 launch film. Built by tools/render-docking.py.
+│   ├── docking.mp4                     complete   5.1 MB. 3.0s, 1920x1080, 30fps, mp4v, silent.
+│   │                                             The rendered docking clip. Built by
+│   │                                             tools/render-docking.py.
+│   └── parts.mp4                       complete   9.7 MB. 6.6s, 1920x1080, 30fps, mp4v, silent.
+│                                                 The "meet the spacecraft" segment: title, four
+│                                                 labelled parts with descriptions, overview outro.
+│                                                 Built by tools/render-parts.py.
 │
 ├── tools/
-│   └── render-docking.py               complete   241 lines. PIL + numpy + cv2. Cuts the head out
-│                                                 of the separated frame, rebuilds the black space
-│                                                 behind it, and moves the sprite across a headless
-│                                                 background while the camera pushes in. A dev tool:
-│                                                 not scanned by `npm run check`, adds no dependency.
+│   ├── render-docking.py               complete   241 lines. PIL + numpy + cv2. Cuts the head out
+│   │                                             of the separated frame, rebuilds the black space
+│   │                                             behind it, and moves the sprite across a headless
+│   │                                             background while the camera pushes in.
+│   └── render-parts.py                 complete   300+ lines. PIL + numpy + cv2. Cross-dissolves the
+│                                                 four part stills under a push-in, with staggered
+│                                                 description bars and fade-through-black bookends.
+│
+│   Both are dev tools: not scanned by `npm run check`, and they add no dependency.
 │
 ├── scripts/
 │   └── check-imports.mjs               complete   Zone + banned-API checker, 9 rule ids.
