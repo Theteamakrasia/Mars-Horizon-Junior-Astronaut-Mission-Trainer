@@ -8,6 +8,42 @@ than a documented one.
 
 ---
 
+## 2026-10-21 — Play the docking clip and the tour after the launch film (ISS-028, ISS-029)
+
+**Did**
+
+- Wired `Assets/video/docking.mp4` and `Assets/video/parts.mp4` into the launch screen: the
+  launch film, then the docking clip, then the tour, all from one hand-off. The two start
+  times are derived from the three lengths in `launch/model.ts`, so the runtime is 25.25s and
+  no clip can overlap the one before it.
+- Found that both clips were MPEG-4 Part 2 (`mp4v`), which Chrome and Edge will not decode,
+  and switched both renderers to H.264 (`libx264`, `yuv420p`, CRF 18) through PyAV. The
+  re-render is the same 90 and 360 frames, silent, and smaller: 1.7 MB and 5.5 MB.
+- Reduced motion holds the launch film and the docking clip on a frame and plays the tour,
+  because the tour's content is four captions in sequence.
+
+**Files**
+
+- Updated: `src/features/launch/model.ts`, `src/features/launch/view.ts`,
+  `src/features/launch/launch.css`, `src/features/launch/model.test.ts`, `index.html`,
+  `tools/render-docking.py`, `tools/render-parts.py`, `Assets/video/docking.mp4`,
+  `Assets/video/parts.mp4`, `docs/architecture.md`, `docs/team/decisions.md`,
+  `docs/team/issues.md`, `docs/team/tasks.md`, this log.
+
+**Problems**
+
+- The codec was the real reason the clips would not have played, and it was invisible from
+  the source: `cv2.VideoWriter` accepts `mp4v` and the files open in a desktop player. It
+  only shows up when the fourcc is read back or the video is opened in a browser. Logged as
+  ISS-029 and fixed before wiring.
+- No desktop browser in this session, so the reel was verified at the HTTP layer (both MP4s
+  served as `video/mp4`) and from decoded frames, not by watching it play.
+
+**Next**
+
+- The player walks `naming -> briefing -> supply -> launch` and watches the full 25.25s; the
+  pacing is three constants in `launch/model.ts` if it drags.
+
 ## 2026-10-21 — Retime the parts segment (ISS-027)
 
 **Did**

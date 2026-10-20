@@ -319,10 +319,32 @@
 
         <!-- The launch film, stacked above the stills so it cross-dissolves in over
              the walk shot. It carries no src: launch/view.ts assigns the imported
-             module so Vite fingerprints it. -->
+             module so Vite fingerprints it.
+
+             The docking clip and the tour follow it, each stacked above the one
+             before. They carry no src for the same reason, and their resting CSS
+             opacity is 0: each is revealed by its own delay. -->
         <video
           class="launch__video"
           data-launch-video
+          muted
+          playsinline
+          preload="auto"
+          aria-hidden="true"
+        ></video>
+
+        <video
+          class="launch__clip launch__clip--docking"
+          data-launch-docking
+          muted
+          playsinline
+          preload="auto"
+          aria-hidden="true"
+        ></video>
+
+        <video
+          class="launch__clip launch__clip--parts"
+          data-launch-parts
           muted
           playsinline
           preload="auto"

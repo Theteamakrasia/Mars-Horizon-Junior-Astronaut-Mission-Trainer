@@ -9,8 +9,8 @@ The project has zero runtime dependencies and no browser automation. The three
 frames are stills, so the clip is a *composite*, not an animation of live
 content: the head is cut out of the separated frame, the black space behind it
 rebuilt, and the sprite is moved across a headless background. Python 3.11 with
-PIL, numpy and OpenCV is already installed on this machine, so this needs no new
-dependency and no ffmpeg.
+PIL, numpy, OpenCV and PyAV is already installed on this machine, so this needs
+no new dependency and no ffmpeg binary.
 
 Deterministic by construction: every value is a function of the frame index, so
 re-running the script produces a byte-identical clip.
@@ -31,6 +31,7 @@ import argparse
 import math
 import os
 
+import av
 import cv2
 import numpy as np
 from PIL import Image
@@ -267,20 +268,30 @@ def frame_at(t: float, bg: np.ndarray, sprite: Image.Image, dist: np.ndarray) ->
 
 def render_video(out_path: str, bg: np.ndarray, sprite: Image.Image, dist: np.ndarray) -> None:
     os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
-    writer = cv2.VideoWriter(out_path, cv2.VideoWriter_fourcc(*"mp4v"), FPS, (OUT_W, OUT_H))
-    if not writer.isOpened():
-        raise RuntimeError(f"could not open video writer for {out_path}")
+
+    # H.264, not OpenCV's `mp4v` writer. `mp4v` is MPEG-4 Part 2, which Chrome,
+    # Edge and Firefox refuse to decode: the clip played in a desktop player and
+    # showed nothing in the game. `yuv420p` is the profile every browser accepts,
+    # and the launch film is already encoded this way.
+    container = av.open(out_path, mode="w")
+    stream = container.add_stream("libx264", rate=FPS)
+    stream.width, stream.height = OUT_W, OUT_H
+    stream.pix_fmt = "yuv420p"
+    stream.options = {"crf": "18", "preset": "medium"}
 
     try:
         for i in range(FRAMES):
             t = i / FPS
             frame = frame_at(t, bg, sprite, dist)
             frame = cv2.resize(frame, (OUT_W, OUT_H), interpolation=cv2.INTER_LANCZOS4)
-            writer.write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
+            for packet in stream.encode(av.VideoFrame.from_ndarray(frame, format="rgb24")):
+                container.mux(packet)
             if i % 15 == 0:
                 print(f"  frame {i + 1}/{FRAMES}")
+        for packet in stream.encode():
+            container.mux(packet)
     finally:
-        writer.release()
+        container.close()
 
     print(f"wrote {out_path}")
 

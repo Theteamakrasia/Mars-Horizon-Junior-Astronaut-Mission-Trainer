@@ -7,8 +7,9 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 
 | id | task | goal | owner | status | blocked by | notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| TASK-037 | Render the "meet the spacecraft" segment | G-7 | agent | done | — | D-024. `tools/render-parts.py` + `Assets/video/parts.mp4`; PIL/numpy/cv2, no new dependency |
-| TASK-036 | Render the 3-second docking clip | G-7 | agent | done | — | D-023. `tools/render-docking.py` + `Assets/video/docking.mp4`; PIL/numpy/cv2, no new dependency |
+| TASK-038 | Play the docking clip and the spacecraft tour after the launch film | G-7 | agent | done | — | D-025, D-026; ISS-028, ISS-029. `launch/model.ts` carries all three lengths |
+| TASK-037 | Render the "meet the spacecraft" segment | G-7 | agent | done | — | D-024. `tools/render-parts.py` + `Assets/video/parts.mp4`; PIL/numpy/OpenCV + PyAV (H.264), no new dependency |
+| TASK-036 | Render the 3-second docking clip | G-7 | agent | done | — | D-023. `tools/render-docking.py` + `Assets/video/docking.mp4`; PIL/numpy/OpenCV + PyAV (H.264), no new dependency |
 | TASK-035 | Gate Vercel production deployment behind successful default-branch CI | G-6 | agent | done | Vercel secrets | No Pages; `vercel.json` disables Git auto-deploy; PR doc 003 |
 | TASK-034 | Improve README badges, hero image, and linked index | G-6 | agent | done | — | `docs/pull-requests/002-readme-polish.md`; requested header order |
 | TASK-033 | Write detailed Markdown description for PR #1 | G-6 | agent | done | — | `docs/pull-requests/001-ci-deployment-gates.md` |

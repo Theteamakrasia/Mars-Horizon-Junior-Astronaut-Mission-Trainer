@@ -11,6 +11,8 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
+| ISS-029 | Docking and tour clips are MPEG-4 Part 2; browsers will not play them | high | agent | fixed | this branch |
+| ISS-028 | Docking and tour clips were never wired into the launch sequence | high | agent | fixed | this branch |
 | ISS-027 | Parts segment too fast to read and the lower-third overlapped the solar panels | low | agent | fixed | this branch |
 | ISS-026 | Parts renderer put two description bars on screen at once during a dissolve | low | agent | fixed | this branch |
 | ISS-025 | Parts renderer mapped the four source filenames to the wrong parts | low | agent | fixed | this branch |
@@ -38,6 +40,39 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | ISS-014 | `base.css` calls the page non-interactive while draggable | low | unassigned | open | — |
 
 ---
+
+## ISS-029 — The docking and tour clips are MPEG-4 Part 2, which browsers do not play
+
+- **Reported by:** agent, 2026-10-21, checking the codec before wiring TASK-036 and
+  TASK-037 into the launch sequence (ISS-028)
+- **Where:** `tools/render-docking.py` and `tools/render-parts.py`, `render_video`
+- **Problem:** both clips were written with OpenCV's `mp4v` fourcc, which is MPEG-4
+  Part 2. Chrome, Edge and Firefox do not decode it, so the files opened in a desktop
+  player and would have shown a black frame in the game. The launch film is H.264.
+- **Cause:** `mp4v` is the only MP4 codec OpenCV's `VideoWriter` offers without an
+  external encoder, and nothing checked the codec against the browser before the clips
+  were committed.
+- **Fix:** encode with PyAV (`libx264`, `yuv420p`, CRF 18, 30fps) instead of
+  `cv2.VideoWriter`. PyAV is already installed and bundles FFmpeg, so there is still no
+  ffmpeg binary and no runtime dependency. Fixed in this branch.
+- **Pre-existing:** no. Introduced by TASK-036 and TASK-037.
+
+## ISS-028 — The docking and spacecraft-tour clips played nowhere
+
+- **Reported by:** the user, 2026-10-21: "the videos did not connect it was supposed to
+  play automatically after the launch cinematic"
+- **Where:** `src/features/launch/` (model, view, CSS) and `index.html`
+- **Problem:** neither `Assets/video/docking.mp4` nor `Assets/video/parts.mp4` was
+  imported by any module. The launch screen ended its film and handed off to the
+  under-construction interstitial, so the two clips were only ever watched outside the
+  game.
+- **Cause:** they were rendered as standalone deliverables (TASK-036, TASK-037) and no
+  task owned wiring them into the reel.
+- **Fix:** the launch screen now plays the launch film, then the docking clip, then the
+  tour, and hands off at the end of the tour. The three lengths live in
+  `launch/model.ts`, and the view derives both start times from them. Fixed in this
+  branch.
+- **Pre-existing:** no. A missing integration, not a regression.
 
 ## ISS-027 — Parts segment was too fast to read and the text sat on the solar panels
 

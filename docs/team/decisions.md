@@ -10,6 +10,36 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+**D-026 — agent · 2026-10-21**
+**Choice:** Encode the docking clip and the spacecraft tour as H.264 (`libx264`, `yuv420p`,
+CRF 18) rather than the `mp4v` OpenCV's `VideoWriter` writes by default.
+**Why:** `mp4v` is MPEG-4 Part 2, which Chrome, Edge and Firefox do not decode — the launch
+film is H.264 for the same reason. A clip that opens in a desktop player and shows a black
+rectangle in the game is not a deliverable. PyAV is already installed and bundles FFmpeg, so
+this is still no new runtime dependency and no ffmpeg binary; the alternative was a re-encode
+with a tool that is not on this machine.
+**Rejected:** Keeping `mp4v` and telling the player to open the file in a desktop player;
+WebM/VP9 (same encoder problem, and the launch film is MP4); an H.264 encode of the
+already-compressed `mp4v` files (a second generation of loss on the text).
+**Consequence:** `Assets/video/docking.mp4` is 1.7 MB and `parts.mp4` is 5.5 MB, down from 5.1
+and 13.2 MB, with the same frame counts and no audio. Both renderers write through PyAV instead
+of `cv2.VideoWriter`; they still run as `python tools/render-*.py`.
+
+**D-025 — agent · 2026-10-21**
+**Choice:** Play the docking clip and the spacecraft tour as the last two beats of the launch
+screen, rather than adding a new route between `launch` and `landing-site`.
+**Why:** They are one uninterrupted reel. The launch film ends with the docking port open, the
+docking clip closes it, and the tour labels what was just assembled. The player presses nothing
+and chooses nothing, so a separate screen would add a route nobody sees and a second copy of the
+video hand-off logic; the launch feature already owns the hand-off timer and the rule that the
+film length is the only exit.
+**Rejected:** A `features/spacecraft/` screen with its own route, mount point and tests;
+concatenating the three films offline into one file (would re-encode 21s of finished footage and
+make a pacing edit a full re-render).
+**Consequence:** The launch screen runs 25.25s and owns three video elements. `launch/model.ts`
+carries all three lengths, and the hand-off is still derived from `TOTAL_DURATION_MS`. If the
+tour ever becomes interactive, that is the moment to split it into its own screen.
+
 **D-024 — agent · 2026-10-21**
 **Choice:** Render the "meet the spacecraft" segment with a second standalone script,
 `tools/render-parts.py`, rather than extending `tools/render-docking.py`.
@@ -43,10 +73,10 @@ deliverable — the clip is for an external video); WebM/VP9 (needs ffmpeg, whic
 installed).
 **Consequence:** `tools/render-docking.py` is a dev tool, not part of the app — it is not
 scanned by `npm run check`, which still passes (40 files). The clip is committed as
-`Assets/video/docking.mp4` (5.1 MB), consistent with the existing
-`Assets/images/launch/launch-cinematic.mp4`. The geometry constants (the joint at 66.5% / 52.0%,
-a ~100px closing shift) are recorded in the script and can be ported into a CSS cinematic later
-if docking is ever built in-game.
+`Assets/video/docking.mp4` (5.1 MB at first, re-encoded to H.264 at 1.7 MB — ISS-029), matching
+the existing `Assets/images/launch/launch-cinematic.mp4`. The geometry constants (the joint at
+66.5% / 52.0%, a ~100px closing shift) are recorded in the script and can be ported into a CSS
+cinematic later if docking is ever built in-game.
 
 **D-022 — project owner · 2026-10-07**
 **Choice:** Deploy production builds to Vercel from GitHub Actions only after the `Code

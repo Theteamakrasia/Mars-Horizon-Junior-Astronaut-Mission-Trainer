@@ -58,10 +58,10 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
 │   └── README_ref/*.png                complete   6 UI mockups, ~2.4 MB. Never bundled
 │                                                 (publicDir:false exists to exclude them).
 ├── Assets/video/
-│   ├── docking.mp4                     complete   5.1 MB. 3.0s, 1920x1080, 30fps, mp4v, silent.
+│   ├── docking.mp4                     complete   1.7 MB. 3.0s, 1920x1080, 30fps, H.264, silent.
 │   │                                             The rendered docking clip. Built by
 │   │                                             tools/render-docking.py.
-│   └── parts.mp4                       complete   13.2 MB. 12.0s, 1920x1080, 30fps, mp4v, silent.
+│   └── parts.mp4                       complete   5.5 MB. 12.0s, 1920x1080, 30fps, H.264, silent.
 │                                                 The "meet the spacecraft" segment: title, four
 │                                                 labelled parts with descriptions, overview outro.
 │                                                 Each part holds 2.0s so its description can be
@@ -69,15 +69,15 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
 │                                                 Built by tools/render-parts.py.
 │
 ├── tools/
-│   ├── render-docking.py               complete   241 lines. PIL + numpy + cv2. Cuts the head out
+│   ├── render-docking.py               complete   241 lines. PIL + numpy + OpenCV + PyAV. Cuts the head out
 │   │                                             of the separated frame, rebuilds the black space
 │   │                                             behind it, and moves the sprite across a headless
 │   │                                             background while the camera pushes in.
-│   └── render-parts.py                 complete   300+ lines. PIL + numpy + cv2. Cross-dissolves the
+│   └── render-parts.py                 complete   300+ lines. PIL + numpy + OpenCV + PyAV. Cross-dissolves the
 │                                                 four part stills under a push-in, with staggered
 │                                                 description bars and fade-through-black bookends.
 │
-│   Both are dev tools: not scanned by `npm run check`, and they add no dependency.
+│   Both are dev tools: not scanned by `npm run check`, and they add no runtime dependency.
 │
 ├── scripts/
 │   └── check-imports.mjs               complete   Zone + banned-API checker, 9 rule ids.
@@ -402,9 +402,13 @@ screen.
 | | `SHOTS` | the two stills, press then walk, with their camera moves and alt copy |
 | | `FLASH_TIMES`, `FLASH_RISE_PCT`, `FLASH_FALL_PCT` | the press flashes; spacing is a photosensitivity guarantee, cross-checked against `launch.css` |
 | | `VIDEO_DURATION_MS` | 5000 — the rendered launch film, matched frame-for-frame |
-| | `VIDEO_DESCRIPTION` | what the film shows, for screen readers |
-| | `TOTAL_DURATION_MS` | title + shots + film; the screen's only exit is a timer set from this |
-| `features/launch/view` | `mountLaunch` | `(root, run) -> teardown`; plays the stills, then the film once, hands off at `TOTAL_DURATION_MS`; reduced motion holds every picture still for the same runtime |
+| | `VIDEO_DESCRIPTION` | what the launch film shows, for screen readers |
+| | `DOCKING_DURATION_MS` | 3000 — the rendered docking clip, matched frame-for-frame |
+| | `DOCKING_DESCRIPTION` | what the docking clip shows, for screen readers |
+| | `PARTS_DURATION_MS` | 12000 — the rendered spacecraft tour, matched frame-for-frame |
+| | `PARTS_DESCRIPTION` | the four parts the tour names, for screen readers |
+| | `TOTAL_DURATION_MS` | title + shots + all three films; the screen's only exit is a timer set from this |
+| `features/launch/view` | `mountLaunch` | `(root, run) -> teardown`; plays the stills, then the launch film, the docking clip and the tour, handing off at `TOTAL_DURATION_MS`; reduced motion holds the stills and the first two films, and plays the tour because its content is captions |
 | `dom/floatAstronaut` | `startFloatingAstronaut` | `(wrapper, {deformLayer, reducedMotion}) -> teardown`; cancels rAF, removes the resize listener, detaches the grab, clears the transform |
 | `dom/pointerGrab` | `attachGrab` | `(target, handlers, options) -> teardown` |
 | `dom/starfield` | `createStarfield` | `(container) => void`; appends, never clears |

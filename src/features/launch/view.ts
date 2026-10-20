@@ -1,22 +1,25 @@
 /**
- * The launch cinematic: two stills, the launch film, and the hand-off.
+ * The launch cinematic: two stills, three films, and the hand-off.
  *
  * The stills are the departure — the press conference, the walk to the rocket —
- * and the film is the launch itself. The film is the rendered MP4 imported
- * below, so its camera moves, its shake and its grade are already in the picture;
- * this file only decides *when* each beat plays. The title card holds, lifts,
- * the stills cross-dissolve under it, the film cross-dissolves in over the walk
- * shot, and the screen hands itself to the next stop the moment the film ends.
+ * and the films are what follows: the launch, the Orion docking with the
+ * transfer vehicle, then a tour of the assembled craft. Each film is a rendered
+ * MP4 imported below, so its camera moves, its shake and its grade are already in
+ * the picture; this file only decides *when* each beat plays. The title card
+ * holds, lifts, the stills cross-dissolve under it, the launch film
+ * cross-dissolves in over the walk shot, and the screen hands itself to the next
+ * stop the moment the last film ends.
  *
  * The same hard-won rule as always still applies: **an animation is never
  * load-bearing.** Every shot's resting CSS state is the state that should be on
  * screen if no animation ever runs, and the end state is correct however it was
  * reached. Reduced motion does not shorten the runtime — it holds every picture
- * still for exactly as long as it would have moved.
+ * still for exactly as long as it would have moved, except the tour, whose
+ * content is a sequence of captions.
  *
- * There is no skip. The screen's only exit is the timer below, which makes it
- * the most load-bearing line in the feature, and the reason TOTAL_DURATION_MS
- * is derived in the model rather than typed here.
+ * There is no skip. The screen's only exit is the hand-off timer below, which
+ * makes it the most load-bearing line in the feature, and the reason
+ * TOTAL_DURATION_MS is derived in the model rather than typed here.
  */
 
 import { nextStop } from '../../ui/registry';
@@ -28,15 +31,21 @@ import './launch.css';
 import pressUrl from '../../../Assets/images/launch/press.webp';
 import walkUrl from '../../../Assets/images/launch/walk.webp';
 import launchVideoUrl from '../../../Assets/images/launch/launch-cinematic.mp4';
+import dockingVideoUrl from '../../../Assets/video/docking.mp4';
+import partsVideoUrl from '../../../Assets/video/parts.mp4';
 
 import {
+  DOCKING_DESCRIPTION,
+  DOCKING_DURATION_MS,
   FADE_MS,
+  PARTS_DESCRIPTION,
   PRESS_SHOT,
   SHOTS,
   TITLE,
   TITLE_DURATION_MS,
   TOTAL_DURATION_MS,
   VIDEO_DESCRIPTION,
+  VIDEO_DURATION_MS,
   type Shot,
 } from './model';
 
@@ -47,13 +56,21 @@ const IMAGES: Readonly<Record<Shot['image'], string>> = {
 };
 
 /**
- * Which frame of the film reduced motion holds, in seconds.
+ * Which frame of the launch film reduced motion holds, in seconds.
  *
  * The first shot of the film is the pad, and 0.5s is safely inside it — the
  * same "rest on the opening frame" choice the stills make, where the first
  * shot is the one held because both cannot be shown at once.
  */
-const REDUCED_MOTION_STILL_SECONDS = 0.5;
+const REDUCED_MOTION_LAUNCH_SECONDS = 0.5;
+
+/**
+ * Which frame of the docking clip reduced motion holds, in seconds.
+ *
+ * After contact at 1.8s and the flash's 0.25s decay, so the held frame is the
+ * finished joint with its latch ring lit — the result, not the collision.
+ */
+const REDUCED_MOTION_DOCKING_SECONDS = 2.4;
 
 function require<T extends HTMLElement>(root: HTMLElement, selector: string): T {
   const element = root.querySelector<T>(selector);
@@ -81,6 +98,8 @@ export function mountLaunch(
   const title = require<HTMLParagraphElement>(root, '[data-launch-title]');
   const flash = require<HTMLDivElement>(root, '[data-launch-flash]');
   const video = require<HTMLVideoElement>(root, '[data-launch-video]');
+  const docking = require<HTMLVideoElement>(root, '[data-launch-docking]');
+  const parts = require<HTMLVideoElement>(root, '[data-launch-parts]');
   const description = require<HTMLParagraphElement>(root, '[data-launch-description]');
 
   const shots = [...root.querySelectorAll<HTMLElement>('[data-launch-shot]')];
@@ -105,7 +124,10 @@ export function mountLaunch(
    * description is announced once, the way a single clip would be.
    */
   description.textContent =
-    SHOTS.map((shot) => shot.alt).join(' ') + ' ' + VIDEO_DESCRIPTION;
+    SHOTS.map((shot) => shot.alt).join(' ') +
+    ' ' + VIDEO_DESCRIPTION +
+    ' ' + DOCKING_DESCRIPTION +
+    ' ' + PARTS_DESCRIPTION;
 
   /*
    * Drive every shot off the title's duration.
@@ -156,36 +178,55 @@ export function mountLaunch(
   flash.dataset.launchFlashCount = String(SHOTS.filter((shot) => shot.hasPress).length);
 
   /*
-   * The film cross-dissolves in over the walk shot, beginning one fade before the
-   * walk shot ends so the two cross the way the stills do. It is parked on its
-   * first frame until playback begins, so the dissolve reveals a picture and not
-   * a black rectangle.
+   * The launch film cross-dissolves in over the walk shot, beginning one fade
+   * before the walk shot ends so the two cross the way the stills do. It is
+   * parked on its first frame until playback begins, so the dissolve reveals a
+   * picture and not a black rectangle.
+   *
+   * The two clips that follow start exactly when the film before them ends. Both
+   * open on black, so each element's fade-in reads as a fade through black rather
+   * than a hard cut.
    */
   const filmBegins = TITLE_DURATION_MS + SHOTS.reduce((total, shot) => total + shot.durationMs, 0);
+  const dockingBegins = filmBegins + VIDEO_DURATION_MS;
+  const partsBegins = dockingBegins + DOCKING_DURATION_MS;
 
+  /*
+   * Muted in the markup too, so the films can play without a user gesture. The
+   * property is the one that counts; the attribute alone does not stick in every
+   * engine.
+   */
   video.src = launchVideoUrl;
-  // Muted in the markup too, so the film can play without a user gesture. The
-  // property is the one that counts; the attribute alone does not stick in
-  // every engine.
   video.muted = true;
   video.currentTime = 0;
-
   video.style.setProperty('--launch-video-fade', `${FADE_MS}ms`);
   video.style.setProperty('--launch-video-delay', `${filmBegins - FADE_MS}ms`);
+
+  docking.src = dockingVideoUrl;
+  docking.muted = true;
+  docking.currentTime = 0;
+  docking.style.setProperty('--launch-video-fade', `${FADE_MS}ms`);
+  docking.style.setProperty('--launch-clip-delay', `${dockingBegins}ms`);
+
+  parts.src = partsVideoUrl;
+  parts.muted = true;
+  parts.currentTime = 0;
+  parts.style.setProperty('--launch-video-fade', `${FADE_MS}ms`);
+  parts.style.setProperty('--launch-clip-delay', `${partsBegins}ms`);
 
   root.dataset.launchMotion = prefersReducedMotion() ? 'reduced' : 'full';
 
   /**
-   * Start the film, or hold it on one frame.
+   * Start a film, or hold it on one frame.
    *
    * Reduced motion seeks to the still and pauses there. The seek is applied
    * once the metadata arrives, which every engine does on its own — setting
    * `currentTime` before that is the default playback start position, not a
    * no-op — so the frame is on screen by the time the film fades in.
    */
-  const beginFilm = (): void => {
+  const beginLaunchFilm = (): void => {
     if (root.dataset.launchMotion === 'reduced') {
-      video.currentTime = REDUCED_MOTION_STILL_SECONDS;
+      video.currentTime = REDUCED_MOTION_LAUNCH_SECONDS;
       video.pause();
       return;
     }
@@ -196,29 +237,63 @@ export function mountLaunch(
     void video.play().catch(() => undefined);
   };
 
+  const beginDocking = (): void => {
+    video.pause();
+
+    if (root.dataset.launchMotion === 'reduced') {
+      docking.currentTime = REDUCED_MOTION_DOCKING_SECONDS;
+      docking.pause();
+      return;
+    }
+
+    docking.currentTime = 0;
+    void docking.play().catch(() => undefined);
+  };
+
   /*
-   * The only timers in this feature, and the only way off the screen.
+   * The tour plays under reduced motion too. Its content is four captions in
+   * sequence: holding it on one frame would show the first part and hide the
+   * other three, which is less information, not less movement.
+   */
+  const beginParts = (): void => {
+    docking.pause();
+    parts.currentTime = 0;
+    void parts.play().catch(() => undefined);
+  };
+
+  /*
+   * The timers, and the only way off the screen.
    *
    * There is no skip. One consequence worth writing down: if these never fire
    * the player is stuck, so they come from constants derived in the model
    * rather than from a measurement, and the feature is arranged so that the
    * only thing that can go wrong on the way in is a loud throw from `require`.
    */
-  let startFilm: number | null = null;
+  let startLaunchFilm: number | null = null;
+  let startDocking: number | null = null;
+  let startParts: number | null = null;
   let handOff: number | null = null;
   const destination = nextStop('launch');
 
   if (destination !== null) {
-    startFilm = window.setTimeout(beginFilm, filmBegins);
+    startLaunchFilm = window.setTimeout(beginLaunchFilm, filmBegins);
+    startDocking = window.setTimeout(beginDocking, dockingBegins);
+    startParts = window.setTimeout(beginParts, partsBegins);
     handOff = window.setTimeout(() => navigate(destination), TOTAL_DURATION_MS);
   }
 
   return () => {
-    if (startFilm !== null) window.clearTimeout(startFilm);
+    if (startLaunchFilm !== null) window.clearTimeout(startLaunchFilm);
+    if (startDocking !== null) window.clearTimeout(startDocking);
+    if (startParts !== null) window.clearTimeout(startParts);
     if (handOff !== null) window.clearTimeout(handOff);
     // A torn-down screen must not keep playing behind the next one.
     video.pause();
-    startFilm = null;
+    docking.pause();
+    parts.pause();
+    startLaunchFilm = null;
+    startDocking = null;
+    startParts = null;
     handOff = null;
   };
 }

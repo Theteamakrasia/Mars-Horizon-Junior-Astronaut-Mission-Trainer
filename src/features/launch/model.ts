@@ -1,5 +1,5 @@
 /**
- * The launch cinematic: two stills, the launch film, and the title card.
+ * The launch cinematic: two stills, three films, and the title card.
  *
  * Pure: no DOM, no timer, no randomness. Every test input is a literal, so this
  * file cannot flake — the defect recorded as ISS-015.
@@ -23,17 +23,18 @@
  *     therefore: the camera travels left and down, off the rocket and onto them.
  *     In a CSS transform that means the *image* moves right and up.
  *
- * The film
- * --------
- * The two stills are the departure; the film is the launch itself. The rendered
- * MP4 at `Assets/images/launch/launch-cinematic.mp4` plays once after the walk
- * shot, cross-dissolving in over it, and the screen hands itself to the next stop
- * the moment it ends. The camera moves, the shake and the grade are baked into
- * the film, so this model only carries its length and its description.
+ * The films
+ * ---------
+ * The two stills are the departure; three rendered MP4s are what follows. The
+ * launch film plays after the walk shot, cross-dissolving in over it. It ends with
+ * the docking port open, so the docking clip comes next and closes it; the tour
+ * then labels what was just assembled. The camera moves, the shake and the grade
+ * are baked into each film, so this model only carries their lengths and their
+ * descriptions.
  *
  * On the timings
  * --------------
- * There is no skip. The screen's only exit is the single timer in view.ts, which
+ * There is no skip. The screen's only exit is the hand-off timer in view.ts, which
  * makes the total the most load-bearing number in the feature — hence
  * TOTAL_DURATION_MS being derived from the parts rather than typed alongside them,
  * where the two could disagree.
@@ -197,19 +198,62 @@ export const VIDEO_DESCRIPTION =
   'curve of the Earth, and sails on alone with its solar panels spread wide.';
 
 /**
+ * The docking clip, in milliseconds.
+ *
+ * 90 frames at 30fps. The launch film ends with the docking port open, so this is
+ * the beat that closes it. Like the launch film, its length is the only number the
+ * timer needs, so a re-render is one edit here.
+ */
+export const DOCKING_DURATION_MS = 3000;
+
+/**
+ * What the docking clip shows.
+ *
+ * The flash, the shockwave and the green latch ring are the point of the clip, so
+ * a description that omitted them would miss what it is for.
+ */
+export const DOCKING_DESCRIPTION =
+  'The Orion crew vehicle drifts in and docks with the transfer vehicle above ' +
+  'Earth. A white flash and a shockwave ring mark the contact, the two craft ' +
+  'settle, and a green ring lights at the joint.';
+
+/**
+ * The spacecraft tour, in milliseconds.
+ *
+ * 360 frames at 30fps. The tour's four descriptions are baked into the picture, so
+ * the length is not just the timer's input: it is how long a viewer needs to read
+ * them.
+ */
+export const PARTS_DURATION_MS = 12000;
+
+/**
+ * What the tour shows, including the four parts it names.
+ *
+ * The names and descriptions are drawn into the video, so a screen reader gets
+ * them here or not at all.
+ */
+export const PARTS_DESCRIPTION =
+  'A tour of the assembled spacecraft. Four parts are highlighted and described ' +
+  'in turn: the core propulsion stages, which push the craft toward Mars; the ' +
+  'transit habitat, home to the crew for the journey; the logistics and safe-haven ' +
+  'module, carrying cargo and shelter from solar storms; and the Orion crew ' +
+  'vehicle, which carries the crew down to the surface and back.';
+
+/**
  * The whole runtime, title included.
  *
- * Derived, so it cannot drift from the parts. view.ts sets exactly one timer from
+ * Derived, so it cannot drift from the parts. view.ts sets the hand-off timer from
  * this number, and it is the only way off the screen.
  *
  * Note there is no separate reduced-motion duration, and that is deliberate.
- * Reduced motion removes the movement, not the information: every picture and the
- * film are held still for exactly as long as they would have moved, so a
- * motion-sensitive player sees the same scene for the same time as everyone else.
- * A shorter static hold would give them less of the scene than everyone else
- * gets, which is the opposite of what the accommodation is for.
+ * Reduced motion removes the movement, not the information: the stills and the
+ * launch film and docking clip are held on a representative frame for exactly as
+ * long as they would have moved. The tour plays, because its content is four
+ * captions in sequence and a held frame would show one and hide three.
  */
 export const TOTAL_DURATION_MS =
   TITLE_DURATION_MS +
   SHOTS.reduce((total, shot) => total + shot.durationMs, 0) +
-  VIDEO_DURATION_MS;
+  VIDEO_DURATION_MS +
+  DOCKING_DURATION_MS +
+  PARTS_DURATION_MS;

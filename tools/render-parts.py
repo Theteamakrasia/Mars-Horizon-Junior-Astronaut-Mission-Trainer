@@ -13,7 +13,8 @@ Why a second script
 segment is a labelled cross-dissolve sequence - four stills of the same render,
 each with a different part outlined, plus an overview shot. The two problems have
 nothing in common, so forcing them into one renderer would make both worse. Same
-toolchain, though: PIL + numpy + cv2, already installed, no new dependency.
+toolchain, though: PIL + numpy + OpenCV draw the frames and PyAV encodes them.
+All already installed, so no new dependency.
 
 The four part stills are one base render with a different outline baked in, so
 they cross-dissolve cleanly. The overview is a *separate* render - the craft is
@@ -38,6 +39,7 @@ import argparse
 import math
 import os
 
+import av
 import numpy as np
 import cv2
 from PIL import Image, ImageDraw, ImageFont
@@ -312,17 +314,29 @@ def frame_at(t: float, shots: dict[str, Image.Image]) -> np.ndarray:
 
 def render_video(out_path: str, shots: dict[str, Image.Image]) -> None:
     os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
-    writer = cv2.VideoWriter(out_path, cv2.VideoWriter_fourcc(*"mp4v"), FPS, (W, H))
-    if not writer.isOpened():
-        raise RuntimeError(f"could not open video writer for {out_path}")
+
+    # H.264, not OpenCV's `mp4v` writer. `mp4v` is MPEG-4 Part 2, which Chrome,
+    # Edge and Firefox refuse to decode: the clip played in a desktop player and
+    # showed nothing in the game. `yuv420p` is the profile every browser accepts,
+    # and the launch film is already encoded this way.
+    container = av.open(out_path, mode="w")
+    stream = container.add_stream("libx264", rate=FPS)
+    stream.width, stream.height = W, H
+    stream.pix_fmt = "yuv420p"
+    stream.options = {"crf": "18", "preset": "medium"}
+
     try:
         for i in range(FRAMES):
             frame = frame_at(i / FPS, shots)
-            writer.write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
+            for packet in stream.encode(av.VideoFrame.from_ndarray(frame, format="rgb24")):
+                container.mux(packet)
             if i % 30 == 0:
                 print(f"  frame {i + 1}/{FRAMES}")
+        for packet in stream.encode():
+            container.mux(packet)
     finally:
-        writer.release()
+        container.close()
+
     print(f"wrote {out_path}")
 
 

@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  DOCKING_DESCRIPTION,
+  DOCKING_DURATION_MS,
   FLASH_FALL_PCT,
   FLASH_RISE_PCT,
   FLASH_TIMES,
+  PARTS_DESCRIPTION,
+  PARTS_DURATION_MS,
   PRESS_SHOT,
   SHOTS,
   TITLE,
@@ -107,17 +111,41 @@ describe('the film', () => {
   });
 });
 
-describe('TOTAL_DURATION_MS', () => {
-  it('is the title, every shot and the film', () => {
-    const shots = SHOTS.reduce((total, shot) => total + shot.durationMs, 0);
-    expect(TOTAL_DURATION_MS).toBe(TITLE_DURATION_MS + shots + VIDEO_DURATION_MS);
+describe('the clips that follow the film', () => {
+  it('match the rendered docking clip and tour frame-for-frame', () => {
+    // 90 frames and 360 frames at 30fps. The timers are derived from these, so a
+    // re-render at a different length has to update them.
+    expect(DOCKING_DURATION_MS).toBe(3000);
+    expect(PARTS_DURATION_MS).toBe(12000);
   });
 
-  it('lands near the ten seconds the sequence was specified at', () => {
-    // Guards against a shot being added and the runtime quietly doubling. It is the
-    // only exit off this screen, so its length is a promise to the player.
-    expect(TOTAL_DURATION_MS).toBeGreaterThan(9000);
-    expect(TOTAL_DURATION_MS).toBeLessThan(12000);
+  it('describe themselves for anyone who cannot see them', () => {
+    // The tour's four captions are drawn into the picture, so this is the only
+    // version a screen-reader user gets.
+    expect(DOCKING_DESCRIPTION.trim().length).toBeGreaterThan(60);
+    expect(PARTS_DESCRIPTION.trim().length).toBeGreaterThan(60);
+  });
+
+  it('name all four parts in the tour description', () => {
+    for (const part of ['propulsion', 'habitat', 'logistics', 'Orion']) {
+      expect(PARTS_DESCRIPTION).toContain(part);
+    }
+  });
+});
+
+describe('TOTAL_DURATION_MS', () => {
+  it('is the title, every shot and all three films', () => {
+    const shots = SHOTS.reduce((total, shot) => total + shot.durationMs, 0);
+    expect(TOTAL_DURATION_MS).toBe(
+      TITLE_DURATION_MS + shots + VIDEO_DURATION_MS + DOCKING_DURATION_MS + PARTS_DURATION_MS,
+    );
+  });
+
+  it('stays under half a minute, which is the promise to the player', () => {
+    // There is no skip, and three films plus the stills is already a long sit. A
+    // fourth beat has to be a deliberate decision rather than a re-render.
+    expect(TOTAL_DURATION_MS).toBeGreaterThan(20000);
+    expect(TOTAL_DURATION_MS).toBeLessThan(30000);
   });
 
   it('holds every shot long enough to read with nothing moving', () => {
