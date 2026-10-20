@@ -11,6 +11,8 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
+| ISS-023 | Docking renderer first pass showed a hard black rectangle | low | agent | fixed | this branch |
+| ISS-024 | `architecture.md` file tree omits launch, briefing and supply features and their images | low | unassigned | open | — |
 | ISS-015 | `frame.test.ts:81` fails ~40% of runs (flaky) | high | agent | fixed | adc5767 |
 | ISS-017 | `START MISSION` has no destination; next scene is a stub | medium | unassigned | open | — |
 | ISS-018 | Seven cinematic PNGs committed, 12 MB, never referenced | medium | unassigned | open | — |
@@ -33,6 +35,33 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | ISS-014 | `base.css` calls the page non-interactive while draggable | low | unassigned | open | — |
 
 ---
+
+## ISS-023 — Docking renderer first pass showed a hard black rectangle
+
+- **Reported by:** the render itself, 2026-10-21, while building the docking clip (TASK-036)
+- **Where:** `tools/render-docking.py`, the first version of `build_background`
+- **Problem:** the background was rebuilt by filling the head's bounding box with pure black.
+  The box was measured to be pure black (R0 G0 B1-9), but the *surrounding* space carries a
+  subtle gradient, so a solid black rectangle was visible around the head in every frame.
+- **Cause:** a rectangular fill does not carry the gradient the space actually has.
+- **Fix:** inpaint the head's *shape* (the sprite's alpha, dilated past the glow) with
+  `cv2.inpaint`, leaving the rest of the region as the original space. The sprite is placed
+  exactly where the head was, so nothing is left behind. Fixed in this branch.
+- **Pre-existing:** no. Introduced by TASK-036 and fixed in the same work.
+
+## ISS-024 — `architecture.md` file tree omits launch, briefing and supply
+
+- **Reported by:** auditing the tree while adding the docking entries, 2026-10-21
+- **Where:** `docs/architecture.md`, "Annotated file tree"
+- **Problem:** the tree lists `features/naming`, `landing-site`, `base`, `act` and `debrief`,
+  and says "naming is BUILT; the rest are stubs". But `features/briefing`, `features/supply`
+  and `features/launch` all exist and are built (`npm run check` reports four routed screens:
+  naming, briefing, supply, launch). The tree also omits `Assets/images/launch/`,
+  `Assets/images/naming/`, `Assets/images/supply/`, `Assets/images/Cinematics frames/`, and
+  `Assets/images/launch/launch-cinematic.mp4`.
+- **Cause:** the tree predates those features; the doc matrix was not followed as they landed.
+- **Status:** open. Only the new docking entries were added here; the rest of the tree is left
+  as-is rather than half-fixed.
 
 ## ISS-015 — `frame.test.ts:81` fails about 40% of runs
 

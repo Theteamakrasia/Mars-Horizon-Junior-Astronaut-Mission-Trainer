@@ -8,6 +8,50 @@ than a documented one.
 
 ---
 
+## 2026-10-21 — Render the 3-second docking clip (D-023)
+
+**Did**
+
+- Measured the three stills (all 1670x942): the head's bounding box, the ~90px separated gap,
+  the ~100px closing shift, and the joint at (66.5%, 52.0%). Sampled pixels rather than
+  eyeballing; the head sits entirely over pure black space (R0 G0 B1-9), so its background can
+  be rebuilt by inpainting with no Earth reconstruction.
+- Wrote `tools/render-docking.py`: cuts the head out as an RGBA sprite (luminance ramp +
+  connected-component filter so stars do not ride along), rebuilds the background by
+  inpainting the head's *shape*, and moves the sprite across a camera push-in. Encodes
+  `Assets/video/docking.mp4` (1920x1080, 30fps, 3.0s, mp4v, silent).
+- Effects: a smoothstep approach, a warm glow that builds as the head closes, a contact flash
+  and an expanding shockwave ring at 1.80s, a couple of pixels of settle, then a held docked
+  frame with a breathing latch ring.
+- Converted the three source PNGs to WebP in `Assets/images/docking/`.
+
+**Files**
+
+- Added: `tools/render-docking.py`, `Assets/images/docking/{separated,docked,station}.webp`,
+  `Assets/video/docking.mp4`, and the docs below.
+- Updated: `docs/architecture.md`, `docs/team/decisions.md`, `docs/team/issues.md`, this log.
+
+**Problems**
+
+- The first render showed a hard black rectangle where the head had been. The bounding-box fill
+  was pure black while the surrounding space carries a subtle gradient, so the rectangle was
+  visible. Fixed by inpainting the head's shape instead of filling the box (ISS-023).
+- The docking shift came from a cross-correlation whose minimum is flat between 96 and 114px.
+  The rendered joint was checked against the reference `docked.webp` crop and lines up, but the
+  number is a starting point, not a measurement — tune it against a render if the seam ever
+  shows.
+- The `architecture.md` file tree predates the launch, briefing and supply features and their
+  images, so it does not describe the tree as it is (ISS-024). Only the new entries were added
+  here.
+
+**Next**
+
+- The player checks the clip in their editor and confirms the look.
+- If docking is ever built as an in-game screen, port the script's geometry constants into a
+  `features/docking/` cinematic.
+
+---
+
 ## 2026-10-07 - Restore the stills ahead of the film (ISS-022)
 
 **Did**

@@ -48,8 +48,22 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
 ├── Assets/
 │   ├── images/floating.png             complete   145 KB astronaut sprite, imported from TS so
 │   │                                             Vite fingerprints it into dist/
+│   ├── images/docking/                 complete   3 WebP stills, ~150 KB each: the separated
+│   │                                             spacecraft, the docked craft and the assembled
+│   │                                             station. Read by tools/render-docking.py.
 │   └── README_ref/*.png                complete   6 UI mockups, ~2.4 MB. Never bundled
 │                                                 (publicDir:false exists to exclude them).
+├── Assets/video/
+│   └── docking.mp4                     complete   5.1 MB. 3.0s, 1920x1080, 30fps, mp4v, silent.
+│                                                 The rendered docking clip, committed like the
+│                                                 launch film. Built by tools/render-docking.py.
+│
+├── tools/
+│   └── render-docking.py               complete   241 lines. PIL + numpy + cv2. Cuts the head out
+│                                                 of the separated frame, rebuilds the black space
+│                                                 behind it, and moves the sprite across a headless
+│                                                 background while the camera pushes in. A dev tool:
+│                                                 not scanned by `npm run check`, adds no dependency.
 │
 ├── scripts/
 │   └── check-imports.mjs               complete   Zone + banned-API checker, 9 rule ids.

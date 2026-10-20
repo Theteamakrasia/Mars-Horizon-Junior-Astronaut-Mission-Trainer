@@ -10,6 +10,27 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+**D-023 — agent · 2026-10-21**
+**Choice:** Render the 3-second docking clip as a committed MP4 with a standalone Python
+script (PIL + numpy + OpenCV), rather than as an in-game CSS cinematic or a browser capture.
+**Why:** The ask is a clip to insert into an existing pitch video, not a playable screen. The
+three source frames are stills, so the "animation" is a composite: the head is cut out of the
+separated frame, the black space behind it rebuilt by inpainting, and the sprite moved across a
+headless background. Python 3.11 with PIL, numpy and cv2 is already installed on this machine,
+so the renderer adds no dependency and needs no ffmpeg. The project has zero runtime
+dependencies (AGENTS.md §10); a browser capture would have meant adding Playwright, which is an
+architecture change.
+**Rejected:** A Playwright/headless-browser capture of a CSS cinematic (adds a dependency, and
+no browser is installed); an in-game CSS cinematic under `features/docking/` (a different
+deliverable — the clip is for an external video); WebM/VP9 (needs ffmpeg, which is not
+installed).
+**Consequence:** `tools/render-docking.py` is a dev tool, not part of the app — it is not
+scanned by `npm run check`, which still passes (40 files). The clip is committed as
+`Assets/video/docking.mp4` (5.1 MB), consistent with the existing
+`Assets/images/launch/launch-cinematic.mp4`. The geometry constants (the joint at 66.5% / 52.0%,
+a ~100px closing shift) are recorded in the script and can be ported into a CSS cinematic later
+if docking is ever built in-game.
+
 **D-022 — project owner · 2026-10-07**
 **Choice:** Deploy production builds to Vercel from GitHub Actions only after the `Code
 checks` workflow succeeds on the repository's default branch. Disable Vercel's native Git
