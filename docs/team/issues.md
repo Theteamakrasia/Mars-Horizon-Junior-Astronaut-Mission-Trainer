@@ -11,6 +11,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
+| ISS-027 | Parts segment too fast to read and the lower-third overlapped the solar panels | low | agent | fixed | this branch |
 | ISS-026 | Parts renderer put two description bars on screen at once during a dissolve | low | agent | fixed | this branch |
 | ISS-025 | Parts renderer mapped the four source filenames to the wrong parts | low | agent | fixed | this branch |
 | ISS-023 | Docking renderer first pass showed a hard black rectangle | low | agent | fixed | this branch |
@@ -37,6 +38,21 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | ISS-014 | `base.css` calls the page non-interactive while draggable | low | unassigned | open | — |
 
 ---
+
+## ISS-027 — Parts segment was too fast to read and the text sat on the solar panels
+
+- **Reported by:** the user after watching the first render, 2026-10-21
+- **Where:** `tools/render-parts.py`, `SEGMENTS`/`BEAT_S` and `draw_description`'s bar position
+- **Problem:** two faults in the same frame. Each description was on screen for less than a
+  second, which is not enough to read a full sentence, and the lower-third bar started at
+  0.80 of the frame while the hanging solar panels reach 0.859, so the text sat on top of
+  the panels.
+- **Cause:** the timeline was a hand-written absolute table tuned for a 6.6s target, and the
+  bar height was chosen without measuring where the panels end.
+- **Fix:** build the timeline from `BEAT_S` and derive the runtime from it (2.0s a part,
+  12.0s total, 360 frames), and start the bar at 0.87 — below the measured panel extent.
+  Fixed in this branch.
+- **Pre-existing:** no. Introduced by TASK-037 and fixed in the same work.
 
 ## ISS-026 — Parts renderer put two description bars on screen at once during a dissolve
 

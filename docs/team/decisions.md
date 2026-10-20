@@ -19,7 +19,8 @@ description bars. Folding them together would have meant a renderer that special
 both, which is harder to read than two scripts that each say one thing.
 **Rejected:** Extending `render-docking.py` to handle the parts sequence; a browser-based
 capture (adds Playwright, and no browser is installed).
-**Consequence:** `Assets/video/parts.mp4` (6.6s, 198 frames) and its script. The four part
+**Consequence:** `Assets/video/parts.mp4` (6.6s / 198 frames at first; retimed to 12.0s /
+360 frames after the first viewing, ISS-027) and its script. The four part
 stills are one base render with a different outline baked in, so they cross-dissolve
 cleanly. The overview is a separate render whose baked label cards sit at different
 positions, so a cross-dissolve ghosts both sets of cards at once — its two transitions

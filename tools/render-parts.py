@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """
-Render the ~6.5 second "meet the spacecraft" segment: what each part of the
-craft is, with its highlighted segment and a short description.
+Render the "meet the spacecraft" segment: what each part of the craft is, with
+its highlighted segment and a short description.
+
+Pacing is the whole point of this segment. Each part is held for BEAT_S seconds
+so the description can be read, and the total runtime is derived from that
+rather than typed beside it where the two could disagree.
 
 Why a second script
 -------------------
@@ -12,13 +16,15 @@ nothing in common, so forcing them into one renderer would make both worse. Same
 toolchain, though: PIL + numpy + cv2, already installed, no new dependency.
 
 The four part stills are one base render with a different outline baked in, so
-they cross-dissolve cleanly. The overview is a *separate* render (different scale
-and position), so the two transitions in and out of it are kept short and the
-dissolve masks the jump.
+they cross-dissolve cleanly. The overview is a *separate* render - the craft is
+the same scale in it, but its baked label cards sit at different positions from
+the stills', so a cross-dissolve would ghost both sets of cards. Its two
+transitions fade through black instead.
 
-The part names are already baked into each still's label card, so the only text
-added here is the description - a lower-third bar placed below the hanging solar
-panels, clear of every baked card. Arial Bold, which matches the baked labels.
+The part names are already baked into each still's label card; the lower-third
+repeats the name in its highlight colour and adds a one-line description, placed
+below the hanging solar panels - clear of the craft and of every baked card. Arial
+Bold, which matches the baked labels.
 
 Usage
 -----
@@ -42,8 +48,6 @@ from PIL import Image, ImageDraw, ImageFont
 
 W, H = 1920, 1080
 FPS = 30
-TOTAL_S = 6.6
-FRAMES = int(round(TOTAL_S * FPS))
 
 # The craft's centre, measured from the stills: its bright, low-saturation
 # bounding box is x[3..1190] y[17..733] in the 1364x768 source, so the centre is
@@ -53,8 +57,8 @@ ANCHOR_X, ANCHOR_Y = int(0.437 * W), int(0.488 * H)
 CAM_SCALE_FROM = 1.00
 CAM_SCALE_TO = 1.10
 
-FADE_IN_S = 0.15
-FADE_OUT_S = 0.15
+FADE_IN_S = 0.25
+FADE_OUT_S = 0.25
 
 # --------------------------------------------------------------------------
 # The shots.
@@ -92,30 +96,55 @@ PART_BY_KEY = {key: (name, desc, color) for key, name, desc, color in PARTS}
 # --------------------------------------------------------------------------
 # Timeline. (start, end, kind, outgoing, incoming)
 #
-# "hold"     one shot
-# "dissolve" cross-dissolve between two shots
-# "black"    fade out to black, then fade the next shot in. Used only for the two
-#            overview bookends: the overview is a separate render whose baked
-#            label cards sit at different positions from the four stills', so a
-#            cross-dissolve ghosts both sets of cards at once.
+# Built, not typed: the pacing is what gets tuned, and a hand-written table can
+# drift from the constants it was meant to express.
+#
+#   "hold"     one shot
+#   "dissolve" cross-dissolve between two shots
+#   "black"    fade out to black, then fade the next shot in. Used only for the
+#              two overview bookends: the overview is a separate render whose
+#              baked label cards sit at different positions from the four
+#              stills', so a cross-dissolve ghosts both sets of cards at once.
 #
 # The overview is two shots, not one: "overview_intro" carries the title, and
 # "overview" (the outro) carries none.
 # --------------------------------------------------------------------------
 
-SEGMENTS = [
-    (0.00, 0.95, "hold", "overview_intro", None),
-    (0.95, 1.15, "black", "overview_intro", "propulsion"),
-    (1.15, 2.13, "hold", "propulsion", None),
-    (2.13, 2.38, "dissolve", "propulsion", "habitat"),
-    (2.38, 3.36, "hold", "habitat", None),
-    (3.36, 3.61, "dissolve", "habitat", "logistics"),
-    (3.61, 4.59, "hold", "logistics", None),
-    (4.59, 4.84, "dissolve", "logistics", "orion"),
-    (4.84, 5.82, "hold", "orion", None),
-    (5.82, 6.02, "black", "orion", "overview"),
-    (6.02, 6.45, "hold", "overview", None),
-]
+INTRO_S = 1.4
+BLACK_S = 0.22
+BEAT_S = 2.0
+DISSOLVE_S = 0.25
+OUTRO_S = 1.4
+PART_ORDER = ["propulsion", "habitat", "logistics", "orion"]
+
+
+def build_segments() -> list[tuple[float, float, str, str, str]]:
+    segments: list[tuple[float, float, str, str, str]] = []
+    t = 0.0
+
+    segments.append((t, t + INTRO_S, "hold", "overview_intro", None))
+    t += INTRO_S
+    segments.append((t, t + BLACK_S, "black", "overview_intro", PART_ORDER[0]))
+    t += BLACK_S
+
+    for i, key in enumerate(PART_ORDER):
+        segments.append((t, t + BEAT_S, "hold", key, None))
+        t += BEAT_S
+        if i < len(PART_ORDER) - 1:
+            segments.append((t, t + DISSOLVE_S, "dissolve", key, PART_ORDER[i + 1]))
+            t += DISSOLVE_S
+
+    segments.append((t, t + BLACK_S, "black", PART_ORDER[-1], "overview"))
+    t += BLACK_S
+    segments.append((t, t + OUTRO_S, "hold", "overview", None))
+    return segments
+
+
+SEGMENTS = build_segments()
+
+# The runtime is the last segment's end, so it cannot disagree with the beats.
+TOTAL_S = SEGMENTS[-1][1]
+FRAMES = int(round(TOTAL_S * FPS))
 
 
 def clamp(x: float, lo: float = 0.0, hi: float = 1.0) -> float:
@@ -146,6 +175,22 @@ def apply_camera(img: Image.Image, scale: float) -> Image.Image:
     return canvas
 
 
+def draw_bar(draw: ImageDraw.ImageDraw, bar_top: int, weight: float) -> None:
+    """
+    The lower-third gradient every piece of text sits on.
+
+    It starts below the hanging solar panels (measured to reach y 0.859 of the
+    frame) so the bar never covers the craft, and it fades in rather than starting
+    as a hard edge.
+    """
+    for y in range(bar_top, H):
+        frac = (y - bar_top) / (H - bar_top)
+        draw.line([(0, y), (W, y)], fill=(6, 10, 18, int(255 * (0.30 + 0.44 * frac) * weight)))
+
+
+BAR_TOP = int(H * 0.87)
+
+
 def draw_title(weight: float) -> Image.Image:
     """
     The opening title, in the same lower-third bar as the descriptions.
@@ -158,14 +203,9 @@ def draw_title(weight: float) -> Image.Image:
     if weight <= 0:
         return overlay
     draw = ImageDraw.Draw(overlay)
-
-    bar_top = int(H * 0.80)
-    for y in range(bar_top, H):
-        frac = (y - bar_top) / (H - bar_top)
-        draw.line([(0, y), (W, y)], fill=(6, 10, 18, int(255 * 0.74 * frac * weight)))
-
-    font = ImageFont.truetype(FONT_BOLD, 48)
-    draw.text((64, bar_top + 46), TITLE, font=font, fill=(255, 255, 255, int(255 * weight)))
+    draw_bar(draw, BAR_TOP, weight)
+    font = ImageFont.truetype(FONT_BOLD, 46)
+    draw.text((64, BAR_TOP + 40), TITLE, font=font, fill=(255, 255, 255, int(255 * weight)))
     return overlay
 
 
@@ -176,20 +216,13 @@ def draw_description(key: str, weight: float) -> Image.Image:
         return overlay
     name, desc, color = PART_BY_KEY[key]
     draw = ImageDraw.Draw(overlay)
+    draw_bar(draw, BAR_TOP, weight)
 
-    # A gradient bar so the text sits on something readable over the space.
-    bar_top = int(H * 0.80)
-    for y in range(bar_top, H):
-        frac = (y - bar_top) / (H - bar_top)
-        draw.line([(0, y), (W, y)], fill=(6, 10, 18, int(255 * 0.74 * frac * weight)))
-
-    name_font = ImageFont.truetype(FONT_BOLD, 30)
-    desc_font = ImageFont.truetype(FONT_BOLD, 36)
+    name_font = ImageFont.truetype(FONT_BOLD, 28)
+    desc_font = ImageFont.truetype(FONT_BOLD, 32)
     x = 64
-    draw.text((x, bar_top + 26), name, font=name_font,
-              fill=(*color, int(255 * weight)))
-    draw.text((x, bar_top + 66), desc, font=desc_font,
-              fill=(255, 255, 255, int(255 * weight)))
+    draw.text((x, BAR_TOP + 14), name, font=name_font, fill=(*color, int(255 * weight)))
+    draw.text((x, BAR_TOP + 48), desc, font=desc_font, fill=(255, 255, 255, int(255 * weight)))
     return overlay
 
 
@@ -295,7 +328,7 @@ def render_video(out_path: str, shots: dict[str, Image.Image]) -> None:
 
 def dump_keyframes(out_dir: str, shots: dict[str, Image.Image]) -> None:
     os.makedirs(out_dir, exist_ok=True)
-    for t in (0.0, 0.5, 0.95, 1.05, 1.6, 2.2, 2.9, 3.5, 4.1, 5.1, 5.9, 6.25, 6.5):
+    for t in (0.0, 0.7, 1.45, 2.6, 3.7, 4.8, 6.0, 7.0, 8.2, 9.2, 10.4, 10.5, 11.2, 11.9):
         Image.fromarray(frame_at(t, shots)).save(
             os.path.join(out_dir, f"key_{t:.2f}.png"))
     print(f"wrote keyframes to {out_dir}")

@@ -61,9 +61,11 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
 │   ├── docking.mp4                     complete   5.1 MB. 3.0s, 1920x1080, 30fps, mp4v, silent.
 │   │                                             The rendered docking clip. Built by
 │   │                                             tools/render-docking.py.
-│   └── parts.mp4                       complete   9.7 MB. 6.6s, 1920x1080, 30fps, mp4v, silent.
+│   └── parts.mp4                       complete   13.2 MB. 12.0s, 1920x1080, 30fps, mp4v, silent.
 │                                                 The "meet the spacecraft" segment: title, four
 │                                                 labelled parts with descriptions, overview outro.
+│                                                 Each part holds 2.0s so its description can be
+│                                                 read; the lower-third sits below the panels.
 │                                                 Built by tools/render-parts.py.
 │
 ├── tools/

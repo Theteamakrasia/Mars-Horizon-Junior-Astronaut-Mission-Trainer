@@ -8,6 +8,33 @@ than a documented one.
 
 ---
 
+## 2026-10-21 — Retime the parts segment (ISS-027)
+
+**Did**
+
+- Replaced the hand-written segment table with a builder driven by `BEAT_S`, so the runtime
+  is derived from the pacing instead of typed beside it. Each part now holds 2.0s, so
+  `parts.mp4` is 12.0s / 360 frames, up from 6.6s / 198.
+- Measured where the hanging solar panels end (y 0.856–0.859 of the frame across the five
+  stills) and moved the lower-third bar from 0.80 to 0.87, so the text sits below the craft.
+
+**Files**
+
+- Updated: `tools/render-parts.py`, `Assets/video/parts.mp4`, `docs/architecture.md`,
+  `docs/team/decisions.md`, `docs/team/issues.md`, this log.
+
+**Problems**
+
+- The panel extent could not be read by eye — the panels are thin and the frame is dark.
+  Found it by masking blue, low-brightness pixels in the panel column. That measurement is
+  now the comment on `BAR_TOP`, so the next person does not have to guess it again.
+
+**Next**
+
+- The player re-watches and says whether 2.0s a part is enough; it is one constant to change.
+
+---
+
 ## 2026-10-21 — Render the "meet the spacecraft" segment (D-024)
 
 **Did**
