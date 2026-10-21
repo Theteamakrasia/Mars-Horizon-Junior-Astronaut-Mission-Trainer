@@ -48,6 +48,7 @@ import {
   judge,
   successSentence,
   workingSentence,
+  workingSentenceBlanked,
 } from './model';
 
 /** How long a bubble fades out before the next one is written into it. */
@@ -387,8 +388,8 @@ const reduced = prefersReducedMotion();
   const showWrong = (value: number): void => {
     setScene('wrong');
 
-    // Locked straight away, before anything is said about it. If this ran after the
-    // retry timer, a fast double-click could pick the same number twice.
+    // Locked straight away, before anything is said about it, so a fast
+    // double-click cannot pick the same number twice.
     lockChoice(value);
 
     // Everything is off during the alarm, not just the locked one, so the frame
@@ -406,7 +407,12 @@ const reduced = prefersReducedMotion();
 
     // The working goes in the rail, not the bubble, so the question stays on
     // screen beside it while the child reads what went wrong.
-    result.textContent = workingSentence();
+    //
+    // With the answer left out of it. The sentence ends with the number under
+    // test, so showing it in full put the answer on the rail for as long as
+    // the child was looking at it, which is no use to a question meant to be
+    // worked out. The full working arrives once the answer has been earned.
+    result.textContent = workingSentenceBlanked();
     result.hidden = false;
 
     // Bring the remaining buttons back after a beat, so the wrong frame registers
@@ -433,8 +439,11 @@ const reduced = prefersReducedMotion();
 
     swapTo(speaker, successSentence());
 
-    result.hidden = true;
-    result.textContent = '';
+    // The working is completed now that the answer has been earned, so the
+    // blank the child was left with is filled in.
+    result.textContent = workingSentence();
+    result.hidden = false;
+
     cont.hidden = false;
   };
 
