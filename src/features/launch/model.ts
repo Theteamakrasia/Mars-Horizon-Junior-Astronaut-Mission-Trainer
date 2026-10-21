@@ -25,12 +25,13 @@
  *
  * The films
  * ---------
- * The two stills are the departure; three rendered MP4s are what follows. The
+ * The two stills are the departure; two rendered MP4s are what follows. The
  * launch film plays after the walk shot, cross-dissolving in over it. It ends with
- * the docking port open, so the docking clip comes next and closes it; the tour
- * then labels what was just assembled. The camera moves, the shake and the grade
- * are baked into each film, so this model only carries their lengths and their
- * descriptions.
+ * the docking port open, so the docking clip comes next and closes it; then an
+ * interactive tour labels each part of the assembled craft. The camera moves,
+ * the shake and the grade are baked into each film, so this model only carries
+ * their lengths and their descriptions; the tour's names, descriptions and
+ * marked-up images live below.
  *
  * On the timings
  * --------------
@@ -174,6 +175,59 @@ export const FLASH_FALL_PCT = 9;
 /** The press shot, which is the only one with a crowd in it. */
 export const PRESS_SHOT = SHOTS[0];
 
+/** One part of the assembled spacecraft, shown in the interactive tour. */
+export interface Part {
+  /** Stable key, also the image file name without extension. */
+  readonly id:
+    | 'overview'
+    | 'propulsion'
+    | 'habitat'
+    | 'logistics'
+    | 'orion';
+  /** The part's name, shown on screen next to its image. */
+  readonly name: string;
+  /** What the part does, shown on screen and read to screen readers. */
+  readonly description: string;
+  /** Accent colour for the part's label dot, matching its outline in the image. */
+  readonly accent: string;
+}
+
+/** The five tour slides, in order: overview first, then one part at a time. */
+export const PARTS: readonly Part[] = [
+  {
+    id: 'overview',
+    name: 'Assembled craft',
+    description:
+      'The full spacecraft, all four parts docked together: propulsion, habitat, logistics and Orion.',
+    accent: '#94A3B8',
+  },
+  {
+    id: 'propulsion',
+    name: 'Core propulsion',
+    description: 'The core propulsion stages, which push the craft toward Mars.',
+    accent: '#3B82F6',
+  },
+  {
+    id: 'habitat',
+    name: 'Transit habitat',
+    description:
+      'Home to the crew for the journey, with living quarters and life support.',
+    accent: '#10B981',
+  },
+  {
+    id: 'logistics',
+    name: 'Logistics and safe haven',
+    description: 'Carrying cargo and shelter from solar storms.',
+    accent: '#F59E0B',
+  },
+  {
+    id: 'orion',
+    name: 'Orion crew vehicle',
+    description: 'Carries the crew down to the surface and back.',
+    accent: '#EF4444',
+  },
+];
+
 /**
  * The launch film, in milliseconds.
  *
@@ -218,19 +272,11 @@ export const DOCKING_DESCRIPTION =
   'settle, and a green ring lights at the joint.';
 
 /**
- * The spacecraft tour, in milliseconds.
- *
- * 360 frames at 30fps. The tour's four descriptions are baked into the picture, so
- * the length is not just the timer's input: it is how long a viewer needs to read
- * them.
- */
-export const PARTS_DURATION_MS = 12000;
-
-/**
  * What the tour shows, including the four parts it names.
  *
- * The names and descriptions are drawn into the video, so a screen reader gets
- * them here or not at all.
+ * The tour is now an interactive panel: names and descriptions are rendered as
+ * text next to each part image, so this is the single accessible version of all
+ * four.
  */
 export const PARTS_DESCRIPTION =
   'A tour of the assembled spacecraft. Four parts are highlighted and described ' +
@@ -246,17 +292,15 @@ export const PARTS_DESCRIPTION =
  * this number, and it is the only way off the screen.
  *
  * Note there is no separate reduced-motion duration, and that is deliberate.
- * Reduced motion removes the movement, not the information: the stills and the
- * launch film and docking clip are held on a representative frame for exactly as
- * long as they would have moved. The tour plays, because its content is four
- * captions in sequence and a held frame would show one and hide three.
+ * Reduced motion removes the movement, not the information: the stills, the
+ * launch film and the docking clip are held on a representative frame for
+ * exactly as long as they would have moved.
  */
 export const TOTAL_DURATION_MS =
   TITLE_DURATION_MS +
   SHOTS.reduce((total, shot) => total + shot.durationMs, 0) +
   VIDEO_DURATION_MS +
-  DOCKING_DURATION_MS +
-  PARTS_DURATION_MS;
+  DOCKING_DURATION_MS;
 
 /**
  * When a beat may start: the later of its earliest slot and the moment its clip

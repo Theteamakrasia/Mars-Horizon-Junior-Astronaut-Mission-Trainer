@@ -1,14 +1,13 @@
 /**
- * The launch cinematic: two stills, three films, and the hand-off.
+ * The launch cinematic: two stills, two films, an interactive parts tour, and
+ * the hand-off.
  *
  * The stills are the departure — the press conference, the walk to the rocket —
- * and the films are what follows: the launch, the Orion docking with the
- * transfer vehicle, then a tour of the assembled craft. Each film is a rendered
- * MP4 imported below, so its camera moves, its shake and its grade are already in
- * the picture; this file only decides *when* each beat plays. The title card
- * holds, lifts, the stills cross-dissolve under it, the launch film
- * cross-dissolves in over the walk shot, and the screen hands itself to the next
- * stop the moment the last film ends.
+ * and the films are what follows: the launch, then the Orion docking with the
+ * transfer vehicle. Once the docking clip ends, an interactive tour labels each
+ * part of the assembled craft: one part at a time, with its name and description
+ * as text next to its image, and Prev / Next buttons so the player can look back.
+ * A Continue button hands the screen to the next stop.
  *
  * The reel is driven by the media, not the clock
  * -----------------------------------------------
@@ -19,19 +18,18 @@
  * the hand-off waits for the last frame instead of firing at a fixed time.
  *
  * Only one film is on the wire at a time. The launch film loads up front, because
- * the title card and the two stills give it ~5s of cover; the docking clip and the
- * tour load when the beat before them starts. Each also carries a poster frame, so
- * a clip that is still buffering shows a picture rather than a black rectangle.
+ * the title card and the two stills give it ~5s of cover; the docking clip loads
+ * when the beat before it starts. Each also carries a poster frame, so a clip that
+ * is still buffering shows a picture rather than a black rectangle.
  *
  * The same hard-won rule as always still applies: **an animation is never
  * load-bearing.** Every shot's resting CSS state is the state that should be on
  * screen if no animation ever runs, and the end state is correct however it was
  * reached. Reduced motion does not shorten the runtime — it holds every picture
- * still for exactly as long as it would have moved, except the tour, whose
- * content is a sequence of captions.
+ * still for exactly as long as it would have moved.
  *
- * There is no skip. The screen's only exit is the hand-off when the last film
- * ends, which is why the schedule is derived in the model rather than typed here.
+ * There is no skip. The screen's only exit is the Continue button in the parts
+ * tour, or the hand-off when the last film ends if the tour is never reached.
  */
 
 import { nextStop } from '../../ui/registry';
@@ -46,15 +44,18 @@ import launchVideoUrl from '../../../Assets/images/launch/launch-cinematic.mp4';
 import launchPosterUrl from '../../../Assets/images/launch/launch-poster.webp';
 import dockingVideoUrl from '../../../Assets/video/docking.mp4';
 import dockingPosterUrl from '../../../Assets/video/docking-poster.webp';
-import partsVideoUrl from '../../../Assets/video/parts.mp4';
-import partsPosterUrl from '../../../Assets/video/parts-poster.webp';
+import overviewUrl from '../../../Assets/images/parts/overview.webp';
+import propulsionUrl from '../../../Assets/images/parts/propulsion.webp';
+import habitatUrl from '../../../Assets/images/parts/habitat.webp';
+import logisticsUrl from '../../../Assets/images/parts/logistics.webp';
+import orionUrl from '../../../Assets/images/parts/orion.webp';
 
 import {
   DOCKING_DESCRIPTION,
   DOCKING_DURATION_MS,
   FADE_MS,
   PARTS_DESCRIPTION,
-  PARTS_DURATION_MS,
+  PARTS,
   PRESS_SHOT,
   SHOTS,
   TITLE,
@@ -69,6 +70,15 @@ import {
 const IMAGES: Readonly<Record<Shot['image'], string>> = {
   press: pressUrl,
   walk: walkUrl,
+};
+
+/** The five tour slides, keyed by part id. Mirrors PARTS in the model. */
+const PART_IMAGES: Readonly<Record<string, string>> = {
+  overview: overviewUrl,
+  propulsion: propulsionUrl,
+  habitat: habitatUrl,
+  logistics: logisticsUrl,
+  orion: orionUrl,
 };
 
 /**
@@ -158,8 +168,14 @@ export function mountLaunch(
   const flash = require<HTMLDivElement>(root, '[data-launch-flash]');
   const video = require<HTMLVideoElement>(root, '[data-launch-video]');
   const docking = require<HTMLVideoElement>(root, '[data-launch-docking]');
-  const parts = require<HTMLVideoElement>(root, '[data-launch-parts]');
   const description = require<HTMLParagraphElement>(root, '[data-launch-description]');
+  const partsPanel = require<HTMLDivElement>(root, '[data-launch-parts-panel]');
+  const partsImage = require<HTMLImageElement>(root, '[data-launch-parts-image]');
+  const partsName = require<HTMLHeadingElement>(root, '[data-launch-parts-name]');
+  const partsDescription = require<HTMLParagraphElement>(root, '[data-launch-parts-description]');
+  const partsPrev = require<HTMLButtonElement>(root, '[data-launch-parts-prev]');
+  const partsNext = require<HTMLButtonElement>(root, '[data-launch-parts-next]');
+  const partsContinue = require<HTMLButtonElement>(root, '[data-launch-parts-continue]');
 
   const shots = [...root.querySelectorAll<HTMLElement>('[data-launch-shot]')];
 
@@ -252,7 +268,6 @@ export function mountLaunch(
   const shotsTotal = SHOTS.reduce((total, shot) => total + shot.durationMs, 0);
   const filmBegins = TITLE_DURATION_MS + shotsTotal;
   const dockingBegins = filmBegins + VIDEO_DURATION_MS;
-  const partsBegins = dockingBegins + DOCKING_DURATION_MS;
 
   const beats: Beat[] = [
     {
@@ -297,32 +312,21 @@ export function mountLaunch(
       seekedHandler: null,
       errorHandler: null,
     },
-    {
-      el: parts,
-      url: partsVideoUrl,
-      posterUrl: partsPosterUrl,
-      durationMs: PARTS_DURATION_MS,
-      earliestMs: partsBegins,
-      holdSeconds: null,
-      ready: false,
-      readyAtMs: 0,
-      started: false,
-      startedAtMs: 0,
-      awaitingPredecessor: true,
-      timer: null,
-      loaded: false,
-      successorArmed: false,
-      failed: false,
-      endedHandler: null,
-      loadedHandler: null,
-      seekedHandler: null,
-      errorHandler: null,
-    },
   ];
 
   const destination = nextStop('launch');
   let handedOff = false;
   let handOffTimer: number | null = null;
+  /** Which part slide is showing: 0 = overview … 4 = Orion. */
+  let partsIndex = 0;
+  /** Whether the parts panel is currently open. */
+  let partsOpen = false;
+  /** Whether the tour has wrapped from Orion back to the overview. */
+  let partsLooped = false;
+  /** Button listeners, so teardown can remove them. */
+  let partsPrevHandler: (() => void) | null = null;
+  let partsNextHandler: (() => void) | null = null;
+  let partsContinueHandler: (() => void) | null = null;
 
   /** The screen's only exit: the next stop, once and only once. */
   const handOff = (): void => {
@@ -330,12 +334,6 @@ export function mountLaunch(
     handedOff = true;
 
     if (destination !== null) navigate(destination);
-  };
-
-  /** Hand off on a timer, used when the last clip cannot signal its own end. */
-  const armHandOff = (atMs: number): void => {
-    if (handOffTimer !== null) window.clearTimeout(handOffTimer);
-    handOffTimer = window.setTimeout(handOff, Math.max(0, atMs - now()));
   };
 
   /**
@@ -412,8 +410,13 @@ export function mountLaunch(
     const atMs = beat.startedAtMs + beat.durationMs;
 
     if (index + 1 >= beats.length) {
-      if (useTimer) armHandOff(atMs);
-      else armEnded(beat, handOff);
+      // The last film ends -> open the interactive parts tour.
+      if (useTimer) {
+        if (handOffTimer !== null) window.clearTimeout(handOffTimer);
+        handOffTimer = window.setTimeout(openPartsPanel, Math.max(0, atMs - now()));
+      } else {
+        armEnded(beat, openPartsPanel);
+      }
       return;
     }
 
@@ -437,6 +440,66 @@ export function mountLaunch(
     if (beat.endedHandler !== null) return;
     beat.endedHandler = onEnded;
     beat.el.addEventListener('ended', onEnded);
+  };
+
+  /** Render one part slide: image, name, description, accent dot, button states. */
+  const renderPart = (index: number): void => {
+    const part = PARTS[index];
+    partsImage.src = PART_IMAGES[part.id];
+    partsImage.alt = part.name;
+    partsName.textContent = part.name;
+    partsDescription.textContent = part.description;
+    const dot = partsName.previousElementSibling;
+    if (dot instanceof HTMLElement) {
+      dot.style.backgroundColor = part.accent;
+    }
+    // After wrapping from Orion back to the overview, Prev is enabled and Next is
+    // disabled so the player can look back one last time before continuing.
+    partsPrev.disabled = index === 0 && !partsLooped;
+    partsNext.disabled = index === 0 && partsLooped;
+  };
+
+  /** Open the interactive parts tour after the docking clip ends. */
+  const openPartsPanel = (): void => {
+    if (partsOpen) return;
+    partsOpen = true;
+    partsPanel.hidden = false;
+    root.classList.add('launch__cinematic-dimmed');
+    renderPart(partsIndex);
+
+    const onPrev = (): void => {
+      if (partsIndex > 0) {
+        partsIndex -= 1;
+      } else if (partsLooped) {
+        // After wrapping from Orion to overview, go to Orion to review
+        partsIndex = PARTS.length - 1;
+      }
+      renderPart(partsIndex);
+    };
+
+    const onNext = (): void => {
+      if (partsIndex < PARTS.length - 1) {
+        partsIndex += 1;
+      } else {
+        // Wrap from Orion back to the overview so the player can see the full
+        // assembled craft one more time before continuing.
+        partsIndex = 0;
+        partsLooped = true;
+      }
+      renderPart(partsIndex);
+    };
+
+    const onContinue = (): void => {
+      handOff();
+    };
+
+    partsPrev.addEventListener('click', onPrev);
+    partsNext.addEventListener('click', onNext);
+    partsContinue.addEventListener('click', onContinue);
+
+    partsPrevHandler = onPrev;
+    partsNextHandler = onNext;
+    partsContinueHandler = onContinue;
   };
 
   /**
@@ -552,5 +615,11 @@ export function mountLaunch(
     }
 
     if (handOffTimer !== null) window.clearTimeout(handOffTimer);
+
+    if (partsPrevHandler !== null) partsPrev.removeEventListener('click', partsPrevHandler);
+    if (partsNextHandler !== null) partsNext.removeEventListener('click', partsNextHandler);
+    if (partsContinueHandler !== null) partsContinue.removeEventListener('click', partsContinueHandler);
+    root.classList.remove('launch__cinematic-dimmed');
+    partsPanel.hidden = true;
   };
 }

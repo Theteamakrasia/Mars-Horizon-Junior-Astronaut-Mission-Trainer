@@ -2,6 +2,7 @@ node_modules/
 dist/
 *.local
 .DS_Store
+*.frontend-notes.md
 
 # Python: the render tools in tools/ leave these behind when imported.
 __pycache__/

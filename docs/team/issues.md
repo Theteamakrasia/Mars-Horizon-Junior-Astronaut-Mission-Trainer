@@ -11,6 +11,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
+| ISS-033 | Parts tour video too fast to read, no way to look back | low | agent | open | — |
 | ISS-032 | Launch film stutters like a slideshow on a slow connection | high | agent | fixed | 1f4c709 |
 | ISS-031 | Live production served the pre-interior bundle after the merge | high | agent | fixed | 6774e22 |
 | ISS-030 | Launch reel shows black and cuts or skips on a slow connection | high | agent | fixed | this branch |
@@ -662,4 +663,12 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-**Next free id: ISS-033.**
+## ISS-033 — Parts tour video too fast to read, no way to look back
+
+- **Reported by:** the user, 2026-10-22
+- **Where:** `src/features/launch/view.ts`, `src/features/launch/model.ts`, `index.html` (`<video data-launch-parts>`), `Assets/video/parts.mp4`
+- **Problem:** the spacecraft tour is a single 12-second video with the four part names burned into the picture. It plays too fast to read, and there is no way to look back without restarting the whole reel.
+- **Fix:** replace the `parts.mp4` beat with an interactive parts panel. Five slides — overview first, then one named part at a time — each showing the part image (from `Assets/images/parts/*.webp`, each with one part outlined in colour), the part name as text, and the part description as text. Prev / Next buttons move between slides, disabled at the boundaries; a Continue button hands off to the next screen. No auto-advance, no timed beat.
+- **Files to change:** `src/features/launch/model.ts`, `src/features/launch/view.ts`, `src/features/launch/launch.css`, `index.html`, `src/features/launch/model.test.ts`, `docs/architecture.md`, this file.
+
+**Next free id: ISS-034.**
