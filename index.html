@@ -319,11 +319,17 @@
 
         <!-- The launch film, stacked above the stills so it cross-dissolves in over
              the walk shot. It carries no src: launch/view.ts assigns the imported
-             module so Vite fingerprints it.
+             module so Vite fingerprints it. It is the one film that loads up front
+             (`preload="auto"`), because it is the first beat and the title card and
+             the two stills give it ~5s to buffer before it is needed.
 
              The docking clip and the tour follow it, each stacked above the one
-             before. They carry no src for the same reason, and their resting CSS
-             opacity is 0: each is revealed by its own delay. -->
+             before. They carry no src and `preload="none"`: launch/view.ts assigns
+             each one when the beat before it starts, so only one film is on the wire
+             at a time. Their resting CSS opacity is 0, and each is revealed by a
+             class view.ts adds when the clip is actually ready. Each also gets a
+             poster frame, so a clip that is still buffering shows a picture rather
+             than black. -->
         <video
           class="launch__video"
           data-launch-video
@@ -338,7 +344,7 @@
           data-launch-docking
           muted
           playsinline
-          preload="auto"
+          preload="none"
           aria-hidden="true"
         ></video>
 
@@ -347,7 +353,7 @@
           data-launch-parts
           muted
           playsinline
-          preload="auto"
+          preload="none"
           aria-hidden="true"
         ></video>
 

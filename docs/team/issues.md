@@ -11,6 +11,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
+| ISS-030 | Launch reel shows black and cuts or skips on a slow connection | high | agent | fixed | this branch |
 | ISS-029 | Docking and tour clips are MPEG-4 Part 2; browsers will not play them | high | agent | fixed | this branch |
 | ISS-028 | Docking and tour clips were never wired into the launch sequence | high | agent | fixed | this branch |
 | ISS-027 | Parts segment too fast to read and the lower-third overlapped the solar panels | low | agent | fixed | this branch |
@@ -40,6 +41,28 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | ISS-014 | `base.css` calls the page non-interactive while draggable | low | unassigned | open | — |
 
 ---
+
+## ISS-030 — The launch reel shows black and cuts or skips on a slow connection
+
+- **Reported by:** the user, 2026-10-21: "the videos or and the cutsceans elements are okay but
+  they put a lots of pressure on internet without good internet on live website most of the time
+  its just black screen and then cuts to next part or just sipks after the time pass"
+- **Where:** `src/features/launch/view.ts`, `src/features/launch/launch.css`, `index.html`
+- **Problem:** three faults compound. All three `<video>` elements get a `src` at mount with
+  `preload="auto"`, so ~13.8 MB is requested in parallel and a slow link is saturated before the
+  first beat is due. None of the three has a `poster`, so before a frame is decoded the element is
+  transparent and the CSS fade-in reveals black. And the timeline is wall-clock, not media-driven:
+  the film, docking and tour timers and the hand-off all fire at fixed offsets from mount, so a
+  clip that has not buffered is skipped and the screen hands off at 25.25s regardless of whether
+  anything played.
+- **Cause:** the reel was choreographed against `TOTAL_DURATION_MS` as though the clips were
+  always ready, and the browser's buffering state was never consulted.
+- **Fix:** serialise the downloads (only the launch film loads up front; the other two load when
+  the previous beat starts), give every clip a poster frame, and drive the beats off the media —
+  a beat starts at the later of its slot and its readiness, and each beat chains on the previous
+  clip's `ended`. A clip that errors keeps its poster and advances on its nominal duration. Fixed
+  in this branch.
+- **Pre-existing:** no. Introduced by the launch reel itself.
 
 ## ISS-029 — The docking and tour clips are MPEG-4 Part 2, which browsers do not play
 

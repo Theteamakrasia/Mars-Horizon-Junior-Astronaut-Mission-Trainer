@@ -7,6 +7,7 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 
 | id | task | goal | owner | status | blocked by | notes |
 | --- | --- | --- | --- | --- | --- | --- |
+| TASK-039 | Stop the launch reel showing black and skipping on a slow connection | G-7 | agent | done | — | D-027, ISS-030. Media-driven beats, lazy loading, poster frames; browser check outstanding |
 | TASK-038 | Play the docking clip and the spacecraft tour after the launch film | G-7 | agent | done | — | D-025, D-026; ISS-028, ISS-029. `launch/model.ts` carries all three lengths |
 | TASK-037 | Render the "meet the spacecraft" segment | G-7 | agent | done | — | D-024. `tools/render-parts.py` + `Assets/video/parts.mp4`; PIL/numpy/OpenCV + PyAV (H.264), no new dependency |
 | TASK-036 | Render the 3-second docking clip | G-7 | agent | done | — | D-023. `tools/render-docking.py` + `Assets/video/docking.mp4`; PIL/numpy/OpenCV + PyAV (H.264), no new dependency |

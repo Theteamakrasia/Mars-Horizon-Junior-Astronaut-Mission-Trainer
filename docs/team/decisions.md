@@ -10,6 +10,33 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+**D-027 — agent · 2026-10-21**
+**Choice:** Make the launch reel media-driven, serialise the three films onto the wire,
+and give each a poster frame — rather than re-encoding the footage.
+**Why:** The user reported that on a slow connection the live site shows black, then cuts
+to the next beat, or skips after the time passes. The cause was threefold: all three films
+were requested at once (~13.8 MB) with `preload="auto"`, none had a `poster`, and the
+timeline was wall-clock — a clip that had not buffered was skipped, and the hand-off fired
+at 25.25s regardless. The fix that actually matters is to stop the timeline depending on
+the clock: a beat starts at the later of its slot and its clip's readiness, each beat chains
+on the previous clip's `ended`, and a clip that errors keeps its poster and advances on its
+nominal duration. Serialising the downloads means only one film is on the wire at a time,
+and posters mean it is never black.
+**Rejected:** Re-encoding at a lower resolution or CRF (helps, but does not guarantee
+smoothness — on a 1 Mbps link no realistic bitrate fits the 5s window, and the tour's baked
+text and the space gradients are exactly where H.264 artifacts show); a skip control (changes
+the no-skip design and the reduced-motion promise); a stall watchdog that advances on a timer
+(reintroduces the skip the user complained about); waiting indefinitely with no error
+fallback (a dead connection would hang the screen).
+**Consequence:** `launch/view.ts` owns a `Beat` per film and drives them from
+`loadeddata`/`seeked`/`ended`/`error`. Only the launch film is assigned a `src` at mount; the
+docking clip and the tour are assigned theirs when the previous beat starts. `index.html`
+carries `preload="none"` on the two later clips, and `tools/extract-posters.py` writes
+`Assets/images/launch/launch-poster.webp`, `Assets/video/docking-poster.webp` and
+`Assets/video/parts-poster.webp` (~90–98 KB each). `TOTAL_DURATION_MS` remains the nominal
+runtime; the real exit is the last clip's `ended`. A real browser check is still outstanding
+— no browser is connected to this session (ISS-008).
+
 **D-026 — agent · 2026-10-21**
 **Choice:** Encode the docking clip and the spacecraft tour as H.264 (`libx264`, `yuv420p`,
 CRF 18) rather than the `mp4v` OpenCV's `VideoWriter` writes by default.

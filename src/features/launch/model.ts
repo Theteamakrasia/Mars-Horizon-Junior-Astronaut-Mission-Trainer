@@ -257,3 +257,16 @@ export const TOTAL_DURATION_MS =
   VIDEO_DURATION_MS +
   DOCKING_DURATION_MS +
   PARTS_DURATION_MS;
+
+/**
+ * When a beat may start: the later of its earliest slot and the moment its clip
+ * became ready.
+ *
+ * The reel is driven by the media, not the clock. A clip that has not buffered
+ * yet has no `readyAtMs`, which never delays a beat past its slot; a clip that is
+ * still loading holds the beat until it is ready. Pure, so the scheduling policy
+ * is testable without a DOM.
+ */
+export function resolveBeatStart(earliestMs: number, readyAtMs: number | null): number {
+  return readyAtMs === null ? earliestMs : Math.max(earliestMs, readyAtMs);
+}

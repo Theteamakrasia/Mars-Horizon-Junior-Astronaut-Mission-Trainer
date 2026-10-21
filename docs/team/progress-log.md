@@ -8,6 +8,47 @@ than a documented one.
 
 ---
 
+## 2026-10-21 — Stop the launch reel showing black and skipping on a slow connection (ISS-030)
+
+**Did**
+
+- Serialised the three films: only the launch film is assigned a `src` at mount; the docking
+  clip and the tour load when the beat before them starts, so one film is on the wire at a
+  time instead of ~13.8 MB at once.
+- Gave each clip a poster frame (`tools/extract-posters.py`, ~90–98 KB each): the pad for the
+  film, the finished joint for the docking clip, and the tour's title card — not its first
+  frame, which is black.
+- Made the reel media-driven: a beat starts at the later of its slot and its clip's readiness
+  (`resolveBeatStart`, now in the model and tested), each beat chains on the previous clip's
+  `ended`, and the hand-off fires when the tour ends rather than at a fixed 25.25s. A clip
+  that errors keeps its poster and advances on its nominal duration.
+- The video fade is a class-triggered transition instead of a delayed animation, so the
+  dissolve starts when there is a picture rather than on the clock.
+
+**Files**
+
+- Updated: `src/features/launch/view.ts`, `src/features/launch/launch.css`,
+  `src/features/launch/model.ts`, `src/features/launch/model.test.ts`, `index.html`,
+  `tools/extract-posters.py`, `Assets/images/launch/launch-poster.webp`,
+  `Assets/video/docking-poster.webp`, `Assets/video/parts-poster.webp`, `docs/architecture.md`,
+  `docs/team/decisions.md`, `docs/team/issues.md`, `docs/team/tasks.md`, this log.
+
+**Problems**
+
+- No browser is connected to this session, so the reel could not be watched play. Verified at
+  the build layer instead: the built HTML carries `preload="none"` on the two later clips, the
+  bundle contains the new logic, the three posters are fingerprinted into `dist/`, and
+  `npm run check` + `npm test` (216) pass. The DOM half is untestable here (ISS-013) — the
+  media-driven schedule needs a real slow-network check before it is called done.
+- The poster frames were chosen by eye from the rendered frames: 0.5s and 2.4s are the frames
+  reduced motion already holds, and the tour's is its title card at 0.3s.
+
+**Next**
+
+- Open the launch route on a throttled connection and confirm no black frame, no cut and no
+  skip, and that the hand-off waits for the tour. That is the one check this change still
+  needs.
+
 ## 2026-10-21 — Play the docking clip and the tour after the launch film (ISS-028, ISS-029)
 
 **Did**

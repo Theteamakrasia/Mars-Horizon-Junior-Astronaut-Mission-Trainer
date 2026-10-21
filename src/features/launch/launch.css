@@ -180,25 +180,29 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  /* The resting state is hidden, so before its beat there is nothing to show, and
+     if the reveal never runs the shot underneath is still on screen.
+
+     The fade is a transition rather than a delayed animation, because a delayed
+     animation starts on the clock whether or not the clip has buffered — which is
+     how the reel revealed black on a slow connection. `launch__on` is added by
+     launch/view.ts at the moment the clip is actually ready, so the dissolve
+     starts when there is a picture to dissolve into. */
   opacity: 0;
-  animation: launch-video-fade-in var(--launch-video-fade, 0ms) linear var(--launch-video-delay, 0ms) both;
+  transition: opacity var(--launch-video-fade, 0ms) linear;
 }
 
-@keyframes launch-video-fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+.launch__video.launch__on,
+.launch__clip.launch__on {
+  opacity: 1;
 }
 
 /* ---------- THE FOLLOWING CLIPS ----------
    The docking clip and the spacecraft tour, one layer above the launch film each.
-   Same resting state as the film — hidden until its own delay — and the same
-   fade, because both clips open on black: the fade reads as a fade through black
-   rather than a cut. The delay is written by launch/view.ts from the model's
-   lengths, so the three films cannot overlap by arithmetic.
+   Same resting state as the film — hidden until its beat — and the same class
+   transition, because both clips open on black: the fade reads as a fade through
+   black rather than a cut. view.ts adds `launch__on` when the clip is ready, so
+   the two clips cannot appear before their turn.
 */
 .launch__clip {
   position: absolute;
@@ -207,7 +211,7 @@
   height: 100%;
   object-fit: cover;
   opacity: 0;
-  animation: launch-video-fade-in var(--launch-video-fade, 0ms) linear var(--launch-clip-delay, 0ms) both;
+  transition: opacity var(--launch-video-fade, 0ms) linear;
 }
 
 .launch__clip--docking {

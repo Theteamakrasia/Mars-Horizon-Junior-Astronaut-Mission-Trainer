@@ -9,6 +9,7 @@ import {
   PARTS_DESCRIPTION,
   PARTS_DURATION_MS,
   PRESS_SHOT,
+  resolveBeatStart,
   SHOTS,
   TITLE,
   TITLE_DURATION_MS,
@@ -160,6 +161,23 @@ describe('TOTAL_DURATION_MS', () => {
       const visible = shot.durationMs - shot.fadeMs;
       expect(visible).toBeGreaterThan(1200);
     }
+  });
+});
+
+describe('resolveBeatStart', () => {
+  it('starts on its slot when the clip is ready early', () => {
+    // A clip buffered before its beat is due does not hold the reel up.
+    expect(resolveBeatStart(5000, 1000)).toBe(5000);
+  });
+
+  it('waits for the clip when it becomes ready late', () => {
+    // The beat cannot start before there is a frame to show.
+    expect(resolveBeatStart(5000, 8000)).toBe(8000);
+  });
+
+  it('starts on its slot when readiness is not yet known', () => {
+    // Before the clip signals, the earliest slot is all the caller has.
+    expect(resolveBeatStart(5000, null)).toBe(5000);
   });
 });
 

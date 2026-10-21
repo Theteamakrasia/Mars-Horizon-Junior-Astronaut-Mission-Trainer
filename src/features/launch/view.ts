@@ -10,6 +10,19 @@
  * cross-dissolves in over the walk shot, and the screen hands itself to the next
  * stop the moment the last film ends.
  *
+ * The reel is driven by the media, not the clock
+ * -----------------------------------------------
+ * A beat starts at the later of its scheduled slot and the moment its clip can
+ * first be shown, and each beat chains on the clip before it ending. That is the
+ * whole fix for the black-screen-and-skip behaviour on a slow connection (ISS-030):
+ * a clip that has not buffered delays the next beat rather than being skipped, and
+ * the hand-off waits for the last frame instead of firing at a fixed time.
+ *
+ * Only one film is on the wire at a time. The launch film loads up front, because
+ * the title card and the two stills give it ~5s of cover; the docking clip and the
+ * tour load when the beat before them starts. Each also carries a poster frame, so
+ * a clip that is still buffering shows a picture rather than a black rectangle.
+ *
  * The same hard-won rule as always still applies: **an animation is never
  * load-bearing.** Every shot's resting CSS state is the state that should be on
  * screen if no animation ever runs, and the end state is correct however it was
@@ -17,9 +30,8 @@
  * still for exactly as long as it would have moved, except the tour, whose
  * content is a sequence of captions.
  *
- * There is no skip. The screen's only exit is the hand-off timer below, which
- * makes it the most load-bearing line in the feature, and the reason
- * TOTAL_DURATION_MS is derived in the model rather than typed here.
+ * There is no skip. The screen's only exit is the hand-off when the last film
+ * ends, which is why the schedule is derived in the model rather than typed here.
  */
 
 import { nextStop } from '../../ui/registry';
@@ -31,21 +43,25 @@ import './launch.css';
 import pressUrl from '../../../Assets/images/launch/press.webp';
 import walkUrl from '../../../Assets/images/launch/walk.webp';
 import launchVideoUrl from '../../../Assets/images/launch/launch-cinematic.mp4';
+import launchPosterUrl from '../../../Assets/images/launch/launch-poster.webp';
 import dockingVideoUrl from '../../../Assets/video/docking.mp4';
+import dockingPosterUrl from '../../../Assets/video/docking-poster.webp';
 import partsVideoUrl from '../../../Assets/video/parts.mp4';
+import partsPosterUrl from '../../../Assets/video/parts-poster.webp';
 
 import {
   DOCKING_DESCRIPTION,
   DOCKING_DURATION_MS,
   FADE_MS,
   PARTS_DESCRIPTION,
+  PARTS_DURATION_MS,
   PRESS_SHOT,
   SHOTS,
   TITLE,
   TITLE_DURATION_MS,
-  TOTAL_DURATION_MS,
   VIDEO_DESCRIPTION,
   VIDEO_DURATION_MS,
+  resolveBeatStart,
   type Shot,
 } from './model';
 
@@ -85,6 +101,49 @@ function require<T extends HTMLElement>(root: HTMLElement, selector: string): T 
 /** True when the visitor asked for less motion. Read live, not once at boot. */
 function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+/**
+ * One film in the reel, and the runtime state that drives it.
+ *
+ * The fields the model could own (duration, the reduced-motion hold) are readonly
+ * and set once; the rest is bookkeeping for the media-driven schedule.
+ */
+interface Beat {
+  readonly el: HTMLVideoElement;
+  readonly url: string;
+  readonly posterUrl: string;
+  readonly durationMs: number;
+  /** The earliest this beat may start, in ms from mount. The previous beat moves it. */
+  earliestMs: number;
+  /** The frame reduced motion holds, or null when the clip plays anyway. */
+  readonly holdSeconds: number | null;
+  /** True once the clip has a frame to show. */
+  ready: boolean;
+  /** When the clip became ready, in ms from mount. 0 until it signals. */
+  readyAtMs: number;
+  /** True once this beat has started, so a beat cannot start twice. */
+  started: boolean;
+  /** When the beat actually started, in ms from mount. */
+  startedAtMs: number;
+  /** True until the beat before this one has finished. */
+  awaitingPredecessor: boolean;
+  /** A pending earliest-slot timer, or null. */
+  timer: number | null;
+  /** True once the src has been assigned, so a film loads once. */
+  loaded: boolean;
+  /** True once this beat's successor has been armed. */
+  successorArmed: boolean;
+  /** True when the clip failed, so the chain advances on its nominal duration. */
+  failed: boolean;
+  /** The `ended` listener, so teardown and an error can remove it. */
+  endedHandler: (() => void) | null;
+  /** The `loadeddata` listener, for teardown. */
+  loadedHandler: (() => void) | null;
+  /** The `seeked` listener, for teardown. */
+  seekedHandler: (() => void) | null;
+  /** The `error` listener, for teardown. */
+  errorHandler: (() => void) | null;
 }
 
 export function mountLaunch(
@@ -177,123 +236,321 @@ export function mountLaunch(
   // keyframes still describe the same three spikes as the model's FLASH_TIMES.
   flash.dataset.launchFlashCount = String(SHOTS.filter((shot) => shot.hasPress).length);
 
+  // ---------- THE REEL ----------
+  const reduced = prefersReducedMotion();
+  root.dataset.launchMotion = reduced ? 'reduced' : 'full';
+
   /*
-   * The launch film cross-dissolves in over the walk shot, beginning one fade
-   * before the walk shot ends so the two cross the way the stills do. It is
-   * parked on its first frame until playback begins, so the dissolve reveals a
-   * picture and not a black rectangle.
-   *
-   * The two clips that follow start exactly when the film before them ends. Both
-   * open on black, so each element's fade-in reads as a fade through black rather
-   * than a hard cut.
+   * Milliseconds from this mount, which is the only clock the schedule uses. The
+   * stills run on CSS animations and need none of it; the films are timed from
+   * here so that a beat that starts late pushes the beats after it, rather than
+   * leaving them behind.
    */
-  const filmBegins = TITLE_DURATION_MS + SHOTS.reduce((total, shot) => total + shot.durationMs, 0);
+  const mountedAt = performance.now();
+  const now = (): number => performance.now() - mountedAt;
+
+  const shotsTotal = SHOTS.reduce((total, shot) => total + shot.durationMs, 0);
+  const filmBegins = TITLE_DURATION_MS + shotsTotal;
   const dockingBegins = filmBegins + VIDEO_DURATION_MS;
   const partsBegins = dockingBegins + DOCKING_DURATION_MS;
 
-  /*
-   * Muted in the markup too, so the films can play without a user gesture. The
-   * property is the one that counts; the attribute alone does not stick in every
-   * engine.
-   */
-  video.src = launchVideoUrl;
-  video.muted = true;
-  video.currentTime = 0;
-  video.style.setProperty('--launch-video-fade', `${FADE_MS}ms`);
-  video.style.setProperty('--launch-video-delay', `${filmBegins - FADE_MS}ms`);
+  const beats: Beat[] = [
+    {
+      el: video,
+      url: launchVideoUrl,
+      posterUrl: launchPosterUrl,
+      durationMs: VIDEO_DURATION_MS,
+      earliestMs: filmBegins,
+      holdSeconds: REDUCED_MOTION_LAUNCH_SECONDS,
+      ready: false,
+      readyAtMs: 0,
+      started: false,
+      startedAtMs: 0,
+      awaitingPredecessor: false,
+      timer: null,
+      loaded: false,
+      successorArmed: false,
+      failed: false,
+      endedHandler: null,
+      loadedHandler: null,
+      seekedHandler: null,
+      errorHandler: null,
+    },
+    {
+      el: docking,
+      url: dockingVideoUrl,
+      posterUrl: dockingPosterUrl,
+      durationMs: DOCKING_DURATION_MS,
+      earliestMs: dockingBegins,
+      holdSeconds: REDUCED_MOTION_DOCKING_SECONDS,
+      ready: false,
+      readyAtMs: 0,
+      started: false,
+      startedAtMs: 0,
+      awaitingPredecessor: true,
+      timer: null,
+      loaded: false,
+      successorArmed: false,
+      failed: false,
+      endedHandler: null,
+      loadedHandler: null,
+      seekedHandler: null,
+      errorHandler: null,
+    },
+    {
+      el: parts,
+      url: partsVideoUrl,
+      posterUrl: partsPosterUrl,
+      durationMs: PARTS_DURATION_MS,
+      earliestMs: partsBegins,
+      holdSeconds: null,
+      ready: false,
+      readyAtMs: 0,
+      started: false,
+      startedAtMs: 0,
+      awaitingPredecessor: true,
+      timer: null,
+      loaded: false,
+      successorArmed: false,
+      failed: false,
+      endedHandler: null,
+      loadedHandler: null,
+      seekedHandler: null,
+      errorHandler: null,
+    },
+  ];
 
-  docking.src = dockingVideoUrl;
-  docking.muted = true;
-  docking.currentTime = 0;
-  docking.style.setProperty('--launch-video-fade', `${FADE_MS}ms`);
-  docking.style.setProperty('--launch-clip-delay', `${dockingBegins}ms`);
+  const destination = nextStop('launch');
+  let handedOff = false;
+  let handOffTimer: number | null = null;
 
-  parts.src = partsVideoUrl;
-  parts.muted = true;
-  parts.currentTime = 0;
-  parts.style.setProperty('--launch-video-fade', `${FADE_MS}ms`);
-  parts.style.setProperty('--launch-clip-delay', `${partsBegins}ms`);
+  /** The screen's only exit: the next stop, once and only once. */
+  const handOff = (): void => {
+    if (handedOff) return;
+    handedOff = true;
 
-  root.dataset.launchMotion = prefersReducedMotion() ? 'reduced' : 'full';
+    if (destination !== null) navigate(destination);
+  };
+
+  /** Hand off on a timer, used when the last clip cannot signal its own end. */
+  const armHandOff = (atMs: number): void => {
+    if (handOffTimer !== null) window.clearTimeout(handOffTimer);
+    handOffTimer = window.setTimeout(handOff, Math.max(0, atMs - now()));
+  };
 
   /**
-   * Start a film, or hold it on one frame.
+   * Give a film its src, but only once.
    *
-   * Reduced motion seeks to the still and pauses there. The seek is applied
-   * once the metadata arrives, which every engine does on its own — setting
-   * `currentTime` before that is the default playback start position, not a
-   * no-op — so the frame is on screen by the time the film fades in.
+   * Only the launch film is loaded at mount. The other two load here, when the
+   * beat before them starts, so a re-arm cannot restart a load and only one film
+   * is on the wire at a time.
    */
-  const beginLaunchFilm = (): void => {
-    if (root.dataset.launchMotion === 'reduced') {
-      video.currentTime = REDUCED_MOTION_LAUNCH_SECONDS;
-      video.pause();
+  const loadFilm = (beat: Beat): void => {
+    if (beat.loaded) return;
+    beat.loaded = true;
+
+    // The poster is set here too, so a clip that is still buffering shows its
+    // picture from the moment it is stacked, before its first frame arrives.
+    beat.el.src = beat.url;
+    beat.el.poster = beat.posterUrl;
+    beat.el.muted = true;
+    beat.el.preload = 'auto';
+    beat.el.style.setProperty('--launch-video-fade', `${FADE_MS}ms`);
+    beat.el.load();
+  };
+
+  /** Arm the earliest-slot timer for one beat. */
+  const arm = (index: number, atMs: number): void => {
+    const beat = beats[index];
+    if (beat.timer !== null) window.clearTimeout(beat.timer);
+    beat.timer = window.setTimeout(() => {
+      beat.timer = null;
+      begin(index);
+    }, Math.max(0, atMs - now()));
+  };
+
+  /** Add the reveal class, then arm the hand-off or the next beat. */
+  const startBeat = (index: number): void => {
+    const beat = beats[index];
+    beat.started = true;
+    beat.startedAtMs = now();
+
+    // The previous picture stays put; this one fades in over it. The resting state
+    // is hidden, so a clip that never becomes ready leaves the one before it on
+    // screen rather than a black rectangle.
+    if (index > 0) beats[index - 1].el.pause();
+    beat.el.classList.add('launch__on');
+
+    if (reduced && beat.holdSeconds !== null) {
+      // A held clip is already parked on its frame by the seek in `onLoaded`.
+      beat.el.pause();
+    } else {
+      // Rewind first: the film element outlives this mount, and a player who
+      // comes back to the screen after it ended would otherwise get nothing.
+      beat.el.currentTime = 0;
+      // A clip that refuses to play is treated as a failure, so the reel advances
+      // on its nominal duration instead of stalling with nothing moving.
+      void beat.el.play().catch(() => onError(index));
+    }
+
+    armSuccessor(index);
+  };
+
+  /**
+   * Arm the beat after this one.
+   *
+   * A playing clip ends on its own, so the next beat chains on its `ended` — that
+   * is what makes a stall delay the reel instead of cutting it. A held clip never
+   * ends and a failed clip will not either, so both wait a timer instead.
+   */
+  const armSuccessor = (index: number): void => {
+    const beat = beats[index];
+    if (beat.successorArmed) return;
+    beat.successorArmed = true;
+
+    const useTimer = (reduced && beat.holdSeconds !== null) || beat.failed;
+    const atMs = beat.startedAtMs + beat.durationMs;
+
+    if (index + 1 >= beats.length) {
+      if (useTimer) armHandOff(atMs);
+      else armEnded(beat, handOff);
       return;
     }
 
-    // Rewind first: the film element outlives this mount, and a player who
-    // comes back to the screen after it ended would otherwise get nothing.
-    video.currentTime = 0;
-    void video.play().catch(() => undefined);
+    const next = beats[index + 1];
+    loadFilm(next);
+    next.awaitingPredecessor = false;
+
+    if (useTimer) {
+      next.earliestMs = atMs;
+      arm(index + 1, atMs);
+    } else {
+      armEnded(beat, () => {
+        next.earliestMs = now();
+        begin(index + 1);
+      });
+    }
   };
 
-  const beginDocking = (): void => {
-    video.pause();
+  /** Chain a beat on a clip's `ended`, keeping the listener so it can be removed. */
+  const armEnded = (beat: Beat, onEnded: () => void): void => {
+    if (beat.endedHandler !== null) return;
+    beat.endedHandler = onEnded;
+    beat.el.addEventListener('ended', onEnded);
+  };
 
-    if (root.dataset.launchMotion === 'reduced') {
-      docking.currentTime = REDUCED_MOTION_DOCKING_SECONDS;
-      docking.pause();
+  /**
+   * Start a beat if its predecessor is done and it has a frame.
+   *
+   * `resolveBeatStart` is the policy: never before the earliest slot, never before
+   * the clip is ready. A clip that is not ready yet simply waits, and the
+   * `loadeddata`/`seeked` handler calls this again when it is.
+   */
+  const begin = (index: number): void => {
+    const beat = beats[index];
+    if (beat.started || beat.awaitingPredecessor) return;
+
+    const start = resolveBeatStart(beat.earliestMs, beat.ready ? beat.readyAtMs : null);
+    if (start > now()) {
+      arm(index, start);
       return;
     }
 
-    docking.currentTime = 0;
-    void docking.play().catch(() => undefined);
+    if (!beat.ready) return;
+    startBeat(index);
   };
 
-  /*
-   * The tour plays under reduced motion too. Its content is four captions in
-   * sequence: holding it on one frame would show the first part and hide the
-   * other three, which is less information, not less movement.
-   */
-  const beginParts = (): void => {
-    docking.pause();
-    parts.currentTime = 0;
-    void parts.play().catch(() => undefined);
-  };
-
-  /*
-   * The timers, and the only way off the screen.
+  /**
+   * A clip has its first frame.
    *
-   * There is no skip. One consequence worth writing down: if these never fire
-   * the player is stuck, so they come from constants derived in the model
-   * rather than from a measurement, and the feature is arranged so that the
-   * only thing that can go wrong on the way in is a loud throw from `require`.
+   * Under reduced motion a held clip is parked on its representative frame instead
+   * of being marked ready, and `seeked` finishes the job — the frame is the picture
+   * the motion-sensitive player sees, so it has to exist before it is revealed.
    */
-  let startLaunchFilm: number | null = null;
-  let startDocking: number | null = null;
-  let startParts: number | null = null;
-  let handOff: number | null = null;
-  const destination = nextStop('launch');
+  const onLoaded = (index: number): void => {
+    const beat = beats[index];
 
+    if (reduced && beat.holdSeconds !== null) {
+      beat.el.currentTime = beat.holdSeconds;
+      return;
+    }
+
+    beat.ready = true;
+    beat.readyAtMs = now();
+    begin(index);
+  };
+
+  /** A held clip has finished seeking, so its frame can be revealed. */
+  const onSeeked = (index: number): void => {
+    const beat = beats[index];
+    if (!(reduced && beat.holdSeconds !== null)) return;
+
+    beat.ready = true;
+    beat.readyAtMs = now();
+    begin(index);
+  };
+
+  /**
+   * A clip failed.
+   *
+   * The poster stays on screen and the chain moves on by the clip's nominal
+   * duration, so a dead connection neither shows black nor hangs the screen. The
+   * `ended` listener is dropped because a failed clip will never fire it.
+   */
+  const onError = (index: number): void => {
+    const beat = beats[index];
+
+    if (beat.endedHandler !== null) {
+      beat.el.removeEventListener('ended', beat.endedHandler);
+      beat.endedHandler = null;
+    }
+
+    if (!beat.started) {
+      beat.started = true;
+      beat.startedAtMs = Math.max(beat.earliestMs, beat.readyAtMs);
+      beat.el.classList.add('launch__on');
+    }
+
+    beat.failed = true;
+    if (beat.successorArmed) beat.successorArmed = false;
+    armSuccessor(index);
+  };
+
+  beats.forEach((beat, index) => {
+    beat.loadedHandler = () => onLoaded(index);
+    beat.seekedHandler = () => onSeeked(index);
+    beat.errorHandler = () => onError(index);
+
+    beat.el.addEventListener('loadeddata', beat.loadedHandler);
+    beat.el.addEventListener('seeked', beat.seekedHandler);
+    beat.el.addEventListener('error', beat.errorHandler);
+  });
+
+  /*
+   * Start the reel. The film's earliest slot is its beat in the sequence; whether
+   * it starts then or later is decided by `begin` against its readiness.
+   */
   if (destination !== null) {
-    startLaunchFilm = window.setTimeout(beginLaunchFilm, filmBegins);
-    startDocking = window.setTimeout(beginDocking, dockingBegins);
-    startParts = window.setTimeout(beginParts, partsBegins);
-    handOff = window.setTimeout(() => navigate(destination), TOTAL_DURATION_MS);
+    loadFilm(beats[0]);
+    begin(0);
   }
 
   return () => {
-    if (startLaunchFilm !== null) window.clearTimeout(startLaunchFilm);
-    if (startDocking !== null) window.clearTimeout(startDocking);
-    if (startParts !== null) window.clearTimeout(startParts);
-    if (handOff !== null) window.clearTimeout(handOff);
-    // A torn-down screen must not keep playing behind the next one.
-    video.pause();
-    docking.pause();
-    parts.pause();
-    startLaunchFilm = null;
-    startDocking = null;
-    startParts = null;
-    handOff = null;
+    for (const beat of beats) {
+      if (beat.timer !== null) window.clearTimeout(beat.timer);
+      if (beat.endedHandler !== null) beat.el.removeEventListener('ended', beat.endedHandler);
+      if (beat.loadedHandler !== null) beat.el.removeEventListener('loadeddata', beat.loadedHandler);
+      if (beat.seekedHandler !== null) beat.el.removeEventListener('seeked', beat.seekedHandler);
+      if (beat.errorHandler !== null) beat.el.removeEventListener('error', beat.errorHandler);
+
+      // A torn-down screen must not keep playing — or holding a buffer — behind the
+      // next one.
+      beat.el.pause();
+      beat.el.removeAttribute('src');
+      beat.el.load();
+      beat.el.classList.remove('launch__on');
+    }
+
+    if (handOffTimer !== null) window.clearTimeout(handOffTimer);
   };
 }

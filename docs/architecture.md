@@ -48,6 +48,10 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
 ├── Assets/
 │   ├── images/floating.png             complete   145 KB astronaut sprite, imported from TS so
 │   │                                             Vite fingerprints it into dist/
+│   ├── images/launch/                  complete   launch-cinematic.mp4 (6.9 MB, the launch film) and
+│   │                                             launch-poster.webp (90 KB, the pad frame the film
+│   │                                             is parked on). Both imported from TS so Vite
+│   │                                             fingerprints them.
 │   ├── images/docking/                 complete   3 WebP stills, ~150 KB each: the separated
 │   │                                             spacecraft, the docked craft and the assembled
 │   │                                             station. Read by tools/render-docking.py.
@@ -61,14 +65,25 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
 │   ├── docking.mp4                     complete   1.7 MB. 3.0s, 1920x1080, 30fps, H.264, silent.
 │   │                                             The rendered docking clip. Built by
 │   │                                             tools/render-docking.py.
-│   └── parts.mp4                       complete   5.5 MB. 12.0s, 1920x1080, 30fps, H.264, silent.
-│                                                 The "meet the spacecraft" segment: title, four
-│                                                 labelled parts with descriptions, overview outro.
-│                                                 Each part holds 2.0s so its description can be
-│                                                 read; the lower-third sits below the panels.
-│                                                 Built by tools/render-parts.py.
+│   ├── docking-poster.webp             complete   97 KB. The finished joint with its latch ring lit,
+│   │                                             used as the clip's poster while it buffers. Built by
+│   │                                             tools/extract-posters.py.
+│   ├── parts.mp4                       complete   5.5 MB. 12.0s, 1920x1080, 30fps, H.264, silent.
+│   │                                             The "meet the spacecraft" segment: title, four
+│   │                                             labelled parts with descriptions, overview outro.
+│   │                                             Each part holds 2.0s so its description can be
+│   │                                             read; the lower-third sits below the panels.
+│   │                                             Built by tools/render-parts.py.
+│   └── parts-poster.webp               complete   98 KB. The tour's "MEET THE SPACECRAFT" title card,
+│                                                 used as the clip's poster while it buffers. The first
+│                                                 frame would be black, so the poster is a frame in.
+│                                                 Built by tools/extract-posters.py.
 │
 ├── tools/
+│   ├── extract-posters.py              complete   ~55 lines. PyAV. Writes one WebP poster per film at a
+│   │                                             chosen frame, so a clip that is still buffering shows
+│   │                                             a picture rather than black. The tour's poster is its
+│   │                                             title card, because the clip opens on black.
 │   ├── render-docking.py               complete   241 lines. PIL + numpy + OpenCV + PyAV. Cuts the head out
 │   │                                             of the separated frame, rebuilds the black space
 │   │                                             behind it, and moves the sprite across a headless
@@ -77,7 +92,7 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
 │                                                 four part stills under a push-in, with staggered
 │                                                 description bars and fade-through-black bookends.
 │
-│   Both are dev tools: not scanned by `npm run check`, and they add no runtime dependency.
+│   All three are dev tools: not scanned by `npm run check`, and they add no runtime dependency.
 │
 ├── scripts/
 │   └── check-imports.mjs               complete   Zone + banned-API checker, 9 rule ids.
@@ -407,8 +422,9 @@ screen.
 | | `DOCKING_DESCRIPTION` | what the docking clip shows, for screen readers |
 | | `PARTS_DURATION_MS` | 12000 — the rendered spacecraft tour, matched frame-for-frame |
 | | `PARTS_DESCRIPTION` | the four parts the tour names, for screen readers |
-| | `TOTAL_DURATION_MS` | title + shots + all three films; the screen's only exit is a timer set from this |
-| `features/launch/view` | `mountLaunch` | `(root, run) -> teardown`; plays the stills, then the launch film, the docking clip and the tour, handing off at `TOTAL_DURATION_MS`; reduced motion holds the stills and the first two films, and plays the tour because its content is captions |
+| | `TOTAL_DURATION_MS` | title + shots + all three films; the reel's *nominal* runtime, not a timer — the screen exits when the last clip ends |
+| | `resolveBeatStart` | `(earliestMs, readyAtMs) -> ms`; a beat starts at the later of its slot and its clip's readiness |
+| `features/launch/view` | `mountLaunch` | `(root, run) -> teardown`; plays the stills, then the launch film, the docking clip and the tour, handing off when the last clip ends. Beats are media-driven: only the launch film loads up front, the other two load when the beat before them starts, each has a poster, and a beat waits for its clip rather than being skipped. Reduced motion holds the stills and the first two films, and plays the tour because its content is captions |
 | `dom/floatAstronaut` | `startFloatingAstronaut` | `(wrapper, {deformLayer, reducedMotion}) -> teardown`; cancels rAF, removes the resize listener, detaches the grab, clears the transform |
 | `dom/pointerGrab` | `attachGrab` | `(target, handlers, options) -> teardown` |
 | `dom/starfield` | `createStarfield` | `(container) => void`; appends, never clears |
