@@ -7,6 +7,8 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 
 | id | task | goal | owner | status | blocked by | notes |
 | --- | --- | --- | --- | --- | --- | --- |
+| TASK-041 | Give no directional hint on the first wrong answer on the ration check | G-7 | agent | done | — | D-028, ISS-035. The bubble keeps the question on the first wrong pick; the hint appears from the second on. Browser check outstanding |
+| TASK-040 | Make the player try again on the ration check instead of reverting on a timer | G-7 | agent | done | — | D-028, ISS-034. TRY AGAIN button; the working hides the answer until it is earned. Browser check outstanding |
 | TASK-039 | Stop the launch reel showing black and skipping on a slow connection | G-7 | agent | done | — | D-027, ISS-030. Media-driven beats, lazy loading, poster frames; browser check outstanding |
 | TASK-038 | Play the docking clip and the spacecraft tour after the launch film | G-7 | agent | done | — | D-025, D-026; ISS-028, ISS-029. `launch/model.ts` carries all three lengths |
 | TASK-037 | Render the "meet the spacecraft" segment | G-7 | agent | done | — | D-024. `tools/render-parts.py` + `Assets/video/parts.mp4`; PIL/numpy/OpenCV + PyAV (H.264), no new dependency |

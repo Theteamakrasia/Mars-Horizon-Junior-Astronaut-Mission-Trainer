@@ -259,6 +259,21 @@
             <p class="supply__result" data-supply-result hidden></p>
           </div>
 
+          <!-- TRY AGAIN. Shown only after a wrong answer.
+
+               The wrong frame used to time out on its own and take the choice
+               away, which took the feedback off screen while the child was
+               still reading it. Now the alarm frame stays up until this is
+               pressed, so the player decides when to have another go. -->
+          <button
+            class="supply__action supply__action--retry"
+            type="button"
+            data-supply-retry
+            hidden
+          >
+            Try again
+          </button>
+
           <button
             class="supply__action supply__action--primary"
             type="button"

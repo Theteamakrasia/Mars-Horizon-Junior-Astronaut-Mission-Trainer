@@ -181,14 +181,33 @@ export function hintFor(verdict: Verdict): string | null {
 }
 
 /**
- * The working, spelled out for a child who got it wrong.
+ * The blank the working leaves for the answer while the player is still working.
+ *
+ * The working ends with the number under test - "so 240 divided by 3 is 80
+ * packets" - so putting it on screen put the answer in front of the player for
+ * as long as they were looking at it. That is no use to a question meant to be
+ * worked out: the number stops being a number under test and becomes a number
+ * to read.
+ *
+ * So the sentence is shown with the answer left out, and completed only once the
+ * answer has actually been earned.
+ */
+export const ANSWER_BLANK = '___';
+
+/**
+ * The working, as one sentence with the answer at the end.
  *
  * Built from QUESTION rather than written as a fixed sentence. An earlier version
  * hardcoded the prose ("2 months is 60 days...") while the arithmetic lived in
  * another function, which is exactly how a screen ends up showing 60 days beside a
  * question about a different number of months. Here there is one source.
+ *
+ * The tail is a parameter rather than being built here, so the version with the
+ * answer and the version without it cannot drift apart. Two separate sentences
+ * would be two places for the same arithmetic to be restated, which is the
+ * mistake this function exists to prevent.
  */
-export function workingSentence(months: number = QUESTION.months, crewSize: number = QUESTION.crewSize): string {
+function workingText(tail: string, months: number, crewSize: number): string {
   const days = missionDays(months);
   const personDays = astronautDays(months, crewSize);
 
@@ -196,8 +215,27 @@ export function workingSentence(months: number = QUESTION.months, crewSize: numb
     `${months} months is ${days} days. ` +
     `${days} days for each of ${crewSize} astronauts is ${personDays} astronaut-days. ` +
     `Each packet covers ${DAYS_PER_PACKET} days, so ${personDays} divided by ${DAYS_PER_PACKET} is ` +
-    `${packsFor(months, crewSize)} packets.`
+    tail
   );
+}
+
+/** The working, with the answer in it. Shown once the answer has been earned. */
+export function workingSentence(months: number = QUESTION.months, crewSize: number = QUESTION.crewSize): string {
+  return workingText(`${packsFor(months, crewSize)} packets.`, months, crewSize);
+}
+
+/**
+ * The working, with the answer left out. Shown while the player is still trying.
+ *
+ * The method is the part worth showing: the days, the astronaut-days and the
+ * division. The number it arrives at is the thing being tested, so it is left
+ * as a blank for the player to fill in.
+ */
+export function workingSentenceBlanked(
+  months: number = QUESTION.months,
+  crewSize: number = QUESTION.crewSize,
+): string {
+  return workingText(`${ANSWER_BLANK} packets.`, months, crewSize);
 }
 
 /** The sentence shown after a correct answer, with the real-world mass attached. */

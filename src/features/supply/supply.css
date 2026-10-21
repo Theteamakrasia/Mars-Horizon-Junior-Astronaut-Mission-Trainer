@@ -359,6 +359,29 @@
   color: #1b0c00;
 }
 
+/* ---------- TRY AGAIN ----------
+   The way back from a wrong answer.
+
+   Red, because the room is still in the alarm state until this is pressed, and
+   a different colour from the orange Continue button, so the two are never
+   confused for one another.
+
+   Written after .supply__action:hover on purpose. Both rules have the same
+   specificity, so the later one is the one that applies - put this above that
+   rule and the hover would go back to the blue.
+*/
+.supply__action--retry {
+  border-color: var(--s-bad);
+  background: rgba(58, 14, 14, 0.85);
+  color: var(--s-bad);
+}
+
+.supply__action--retry:hover {
+  border-color: var(--s-bad);
+  background: rgba(92, 22, 20, 0.92);
+  color: #ffe9e7;
+}
+
 /* ---------- NARROW ----------
    The bubble and the rail both track the picture, so they shrink with the stage
    rather than being re-laid-out. The rail widens a little because its labels are

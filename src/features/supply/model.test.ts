@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  ANSWER_BLANK,
   APPROX_KG_PER_ASTRONAUT_PER_DAY,
   CHOICES,
   CORRECT_ANSWER,
@@ -17,6 +18,7 @@ import {
   packsFor,
   successSentence,
   workingSentence,
+  workingSentenceBlanked,
 } from './model';
 
 /**
@@ -249,6 +251,41 @@ describe('workingSentence', () => {
     expect(workingSentence(1, 2)).toBe(
       '1 months is 30 days. 30 days for each of 2 astronauts is 60 astronaut-days. ' +
         'Each packet covers 3 days, so 60 divided by 3 is 20 packets.',
+    );
+  });
+});
+
+describe('workingSentenceBlanked', () => {
+  it('leaves the answer out', () => {
+    expect(workingSentenceBlanked()).toBe(
+      '2 months is 60 days. 60 days for each of 4 astronauts is 240 astronaut-days. ' +
+        'Each packet covers 3 days, so 240 divided by 3 is ___ packets.',
+    );
+  });
+
+  it('does not give the answer away', () => {
+    const sentence = workingSentenceBlanked();
+
+    expect(sentence).toContain(ANSWER_BLANK);
+    expect(sentence).not.toContain(String(CORRECT_ANSWER));
+  });
+
+  it('still shows the method', () => {
+    const sentence = workingSentenceBlanked();
+
+    expect(sentence).toContain(String(missionDays(QUESTION.months)));
+    expect(sentence).toContain(String(astronautDays(QUESTION.months, QUESTION.crewSize)));
+    expect(sentence).toContain(String(DAYS_PER_PACKET));
+  });
+
+  it('differs from the full working only in the answer', () => {
+    expect(workingSentenceBlanked().replace(ANSWER_BLANK, String(CORRECT_ANSWER))).toBe(workingSentence());
+  });
+
+  it('can be given other numbers', () => {
+    expect(workingSentenceBlanked(1, 2)).toBe(
+      '1 months is 30 days. 30 days for each of 2 astronauts is 60 astronaut-days. ' +
+        'Each packet covers 3 days, so 60 divided by 3 is ___ packets.',
     );
   });
 });

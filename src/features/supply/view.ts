@@ -48,6 +48,7 @@ import {
   judge,
   successSentence,
   workingSentence,
+  workingSentenceBlanked,
 } from './model';
 
 /** How long a bubble fades out before the next one is written into it. */
@@ -65,9 +66,6 @@ const SWAP_MS = 220;
  * of truth for one effect.
  */
 const SCENE_LOAD_FALLBACK_MS = 700;
-
-/** How long the wrong frame is held before the buttons come back. */
-const RETRY_DELAY_MS = 1100;
 
 /**
  * Illustrations, by state. Imported so Vite fingerprints and bundles them.
@@ -131,6 +129,7 @@ export function mountSupply(
   const choiceList = require<HTMLUListElement>(root, '[data-supply-choices]');
   const result = require<HTMLParagraphElement>(root, '[data-supply-result]');
   const advance = require<HTMLButtonElement>(root, '[data-supply-next]');
+  const retry = require<HTMLButtonElement>(root, '[data-supply-retry]');
   const cont = require<HTMLButtonElement>(root, '[data-supply-continue]');
 
   /*
@@ -255,6 +254,17 @@ const reduced = prefersReducedMotion();
   };
 
   /*
+   * What the bubble is heading for.
+   *
+   * Set when a line is asked for, not when it lands, so it is right even while
+   * a crossfade is still running. The view needs it to tell whether the
+   * question is already up before asking it again: after a first wrong answer
+   * the bubble still holds it, because no hint was given, and asking it again
+   * would be a fade out and a fade in of the same words.
+   */
+  let currentLine = '';
+
+  /*
    * Write one line into the bubble and make it visible.
    *
    * Text is written *before* the bubble is shown, never revealed by animating a
@@ -282,6 +292,10 @@ const reduced = prefersReducedMotion();
    * collapses to a plain swap there.
    */
   const swapTo = (label: string, text: string, then?: () => void): void => {
+    // The bubble is heading for this line from here on, even if the crossfade
+    // has not landed it yet.
+    currentLine = text;
+
     if (reduced || bubble.hidden) {
       render(label, text);
       if (then) then();
@@ -346,6 +360,8 @@ const reduced = prefersReducedMotion();
   let index = 0;
   /** True once the right answer has been given, which ends the interaction. */
   let solved = false;
+  /** How many wrong answers have been given, which is what the hint waits for. */
+  let wrongChoices = 0;
 
   /** Put the buttons on screen with nothing judged yet. */
   const askQuestion = (): void => {
@@ -357,6 +373,7 @@ const reduced = prefersReducedMotion();
     answers.hidden = false;
     result.hidden = true;
     result.textContent = '';
+    retry.hidden = true;
     cont.hidden = true;
     setChoicesEnabled(true);
   };
@@ -387,41 +404,82 @@ const reduced = prefersReducedMotion();
   const showWrong = (value: number): void => {
     setScene('wrong');
 
-    // Locked straight away, before anything is said about it. If this ran after the
-    // retry timer, a fast double-click could pick the same number twice.
+    // Locked straight away, before anything is said about it, so a fast
+    // double-click cannot pick the same number twice.
     lockChoice(value);
 
     // Everything is off during the alarm, not just the locked one, so the frame
     // reads as "stop" rather than leaving three live buttons under a red light.
     setChoicesEnabled(false);
 
-    const hint = hintFor(judge(value, CORRECT_ANSWER));
+    /*
+     * The hint is not given on the first wrong answer.
+     *
+     * The first mistake is where the child is still working it out, and a
+     * direction - "too low, think larger" - is what stops that working: it
+     * rules options out instead of letting the method rule them out. The
+     * blanked working is enough on its own for a first attempt, and the bubble
+     * keeps the question so it can be read again.
+     *
+     * From the second wrong answer on there is a nudge as well, because by then
+     * they have had the method once and are stuck rather than thinking.
+     */
+    wrongChoices += 1;
 
-    swapTo(
-      speaker,
-      hint === null
-        ? 'That is not one of the amounts on the board. Read the two numbers again.'
-        : hint,
-    );
+    if (wrongChoices > 1) {
+      const hint = hintFor(judge(value, CORRECT_ANSWER));
+
+      swapTo(
+        speaker,
+        hint === null
+          ? 'That is not one of the amounts on the board. Read the two numbers again.'
+          : hint,
+      );
+    }
 
     // The working goes in the rail, not the bubble, so the question stays on
     // screen beside it while the child reads what went wrong.
-    result.textContent = workingSentence();
+    //
+    // With the answer left out of it. The sentence ends with the number under
+    // test, so showing it in full put the answer on the rail for as long as
+    // the child was looking at it, which is no use to a question meant to be
+    // worked out. The full working arrives once the answer has been earned.
+    result.textContent = workingSentenceBlanked();
     result.hidden = false;
 
-    // Bring the remaining buttons back after a beat, so the wrong frame registers
-    // before the retry, and take the room back to the question frame so the player
-    // is not left working it out under the alarm.
+    // The alarm frame stays up until the player asks for another go. This used
+    // to time out on its own after a beat, which took the choice away while the
+    // child was still reading the hint; now the way back is a button they press.
     //
-    // Guarded on `solved` because a timer can outlive the answer: without the
-    // check, answering correctly during this window would be undone by a pending
-    // revert firing afterwards.
-    later(() => {
-      if (solved) return;
+    // Focus follows, because every choice button is disabled at this point and
+    // focus would otherwise fall back to the body, leaving a keyboard player
+    // with nowhere to be.
+    retry.hidden = false;
+    retry.focus({ preventScroll: true });
+  };
 
-      setScene('question');
-      setChoicesEnabled(true);
-    }, RETRY_DELAY_MS);
+  /**
+   * Take the room back to the question and let the player have another go.
+   *
+   * The question is asked again rather than left in the rail, because the bubble
+   * is the only place the full question has ever been spoken. After a wrong
+   * answer it may hold a hint, and someone working out the answer needs the
+   * question in front of them, not the hint they have already read.
+   *
+   * Asked only when it is not already up. A first wrong answer gives no hint,
+   * so the question is still in the bubble, and asking it again would be a fade
+   * out and a fade in of the same words.
+   */
+  const onRetry = (): void => {
+    if (solved) return;
+
+    retry.hidden = true;
+    setScene('question');
+    setChoicesEnabled(true);
+
+    if (currentLine !== QUESTION_PROMPT) {
+      swapTo(speaker, QUESTION_PROMPT);
+    }
   };
 
   /** Show the real answer and offer the way on. */
@@ -430,11 +488,15 @@ const reduced = prefersReducedMotion();
     setScene('right');
     setChoicesEnabled(false);
     advance.hidden = true;
+    retry.hidden = true;
 
     swapTo(speaker, successSentence());
 
-    result.hidden = true;
-    result.textContent = '';
+    // The working is completed now that the answer has been earned, so the
+    // blank the child was left with is filled in.
+    result.textContent = workingSentence();
+    result.hidden = false;
+
     cont.hidden = false;
   };
 
@@ -466,6 +528,7 @@ const reduced = prefersReducedMotion();
   };
 
   advance.addEventListener('click', revealNext);
+  retry.addEventListener('click', onRetry);
   cont.addEventListener('click', onContinue);
 
   // Open on the astronaut explaining, with the clipboard. The pointing-at-the-
@@ -482,6 +545,7 @@ const reduced = prefersReducedMotion();
 
   return () => {
     advance.removeEventListener('click', revealNext);
+    retry.removeEventListener('click', onRetry);
     cont.removeEventListener('click', onContinue);
 
     for (const button of choiceButtons) {

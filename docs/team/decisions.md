@@ -10,6 +10,45 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+**D-028 — agent · 2026-10-22**
+**Choice:** Ask the player to try again on the ration check — a TRY AGAIN button during
+the wrong frame — instead of reverting the screen on a timer; leave the answer out of
+the working until it has been earned; and give no directional hint on the first wrong
+answer, only from the second one on.
+**Why:** The user asked for it directly: the wrong-answer scene showed for a beat and
+then changed on its own, and the retry should be something the player does. The timer
+was defensible when it was written ("so the wrong frame registers before the retry"),
+but a delay that removes the choice is a delay the player cannot refuse, and for an
+eight-year-old who is still reading the hint it takes the feedback away at exactly the
+wrong moment. Putting the answer in the rail was worse, and for a longer reason: the
+working ends with the number under test, so the answer was readable straight off the
+screen while the question was supposed to be being worked out. A timed revert limited
+that to about a second; a manual retry would have removed the limit entirely. The hint
+was the same mistake in a different place: on a first wrong answer, "too low, think
+larger" is not feedback, it is the end of the thinking. The first attempt is where the
+child is still working, and the blanked working is the thing that helps them work —
+the direction only rules options out. From the second wrong answer on they have had the
+method once and are stuck rather than thinking, which is when a nudge earns its place.
+**Rejected:** Keeping the timer and only lengthening it (the player still cannot refuse
+the retry, and it makes the answer's exposure time arbitrary rather than absent);
+showing the full working during the retry (it shows the method *and* the answer, and the
+method is the only part worth showing); hiding the working entirely while the player
+retries (the days, the astronaut-days and the division are the teaching, and taking
+them away leaves a hint and a blank); re-enabling the choices but leaving the alarm
+frame up (two contradictory pieces of information at once); hinting on the first wrong
+answer (it answers the question of which way to go before the method has been used);
+hinting only on the last remaining attempt (the player has to be wrong twice before
+being told anything, and the second mistake is the one that lands).
+**Consequence:** `supply/view.ts` has no retry timer. `showWrong` shows the alarm frame
+and a TRY AGAIN button and waits; `onRetry` takes the room back to the question frame,
+re-enables the choices that were not retired, and asks the question again in the bubble
+— but only if it is not already there, which it is after a first wrong answer, because
+no hint was given to replace it. The view tracks the line the bubble is heading for so
+that check is right even mid-crossfade. `supply/model.ts` gains `ANSWER_BLANK` and
+`workingSentenceBlanked`, and both versions of the sentence are built from one
+`workingText` helper so they cannot drift apart. The rail is one button taller on the
+right-answer path, because the completed working now stays up next to CONTINUE.
+
 **D-027 — agent · 2026-10-21**
 **Choice:** Make the launch reel media-driven, serialise the three films onto the wire,
 and give each a poster frame — rather than re-encoding the footage.

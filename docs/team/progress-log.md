@@ -8,6 +8,66 @@ than a documented one.
 
 ---
 
+## 2026-10-22 — Make the player try again on the ration check, on purpose (ISS-034, ISS-035)
+
+**Did**
+
+- Replaced the timed revert on a wrong answer with a TRY AGAIN button. The alarm frame
+  now stays up until the player presses it; pressing it takes the room back to the
+  question frame, re-enables the choices that were not retired, and asks the question
+  again in the bubble. The retired option stays struck through and stays retired.
+- Removed `RETRY_DELAY_MS` from `supply/view.ts` — the timer is gone, and
+  `noUnusedLocals` would have failed the typecheck on the dead constant.
+- Left the answer out of the working while the player is still trying
+  (`workingSentenceBlanked`: "…so 240 divided by 3 is ___ packets.") and completed it
+  once the answer has been earned. Both sentences are built from one `workingText`
+  helper, so the two versions cannot drift apart.
+- Gave no directional hint on the first wrong answer — the alarm frame, the blanked
+  working and the question still in the bubble. From the second wrong answer on, the
+  hint appears. A direction on the first attempt answers the question of which way to
+  go before the method has been used.
+- Moved focus to the TRY AGAIN button when a wrong answer lands. Every choice button is
+  disabled at that moment, so focus would otherwise fall back to the body and a keyboard
+  player would have nowhere to be.
+
+**Files**
+
+- Updated: `src/features/supply/model.ts`, `src/features/supply/model.test.ts`,
+  `src/features/supply/view.ts`, `src/features/supply/supply.css`, `index.html`,
+  `docs/team/issues.md`, `docs/team/decisions.md`, `docs/team/tasks.md`, this log.
+- Added: nothing. No new file, so `docs/architecture.md`'s file tree is unchanged — and
+  the supply feature is still missing from its contract table, which is ISS-024.
+
+**Problems**
+
+- `node_modules` was not installed on this machine, so `npm run check` and `npm test`
+  could not run at all until `npm install` was run. No dependency was added; the
+  install only fetched the dev dependencies already in `package.json`.
+- The rail is now one button taller on the right-answer path, because the completed
+  working stays up beside CONTINUE where it used to be cleared. It is bottom-anchored
+  and 20% wide on the right of the stage, so it grows upward over the wall rather than
+  over the astronaut or the checklist — but this has not been looked at in a browser.
+- There is still no way to test any of this in the repo. The view is DOM code and Vitest
+  runs in node with no DOM (ISS-013), so the flow was checked with a throwaway DOM stub
+  — mounted the view, clicked through the six facts, picked a wrong answer, confirmed no
+  hint was given and the question was still up, waited past the old 1100ms and confirmed
+  nothing moved on its own, pressed TRY AGAIN and confirmed the room went back to the
+  question with the wrong option still retired, picked wrong again and confirmed the
+  hint arrived that time, then answered correctly and confirmed the completed working.
+  The harness was deleted rather than committed: hand-rolled DOM stubs are not a pattern
+  this repo has agreed to, and TASK-009 (jsdom) is the right home for it. The model half
+  is covered by five new tests on `workingSentenceBlanked`.
+
+**Next**
+
+- Open `#/supply` in a browser and play it through: pick a wrong answer, confirm the
+  alarm frame stays, press TRY AGAIN, confirm the question comes back and the struck-
+  through option stays dead, then answer correctly and confirm the completed working
+  and CONTINUE. Check the rail against the artwork at the same time, since that is the
+  one thing that could look wrong — the DOM stub cannot see how it looks.
+
+---
+
 ## 2026-10-22 — Replace the parts tour video with an interactive parts panel (ISS-033)
 
 **Did**
