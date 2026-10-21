@@ -366,6 +366,178 @@
       <p class="launch__visually-hidden" data-launch-description></p>
     </section>
 
+    <!-- The spacecraft interior: the tour between the launch cinematic and the
+         landing-site choice. The player walks the transit habitat, hears one
+         brief per room, and loops back to the cabin after the last room. The
+         cabin then offers the landing seam; the landing screen is built later.
+
+         Six stills are stacked here and crossfaded, not re-created on every
+         room change. They carry no src: interior/view.ts imports the WebPs so
+         Vite fingerprints them and assigns them at mount, which also means all
+         six are decoded before the first N press.
+
+         The movement sheet is six WebP strips in Assets/images/interior/sprite,
+         sliced by tools/slice-interior-sprites.py. The supplied contact sheet's
+         labels and frame numbers were cropped away by that tool.
+
+         Every element interior/view.ts queries carries a data hook below.
+         scripts/check-markup.mjs fails the build if one is removed. -->
+    <section id="interior" class="interior" aria-label="Inside the spacecraft">
+      <div class="interior__stage">
+        <!-- Room stills, in tour order. The first is the cabin the player
+             arrives in; the class is moved by view.ts. -->
+        <img
+          class="interior__room is-active"
+          data-interior-room
+          alt=""
+          aria-hidden="true"
+          decoding="async"
+        />
+        <img
+          class="interior__room"
+          data-interior-room
+          alt=""
+          aria-hidden="true"
+          decoding="async"
+        />
+        <img
+          class="interior__room"
+          data-interior-room
+          alt=""
+          aria-hidden="true"
+          decoding="async"
+        />
+        <img
+          class="interior__room"
+          data-interior-room
+          alt=""
+          aria-hidden="true"
+          decoding="async"
+        />
+        <img
+          class="interior__room"
+          data-interior-room
+          alt=""
+          aria-hidden="true"
+          decoding="async"
+        />
+        <img
+          class="interior__room"
+          data-interior-room
+          alt=""
+          aria-hidden="true"
+          decoding="async"
+        />
+
+        <!-- The player's sprite. The cell is 260x340 with the feet on the
+             baseline; the strip inside is moved one frame at a time by CSS. The
+             whole thing is decorative: the brief carries the words. -->
+        <div class="interior__player" data-interior-player aria-hidden="true">
+          <div class="interior__sprite" data-interior-sprite></div>
+        </div>
+
+        <!-- The player narrates. role="status" makes the new room's brief get
+             announced once, rather than every line being a separate live
+             region. The speaker label is the name from the naming menu. -->
+        <div class="interior__brief" role="status" aria-live="polite">
+          <p class="interior__speaker" data-interior-speaker></p>
+          <h2 class="interior__title" data-interior-title></h2>
+          <p class="interior__eyebrow">What it is</p>
+          <p class="interior__copy" data-interior-what></p>
+          <p class="interior__eyebrow">Why it matters</p>
+          <p class="interior__copy" data-interior-why></p>
+        </div>
+
+        <!-- Progress: the text is the accessible version, the dots are the
+             glanceable one. Both are filled by view.ts from ROOMS. -->
+        <div class="interior__hud">
+          <p class="interior__progress" data-interior-progress></p>
+          <ol class="interior__dots" data-interior-dots aria-hidden="true"></ol>
+        </div>
+
+        <!-- The only place the keyboard shortcuts are spelled out. The hint is
+             written by the model; the pad appears only in walkable rooms, and
+             the two action buttons mirror the keys for a pointer. -->
+        <p class="interior__hint" data-interior-hint></p>
+
+        <div class="interior__controls">
+          <div class="interior__dpad" data-interior-pad role="group" aria-label="Walk" hidden>
+            <button
+              class="interior__pad interior__pad--left"
+              type="button"
+              data-interior-move="left"
+              aria-label="Walk left"
+            >
+              ◀
+            </button>
+            <button
+              class="interior__pad interior__pad--right"
+              type="button"
+              data-interior-move="right"
+              aria-label="Walk right"
+            >
+              ▶
+            </button>
+          </div>
+
+          <div class="interior__actions">
+            <button class="interior__button" type="button" data-interior-repeat>
+              Repeat brief
+            </button>
+            <button
+              class="interior__button interior__button--primary"
+              type="button"
+              data-interior-next
+            >
+              Next room
+            </button>
+          </div>
+        </div>
+
+        <!-- The landing seam. Shown only after every room, only in the cabin.
+             While landing-site is a stub, the button explains that the Mars map
+             is the next part rather than navigating to a dead end; when the
+             screen is registered, nextStop makes it work. -->
+        <div class="interior__landing" data-interior-landing hidden>
+          <div
+            class="interior__landing-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="interior-landing-title"
+            aria-describedby="interior-landing-body"
+          >
+            <h2 class="interior__landing-title" id="interior-landing-title">
+              Tour complete
+            </h2>
+            <p class="interior__landing-body" id="interior-landing-body">
+              You've seen the whole ship. Ready to choose where we land?
+            </p>
+            <p
+              class="interior__landing-note"
+              data-interior-landing-note
+              aria-live="polite"
+            ></p>
+            <div class="interior__landing-actions">
+              <button
+                class="interior__button interior__button--primary"
+                type="button"
+                data-interior-landing-go
+              >
+                Choose landing site
+              </button>
+              <button
+                class="interior__button"
+                type="button"
+                data-interior-landing-close
+              >
+                Keep exploring
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

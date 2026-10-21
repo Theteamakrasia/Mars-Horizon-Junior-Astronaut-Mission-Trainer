@@ -1,0 +1,510 @@
+/* ==========================================================================
+   INTERIOR — the spacecraft tour between launch and the landing site
+
+   The room art is 16:9, so the stage is locked to 16:9 and centred. Everything
+   that has to line up with a room — the player's feet, the speech panel, the
+   pad — is positioned inside that stage rather than against the viewport. With
+   `object-fit: cover` on a viewport-sized image, the crop changes at every
+   window shape and the feet drift off the floor.
+
+   Layers, bottom to top:
+     room stills   (crossfade, opacity only)
+     player        (one 20%-wide cell, fixed scale on one floor line)
+     speech + HUD  (readable over the artwork)
+     controls      (pad + actions)
+     landing panel (only after the whole tour, only in the cabin)
+
+   The movement sheet is six WebP strips, one per animation. Each strip is
+   `frames * 100%` of the player cell wide; the view moves it by one cell per
+   frame with `steps()`. That is why there is no per-frame JavaScript and why
+   the baked labels from the supplied contact sheet can never appear: they were
+   cropped away by tools/slice-interior-sprites.py.
+   ========================================================================== */
+
+.interior {
+  /* Sampled from the room art: cold blue metal, warm galley light, orange
+     accents. The UI borrows the accent rather than inventing a fifth palette. */
+  --i-ink: #04070c;
+  --i-glass: rgba(5, 11, 19, 0.86);
+  --i-glass-solid: #08111d;
+  --i-line: rgba(126, 186, 255, 0.42);
+  --i-text: #eaf3ff;
+  --i-muted: #a8bdd4;
+  --i-accent: #ff8a3d;
+  --i-accent-soft: #ffb27a;
+  --i-focus: #7ec8ff;
+
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  overflow: hidden;
+  background: var(--i-ink);
+  color: var(--i-text);
+  font-family: var(--font-display);
+}
+
+.interior *,
+.interior *::before,
+.interior *::after {
+  box-sizing: border-box;
+}
+
+/* ---------- THE STAGE ----------
+   Locked to 16:9 and centred. The room stills are 1670x942, which is 1.773:1
+   against 16:9's 1.778:1, so `cover` crops a hair off the top and bottom and
+   nothing meaningful. */
+.interior__stage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(100vw, calc(100vh * 16 / 9));
+  aspect-ratio: 16 / 9;
+  transform: translate(-50%, -50%);
+  overflow: hidden;
+  background: #020409;
+}
+
+/* ---------- ROOM STILLS ----------
+   All six are in the DOM and already decoded. A room change is one opacity
+   swap, so N never reveals a blank frame while a 200 KB WebP loads. The
+   outgoing image fades under the incoming one; DOM order decides which is on
+   top, and both directions work because only one is ever fully opaque. */
+.interior__room {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 380ms ease;
+}
+
+.interior__room.is-active {
+  opacity: 1;
+}
+
+/* ---------- THE PLAYER ----------
+   One cell, 20% of the stage wide. The cell is 260x340 with transparent padding
+   above the head and a few pixels below the feet; the visible character is
+   about 38% of the stage height. `bottom` is the room's feet line and `left` is
+   the stance centre. There is no depth axis. The scale and floor line are fixed
+   per room; the view sets them once on entry, the cabin uses a larger scale to
+   bring the player closer, and the safe haven raises the floor. The view only
+   changes x while walking.
+
+   The strip inside is `frames * 100%` wide and is clipped by this element. */
+.interior__player {
+  --player-x: 50%;
+  --player-bottom: 10%;
+  --player-scale: 0.95;
+
+  position: absolute;
+  left: var(--player-x);
+  bottom: var(--player-bottom);
+  z-index: 3;
+  width: 20%;
+  aspect-ratio: 260 / 340;
+  overflow: hidden;
+  transform: translateX(-50%) scale(var(--player-scale));
+  transform-origin: 50% 100%;
+  filter: drop-shadow(0 0.3rem 0.35rem rgba(0, 0, 0, 0.55));
+}
+
+/* The safe haven airlock is a real exit. The view fades the player out at the
+   wall and back in in the next room; only opacity and blur change, so the
+   position and scale transform on the cell is untouched. */
+.interior__player.is-phasing {
+  animation: interior-phase-out 420ms ease-in forwards;
+}
+
+.interior__player.is-materialising {
+  animation: interior-phase-in 360ms ease-out both;
+}
+
+@keyframes interior-phase-out {
+  from {
+    opacity: 1;
+    filter: blur(0);
+  }
+  to {
+    opacity: 0;
+    filter: blur(8px);
+  }
+}
+
+@keyframes interior-phase-in {
+  from {
+    opacity: 0;
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+.interior__sprite {
+  --sprite-image: none;
+  --frames: 1;
+  --sprite-offset: 0%;
+
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc(var(--frames) * 100%);
+  height: 100%;
+  background-image: var(--sprite-image);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  transform: translateX(calc(-1 * var(--sprite-offset)));
+  will-change: transform;
+}
+
+/* The duration and the `steps()` function are written inline by the view,
+   because they depend on the frame count of the strip that was just selected.
+   This rule only names the animation and keeps it going. */
+.interior__sprite[data-playing='true'] {
+  animation-name: interior-sprite;
+  animation-iteration-count: infinite;
+}
+
+@keyframes interior-sprite {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+/* ---------- THE BRIEF ----------
+   Top-left, over the room's ceiling rather than over its focal point. The
+   speaker is the player, so the name sits above the room title like a radio
+   call sign. The panel scrolls rather than clipping if the copy ever grows. */
+.interior__brief {
+  position: absolute;
+  top: 4%;
+  left: 3%;
+  z-index: 5;
+  width: min(42%, 32rem);
+  max-height: 46%;
+  overflow: auto;
+  padding: 0.9rem 1.1rem 1rem;
+  border: 1px solid var(--i-line);
+  border-radius: 0.8rem;
+  background: var(--i-glass);
+  box-shadow: 0 0.6rem 1.8rem rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+}
+
+.interior__speaker {
+  margin: 0 0 0.2rem;
+  color: var(--i-accent-soft);
+  font-size: clamp(0.62rem, 1.15vmin, 0.78rem);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.interior__title {
+  margin: 0 0 0.55rem;
+  color: #ffffff;
+  font-size: clamp(1.05rem, 2.4vmin, 1.7rem);
+  line-height: 1.15;
+}
+
+.interior__eyebrow {
+  margin: 0.5rem 0 0.12rem;
+  color: var(--i-muted);
+  font-size: clamp(0.52rem, 0.95vmin, 0.66rem);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.interior__copy {
+  margin: 0;
+  color: var(--i-text);
+  font-size: clamp(0.8rem, 1.5vmin, 1.02rem);
+  line-height: 1.45;
+}
+
+/* ---------- THE HUD ----------
+   Progress only. The room title is already in the brief; repeating it here
+   would be two names for one thing. The dots are decorative; the text is the
+   accessible version. */
+.interior__hud {
+  position: absolute;
+  top: 4%;
+  right: 3%;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--i-line);
+  border-radius: 0.6rem;
+  background: var(--i-glass);
+}
+
+.interior__progress {
+  margin: 0;
+  font-size: clamp(0.62rem, 1.1vmin, 0.76rem);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.interior__dots {
+  display: flex;
+  gap: 0.32rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.interior__dot {
+  width: 0.46rem;
+  height: 0.46rem;
+  border: 1px solid var(--i-line);
+  border-radius: 50%;
+  background: transparent;
+}
+
+.interior__dot.is-visited {
+  border-color: var(--i-accent);
+  background: var(--i-accent);
+}
+
+.interior__dot.is-current {
+  box-shadow: 0 0 0 2px rgba(255, 138, 61, 0.35);
+}
+
+/* ---------- HINT ----------
+   The keyboard is the primary control; the pad is the same actions for a
+   pointer. The hint is the only place that spells out N and R, so it stays
+   visible even when the buttons are used. */
+.interior__hint {
+  position: absolute;
+  left: 3%;
+  bottom: 3%;
+  z-index: 5;
+  max-width: 62%;
+  margin: 0;
+  padding: 0.38rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(3, 7, 12, 0.78);
+  color: var(--i-muted);
+  font-size: clamp(0.58rem, 1.1vmin, 0.74rem);
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+}
+
+/* ---------- CONTROLS ----------
+   Bottom-right, the hand's natural resting place. The pad is a two-button
+   row: the floor has no depth axis, so only left and right exist. */
+.interior__controls {
+  position: absolute;
+  right: 3%;
+  bottom: 3%;
+  z-index: 6;
+  display: flex;
+  align-items: flex-end;
+  gap: 0.7rem;
+}
+
+.interior__dpad {
+  display: grid;
+  grid-template-columns: repeat(2, 2.4rem);
+  grid-template-rows: 2.4rem;
+  gap: 0.2rem;
+}
+
+.interior__dpad[hidden] {
+  display: none;
+}
+
+.interior__pad {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--i-line);
+  border-radius: 0.4rem;
+  background: rgba(5, 11, 19, 0.86);
+  color: var(--i-text);
+  font-family: inherit;
+  font-size: 0.8rem;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+}
+
+.interior__pad--left {
+  grid-area: 1 / 1;
+}
+
+.interior__pad--right {
+  grid-area: 1 / 2;
+}
+
+.interior__pad:hover,
+.interior__pad:focus-visible {
+  border-color: var(--i-accent);
+  color: var(--i-accent-soft);
+}
+
+.interior__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.interior__button {
+  padding: 0.5rem 0.8rem;
+  border: 1px solid var(--i-line);
+  border-radius: 0.4rem;
+  background: rgba(5, 11, 19, 0.88);
+  color: var(--i-text);
+  font-family: inherit;
+  font-size: clamp(0.58rem, 1.05vmin, 0.72rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.interior__button:hover,
+.interior__button:focus-visible {
+  border-color: var(--i-accent);
+  color: var(--i-accent-soft);
+}
+
+.interior__button--primary {
+  border-color: var(--i-accent);
+  background: var(--i-accent);
+  color: #1c0d04;
+}
+
+.interior__button--primary:hover,
+.interior__button--primary:focus-visible {
+  background: var(--i-accent-soft);
+  color: #1c0d04;
+}
+
+.interior button:focus-visible {
+  outline: 2px solid var(--i-focus);
+  outline-offset: 2px;
+}
+
+/* ---------- LANDING PANEL ----------
+   Shown only when the player returns to the cabin after every room. It is
+   the seam to the landing-site screen: while that screen is a stub, the button
+   explains that the Mars map is the next part rather than navigating to a dead
+   end. `nextStop('interior')` is the only thing the view asks; when the landing
+   screen is registered, the same button starts working with no change here. */
+.interior__landing {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 4%;
+  background: rgba(2, 5, 10, 0.64);
+  backdrop-filter: blur(3px);
+}
+
+.interior__landing-card {
+  width: min(30rem, 100%);
+  max-height: 82%;
+  overflow: auto;
+  padding: 1.2rem 1.4rem 1.4rem;
+  border: 1px solid var(--i-line);
+  border-radius: 0.9rem;
+  background: var(--i-glass-solid);
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.62);
+  text-align: center;
+}
+
+.interior__landing-title {
+  margin: 0 0 0.5rem;
+  color: #ffffff;
+  font-size: clamp(1.1rem, 2.6vmin, 1.7rem);
+}
+
+.interior__landing-body {
+  margin: 0 0 0.6rem;
+  color: var(--i-text);
+  font-size: clamp(0.8rem, 1.5vmin, 1rem);
+  line-height: 1.45;
+}
+
+.interior__landing-note {
+  min-height: 1.3em;
+  margin: 0 0 0.8rem;
+  color: var(--i-accent-soft);
+  font-size: clamp(0.68rem, 1.25vmin, 0.84rem);
+  line-height: 1.4;
+}
+
+.interior__landing-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+/* ---------- SMALL SCREENS ----------
+   The stage is still 16:9; only the overlays change. Widening the brief gives
+   the copy more characters per line on a phone, and shrinking the pad keeps the
+   hint and the controls from meeting in the middle. */
+@media (max-width: 900px) {
+  .interior__brief {
+    width: 52%;
+    max-height: 52%;
+    padding: 0.7rem 0.8rem 0.8rem;
+  }
+
+  .interior__copy {
+    font-size: clamp(0.72rem, 1.7vmin, 0.86rem);
+  }
+
+  .interior__hint {
+    max-width: 48%;
+    font-size: 0.58rem;
+  }
+
+  .interior__controls {
+    gap: 0.4rem;
+  }
+
+  .interior__dpad {
+    grid-template-columns: repeat(2, 2rem);
+    grid-template-rows: 2rem;
+  }
+
+  .interior__button {
+    padding: 0.4rem 0.55rem;
+    font-size: 0.56rem;
+  }
+}
+
+/* ---------- REDUCED MOTION ----------
+   The room change and the sprite strip are decorative; the text and the
+   controls are not. Removing both leaves a static pose and an instant room
+   swap, which is the point: nothing here is required to read the brief. */
+@media (prefers-reduced-motion: reduce) {
+  .interior__room {
+    transition: none;
+  }
+
+  .interior__sprite[data-playing='true'] {
+    animation: none;
+  }
+
+  .interior__player.is-phasing,
+  .interior__player.is-materialising {
+    animation: none;
+  }
+}

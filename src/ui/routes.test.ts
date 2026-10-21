@@ -77,11 +77,12 @@ describe('progression', () => {
     expect(new Set(ROUTE_ORDER).size).toBe(ROUTE_ORDER.length);
   });
 
-  it('walks naming through briefing, supply and the launch cinematic', () => {
+  it('walks naming through briefing, supply, the launch cinematic and the interior tour', () => {
     expect(nextRoute('naming')).toBe('briefing');
     expect(nextRoute('briefing')).toBe('supply');
     expect(nextRoute('supply')).toBe('launch');
-    expect(nextRoute('launch')).toBe('landing-site');
+    expect(nextRoute('launch')).toBe('interior');
+    expect(nextRoute('interior')).toBe('landing-site');
     expect(nextRoute('landing-site')).toBe('base');
     expect(nextRoute('base')).toBe('act');
     expect(nextRoute('act')).toBe('debrief');
@@ -93,6 +94,7 @@ describe('progression', () => {
 
   it('walks backward through play order', () => {
     expect(previousRoute('debrief')).toBe('act');
+    expect(previousRoute('interior')).toBe('launch');
     expect(previousRoute('briefing')).toBe('naming');
   });
 

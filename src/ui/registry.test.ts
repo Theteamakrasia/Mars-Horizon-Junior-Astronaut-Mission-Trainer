@@ -15,6 +15,7 @@ const ALL: readonly Route[] = [
   'briefing',
   'supply',
   'launch',
+  'interior',
   'landing',
   'landing-site',
   'base',
@@ -56,10 +57,17 @@ describe('nextStop', () => {
     expect(nextStop('supply')).toBe('launch');
   });
 
+  it('walks into the spacecraft interior, which is built', () => {
+    // The interior is registered, so the launch hands straight into it rather
+    // than through the placeholder.
+    expect(resolveScreen('interior')).not.toBeNull();
+    expect(nextStop('launch')).toBe('interior');
+  });
+
   it('inserts the interstitial before a screen that is not built', () => {
     // landing-site is a stub, so the player sees the placeholder after the
-    // cinematic rather than straight after supply.
-    expect(nextStop('launch')).toBe('landing');
+    // interior tour rather than straight after the launch.
+    expect(nextStop('interior')).toBe('landing');
   });
 
   it('skips the interstitial entirely once the next screen is built', () => {
@@ -97,6 +105,7 @@ function nextRouteOf(route: Route): Route {
     'briefing',
     'supply',
     'launch',
+    'interior',
     'landing-site',
     'base',
     'act',
