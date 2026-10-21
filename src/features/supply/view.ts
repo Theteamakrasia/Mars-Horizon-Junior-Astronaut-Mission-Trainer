@@ -254,6 +254,17 @@ const reduced = prefersReducedMotion();
   };
 
   /*
+   * What the bubble is heading for.
+   *
+   * Set when a line is asked for, not when it lands, so it is right even while
+   * a crossfade is still running. The view needs it to tell whether the
+   * question is already up before asking it again: after a first wrong answer
+   * the bubble still holds it, because no hint was given, and asking it again
+   * would be a fade out and a fade in of the same words.
+   */
+  let currentLine = '';
+
+  /*
    * Write one line into the bubble and make it visible.
    *
    * Text is written *before* the bubble is shown, never revealed by animating a
@@ -281,6 +292,10 @@ const reduced = prefersReducedMotion();
    * collapses to a plain swap there.
    */
   const swapTo = (label: string, text: string, then?: () => void): void => {
+    // The bubble is heading for this line from here on, even if the crossfade
+    // has not landed it yet.
+    currentLine = text;
+
     if (reduced || bubble.hidden) {
       render(label, text);
       if (then) then();
@@ -345,6 +360,8 @@ const reduced = prefersReducedMotion();
   let index = 0;
   /** True once the right answer has been given, which ends the interaction. */
   let solved = false;
+  /** How many wrong answers have been given, which is what the hint waits for. */
+  let wrongChoices = 0;
 
   /** Put the buttons on screen with nothing judged yet. */
   const askQuestion = (): void => {
@@ -395,14 +412,30 @@ const reduced = prefersReducedMotion();
     // reads as "stop" rather than leaving three live buttons under a red light.
     setChoicesEnabled(false);
 
-    const hint = hintFor(judge(value, CORRECT_ANSWER));
+    /*
+     * The hint is not given on the first wrong answer.
+     *
+     * The first mistake is where the child is still working it out, and a
+     * direction - "too low, think larger" - is what stops that working: it
+     * rules options out instead of letting the method rule them out. The
+     * blanked working is enough on its own for a first attempt, and the bubble
+     * keeps the question so it can be read again.
+     *
+     * From the second wrong answer on there is a nudge as well, because by then
+     * they have had the method once and are stuck rather than thinking.
+     */
+    wrongChoices += 1;
 
-    swapTo(
-      speaker,
-      hint === null
-        ? 'That is not one of the amounts on the board. Read the two numbers again.'
-        : hint,
-    );
+    if (wrongChoices > 1) {
+      const hint = hintFor(judge(value, CORRECT_ANSWER));
+
+      swapTo(
+        speaker,
+        hint === null
+          ? 'That is not one of the amounts on the board. Read the two numbers again.'
+          : hint,
+      );
+    }
 
     // The working goes in the rail, not the bubble, so the question stays on
     // screen beside it while the child reads what went wrong.
@@ -430,8 +463,12 @@ const reduced = prefersReducedMotion();
    *
    * The question is asked again rather than left in the rail, because the bubble
    * is the only place the full question has ever been spoken. After a wrong
-   * answer it holds the hint, and someone working out the answer needs the
+   * answer it may hold a hint, and someone working out the answer needs the
    * question in front of them, not the hint they have already read.
+   *
+   * Asked only when it is not already up. A first wrong answer gives no hint,
+   * so the question is still in the bubble, and asking it again would be a fade
+   * out and a fade in of the same words.
    */
   const onRetry = (): void => {
     if (solved) return;
@@ -440,7 +477,9 @@ const reduced = prefersReducedMotion();
     setScene('question');
     setChoicesEnabled(true);
 
-    swapTo(speaker, QUESTION_PROMPT);
+    if (currentLine !== QUESTION_PROMPT) {
+      swapTo(speaker, QUESTION_PROMPT);
+    }
   };
 
   /** Show the real answer and offer the way on. */
