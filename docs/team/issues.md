@@ -11,8 +11,9 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
-| ISS-034 | The wrong answer gives a direction on the first attempt, which ends the thinking | low | agent | fixed | 969d1c9 |
-| ISS-033 | Wrong answer reverts on a timer before the player can read the feedback | low | agent | fixed | 0f22185, 86756ae |
+| ISS-035 | The wrong answer gives a direction on the first attempt, which ends the thinking | low | agent | fixed | 969d1c9 |
+| ISS-034 | Wrong answer reverts on a timer before the player can read the feedback | low | agent | fixed | 0f22185, 86756ae |
+| ISS-033 | Parts tour video too fast to read, no way to look back | low | agent | open | — |
 | ISS-032 | Launch film stutters like a slideshow on a slow connection | high | agent | fixed | 1f4c709 |
 | ISS-031 | Live production served the pre-interior bundle after the merge | high | agent | fixed | 6774e22 |
 | ISS-030 | Launch reel shows black and cuts or skips on a slow connection | high | agent | fixed | this branch |
@@ -46,7 +47,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-## ISS-034 — The wrong answer gives a direction on the first attempt, which ends the thinking
+## ISS-035 — The wrong answer gives a direction on the first attempt, which ends the thinking
 
 - **Reported by:** the user, 2026-10-22: "start showing hint after player chooses wrong once".
 - **Where:** `src/features/supply/view.ts` (`showWrong`).
@@ -62,7 +63,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
   D-028, because the wording of the hint is a product decision, not a bug fix.
 - **Pre-existing:** no; the hint was given on every wrong answer as it shipped.
 
-## ISS-033 — Wrong answer reverts on a timer before the player can read the feedback
+## ISS-034 — Wrong answer reverts on a timer before the player can read the feedback
 
 - **Reported by:** the user, 2026-10-22: the wrong-answer scene showed "for a little bit"
   and then changed on its own; they wanted a try again button so the retry is manual.
@@ -85,6 +86,14 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
   again in the bubble. The working is shown with the answer left out ("…is ___ packets.")
   while the player is still trying, and completed only once the answer has been earned.
 - **Pre-existing:** no; both were in the ration check as it shipped.
+
+## ISS-033 — Parts tour video too fast to read, no way to look back
+
+- **Reported by:** the user, 2026-10-22
+- **Where:** `src/features/launch/view.ts`, `src/features/launch/model.ts`, `index.html` (`<video data-launch-parts>`), `Assets/video/parts.mp4`
+- **Problem:** the spacecraft tour is a single 12-second video with the four part names burned into the picture. It plays too fast to read, and there is no way to look back without restarting the whole reel.
+- **Fix:** replace the `parts.mp4` beat with an interactive parts panel. Five slides — overview first, then one named part at a time — each showing the part image (from `Assets/images/parts/*.webp`, each with one part outlined in colour), the part name as text, and the part description as text. Prev / Next buttons move between slides, disabled at the boundaries; a Continue button hands off to the next screen. No auto-advance, no timed beat.
+- **Files to change:** `src/features/launch/model.ts`, `src/features/launch/view.ts`, `src/features/launch/launch.css`, `index.html`, `src/features/launch/model.test.ts`, `docs/architecture.md`, this file.
 
 ## ISS-032 — The launch film stutters like a slideshow on a slow connection
 
@@ -704,4 +713,4 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-**Next free id: ISS-035.**
+**Next free id: ISS-036.**

@@ -8,7 +8,7 @@ than a documented one.
 
 ---
 
-## 2026-10-22 — Make the player try again on the ration check, on purpose (ISS-033, ISS-034)
+## 2026-10-22 — Make the player try again on the ration check, on purpose (ISS-034, ISS-035)
 
 **Did**
 
@@ -65,6 +65,37 @@ than a documented one.
   through option stays dead, then answer correctly and confirm the completed working
   and CONTINUE. Check the rail against the artwork at the same time, since that is the
   one thing that could look wrong — the DOM stub cannot see how it looks.
+
+---
+
+## 2026-10-22 — Replace the parts tour video with an interactive parts panel (ISS-033)
+
+**Did**
+
+- Replaced the `parts.mp4` beat in the launch reel with an interactive parts tour panel: overview slide first, then one named part at a time.
+- Each slide shows the part image (from `Assets/images/parts/*.webp`, each with one part outlined in colour), the part name as text, and the part description as text.
+- Added Prev / Next buttons between slides, disabled at the boundaries so the player can look back; a Continue button hands off to the next screen.
+- Panel is the whole screen: title (accent dot + name), marked-up part image, description, and Prev / Next / Continue at the bottom.
+- Cinematic shots/clips are hidden (`visibility: hidden`) behind the panel via a `launch__cinematic-dimmed` class on `root`, so nothing leaks at the edges.
+- Moved the Prev/Next/Continue row up (tighter card gap and control margin).
+- Added a subtle shake animation (`launch-parts-shake`, 0.4s infinite) on the part image only — text stays still; disabled under reduced motion.
+- Navigation wraps from Orion back to the overview once (`partsLooped` flag); fixed `partsNext.disabled` so Next is enabled on Orion (previously disabled, blocking the wrap); shows the "all together" slide one final time with Prev enabled / Next disabled.
+- Shake reduced to subtle vibration: scale(0.998/1.002) replaces translateX, creating a whole-rocket trembling feeling without left-right oscillation (was ±4px / ±0.5deg / 0.4s which slid sideways).
+- Visual leak fixed: `launch__cinematic-dimmed` CSS now also hides `.launch__video` (the main launch film carrying the walk image) and `.launch__flash`, not just `.launch__shot` and `.launch__clip`.
+- Removed `PARTS_DURATION_MS` from the model; `TOTAL_DURATION_MS` is now title + shots + both films only.
+- Added `PARTS` interface and array to `launch/model.ts`, with tests.
+
+**Files**
+
+- Updated: `src/features/launch/model.ts`, `src/features/launch/view.ts`, `src/features/launch/launch.css`, `src/features/launch/model.test.ts`, `index.html`, `docs/architecture.md`, `docs/team/issues.md`, this log.
+
+**Problems**
+
+- None; `npm run check` (imports + markup + tsc), `npm test` (263/263), and `npm run build` all pass cleanly. The build drops `parts.mp4`/`parts-poster.webp`/`docked_info.jpg` from the bundle and bundles the five part WebPs instead.
+
+**Next**
+
+- A real browser playthrough of the launch reel (no browser is connected to this session).
 
 ---
 

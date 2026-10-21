@@ -36,7 +36,7 @@ think larger") arrives from the second wrong answer on.
 - `src/features/supply/supply.css` — the button's own style, in the alarm colour and
   deliberately distinct from the orange Continue button.
 - `docs/team/` — D-028 (the decision, with the alternatives that were rejected),
-  ISS-033 and ISS-034 (what was wrong), TASK-040 and TASK-041, and the progress log.
+  ISS-034 and ISS-035 (what was wrong), TASK-040 and TASK-041, and the progress log.
 
 ## Validation
 
