@@ -67,9 +67,6 @@ const SWAP_MS = 220;
  */
 const SCENE_LOAD_FALLBACK_MS = 700;
 
-/** How long the wrong frame is held before the buttons come back. */
-const RETRY_DELAY_MS = 1100;
-
 /**
  * Illustrations, by state. Imported so Vite fingerprints and bundles them.
  *
@@ -132,6 +129,7 @@ export function mountSupply(
   const choiceList = require<HTMLUListElement>(root, '[data-supply-choices]');
   const result = require<HTMLParagraphElement>(root, '[data-supply-result]');
   const advance = require<HTMLButtonElement>(root, '[data-supply-next]');
+  const retry = require<HTMLButtonElement>(root, '[data-supply-retry]');
   const cont = require<HTMLButtonElement>(root, '[data-supply-continue]');
 
   /*
@@ -358,6 +356,7 @@ const reduced = prefersReducedMotion();
     answers.hidden = false;
     result.hidden = true;
     result.textContent = '';
+    retry.hidden = true;
     cont.hidden = true;
     setChoicesEnabled(true);
   };
@@ -415,19 +414,33 @@ const reduced = prefersReducedMotion();
     result.textContent = workingSentenceBlanked();
     result.hidden = false;
 
-    // Bring the remaining buttons back after a beat, so the wrong frame registers
-    // before the retry, and take the room back to the question frame so the player
-    // is not left working it out under the alarm.
+    // The alarm frame stays up until the player asks for another go. This used
+    // to time out on its own after a beat, which took the choice away while the
+    // child was still reading the hint; now the way back is a button they press.
     //
-    // Guarded on `solved` because a timer can outlive the answer: without the
-    // check, answering correctly during this window would be undone by a pending
-    // revert firing afterwards.
-    later(() => {
-      if (solved) return;
+    // Focus follows, because every choice button is disabled at this point and
+    // focus would otherwise fall back to the body, leaving a keyboard player
+    // with nowhere to be.
+    retry.hidden = false;
+    retry.focus({ preventScroll: true });
+  };
 
-      setScene('question');
-      setChoicesEnabled(true);
-    }, RETRY_DELAY_MS);
+  /**
+   * Take the room back to the question and let the player have another go.
+   *
+   * The question is asked again rather than left in the rail, because the bubble
+   * is the only place the full question has ever been spoken. After a wrong
+   * answer it holds the hint, and someone working out the answer needs the
+   * question in front of them, not the hint they have already read.
+   */
+  const onRetry = (): void => {
+    if (solved) return;
+
+    retry.hidden = true;
+    setScene('question');
+    setChoicesEnabled(true);
+
+    swapTo(speaker, QUESTION_PROMPT);
   };
 
   /** Show the real answer and offer the way on. */
@@ -436,6 +449,7 @@ const reduced = prefersReducedMotion();
     setScene('right');
     setChoicesEnabled(false);
     advance.hidden = true;
+    retry.hidden = true;
 
     swapTo(speaker, successSentence());
 
@@ -475,6 +489,7 @@ const reduced = prefersReducedMotion();
   };
 
   advance.addEventListener('click', revealNext);
+  retry.addEventListener('click', onRetry);
   cont.addEventListener('click', onContinue);
 
   // Open on the astronaut explaining, with the clipboard. The pointing-at-the-
@@ -491,6 +506,7 @@ const reduced = prefersReducedMotion();
 
   return () => {
     advance.removeEventListener('click', revealNext);
+    retry.removeEventListener('click', onRetry);
     cont.removeEventListener('click', onContinue);
 
     for (const button of choiceButtons) {
