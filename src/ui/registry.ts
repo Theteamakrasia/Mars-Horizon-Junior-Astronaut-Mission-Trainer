@@ -47,6 +47,7 @@ const SCREENS: Readonly<Partial<Record<Route, ScreenFactory>>> = {
   briefing: mountBriefing,
   supply: mountSupply,
   launch: mountLaunch,
+  // Registered so the launch hands into the tour instead of the interstitial.
   interior: mountInterior,
 };
 

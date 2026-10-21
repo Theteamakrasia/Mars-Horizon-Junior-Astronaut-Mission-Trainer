@@ -11,6 +11,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
+| ISS-031 | Live production served the pre-interior bundle after the merge | high | agent | fixed | this commit |
 | ISS-030 | Launch reel shows black and cuts or skips on a slow connection | high | agent | fixed | this branch |
 | ISS-029 | Docking and tour clips are MPEG-4 Part 2; browsers will not play them | high | agent | fixed | this branch |
 | ISS-028 | Docking and tour clips were never wired into the launch sequence | high | agent | fixed | this branch |
@@ -41,6 +42,25 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | ISS-014 | `base.css` calls the page non-interactive while draggable | low | unassigned | open | — |
 
 ---
+
+## ISS-031 — Live production served the pre-interior bundle after the merge
+
+- **Reported by:** the user, 2026-10-21: after the launch portions, the live site did not enter
+  the exploration rooms.
+- **Where:** the Vercel production deployment behind `mars-horizon-azure.vercel.app`;
+  `main` at `750bedf` and `6774e22`.
+- **Problem:** the live HTML and JS were still `66a2100`. The page had no `#interior` markup and
+  the bundle contained none of the room names. A protected preview for `d4163c3` existed, but
+  Vercel created no Production deployment for the merge commit or for the empty retrigger
+  commit. GitHub's deployment records stop at `66a2100`.
+- **Cause:** Vercel's Git integration did not create a production deployment for the merge or
+  the empty commit. The gated Actions workflow cannot substitute: it is manual-only, its gate
+  expects a `workflow_run` payload, and the repository has no `VERCEL_TOKEN`, `VERCEL_ORG_ID`,
+  or `VERCEL_PROJECT_ID` secrets.
+- **Fix:** push a non-empty commit to `main` so the Git integration sees a normal production
+  change, then verify the live HTML and bundle contain the interior screen. Logged and fixed in
+  this commit.
+- **Pre-existing:** no. The interior code was correct on the branch; it was never published.
 
 ## ISS-030 — The launch reel shows black and cuts or skips on a slow connection
 
