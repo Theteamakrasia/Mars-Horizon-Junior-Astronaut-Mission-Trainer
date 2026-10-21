@@ -7,6 +7,7 @@
  */
 
 import { mountBriefing } from '../features/briefing/view';
+import { mountInterior } from '../features/interior/view';
 import { mountLaunch } from '../features/launch/view';
 import { mountNaming } from '../features/naming/view';
 import { mountSupply } from '../features/supply/view';
@@ -38,6 +39,7 @@ const SCREEN_MOUNTS: Readonly<Partial<Record<Route, string>>> = {
   briefing: '#briefing',
   supply: '#supply',
   launch: '#launch',
+  interior: '#interior',
 };
 
 const SCREENS: Readonly<Partial<Record<Route, ScreenFactory>>> = {
@@ -45,6 +47,7 @@ const SCREENS: Readonly<Partial<Record<Route, ScreenFactory>>> = {
   briefing: mountBriefing,
   supply: mountSupply,
   launch: mountLaunch,
+  interior: mountInterior,
 };
 
 /**
