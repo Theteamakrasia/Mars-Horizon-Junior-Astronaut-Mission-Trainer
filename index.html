@@ -348,14 +348,51 @@
           aria-hidden="true"
         ></video>
 
-        <video
-          class="launch__clip launch__clip--parts"
-          data-launch-parts
-          muted
-          playsinline
-          preload="none"
-          aria-hidden="true"
-        ></video>
+        <div
+          class="launch__parts-panel"
+          data-launch-parts-panel
+          hidden
+        >
+          <div class="launch__parts-card">
+            <div class="launch__parts-header">
+              <span class="launch__parts-dot" aria-hidden="true"></span>
+              <h2 class="launch__parts-name" data-launch-parts-name></h2>
+            </div>
+            <img
+              class="launch__parts-image"
+              data-launch-parts-image
+              alt=""
+              aria-hidden="true"
+              decoding="async"
+            />
+            <p class="launch__parts-description" data-launch-parts-description></p>
+            <div class="launch__parts-controls">
+              <button
+                class="launch__parts-button launch__parts-button--prev"
+                type="button"
+                data-launch-parts-prev
+                aria-label="Previous part"
+              >
+                ◀ Prev
+              </button>
+              <button
+                class="launch__parts-button launch__parts-button--next"
+                type="button"
+                data-launch-parts-next
+                aria-label="Next part"
+              >
+                Next ▶
+              </button>
+              <button
+                class="launch__parts-button launch__parts-button--primary"
+                type="button"
+                data-launch-parts-continue
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        </div>
 
         <div class="launch__title-card" aria-hidden="true">
           <p class="launch__title-text" data-launch-title></p>

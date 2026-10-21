@@ -420,11 +420,11 @@ screen.
 | | `VIDEO_DESCRIPTION` | what the launch film shows, for screen readers |
 | | `DOCKING_DURATION_MS` | 3000 — the rendered docking clip, matched frame-for-frame |
 | | `DOCKING_DESCRIPTION` | what the docking clip shows, for screen readers |
-| | `PARTS_DURATION_MS` | 12000 — the rendered spacecraft tour, matched frame-for-frame |
-| | `PARTS_DESCRIPTION` | the four parts the tour names, for screen readers |
-| | `TOTAL_DURATION_MS` | title + shots + all three films; the reel's *nominal* runtime, not a timer — the screen exits when the last clip ends |
+| | `PARTS` | five tour slides: overview then one named part at a time, each with name, description and accent colour |
+| | `PARTS_DESCRIPTION` | all four parts the tour names, for screen readers |
+| | `TOTAL_DURATION_MS` | title + shots + both films; the reel's *nominal* runtime, not a timer — the screen exits at the Continue button in the parts tour, or when the last film ends |
 | | `resolveBeatStart` | `(earliestMs, readyAtMs) -> ms`; a beat starts at the later of its slot and its clip's readiness |
-| `features/launch/view` | `mountLaunch` | `(root, run) -> teardown`; plays the stills, then the launch film, the docking clip and the tour, handing off when the last clip ends. Beats are media-driven: only the launch film loads up front, the other two load when the beat before them starts, each has a poster, and a beat waits for its clip rather than being skipped. Reduced motion holds the stills and the first two films, and plays the tour because its content is captions |
+| `features/launch/view` | `mountLaunch` | `(root, run) -> teardown`; plays the stills, then the launch film and the docking clip, then opens the interactive parts tour. Beats are media-driven: only the launch film loads up front, the docking clip loads when the film's beat starts, each has a poster, and a beat waits for its clip rather than being skipped. Reduced motion holds the stills and both films. The parts tour is static images and text — Prev / Next move between parts, disabled at the boundaries, Continue hands off. |
 | `dom/floatAstronaut` | `startFloatingAstronaut` | `(wrapper, {deformLayer, reducedMotion}) -> teardown`; cancels rAF, removes the resize listener, detaches the grab, clears the transform |
 | `dom/pointerGrab` | `attachGrab` | `(target, handlers, options) -> teardown` |
 | `dom/starfield` | `createStarfield` | `(container) => void`; appends, never clears |

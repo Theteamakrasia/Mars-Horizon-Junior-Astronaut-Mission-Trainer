@@ -7,7 +7,7 @@ import {
   FLASH_RISE_PCT,
   FLASH_TIMES,
   PARTS_DESCRIPTION,
-  PARTS_DURATION_MS,
+  PARTS,
   PRESS_SHOT,
   resolveBeatStart,
   SHOTS,
@@ -113,21 +113,23 @@ describe('the film', () => {
 });
 
 describe('the clips that follow the film', () => {
-  it('match the rendered docking clip and tour frame-for-frame', () => {
-    // 90 frames and 360 frames at 30fps. The timers are derived from these, so a
-    // re-render at a different length has to update them.
+  it('matches the rendered docking clip frame-for-frame', () => {
+    // 90 frames at 30fps. The timer is derived from this, so a re-render at a
+    // different length has to update it.
     expect(DOCKING_DURATION_MS).toBe(3000);
-    expect(PARTS_DURATION_MS).toBe(12000);
   });
 
-  it('describe themselves for anyone who cannot see them', () => {
-    // The tour's four captions are drawn into the picture, so this is the only
-    // version a screen-reader user gets.
+  it('describes the docking clip for anyone who cannot see it', () => {
+    // The clip is content, so an empty description would leave a screen-reader
+    // user with nothing at all.
     expect(DOCKING_DESCRIPTION.trim().length).toBeGreaterThan(60);
+  });
+
+  it('describes the parts tour for anyone who cannot see it', () => {
     expect(PARTS_DESCRIPTION.trim().length).toBeGreaterThan(60);
   });
 
-  it('name all four parts in the tour description', () => {
+  it('names all four parts in the tour description', () => {
     for (const part of ['propulsion', 'habitat', 'logistics', 'Orion']) {
       expect(PARTS_DESCRIPTION).toContain(part);
     }
@@ -135,17 +137,16 @@ describe('the clips that follow the film', () => {
 });
 
 describe('TOTAL_DURATION_MS', () => {
-  it('is the title, every shot and all three films', () => {
+  it('is the title, every shot and both films', () => {
     const shots = SHOTS.reduce((total, shot) => total + shot.durationMs, 0);
     expect(TOTAL_DURATION_MS).toBe(
-      TITLE_DURATION_MS + shots + VIDEO_DURATION_MS + DOCKING_DURATION_MS + PARTS_DURATION_MS,
+      TITLE_DURATION_MS + shots + VIDEO_DURATION_MS + DOCKING_DURATION_MS,
     );
   });
 
   it('stays under half a minute, which is the promise to the player', () => {
-    // There is no skip, and three films plus the stills is already a long sit. A
-    // fourth beat has to be a deliberate decision rather than a re-render.
-    expect(TOTAL_DURATION_MS).toBeGreaterThan(20000);
+    // There is no skip, and two films plus the stills is already a long sit.
+    expect(TOTAL_DURATION_MS).toBeGreaterThan(5000);
     expect(TOTAL_DURATION_MS).toBeLessThan(30000);
   });
 
@@ -161,6 +162,36 @@ describe('TOTAL_DURATION_MS', () => {
       const visible = shot.durationMs - shot.fadeMs;
       expect(visible).toBeGreaterThan(1200);
     }
+  });
+});
+
+describe('PARTS', () => {
+  it('is five slides: overview then one part at a time', () => {
+    expect(PARTS).toHaveLength(5);
+    expect(PARTS.map((part) => part.id)).toEqual([
+      'overview',
+      'propulsion',
+      'habitat',
+      'logistics',
+      'orion',
+    ]);
+  });
+
+  it('gives every part a name, description and accent colour', () => {
+    for (const part of PARTS) {
+      expect(part.name.trim().length).toBeGreaterThan(0);
+      expect(part.description.trim().length).toBeGreaterThan(10);
+      expect(part.accent).toMatch(/^#[0-9A-Fa-f]{6}$/);
+    }
+  });
+
+  it('names all four spacecraft parts plus the overview', () => {
+    const names = PARTS.map((part) => part.name.toLowerCase());
+    expect(names).toContain('assembled craft');
+    expect(names.some((name) => name.includes('propulsion'))).toBe(true);
+    expect(names.some((name) => name.includes('habitat'))).toBe(true);
+    expect(names.some((name) => name.includes('logistics'))).toBe(true);
+    expect(names.some((name) => name.includes('orion'))).toBe(true);
   });
 });
 

@@ -310,3 +310,274 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+/* ---------- THE PARTS TOUR PANEL ----------
+
+   The whole screen once the docking clip ends. One part slide at a time:
+   name, marked-up image, description, and Prev / Next / Continue.
+   Starts hidden, shown by view.ts when the tour begins.
+*/
+.launch__parts-panel {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  background: var(--l-black);
+  color: var(--l-text);
+  font-family: var(--font-display);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.launch__parts-panel[hidden] {
+  display: none;
+}
+
+/* When the parts tour is open, the cinematic behind the panel must be hidden so
+   nothing leaks through at the edges. Covers stills, the launch film, the docking
+   clip, and the flash overlays. */
+.launch__cinematic-dimmed .launch__shot,
+.launch__cinematic-dimmed .launch__video,
+.launch__cinematic-dimmed .launch__clip,
+.launch__cinematic-dimmed .launch__flash {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.launch__parts-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2.5rem;
+  max-width: min(96vw, 1100px);
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.launch__parts-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.launch__parts-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.launch__parts-name {
+  margin: 0;
+  font-size: clamp(1.75rem, 6vmin, 2.5rem);
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.launch__parts-image {
+  width: min(88vw, 900px);
+  height: auto;
+  border-radius: 8px;
+  display: block;
+  background: #152029;
+  animation: launch-parts-shake 0.3s ease-in-out infinite;
+}
+
+@keyframes launch-parts-shake {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate(-1px, 0.5px) rotate(-0.15deg);
+  }
+  50% {
+    transform: translate(1px, -0.5px) rotate(0.15deg);
+  }
+  75% {
+    transform: translate(-0.5px, 1px) rotate(-0.075deg);
+  }
+}
+
+.launch[data-launch-motion='reduced'] .launch__flash {
+  display: none;
+}
+
+/* ---------- OS REDUCED MOTION ----------
+   The same fallback when the setting is on but the feature has not been told. A
+   URL can be opened before mount, and the OS preference should hold regardless of
+   what JavaScript got to.
+*/
+@media (prefers-reduced-motion: reduce) {
+  .launch__img {
+    animation: none;
+    transform: none;
+  }
+
+  .launch__flash {
+    display: none;
+  }
+}
+
+/* ---------- VISUALLY HIDDEN ---------- */
+
+.launch__visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---------- THE PARTS TOUR PANEL ----------
+
+   The whole screen once the docking clip ends. One part slide at a time:
+   name, marked-up image, description, and Prev / Next / Continue.
+   Starts hidden, shown by view.ts when the tour begins.
+*/
+.launch__parts-panel {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  background: var(--l-black);
+  color: var(--l-text);
+  font-family: var(--font-display);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.launch__parts-panel[hidden] {
+  display: none;
+}
+
+/* When the parts tour is open, the cinematic behind the panel must be hidden so
+   nothing leaks through at the edges. Covers stills, the launch film, the docking
+   clip, and the flash overlays. */
+.launch__cinematic-dimmed .launch__shot,
+.launch__cinematic-dimmed .launch__video,
+.launch__cinematic-dimmed .launch__clip,
+.launch__cinematic-dimmed .launch__flash {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.launch__parts-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2.5rem;
+  max-width: min(96vw, 1100px);
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.launch__parts-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.launch__parts-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.launch__parts-name {
+  margin: 0;
+  font-size: clamp(1.75rem, 6vmin, 2.5rem);
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.launch__parts-image {
+  width: min(88vw, 900px);
+  height: auto;
+  border-radius: 8px;
+  display: block;
+  background: #152029;
+  animation: launch-parts-shake 0.3s ease-in-out infinite;
+}
+
+
+/* Reduced motion: no shake on the part image. */
+.launch[data-launch-motion='reduce'] .launch__parts-image {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .launch__parts-image {
+    animation: none;
+  }
+}
+
+.launch__parts-description {
+  margin: 0;
+  font-size: clamp(1rem, 3vmin, 1.25rem);
+  line-height: 1.6;
+  color: #9FB0BA;
+}
+
+.launch__parts-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.launch__parts-button {
+  appearance: none;
+  border: 1px solid #2E3C45;
+  border-radius: 8px;
+  padding: 0.6rem 1.25rem;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--l-text);
+  background: #152029;
+  cursor: pointer;
+}
+
+.launch__parts-button:hover {
+  border-color: #FA6200;
+}
+
+.launch__parts-button:focus-visible {
+  outline: 2px solid #FA6200;
+  outline-offset: 2px;
+}
+
+.launch__parts-button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  border-color: #2E3C45;
+}
+
+.launch__parts-button--primary {
+  background: #FA6200;
+  border-color: #FA6200;
+  color: #05070d;
+}
+
+.launch__parts-button--primary:hover {
+  background: #ff7b33;
+}
