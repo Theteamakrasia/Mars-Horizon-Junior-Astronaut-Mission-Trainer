@@ -11,6 +11,8 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
+| ISS-034 | The wrong answer gives a direction on the first attempt, which ends the thinking | low | agent | fixed | 969d1c9 |
+| ISS-033 | Wrong answer reverts on a timer before the player can read the feedback | low | agent | fixed | 0f22185, 86756ae |
 | ISS-032 | Launch film stutters like a slideshow on a slow connection | high | agent | fixed | 1f4c709 |
 | ISS-031 | Live production served the pre-interior bundle after the merge | high | agent | fixed | 6774e22 |
 | ISS-030 | Launch reel shows black and cuts or skips on a slow connection | high | agent | fixed | this branch |
@@ -43,6 +45,46 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | ISS-014 | `base.css` calls the page non-interactive while draggable | low | unassigned | open | — |
 
 ---
+
+## ISS-034 — The wrong answer gives a direction on the first attempt, which ends the thinking
+
+- **Reported by:** the user, 2026-10-22: "start showing hint after player chooses wrong once".
+- **Where:** `src/features/supply/view.ts` (`showWrong`).
+- **Problem:** a wrong answer put "too low, think larger" into the bubble straight away.
+  On a first attempt the player is still working it out, and a direction rules options
+  out rather than letting the method rule them out — so the feedback was doing the
+  thinking for them, at exactly the point where the working was meant to be doing it.
+- **Cause:** the hint and the correction were the same thing, with no distinction
+  between "you have not got it yet" and "you are stuck and need a nudge".
+- **Fix:** the first wrong answer gives no direction at all — the alarm frame comes up,
+  the working shows with the answer left out, and the bubble keeps the question so it
+  can be read again. From the second wrong answer on the hint appears. Recorded as
+  D-028, because the wording of the hint is a product decision, not a bug fix.
+- **Pre-existing:** no; the hint was given on every wrong answer as it shipped.
+
+## ISS-033 — Wrong answer reverts on a timer before the player can read the feedback
+
+- **Reported by:** the user, 2026-10-22: the wrong-answer scene showed "for a little bit"
+  and then changed on its own; they wanted a try again button so the retry is manual.
+- **Where:** `src/features/supply/view.ts` (`showWrong`), `src/features/supply/model.ts`
+  (`workingSentence`).
+- **Problem:** two things went wrong at once. The alarm frame was held for a fixed
+  `RETRY_DELAY_MS` (1100ms) and then reverted to the question frame by a timer, so the
+  wrong frame, the hint and the working were all taken off screen about a second after
+  they appeared — a child who was still reading had them pulled away, and the retry
+  happened whether or not they were ready. And the working in the rail ended with the
+  number under test ("so 240 divided by 3 is 80 packets"), so the answer was on screen
+  while they were meant to be working it out; a timed revert limited the exposure to
+  about a second, but a manual retry would have left it there indefinitely.
+- **Cause:** the revert was a timer rather than a control. It was a deliberate choice at
+  the time — the comment said it was there "so the wrong frame registers before the
+  retry" — but a delay that removes the choice is a delay the player cannot refuse.
+- **Fix:** the alarm frame now stays until the player presses a TRY AGAIN button, which
+  is the only live control while it is up. Pressing it takes the room back to the
+  question frame, re-enables the choices that were not retired, and asks the question
+  again in the bubble. The working is shown with the answer left out ("…is ___ packets.")
+  while the player is still trying, and completed only once the answer has been earned.
+- **Pre-existing:** no; both were in the ration check as it shipped.
 
 ## ISS-032 — The launch film stutters like a slideshow on a slow connection
 
@@ -662,4 +704,4 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-**Next free id: ISS-033.**
+**Next free id: ISS-035.**
