@@ -11,7 +11,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
-| ISS-031 | Live production served the pre-interior bundle after the merge | high | agent | fixed | this commit |
+| ISS-031 | Live production served the pre-interior bundle after the merge | high | agent | blocked | — |
 | ISS-030 | Launch reel shows black and cuts or skips on a slow connection | high | agent | fixed | this branch |
 | ISS-029 | Docking and tour clips are MPEG-4 Part 2; browsers will not play them | high | agent | fixed | this branch |
 | ISS-028 | Docking and tour clips were never wired into the launch sequence | high | agent | fixed | this branch |
@@ -57,9 +57,11 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
   the empty commit. The gated Actions workflow cannot substitute: it is manual-only, its gate
   expects a `workflow_run` payload, and the repository has no `VERCEL_TOKEN`, `VERCEL_ORG_ID`,
   or `VERCEL_PROJECT_ID` secrets.
-- **Fix:** push a non-empty commit to `main` so the Git integration sees a normal production
-  change, then verify the live HTML and bundle contain the interior screen. Logged and fixed in
-  this commit.
+- **Attempted fix:** pushed a non-empty commit (`7c81582`) to `main` so the Git integration
+  would see a normal production change. Vercel still created no deployment; the live HTML and
+  bundle remained `66a2100`.
+- **Blocked on:** the Vercel project owner reconnecting the Git integration, promoting the
+  `d4163c3` preview, or running a production deployment. The app code is correct on `main`.
 - **Pre-existing:** no. The interior code was correct on the branch; it was never published.
 
 ## ISS-030 — The launch reel shows black and cuts or skips on a slow connection
