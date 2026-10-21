@@ -11,7 +11,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
-| ISS-032 | Launch film stutters like a slideshow on a slow connection | high | agent | fixed | this branch |
+| ISS-032 | Launch film stutters like a slideshow on a slow connection | high | agent | fixed | 1f4c709 |
 | ISS-031 | Live production served the pre-interior bundle after the merge | high | agent | fixed | 6774e22 |
 | ISS-030 | Launch reel shows black and cuts or skips on a slow connection | high | agent | fixed | this branch |
 | ISS-029 | Docking and tour clips are MPEG-4 Part 2; browsers will not play them | high | agent | fixed | this branch |
