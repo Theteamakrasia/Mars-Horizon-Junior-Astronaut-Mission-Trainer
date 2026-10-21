@@ -8,6 +8,40 @@ than a documented one.
 
 ---
 
+## 2026-10-21 — Make the launch reel stream smoothly on a slow connection (ISS-032)
+
+**Did**
+
+- Re-encoded the three films at 1280x720, H.264 main, `yuv420p`, with `+faststart` and no
+  audio track. The reel is now 2.16 MB instead of 14.10 MB; the frame counts and timings are
+  unchanged, so the schedule in `launch/model.ts` still matches the media.
+- Checked the new files with PyAV: launch 5.000s/150 frames/1.42 Mb/s, docking
+  3.000s/90 frames/0.76 Mb/s, tour 12.000s/360 frames/0.66 Mb/s. The `moov` atom is before
+  `mdat` in all three.
+- Compared source and encoded frames side by side at the launch, docking and each tour
+  caption. The text in the tour is still legible at 720p.
+
+**Files**
+
+- Updated: `Assets/images/launch/launch-cinematic.mp4`, `Assets/video/docking.mp4`,
+  `Assets/video/parts.mp4`, `docs/team/issues.md`, this log.
+
+**Problems**
+
+- No browser is connected to this session, so the reel still needs a real slow-network
+  playthrough. The build proves the new assets are fingerprinted into `dist/`; it cannot
+  prove the user's link now stays ahead of playback.
+- 720p is a deliberate trade: smaller and cheaper to decode than the 1080p originals, at the
+  cost of some fine detail on a large display. The originals remain in git history.
+
+**Next**
+
+- Deploy the new bundle and test the launch on the same connection that produced the
+  slideshow. If it still stutters, the next step is a lower-resolution 540p variant rather
+  than another schedule change.
+
+---
+
 ## 2026-10-21 — Stop the launch reel showing black and skipping on a slow connection (ISS-030)
 
 **Did**

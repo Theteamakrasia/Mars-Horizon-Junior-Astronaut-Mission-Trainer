@@ -11,6 +11,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
+| ISS-032 | Launch film stutters like a slideshow on a slow connection | high | agent | fixed | this branch |
 | ISS-031 | Live production served the pre-interior bundle after the merge | high | agent | fixed | 6774e22 |
 | ISS-030 | Launch reel shows black and cuts or skips on a slow connection | high | agent | fixed | this branch |
 | ISS-029 | Docking and tour clips are MPEG-4 Part 2; browsers will not play them | high | agent | fixed | this branch |
@@ -42,6 +43,29 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | ISS-014 | `base.css` calls the page non-interactive while draggable | low | unassigned | open | — |
 
 ---
+
+## ISS-032 — The launch film stutters like a slideshow on a slow connection
+
+- **Reported by:** the user, 2026-10-21: "bruh the video lags so much its like a slide show"
+  after testing the live site.
+- **Where:** `Assets/images/launch/launch-cinematic.mp4`, `Assets/video/docking.mp4`,
+  `Assets/video/parts.mp4`, played by `src/features/launch/view.ts`.
+- **Problem:** the reel was 14.1 MB of 1080p video. The launch film alone was 6.93 MB at
+  11.09 Mb/s for five seconds, and the docking and tour clips were 4.56 Mb/s and 3.63 Mb/s.
+  A visitor whose connection is below roughly 11 Mb/s cannot stream the launch film in real
+  time; the video freezes while the audio-less frame waits for the next sample, which reads
+  as a slideshow. The docking and tour files also put their `moov` atom at the end, adding a
+  full-file seek before they can start. The media-driven schedule from ISS-030 correctly waits
+  for a first frame, but it cannot make a clip play smoothly once the bitrate exceeds the link.
+- **Cause:** the films were rendered at delivery resolution and bitrate without a web pass.
+  Their quality was tuned for a desktop file, not a children's game on a school or home link.
+- **Fix:** re-encoded all three at 1280x720, H.264 main, `yuv420p`, with the metadata at
+  the front (`+faststart`), and dropped the unused audio track. The frame counts and
+  timings are unchanged, so `VIDEO_DURATION_MS`, `DOCKING_DURATION_MS` and
+  `PARTS_DURATION_MS` did not need editing. The reel is now 2.16 MB instead of 14.10 MB:
+  launch 1.42 Mb/s, docking 0.76 Mb/s, tour 0.66 Mb/s. Fixed in this branch; the built
+  asset names are fingerprinted, so the browser cannot reuse the old files.
+- **Pre-existing:** no; this is the delivery cost of the films added for TASK-036 and TASK-037.
 
 ## ISS-031 — Live production served the pre-interior bundle after the merge
 
@@ -638,4 +662,4 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-**Next free id: ISS-023.**
+**Next free id: ISS-033.**
