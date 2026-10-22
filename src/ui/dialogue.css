@@ -1,0 +1,166 @@
+/* ==========================================================================
+   UI-DIALOGUE — reusable full-width bottom dialogue panel (VN style)
+
+   Structural styles only: position, size, layout. Features theme colours in
+   their own CSS by overriding the --ui-dialogue-* variables. Imported by
+   src/ui/dialogue.ts only.
+   ========================================================================== */
+
+.ui-dialogue__panel {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  box-sizing: border-box;
+  width: 100%;
+  height: clamp(9rem, 22vmin, 13rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem 1.5rem;
+  background: var(--ui-dialogue-bg, #0b1220);
+  border-top: 1px solid var(--ui-dialogue-border, #2d6da3);
+  color: var(--ui-dialogue-text, #e9f3ff);
+  font-family: var(--font-display);
+  overflow: hidden;
+}
+
+.ui-dialogue__panel *,
+.ui-dialogue__panel *::before,
+.ui-dialogue__panel *::after {
+  box-sizing: inherit;
+}
+
+.ui-dialogue__speaker {
+  margin: 0;
+  font-size: clamp(0.7rem, 1.2vmin, 0.85rem);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ui-dialogue-speaker, #ff8a3d);
+  min-height: 1.2em;
+}
+
+.ui-dialogue__text {
+  margin: 0;
+  flex: 1 1 auto;
+  font-size: clamp(0.9rem, 1.7vmin, 1.15rem);
+  line-height: 1.5;
+  color: var(--ui-dialogue-text, #e9f3ff);
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.ui-dialogue__detail {
+  margin: 0;
+  flex: 0 0 auto;
+  font-size: clamp(0.75rem, 1.4vmin, 0.9rem);
+  line-height: 1.4;
+  color: var(--ui-dialogue-muted, #a3bcd6);
+  border-top: 1px solid var(--ui-dialogue-border, #2d6da3);
+  padding-top: 0.5rem;
+  min-height: 0;
+}
+
+.ui-dialogue__detail[hidden] {
+  display: none !important;
+}
+
+.ui-dialogue__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex: 0 0 auto;
+  min-height: 0;
+}
+
+.ui-dialogue__next {
+  pointer-events: auto;
+  padding: 0.45rem 1.1rem;
+  border: 1px solid var(--ui-dialogue-border, #2d6da3);
+  border-radius: 4px;
+  background: rgba(20, 46, 78, 0.9);
+  color: var(--ui-dialogue-text, #e9f3ff);
+  font: inherit;
+  font-size: clamp(0.72rem, 1.25vmin, 0.85rem);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease;
+  white-space: nowrap;
+}
+
+.ui-dialogue__next:hover {
+  background: rgba(45, 109, 163, 0.95);
+  border-color: var(--ui-dialogue-accent, #ff8a3d);
+}
+
+.ui-dialogue__next:focus-visible {
+  outline: 2px solid var(--ui-dialogue-accent, #ff8a3d);
+  outline-offset: 2px;
+}
+
+.ui-dialogue__next[hidden] {
+  display: none !important;
+}
+
+.ui-dialogue__choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  flex: 0 0 auto;
+  min-height: 0;
+}
+
+.ui-dialogue__choice-button {
+  width: 100%;
+  padding: 0.5rem 0.3rem;
+  border: 1px solid var(--ui-dialogue-border, #2d6da3);
+  border-radius: 4px;
+  background: rgba(20, 46, 78, 0.85);
+  color: var(--ui-dialogue-text, #e9f3ff);
+  font: inherit;
+  font-size: clamp(0.9rem, 1.9vmin, 1.3rem);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ui-dialogue__choice-button:hover:not(:disabled) {
+  background: rgba(45, 109, 163, 0.9);
+  border-color: var(--ui-dialogue-accent, #ff8a3d);
+}
+
+.ui-dialogue__choice-button:focus-visible {
+  outline: 2px solid var(--ui-dialogue-accent, #ff8a3d);
+  outline-offset: 2px;
+}
+
+.ui-dialogue__choice-button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.ui-dialogue__choice-button.is-locked {
+  opacity: 0.32;
+  border-style: dashed;
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-dialogue__next,
+  .ui-dialogue__choice-button {
+    transition: none;
+  }
+}
