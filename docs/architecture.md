@@ -186,6 +186,13 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │                                             feature views; the only file permitted to import
     │                                             them. Returns null for routes with nothing built,
     │                                             so the router can fall through instead of throwing.
+    │   ├── dialogue.ts                 complete   Reusable full-width bottom dialogue panel
+    │   │                                         (visual-novel style): speaker label, dialogue
+    │   │                                         text, Next button, and answer choices.
+    │   │                                         Exports createDialoguePanel -> DialoguePanel.
+    │   └── dialogue.css                complete   Structural styles for the dialogue panel
+    │                                             (position, size, layout). Features theme
+    │                                             colours via --ui-dialogue-* variables.
     │
     ├── dom/                            landing-page side effects only. Untested (ISS-011).
     │   ├── floatAstronaut.ts           complete   218 lines. The rAF loop, the two transforms, the
@@ -428,6 +435,7 @@ screen.
 | `dom/floatAstronaut` | `startFloatingAstronaut` | `(wrapper, {deformLayer, reducedMotion}) -> teardown`; cancels rAF, removes the resize listener, detaches the grab, clears the transform |
 | `dom/pointerGrab` | `attachGrab` | `(target, handlers, options) -> teardown` |
 | `dom/starfield` | `createStarfield` | `(container) => void`; appends, never clears |
+| `ui/dialogue` | `createDialoguePanel` | `(container) -> DialoguePanel`; builds a full-width fixed-height bottom dialogue panel (speaker, text, Next, choices). Teardown is mandatory. |
 
 ## Planned contracts
 

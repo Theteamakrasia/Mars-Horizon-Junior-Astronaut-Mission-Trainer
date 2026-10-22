@@ -8,7 +8,31 @@ than a documented one.
 
 ---
 
-## 2026-10-22 — Make the player try again on the ration check, on purpose (ISS-034, ISS-035)
+## 2026-10-22 — Add a shared bottom dialogue panel and convert supply to it
+
+**Did**
+
+- Added `src/ui/dialogue.ts` — a reusable full-width, fixed-height bottom dialogue panel in the visual-novel style: speaker label, dialogue text, detail line, Next button, and answer choices. Structural styles in `src/ui/dialogue.css`; features theme colours via `--ui-dialogue-*` variables. No animation is load-bearing; text is readable immediately.
+- Converted `features/supply/` to the panel: facts, question, hints, success and the working text all go through the panel; Next and the four answer choices live in the panel; the top-left bubble and right rail were removed from both markup and CSS. Retry/Continue moved to a footer sitting just above the panel.
+- The panel is created once per screen mount and torn down on unmount; choice locking (retired wrong answers) and enable/disable are handled by the panel API.
+
+**Files**
+
+- Added: `src/ui/dialogue.ts`, `src/ui/dialogue.css`
+- Updated: `src/features/supply/view.ts`, `src/features/supply/supply.css`, `index.html`, `docs/architecture.md`, this log
+
+**Problems**
+
+- None; `npm run check` (imports + markup + tsc) and `npm test` (268/268) pass cleanly.
+- The panel and footer alignment relies on `--supply-panel-height` matching the panel's `clamp()` height in `ui/dialogue.css`. On very short viewports the panel's clamp range differs slightly from the footer's, but both use the same expression so they track.
+- Not yet viewed in a real browser — no browser is connected to this session (ISS-013). The DOM stub check from the previous supply pass still applies: mount, click through facts, pick wrong, confirm no hint on first wrong, press TRY AGAIN, confirm question returns with option retired, answer correctly, confirm completed working.
+
+**Next**
+
+- Open `#/supply` in a browser and play it through end to end, checking the panel sits cleanly against the artwork at several viewport sizes.
+- Consider converting `briefing` and `interior` to the same panel once this pilot is proven.
+
+---
 
 **Did**
 
