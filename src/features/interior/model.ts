@@ -242,7 +242,7 @@ export function isAtExit(room: Room, walker: Walker): boolean {
 }
 
 /** Stage fractions per second. A full crossing takes just under three seconds. */
-export const WALK_SPEED = 0.34;
+export const WALK_SPEED = 0.35;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
@@ -318,8 +318,8 @@ export const SPRITE_SPECS: Record<
   SpriteAnimation,
   { readonly frames: number; readonly cycleMs: number }
 > = {
-  'walk-left': { frames: 8, cycleMs: 720 },
-  'walk-right': { frames: 8, cycleMs: 720 },
+  'walk-left': { frames: 4, cycleMs: 480 },
+  'walk-right': { frames: 4, cycleMs: 480 },
   interact: { frames: 2, cycleMs: 0 },
   'interact-alt': { frames: 2, cycleMs: 1200 },
   'point-left': { frames: 1, cycleMs: 0 },

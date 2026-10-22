@@ -84,7 +84,7 @@
 }
 
 /* ---------- THE PLAYER ----------
-   One cell, 20% of the stage wide. The cell is 260x340 with transparent padding
+   One cell, 20% of the stage wide. The cell is 480x680 with transparent padding
    above the head and a few pixels below the feet; the visible character is
    about 38% of the stage height. `bottom` is the room's feet line and `left` is
    the stance centre. There is no depth axis. The scale and floor line are fixed
@@ -103,7 +103,7 @@
   bottom: var(--player-bottom);
   z-index: 3;
   width: 20%;
-  aspect-ratio: 260 / 340;
+  aspect-ratio: 480 / 680;
   overflow: hidden;
   transform: translateX(-50%) scale(var(--player-scale));
   transform-origin: 50% 100%;
