@@ -226,33 +226,63 @@
           aria-hidden="true"
           decoding="async"
         />
-      </div>
 
-      <!-- The dialogue panel (speaker, text, Next, choices) is created by
-           supply/view.ts from src/ui/dialogue.ts and appended to this section.
-           It is a full-width fixed-height panel pinned to the bottom, in the
-           visual-novel style, so nothing here is positioned against the artwork. -->
+        <!-- One bubble, reused. aria-live so each replacement is announced, since
+             the previous line is genuinely removed rather than scrolled past. -->
+        <div class="supply__speech" role="status" aria-live="polite">
+          <div class="supply__bubble" data-supply-bubble hidden>
+            <p class="supply__bubble-label" data-supply-bubble-label></p>
+            <p class="supply__bubble-text" data-supply-bubble-text></p>
+            <span class="supply__bubble-tail" aria-hidden="true"></span>
+          </div>
 
-      <!-- TRY AGAIN / CONTINUE — supply-specific actions shown after a wrong or
-           right answer respectively. They sit in a footer just above the dialogue
-           panel, matched to its height via --supply-panel-height. -->
-      <div class="supply__footer">
-        <button
-          class="supply__action supply__action--retry"
-          type="button"
-          data-supply-retry
-          hidden
-        >
-          Try again
-        </button>
-        <button
-          class="supply__action supply__action--primary"
-          type="button"
-          data-supply-continue
-          hidden
-        >
-          Continue
-        </button>
+          <!-- NEXT sits with the speech, the way a reader turns a page. It is the
+               only thing that brings up the next line. -->
+          <button class="supply__advance" type="button" data-supply-next>Next</button>
+        </div>
+
+        <!-- The answers, on the RIGHT. The astronaut and his pointing hand own the
+             left of the picture and the checklist owns the middle, so the right is
+             the only side that can take them without covering the story. -->
+        <div class="supply__rail">
+          <div class="supply__answers" data-supply-answers hidden>
+            <!-- A short label only. The question itself is in the bubble, said by
+                 the astronaut, and is not repeated here. -->
+            <p class="supply__ask">How many packs?</p>
+
+            <!-- Four buttons, generated in supply/view.ts from the model, so the
+                 numbers on screen are the numbers under test. -->
+            <ul class="supply__choices" data-supply-choices></ul>
+
+            <!-- The working, in small type, so the question stays on screen in the
+                 bubble beside it. -->
+            <p class="supply__result" data-supply-result hidden></p>
+          </div>
+
+          <!-- TRY AGAIN. Shown only after a wrong answer.
+
+               The wrong frame used to time out on its own and take the choice
+               away, which took the feedback off screen while the child was
+               still reading it. Now the alarm frame stays up until this is
+               pressed, so the player decides when to have another go. -->
+          <button
+            class="supply__action supply__action--retry"
+            type="button"
+            data-supply-retry
+            hidden
+          >
+            Try again
+          </button>
+
+          <button
+            class="supply__action supply__action--primary"
+            type="button"
+            data-supply-continue
+            hidden
+          >
+            Continue
+          </button>
+        </div>
       </div>
     </section>
 

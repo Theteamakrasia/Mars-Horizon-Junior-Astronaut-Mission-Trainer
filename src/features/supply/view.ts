@@ -5,27 +5,32 @@
  * DOM, images and timing only. The words, the numbers and the scoring all live in
  * ./model and are unit tested there.
  *
- * How the text is shown, and why it is a bottom panel:
+ * How the text is shown, and why it is not a list:
  *
- * The artwork is a full Mission Control room with no empty space in it, so
- * nothing here is laid out as a panel dropped on top of it. The text is
- * dialogue instead: a fixed full-width panel pinned to the bottom of the
- * screen (visual-novel style) with a speaker label, dialogue text, a Next
- * button, and the answer choices. Each fact REPLACES the previous one. The
- * room stays visible, the panel is small enough to read as speech rather than
- * as chrome, and a child who looks away misses one line rather than a wall of
- * five.
+ * The artwork is a full Mission Control room with no empty space in it. An
+ * earlier version laid the five facts out as a scrolling list inside a
+ * 46rem panel down the left, and it read as a dialog box dropped on top of a
+ * picture â€” the panel covered the astronaut, whose job in the scene is to be
+ * pointing at the checklist, and it fought the board the whole scene is about.
  *
- * Every replacement is written immediately through `swapTo` - no crossfade,
- * so the chain cannot stall and the text is always readable. That is the same
- * rule as the briefing: an animation is never load-bearing for content
- * appearing.
+ * So the text is dialogue instead: one bubble beside the astronaut's head, with a
+ * tail pointing at him, and each fact REPLACES the previous one. The room stays
+ * visible, the bubble is small enough to read as speech rather than as chrome,
+ * and a child who looks away misses one line rather than a wall of five.
+ *
+ * Every replacement is a crossfade through `swapTo`, which fades the old line out
+ * before writing the new one in. Timing is done with a timer rather than
+ * `transitionend`, because a transition that never fires - a hidden element, a
+ * background tab, reduced motion - would otherwise strand the sequence and leave
+ * the bubble blank forever. That is the same class of bug as the briefing's
+ * width animation, and the reason nothing on this screen depends on an animation
+ * completing to become readable.
  */
 
 import { nextStop } from '../../ui/registry';
 import { navigate } from '../../ui/router';
 import type { RunState } from '../../sim/run';
-import { createDialoguePanel } from '../../ui/dialogue';
+import { createButtonStrip } from '../../ui/button-strip';
 
 import './supply.css';
 
@@ -46,6 +51,9 @@ import {
   workingSentence,
   workingSentenceBlanked,
 } from './model';
+
+/** How long a bubble fades out before the next one is written into it. */
+const SWAP_MS = 220;
 
 /**
  * How long to wait for a frame before showing it anyway.
@@ -115,12 +123,30 @@ export function mountSupply(
 ): () => void {
   const scene = require<HTMLImageElement>(root, '[data-supply-scene]');
   const sceneB = require<HTMLImageElement>(root, '[data-supply-scene-b]');
+  const bubble = require<HTMLDivElement>(root, '[data-supply-bubble]');
+  const bubbleLabel = require<HTMLParagraphElement>(root, '[data-supply-bubble-label]');
+  const bubbleText = require<HTMLParagraphElement>(root, '[data-supply-bubble-text]');
+  const answers = require<HTMLElement>(root, '[data-supply-answers]');
+  const choiceList = require<HTMLUListElement>(root, '[data-supply-choices]');
+  const result = require<HTMLParagraphElement>(root, '[data-supply-result]');
+  const advance = require<HTMLButtonElement>(root, '[data-supply-next]');
   const retry = require<HTMLButtonElement>(root, '[data-supply-retry]');
   const cont = require<HTMLButtonElement>(root, '[data-supply-continue]');
 
-  const dialogue = createDialoguePanel(root);
+  // Bottom button strip: Next lives here instead of inside the speech bubble,
+  // so the dialogue stays where it is and only the controls move to a
+  // dedicated full-width bar at the bottom of the screen.
+  const strip = createButtonStrip(root, { className: 'supply__button-strip' });
+  strip.appendButton(advance);
 
-  /** Who the dialogue text is attributed to. */
+  /*
+   * Who the bubble is attributed to.
+   *
+   * The player's own name, because the astronaut in the picture is them. An
+   * earlier version labelled every bubble "MISSION CONTROL", which duplicated the
+   * words already painted on the wall behind him and made it read as a caption
+   * board rather than as somebody talking.
+   */
   const speaker = run?.astronautName?.trim() || 'Astronaut';
 
   /*
@@ -221,19 +247,42 @@ const reduced = prefersReducedMotion();
   };
 
   const setChoicesEnabled = (enabled: boolean): void => {
-    dialogue.setChoicesEnabled(enabled);
+    // Disabled rather than hidden, so a button is never a tab stop the player can
+    // reach before there is a question to answer.
+    //
+    // Locked options are skipped. Re-enabling the whole list on retry - which is
+    // what this did first - quietly brought every retired wrong answer back, so
+    // the same mistake could be made over and over and the lock meant nothing.
+    for (const button of choiceButtons) {
+      if (button.dataset.supplyLocked === 'true') continue;
+
+      button.disabled = !enabled;
+    }
   };
 
   /*
-   * What the dialogue is heading for.
+   * What the bubble is heading for.
    *
    * Set when a line is asked for, not when it lands, so it is right even while
-   * a replacement is still running. The view needs it to tell whether the
+   * a crossfade is still running. The view needs it to tell whether the
    * question is already up before asking it again: after a first wrong answer
-   * the panel still holds it, because no hint was given, and asking it again
-   * would be a swap out and a swap in of the same words.
+   * the bubble still holds it, because no hint was given, and asking it again
+   * would be a fade out and a fade in of the same words.
    */
   let currentLine = '';
+
+  /*
+   * Write one line into the bubble and make it visible.
+   *
+   * Text is written *before* the bubble is shown, never revealed by animating a
+   * property that decides whether it can be read.
+   */
+  const render = (label: string, text: string): void => {
+    bubbleLabel.textContent = label;
+    bubbleText.textContent = text;
+    bubble.hidden = false;
+    bubble.dataset.supplyPhase = 'in';
+  };
 
   let timers: number[] = [];
 
@@ -242,39 +291,77 @@ const reduced = prefersReducedMotion();
   };
 
   /**
-   * Write one line into the dialogue panel and continue.
+   * Crossfade to a new line, then continue.
    *
-   * Text is written immediately - no crossfade, so the chain cannot stall and the
-   * text is always readable. Mirrors the briefing's rule that an animation is
-   * never load-bearing for content appearing.
+   * The fade-out is timed rather than event-driven so the chain cannot stall: if
+   * the transition is suppressed the timer still fires and the text still lands.
+   * `then` runs immediately under reduced motion, which is why the whole reveal
+   * collapses to a plain swap there.
    */
   const swapTo = (label: string, text: string, then?: () => void): void => {
+    // The bubble is heading for this line from here on, even if the crossfade
+    // has not landed it yet.
     currentLine = text;
-    dialogue.setSpeaker(label);
-    dialogue.setText(text);
-    dialogue.setDetail('');
-    if (then) then();
+
+    if (reduced || bubble.hidden) {
+      render(label, text);
+      if (then) then();
+      return;
+    }
+
+    bubble.dataset.supplyPhase = 'out';
+
+    later(() => {
+      render(label, text);
+      if (then) then();
+    }, SWAP_MS);
   };
 
-  /** Build the answer buttons in the dialogue panel, created once and shown when the question is asked. */
-  dialogue.setChoices(
-    CHOICES.map((value) => ({ label: String(value), value: String(value) })),
-    onChoiceValue,
+  /** Build the answer buttons from the model. */
+  const choiceButtons: HTMLButtonElement[] = CHOICES.map((value) => {
+    const item = document.createElement('li');
+    item.className = 'supply__choice';
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'supply__choice-button';
+    button.dataset.supplyChoice = String(value);
+    button.textContent = String(value);
+    button.disabled = true;
+    button.addEventListener('click', onChoiceClick);
+
+    item.appendChild(button);
+    choiceList.appendChild(item);
+    return button;
+  });
+
+  /**
+   * The button for a given amount, so a wrong pick can be locked.
+   *
+   * A Map rather than a lookup through the DOM: the click handler already knows the
+   * number it was asked about, and searching for a matching data attribute would
+   * be a second way to get the same answer.
+   */
+  const buttonFor = new Map<number, HTMLButtonElement>(
+    CHOICES.map((value, i) => [value, choiceButtons[i]]),
   );
-  dialogue.clearChoices();
-  dialogue.setChoicesEnabled(false);
 
   /**
    * Retire an option for good.
    *
    * A wrong answer teaches once. Leaving it clickable means a child can pick the
    * same wrong number over and over and read the same sentence, which is not
-   * practice - it is a button that does not seem to work. The panel keeps the
-   * button visible so the remaining options can be reasoned about; only the
+   * practice - it is a button that does not seem to work. The `is-locked` class
+   * keeps it visible so the remaining options can be reasoned about; only the
    * ability to repeat the mistake goes away.
    */
   const lockChoice = (value: number): void => {
-    dialogue.setChoiceLocked(String(value), true);
+    const button = buttonFor.get(value);
+    if (button === undefined) return;
+
+    button.disabled = true;
+    button.classList.add('is-locked');
+    button.dataset.supplyLocked = 'true';
   };
 
   let index = 0;
@@ -290,11 +377,12 @@ const reduced = prefersReducedMotion();
     // under the whole conversation.
     setScene('question');
 
+    answers.hidden = false;
+    result.hidden = true;
+    result.textContent = '';
     retry.hidden = true;
     cont.hidden = true;
-    dialogue.showChoices();
-    dialogue.setChoicesEnabled(true);
-    dialogue.setNext(false, revealNext);
+    setChoicesEnabled(true);
   };
 
   const revealNext = (): void => {
@@ -306,6 +394,7 @@ const reduced = prefersReducedMotion();
       // to reach the question at all: five facts, then a dead screen.
       swapTo(speaker, QUESTION_PROMPT, () => {
         askQuestion();
+        advance.hidden = true;
       });
       return;
     }
@@ -313,9 +402,7 @@ const reduced = prefersReducedMotion();
     const fact = SUPPLY_BEATS[index];
     index += 1;
 
-    swapTo(fact.label, fact.line, () => {
-      dialogue.setNext(true, revealNext);
-    });
+    swapTo(fact.label, fact.line);
   };
 
   /**
@@ -338,7 +425,7 @@ const reduced = prefersReducedMotion();
      * The first mistake is where the child is still working it out, and a
      * direction - "too low, think larger" - is what stops that working: it
      * rules options out instead of letting the method rule them out. The
-     * blanked working is enough on its own for a first attempt, and the panel
+     * blanked working is enough on its own for a first attempt, and the bubble
      * keeps the question so it can be read again.
      *
      * From the second wrong answer on there is a nudge as well, because by then
@@ -357,14 +444,15 @@ const reduced = prefersReducedMotion();
       );
     }
 
-    // The working goes in the panel detail line below the dialogue, so the
-    // question or hint stays above it while the child reads what went wrong.
+    // The working goes in the rail, not the bubble, so the question stays on
+    // screen beside it while the child reads what went wrong.
     //
     // With the answer left out of it. The sentence ends with the number under
-    // test, so showing it in full put the answer on the panel for as long as
+    // test, so showing it in full put the answer on the rail for as long as
     // the child was looking at it, which is no use to a question meant to be
     // worked out. The full working arrives once the answer has been earned.
-    dialogue.setDetail(workingSentenceBlanked());
+    result.textContent = workingSentenceBlanked();
+    result.hidden = false;
 
     // The alarm frame stays up until the player asks for another go. This used
     // to time out on its own after a beat, which took the choice away while the
@@ -380,23 +468,21 @@ const reduced = prefersReducedMotion();
   /**
    * Take the room back to the question and let the player have another go.
    *
-   * The question is asked again rather than left in the panel, because the
-   * panel is the only place the full question has ever been spoken. After a
-   * wrong answer it may hold a hint, and someone working out the answer needs
-   * the question in front of them, not the hint they have already read.
+   * The question is asked again rather than left in the rail, because the bubble
+   * is the only place the full question has ever been spoken. After a wrong
+   * answer it may hold a hint, and someone working out the answer needs the
+   * question in front of them, not the hint they have already read.
    *
    * Asked only when it is not already up. A first wrong answer gives no hint,
-   * so the question is still in the panel, and asking it again would be a swap
-   * out and a swap in of the same words.
+   * so the question is still in the bubble, and asking it again would be a fade
+   * out and a fade in of the same words.
    */
   const onRetry = (): void => {
     if (solved) return;
 
     retry.hidden = true;
     setScene('question');
-    dialogue.showChoices();
-    dialogue.setChoicesEnabled(true);
-    dialogue.setNext(false, revealNext);
+    setChoicesEnabled(true);
 
     if (currentLine !== QUESTION_PROMPT) {
       swapTo(speaker, QUESTION_PROMPT);
@@ -407,31 +493,34 @@ const reduced = prefersReducedMotion();
   const showRight = (): void => {
     solved = true;
     setScene('right');
-    dialogue.setChoicesEnabled(false);
+    setChoicesEnabled(false);
+    advance.hidden = true;
     retry.hidden = true;
 
     swapTo(speaker, successSentence());
 
     // The working is completed now that the answer has been earned, so the
     // blank the child was left with is filled in.
-    dialogue.setDetail(workingSentence());
+    result.textContent = workingSentence();
+    result.hidden = false;
 
     cont.hidden = false;
   };
 
-  function onChoiceValue(value: string): void {
+  function onChoiceClick(event: Event): void {
     if (solved) return;
 
-    const numValue = Number(value);
+    const button = event.currentTarget as HTMLButtonElement;
+    const value = Number(button.dataset.supplyChoice);
 
     // A button with no parsable value gives NaN, and NaN compares false against
     // everything, so it would be silently scored as a wrong answer.
-    if (!Number.isFinite(numValue)) return;
+    if (!Number.isFinite(value)) return;
 
-    if (isCorrect(numValue, CORRECT_ANSWER)) {
+    if (isCorrect(value, CORRECT_ANSWER)) {
       showRight();
     } else {
-      showWrong(numValue);
+      showWrong(value);
     }
   }
 
@@ -445,6 +534,7 @@ const reduced = prefersReducedMotion();
     navigate(next);
   };
 
+  advance.addEventListener('click', revealNext);
   retry.addEventListener('click', onRetry);
   cont.addEventListener('click', onContinue);
 
@@ -461,9 +551,13 @@ const reduced = prefersReducedMotion();
   revealNext();
 
   return () => {
-    dialogue.teardown();
+    advance.removeEventListener('click', revealNext);
     retry.removeEventListener('click', onRetry);
     cont.removeEventListener('click', onContinue);
+
+    for (const button of choiceButtons) {
+      button.removeEventListener('click', onChoiceClick);
+    }
 
     for (const timer of timers) window.clearTimeout(timer);
     timers = [];
