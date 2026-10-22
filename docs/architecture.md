@@ -181,6 +181,11 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │                                             main.ts** — no features exist to route to, and
     │                                             half-wiring it could break the landing page.
     │                                             DOM behaviour UNVERIFIED in a browser.
+    │   ├── button-strip.ts             complete   createButtonStrip(root, options) -> ButtonStripSpec;
+    │   │                                         full-width fixed-height bottom strip owning Next /
+    │   │                                         Prev / action buttons; teardown mandatory.
+    │   └── button-strip.css            complete   structural styles only (flex row, gap, padding);
+    │                                             features theme colours in their own CSS.
     │   # registry.ts                   complete   the one composition seam. Exports ScreenFactory,
     │                                             screenMount, resolveScreen. Maps routes onto
     │                                             feature views; the only file permitted to import
@@ -428,6 +433,7 @@ screen.
 | `dom/floatAstronaut` | `startFloatingAstronaut` | `(wrapper, {deformLayer, reducedMotion}) -> teardown`; cancels rAF, removes the resize listener, detaches the grab, clears the transform |
 | `dom/pointerGrab` | `attachGrab` | `(target, handlers, options) -> teardown` |
 | `dom/starfield` | `createStarfield` | `(container) => void`; appends, never clears |
+| `ui/button-strip` | `createButtonStrip` | `(root, options) -> ButtonStripSpec`; full-width fixed-height bottom strip holding Next / Prev / action buttons; teardown is mandatory |
 
 ## Planned contracts
 

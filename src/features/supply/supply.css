@@ -230,6 +230,9 @@
   background: var(--s-glass);
   box-shadow: 0 0.4rem 1.4rem rgba(0, 0, 0, 0.45);
   animation: supply-rise 260ms ease-out both;
+  /* Keep the choice box above the fixed bottom button strip (4.5rem high) with
+     a small gap, so the choices are never hidden behind it. */
+  margin-bottom: calc(4.5rem + 0.75rem);
 }
 
 @keyframes supply-rise {
@@ -380,6 +383,25 @@
   border-color: var(--s-bad);
   background: rgba(92, 22, 20, 0.92);
   color: #ffe9e7;
+}
+
+/* ---------- BUTTON STRIP ---------- */
+
+/*
+   The bottom bar that owns the Next control. It sits at the bottom edge of the
+   screen root, full width and fixed height, so the dialogue bubble can stay
+   where it is and only the controls move here.
+*/
+
+.supply__button-strip {
+  background: var(--s-glass-solid);
+  border-top: 1px solid var(--s-line);
+}
+
+/* The strip's flex row lays the button out; keep the bubble's styling. */
+
+.supply__button-strip .supply__advance {
+  margin: 0;
 }
 
 /* ---------- NARROW ----------

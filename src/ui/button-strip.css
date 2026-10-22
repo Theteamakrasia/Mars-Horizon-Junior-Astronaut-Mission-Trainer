@@ -1,0 +1,9 @@
+/* ==========================================================================
+   UI BUTTON STRIP — structural styles only.
+   The owning feature themes the strip background/border and the buttons in
+   its own stylesheet (R-15: feature CSS is imported by its own view.ts).
+   ========================================================================== */
+
+.ui-button-strip__button {
+  margin: 0;
+}
