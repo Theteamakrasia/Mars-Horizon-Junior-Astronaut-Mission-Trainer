@@ -1,6 +1,456 @@
-/* STUB — not implemented. Every rule here throws until TASK-028 lands.
-   Imported by ./view.ts, never by src/style.css (AGENTS.md R-15). */
+/*
+ * Landing-site screen styles.
+ *
+ * Imported by ./view.ts, never by src/style.css (AGENTS.md R-15).
+ * No `pointer-events: none` (check-markup rule 8).
+ *
+ * Layout: a 16:9 map stage with five absolutely-positioned pins, plus a Site
+ * Analysis panel. All continuous motion is removed under
+ * `prefers-reduced-motion: reduce`; discrete changes stay instant.
+ */
 
 .landing-site {
-  /* positions go here */
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  color: #f0f0f0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  line-height: 1.5;
+  background: #0b1015;
+  overflow: hidden;
+}
+
+.landing-site__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid #2a3340;
+  background: #121a24;
+  flex-shrink: 0;
+}
+
+.landing-site__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.landing-site__brand-mark {
+  font-size: 1.5rem;
+}
+
+.landing-site__brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.landing-site__brand-name {
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.landing-site__brand-sub {
+  font-size: 0.75rem;
+  color: #8a97a8;
+}
+
+.landing-site__nav {
+  font-size: 0.875rem;
+  color: #8a97a8;
+}
+
+.landing-site__body {
+  display: grid;
+  flex: 1;
+  grid-template-columns: 1fr min(360px, 40vw);
+  overflow: hidden;
+}
+
+.landing-site__stage,
+.landing-site__panel {
+  min-height: 0;
+}
+
+/* --- Map stage --- */
+
+.landing-site__stage {
+  position: relative;
+  min-width: 0;
+  aspect-ratio: 16 / 9;
+  background: #080c11;
+  overflow: hidden;
+}
+
+.landing-site__map {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 400ms ease;
+}
+
+.landing-site__map.is-ready {
+  opacity: 1;
+}
+
+/* Pins sit on top of the map, positioned in stage percentages. */
+.landing-site__pins {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  cursor: default;
+  z-index: 10;
+}
+
+.landing-site__pin {
+  position: absolute;
+  left: var(--pin-x, 50%);
+  top: var(--pin-y, 50%);
+  transform: translate(-50%, -50%);
+  width: 34px;
+  height: 34px;
+  border: 2px solid #111827;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.45), 0 2px 4px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  outline: none;
+  z-index: 10;
+  pointer-events: auto;
+  touch-action: manipulation;
+  transition: transform 140ms ease, box-shadow 140ms ease, background-color 140ms ease;
+}
+
+.landing-site__pin::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.landing-site__pin:focus-visible {
+  box-shadow: 0 0 0 4px #ffffff, 0 0 0 7px #111827;
+}
+
+.landing-site__pin:hover,
+.landing-site__pin:focus {
+  transform: translate(-50%, -50%) scale(1.15);
+}
+
+.landing-site__pin:hover::before,
+.landing-site__pin:focus::before {
+  opacity: 1;
+}
+
+.landing-site__pin[aria-pressed="true"] {
+  background: #f59e0b;
+  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.35);
+  transform: translate(-50%, -50%) scale(1.25);
+}
+
+.landing-site__pin[aria-pressed="true"]::before {
+  opacity: 1;
+}
+
+.landing-site__pin-label {
+  position: absolute;
+  top: 120%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #ffffff;
+  white-space: nowrap;
+  background: #000000cc;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  opacity: 0.9;
+  text-shadow: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  transition: opacity 140ms ease;
+}
+
+.landing-site__pin:hover .landing-site__pin-label,
+.landing-site__pin:focus .landing-site__pin-label {
+  opacity: 1;
+}
+
+.landing-site__pin[aria-pressed="true"] .landing-site__pin-label {
+  opacity: 1;
+  color: #f59e0b;
+}
+
+/* Idle ring pulse — removed under reduced motion. */
+@keyframes landing-site-pin-pulse {
+  0% {
+    box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(0, 0, 0, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.45);
+  }
+}
+
+.landing-site__pin {
+  animation: landing-site-pin-pulse 2.4s ease-in-out infinite;
+}
+
+/* --- Site Analysis panel --- */
+
+.landing-site__panel {
+  padding: 1.25rem;
+  border-left: 1px solid #2a3340;
+  background: #121a24;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.landing-site__title {
+  font-size: 1.25rem;
+  margin: 0;
+  font-weight: 700;
+}
+
+.landing-site__name {
+  font-size: 1.5rem;
+  margin: 0 0 0.25rem 0;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  transition: color 140ms ease;
+}
+
+.landing-site__name.is-selected {
+  color: #f59e0b;
+}
+
+.landing-site__blurb {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.9375rem;
+  color: #c7d2d9;
+  line-height: 1.5;
+  transition: opacity 220ms ease;
+}
+
+.landing-site__blurb.is-hidden {
+  opacity: 0;
+}
+
+.landing-site__thumbnails {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #080c11;
+  border: 1px solid #2a3340;
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.landing-site__thumbnail {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+.landing-site__thumbnail.is-front {
+  opacity: 1;
+  z-index: 1;
+}
+
+.landing-site__axes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.landing-site__axis {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  font-size: 0.875rem;
+}
+
+.landing-site__axis-name {
+  min-width: 72px;
+  color: #c7d2d9;
+}
+
+.landing-site__axis-score {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+}
+
+.landing-site__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #374151;
+  transition: background-color 120ms ease;
+  transition-delay: calc(var(--i, 0) * 60ms);
+}
+
+.landing-site__dot.is-filled {
+  background: #22c55e;
+}
+
+.landing-site__summary {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: #e5e7eb;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.landing-site__summary.is-visible {
+  opacity: 1;
+}
+
+.landing-site__actions {
+  margin-top: auto;
+  padding-top: 0.75rem;
+  border-top: 1px solid #2a3340;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.landing-site__button {
+  flex: 1;
+  padding: 0.625rem 1rem;
+  border: 1px solid #2a3340;
+  border-radius: 6px;
+  background: #1c2734;
+  color: #f0f0f0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: filter 200ms ease, background-color 200ms ease, border-color 200ms ease;
+}
+
+.landing-site__button:focus-visible {
+  box-shadow: 0 0 0 4px #ffffff;
+}
+
+.landing-site__button:hover:not(:disabled) {
+  background: #273442;
+  border-color: #4b5a6b;
+}
+
+.landing-site__button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.landing-site__button--land {
+  background: #ef4444;
+  border-color: #ef4444;
+}
+
+.landing-site__button--land:not(:disabled):hover {
+  background: #dc2626;
+}
+
+.landing-site__button--land.is-first-selection {
+  animation: landing-site-land-lift 200ms ease;
+}
+
+@keyframes landing-site-land-lift {
+  0% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.25);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+
+.landing-site__hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #8a97a8;
+}
+
+/* --- Landing transition --- */
+
+.landing-site__stage.is-landing {
+  transform-origin: var(--land-origin-x, 50%) var(--land-origin-y, 50%);
+  animation: landing-site-approach 600ms ease forwards;
+}
+
+@keyframes landing-site-approach {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.08);
+    opacity: 0;
+  }
+}
+
+/* --- Reduced motion --- */
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-site__map {
+    transition: none;
+  }
+
+  .landing-site__pin {
+    transition: none;
+    animation: none;
+  }
+
+  .landing-site__pin:hover,
+  .landing-site__pin:focus {
+    transform: translate(-50%, -50%);
+  }
+
+  .landing-site__pin[aria-pressed="true"] {
+    transform: translate(-50%, -50%) scale(1.25);
+  }
+
+  .landing-site__blurb,
+  .landing-site__summary,
+  .landing-site__thumbnail,
+  .landing-site__dot,
+  .landing-site__button {
+    transition: none;
+  }
+
+  .landing-site__button--land.is-first-selection {
+    animation: none;
+  }
+
+  .landing-site__stage.is-landing {
+    animation: none;
+    opacity: 0;
+  }
 }

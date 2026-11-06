@@ -10,6 +10,22 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+**D-029 — agent · 2026-11-06**
+**Choice:** The landing region table lives in `src/sim/regions.ts`, and is read by
+`landing-site`, `base` and `act`.
+**Why:** `base` and `act` need terrain, sun and dust, and R-5 stops them importing
+`landing-site`. Putting the shared table in `sim/` lets every feature read it without
+a cross-feature import. `features/landing-site/model.ts` imports the table for scoring.
+**Rejected:** Keeping the table in `features/landing-site/` (would force `base`/`act` to
+violate R-5); duplicating the table in each feature that needs it (drift risk, and the
+totals-spread invariant would live in three places).
+**Consequence:** `sim/regions.ts` owns `SiteAxis`, `SITE_AXES`, `SiteScore`, `Region`,
+`REGIONS` and `totalScore`. `features/landing-site/model.ts` re-exports them and adds
+`scoreRegion`, `tradeoffSummary`, `strengthAndWeakness`. `architecture.md` gains a
+`sim/regions.ts` contract row and marks `landing-site` complete.
+
+---
+
 **D-028 — agent · 2026-10-22**
 **Choice:** Ask the player to try again on the ration check — a TRY AGAIN button during
 the wrong frame — instead of reverting the screen on a timer; leave the answer out of

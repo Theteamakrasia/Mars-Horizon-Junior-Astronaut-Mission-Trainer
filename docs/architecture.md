@@ -163,9 +163,16 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         Types are real; arithmetic is not written.
     │   ├── sol.ts                      STUB       Exports SolEvent, SolResult, advanceSol,
     │   │                                         isRunOver. Sol stepping undecided. All throw.
-    │   └── run.ts                      STUB       Exports RunStatus, RunState, newRun,
-    │                                             withState. RunState is the only thing
-    │                                             shared between screens. All throw.
+    │   ├── run.ts                      STUB       Exports RunStatus, RunState, newRun,
+    │   │                                         withState. RunState is the only thing
+    │   │                                         shared between screens. All throw.
+    │   └── regions.ts                  complete   The five landing regions: id, name,
+    │                                             blurb, pin {x, y} as stage %, and five
+    │                                             axis scores (0-5). Pure authored data,
+    │                                             no randomness. Exports SiteAxis,
+    │                                             SITE_AXES, SiteScore, Region, REGIONS,
+    │                                             totalScore. Read by landing-site, base
+    │                                             and act without cross-feature imports.
     │
     ├── ui/                             CROSS-SCREEN BROWSER GLUE. No framework, so no components.
     │   ├── routes.ts                   complete   Pure route table and hash parsing. Exports
@@ -209,7 +216,7 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   └── spaceweather.ts             STUB       Exports SpaceWeatherEvent, SpaceWeatherSource,
     │                                             fetchSpaceWeather, lastSource. All throw.
     │
-    ├── features/                       one folder per screen. naming is BUILT; the rest are stubs.
+    ├── features/                       one folder per screen. naming and landing-site are BUILT; the rest are stubs.
     │   │                               Every stub throws, so nothing silently returns undefined.
     │   ├── README.md                   the layout contract: four files, depth 2, which rules are
     │   │                               enforced vs convention
@@ -222,17 +229,20 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │   ├── model.test.ts            complete   21 tests, every input a literal
     │   │   ├── view.ts                  complete   mountNaming(root, run) -> teardown. Validates on
     │   │   │                                     every keystroke; START MISSION disabled until the
-    │   │   │                                     name is usable. Says plainly that the next scene
-    │   │   │                                     is not built (ISS-017).
+    │   │   │                                     name is usable.
     │   │   └── naming.css               complete   measured palette + naming-mars-turn (150s) and
     │   │                                         naming-astronaut-float (9s), both removed under
     │   │                                         prefers-reduced-motion
-    │   ├── landing-site/               STUB       TASK-028. Now blocks START MISSION (ISS-017).
+    │   ├── landing-site/               COMPLETE   TASK-028. Choose a landing region, score 5 axes.
     │   │   ├── README.md                           the contract
-    │   │   ├── model.ts                           SiteAxis, SITE_AXES, SiteScore, Region,
-    │   │   │                                       REGIONS, scoreRegion, tradeoffSummary
-    │   │   ├── view.ts                            mountLandingSite
-    │   │   └── landing-site.css
+    │   │   ├── model.ts                           complete   REGIONS, scoreRegion,
+    │   │   │                                       tradeoffSummary, totalScore,
+    │   │   │                                       strengthAndWeakness. Pure, 11 tests.
+    │   │   ├── model.test.ts                      complete   11 literal-input tests
+    │   │   ├── view.ts                            complete   mountLandingSite(root, run, setRun) -> teardown
+    │   │   └── landing-site.css                   complete   16:9 stage, five pins, Site Analysis panel
+```
+
     │   ├── base/                       STUB       TASK-029, blocked on TASK-015.
     │   │   ├── README.md
     │   │   ├── model.ts                           ModuleKind, ModuleSpec, MODULE_CATALOGUE,
@@ -400,6 +410,12 @@ screen.
 | | `stepAstronaut` | `(frame, dt, grab, options) -> AstronautFrame`; steps the spring unconditionally |
 | | `releaseAstronaut` | clamps into the viewport; discards throws under reduced motion |
 | | `DRAG_FOLLOW_RATE` 14, `DRAG_STRETCH_SPEED` 3400, `MIN_THROW_SPEED` 60 | tunables |
+| `sim/regions` | `SiteAxis` | `'water' \| 'sun' \| 'terrain' \| 'dust' \| 'temp'` |
+| | `SITE_AXES` | the five axes in order |
+| | `SiteScore` | `readonly water, sun, terrain, dust, temp` (each 0-5) |
+| | `Region` | `id, name, blurb, pin {x, y}, scores` — the five authored regions |
+| | `REGIONS` | `readonly Region[]` — Arcadia, Jezero, Olympus, Valles, Argyre |
+| | `totalScore` | `(score) -> number`, sum of the five axes, 0-25 |
 | `ui/routes` | `Route` | `'naming' \| 'landing' \| 'landing-site' \| 'base' \| 'act' \| 'debrief'` |
 | | `ROUTE_ORDER` | the six routes in play order, `naming` first |
 | | `DEFAULT_ROUTE` | `'naming'` — the entry screen (D-021) |
@@ -416,6 +432,12 @@ screen.
 | | `checkName` | `(raw) -> {ok, value, problem}`; returns the normalised value so a caller never normalises twice |
 | | `displayName` | strips control characters and caps length — the one string interpolated into markup |
 | `features/naming/view` | `mountNaming` | `(root, run) -> teardown`; START MISSION disabled until the name is usable |
+| `features/landing-site/model` | `REGIONS` | the five authored regions, re-exported from `sim/regions` |
+| | `scoreRegion` | `(regionId) -> SiteScore`; all-zero safe score for an unknown id, never throws |
+| | `tradeoffSummary` | `(score) -> string`; names strongest and weakest axis, never "recommended" |
+| | `totalScore` | `(score) -> number`, 0-25 |
+| | `strengthAndWeakness` | `(score) -> {strength, weakness}` axes |
+| `features/landing-site/view` | `mountLandingSite` | `(root, run, setRun) -> teardown`; map + five pins + Site Analysis panel, LAND HERE navigates to `nextStop('landing-site')` |
 | `features/launch/model` | `TITLE` | `'THE MISSION BEGINS'` — the card that holds before the first still |
 | | `TITLE_DURATION_MS` | 900 — the card alone; 200ms in and out leaves 500ms of readability |
 | | `FADE_MS` | 350 — every dissolve: the title lift, each shot, the film's arrival |

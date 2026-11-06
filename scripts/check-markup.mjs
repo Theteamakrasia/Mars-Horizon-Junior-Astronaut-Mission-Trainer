@@ -73,7 +73,7 @@ const landing = spanOf('landing');
 
 // --- Rule 2: every mounted screen exists, and is not inside #landing ---------
 const registry = readFileSync(join(ROOT, 'src', 'ui', 'registry.ts'), 'utf8');
-const mounts = [...registry.matchAll(/^\s*\w+:\s*'#([\w-]+)',/gm)].map((match) => match[1]);
+const mounts = [...registry.matchAll(/^\s*['"]?([\w-]+)['"]?\s*:\s*'#([\w-]+)',/gm)].map((match) => match[2]);
 
 if (mounts.length === 0) {
   fail(0, 'no screen mounts found in src/ui/registry.ts — the parse is broken, not the app');
@@ -161,11 +161,32 @@ for (const file of views) {
   inside #supply, means the briefing throws on mount while every other check is
   green. Scope each hook to the section that claims it.
 */
+/*
+  Resolve each mount id to the view the registry actually imports. The previous
+  version searched view files for the literal string "#id", which only interior
+  mentions (in a comment), so this rule silently checked one screen out of six.
+*/
+const viewByFactory = new Map(
+  [...registry.matchAll(/import\s*\{\s*(\w+)\s*\}\s*from\s*'\.\.\/features\/([\w-]+)\/view';/g)].map(
+    (match) => [match[1], join('src', 'features', match[2], 'view.ts').replace(/\\/g, '/')],
+  ),
+);
+
+const viewByMountId = new Map();
+
+for (const match of registry.matchAll(/^\s*['"]?([\w-]+)['"]?\s*:\s*(\w+)\s*,/gm)) {
+  const [, id, factory] = match;
+  if (!mounts.includes(id)) continue;
+
+  const file = viewByFactory.get(factory);
+  if (file !== undefined) viewByMountId.set(id, file);
+}
+
 for (const id of mounts) {
   const section = spanOf(id);
   if (section === null) continue; // already reported by Rule 2
 
-  const file = views.find((view) => readFileSync(join(ROOT, view), 'utf8').includes(`"#${id}"`));
+  const file = viewByMountId.get(id);
   if (file === undefined) continue;
 
   const source = readFileSync(join(ROOT, file), 'utf8');

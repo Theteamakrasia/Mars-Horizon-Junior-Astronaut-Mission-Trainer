@@ -8,6 +8,7 @@
 
 import { mountBriefing } from '../features/briefing/view';
 import { mountInterior } from '../features/interior/view';
+import { mountLandingSite } from '../features/landing-site/view';
 import { mountLaunch } from '../features/launch/view';
 import { mountNaming } from '../features/naming/view';
 import { mountSupply } from '../features/supply/view';
@@ -40,6 +41,7 @@ const SCREEN_MOUNTS: Readonly<Partial<Record<Route, string>>> = {
   supply: '#supply',
   launch: '#launch',
   interior: '#interior',
+  'landing-site': '#landing-site',
 };
 
 const SCREENS: Readonly<Partial<Record<Route, ScreenFactory>>> = {
@@ -49,6 +51,10 @@ const SCREENS: Readonly<Partial<Record<Route, ScreenFactory>>> = {
   launch: mountLaunch,
   // Registered so the launch hands into the tour instead of the interstitial.
   interior: mountInterior,
+  // Registered so the interior hands into the landing-site choice instead of
+  // the interstitial. base is not built yet, so landing-site hands back to
+  // `landing`.
+  'landing-site': mountLandingSite,
 };
 
 /**

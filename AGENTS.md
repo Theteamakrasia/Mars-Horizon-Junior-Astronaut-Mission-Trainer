@@ -17,15 +17,15 @@ That is what lets 94 tests run in ~15ms with no browser and no mocks, so the gam
 asserted on rather than eyeballed. Everything else here exists to protect it. If you are
 unsure where code goes: if it touches the DOM it is not pure.
 
-**Current reality: the game has one screen.** The **naming menu is built and is the
-entry route** — the player names their astronaut and presses START MISSION, which
-currently says the next scene is still under construction (ISS-017). The polished
-landing page still works behind it and is what BACK TO MAIN MENU returns to.
+**Current reality: the game has two screens.** The **naming menu is built and is the
+entry route** — the player names their astronaut and presses START MISSION, which now
+flows through `briefing → supply → launch → interior → landing-site` (ISS-017 fixed,
+TASK-028 done). The polished landing page still works behind it and is what
+BACK TO MAIN MENU returns to.
 
 Everything else is a **stub**: real types, real signatures, every body `throw`s —
 `sim/{sol,resources}` partly, `sim/run.ts` partly, `data/spaceweather.ts`, and the
-`landing-site`, `base`, `act` and `debrief` features. No sol loop, no screens beyond
-one, no save, no network call.
+`base`, `act` and `debrief` features. No sol loop, no save, no network call.
 
 **A stub is not an implementation.** If a file says STUB, calling it throws. That is
 deliberate: it fails loudly instead of silently returning `undefined`.
@@ -177,7 +177,8 @@ opening its folder — that is the whole point of the layout.
 | **The player's name, and the entry screen** | `src/features/naming/` — **built** |
 | Name length, trimming, emoji, validation | `src/features/naming/model.ts` — pure, 21 tests |
 | The rotating Mars-behind-astronaut stage | `src/features/naming/naming.css` |
-| Where START MISSION goes | `onSubmit` in `src/features/naming/view.ts` — **nowhere yet**, ISS-017 |
+| **Choosing where to land on Mars** | `src/features/landing-site/` — **built** (TASK-028 done) |
+| Where START MISSION goes | `onSubmit` in `src/features/naming/view.ts` — flows to `briefing` |
 | Boot, element lookup, `?motion=`, mounting screens | `src/main.ts` |
 | Page structure, element ids, font link | `index.html` |
 | Landing-page colours and tokens | `src/styles/base.css` |

@@ -1,56 +1,76 @@
 /**
- * STUB — not implemented. Every export here throws.
+ * Pure scoring rules for the landing-site screen.
  *
- * Pure rules for the landing-site screen. No DOM, no network, no Math.random —
- * `npm run check` enforces the first two and a random score would make the
- * screen unrepeatable in a demo and untestable without pinning a seed.
+ * The region table lives in `sim/regions.ts` so `base` and `act` can read
+ * terrain, sun and dust without importing this feature (R-5). This file owns
+ * the scoring functions and the tradeoff summary.
  *
- * The shape below is taken from the project README: five axes, scored 0-5.
+ * No DOM, no network, no Math.random — `npm run check` enforces the first two
+ * and a random score would make the screen unrepeatable in a demo and
+ * untestable without pinning a seed.
  *
- * Task: TASK-028. The best first task in the project — nothing here depends on
- * the resource model. See ../README.md.
+ * Task: TASK-028.
  */
 
-/** The five Site Analysis axes. */
-export type SiteAxis = 'water' | 'sun' | 'terrain' | 'dust' | 'temp';
+import {
+  REGIONS,
+  SITE_AXES,
+  type Region,
+  type SiteAxis,
+  type SiteScore,
+  totalScore as regionTotalScore,
+} from '../../sim/regions';
 
-export const SITE_AXES: readonly SiteAxis[] = ['water', 'sun', 'terrain', 'dust', 'temp'];
+export { REGIONS, SITE_AXES };
+export type { Region, SiteAxis, SiteScore };
 
 /**
- * A score per axis, each 0-5.
- *
- * Deliberately not a Record: a named field means the compiler catches a missing
- * axis, and the panel has to show all five anyway.
+ * Score one region across all five axes. Pure. Returns a safe all-zero score
+ * for an unknown id rather than throwing.
  */
-export interface SiteScore {
-  readonly water: number;
-  readonly sun: number;
-  readonly terrain: number;
-  readonly dust: number;
-  readonly temp: number;
-}
+export function scoreRegion(regionId: string): SiteScore {
+  const region = REGIONS.find((r) => r.id === regionId);
 
-/** One candidate region. Ids match the project README's five regions. */
-export interface Region {
-  readonly id: string;
-  readonly name: string;
-}
+  if (!region) {
+    return { water: 0, sun: 0, terrain: 0, dust: 0, temp: 0 };
+  }
 
-/** The five regions: Arcadia Planitia, Jezero Crater, Olympus Mons, Valles Marineris, Argyre Basin. */
-export const REGIONS: readonly Region[] = [];
-
-/** Score one region across all five axes. Pure. */
-export function scoreRegion(_regionId: string): SiteScore {
-  throw new Error('STUB: features/landing-site/model.ts is not implemented. See ../README.md.');
+  return region.scores;
 }
 
 /**
- * A one-line reason the region is a gamble either way.
- *
- * There is no perfect choice, and the screen should say so rather than
- * recommending a winner. NASA picked Jezero Crater not because it is the best
- * place but because it is the most interesting one.
+ * Sum every axis into one total, 0-25.
  */
-export function tradeoffSummary(_score: SiteScore): string {
-  throw new Error('STUB: features/landing-site/model.ts is not implemented.');
+export function totalScore(score: SiteScore): number {
+  return regionTotalScore(score);
+}
+
+/**
+ * The strongest and weakest axis for a score, in SITE_AXES order to break
+ * ties deterministically. Used by the panel to explain the tradeoff without
+ * recommending a winner.
+ */
+export function strengthAndWeakness(score: SiteScore): {
+  readonly strength: SiteAxis;
+  readonly weakness: SiteAxis;
+} {
+  let strength: SiteAxis = SITE_AXES[0];
+  let weakness: SiteAxis = SITE_AXES[0];
+
+  for (const axis of SITE_AXES) {
+    if (score[axis] > score[strength]) strength = axis;
+    if (score[axis] < score[weakness]) weakness = axis;
+  }
+
+  return { strength, weakness };
+}
+
+/**
+ * A one-line reason the region is a gamble either way. Names the strongest
+ * and weakest axis, never a "recommended" site. There is no perfect choice.
+ */
+export function tradeoffSummary(score: SiteScore): string {
+  const { strength, weakness } = strengthAndWeakness(score);
+
+  return `Strong on ${strength}, weak on ${weakness}.`;
 }

@@ -64,10 +64,18 @@ describe('nextStop', () => {
     expect(nextStop('launch')).toBe('interior');
   });
 
+  it('walks into the landing-site choice, which is now built', () => {
+    // The landing-site screen is registered, so the interior tour hands
+    // straight into it rather than through the placeholder.
+    expect(resolveScreen('landing-site')).not.toBeNull();
+    expect(nextStop('interior')).toBe('landing-site');
+  });
+
   it('inserts the interstitial before a screen that is not built', () => {
-    // landing-site is a stub, so the player sees the placeholder after the
-    // interior tour rather than straight after the launch.
-    expect(nextStop('interior')).toBe('landing');
+    // base is a stub, so choosing a landing site falls back to the placeholder
+    // rather than stranding the player.
+    expect(resolveScreen('base')).toBeNull();
+    expect(nextStop('landing-site')).toBe('landing');
   });
 
   it('skips the interstitial entirely once the next screen is built', () => {
