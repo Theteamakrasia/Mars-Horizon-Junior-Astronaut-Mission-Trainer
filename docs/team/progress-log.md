@@ -8,6 +8,105 @@ than a documented one.
 
 ---
 
+## 2026-11-07 — Fix the landing-site panel, scores and keyboard (ISS-036 to ISS-039)
+
+**Did**
+
+- Wrapped the two thumbnail layers in the missing `.landing-site__thumbnails`
+  positioned container and required it in the view. Without that wrapper the
+  absolute images anchored to `.landing-site` (`position: fixed`) and covered the
+  whole viewport, swallowing pin clicks; selecting a region then showed the
+  thumbnail full-screen. Moved the preview above the site name to match the
+  reference panel.
+- Made the pin labels visible at rest (they were `opacity: 0`, so the map read as
+  nameless) and orange when selected.
+- Replaced the per-pin key handlers with one delegated roving-tabindex group:
+  the five pins are one Tab stop, `←/→/↑/↓` cycle, `Home/End` jump, and native
+  button activation handles Enter/Space.
+- Built the five score dots per axis on mount (the markup had empty containers
+  and the view toggled `is-filled` on the container itself, so no score ever
+  showed) and added `role="img"` + `aria-label="N out of 5"`.
+- Fixed two `check-markup` bugs that had hidden this screen: the mounts regex now
+  accepts quoted keys, so `landing-site` is validated; Rule 6 now resolves each
+  mount id to its view through `registry.ts` instead of searching view files for
+  `"#id"` (which only matched interior). `check` now reports six routed screens.
+
+**Files**
+
+- Updated: `index.html` (thumbnail wrapper, pin-list hook), `src/features/landing-site/view.ts`,
+  `src/features/landing-site/landing-site.css`, `scripts/check-markup.mjs`,
+  `docs/team/issues.md`, `docs/team/progress-log.md`.
+
+**Problems**
+
+- The screen had never been exercised in a real browser: every check was green
+  because `check-markup` skipped `landing-site` entirely (ISS-037) and its
+  section-scoping rule only ever checked `interior` (ISS-038). Both are fixed.
+- The supplied map and thumbnails are 1300×800 and 480–800 KB each, well over the
+  plan's 16:9 / 60 KB target. Pin positions are stage percentages, so
+  `object-fit: cover` crops the 1.625:1 map inside a 16:9 stage and can drift
+  pins off their features. Resize/crop the assets or set the stage to 13:8.
+
+**Next**
+
+- Real-browser acceptance pass on `#/landing-site`: click every pin, confirm the
+  panel populates and LAND HERE enables, rove with arrows, test reduced motion
+  and back/forward. Resize the map and thumbnails afterwards.
+
+---
+
+## 2026-11-06 — Build the landing-site choice screen (TASK-028, ISS-017)
+
+**Did**
+
+- Added `src/sim/regions.ts`: pure authored table of the five regions (Arcadia
+  Planitia, Jezero Crater, Olympus Mons, Valles Marineris, Argyre Basin) with
+  pin positions as stage percentages and five axis scores (0-5 integers, higher
+  = better). Totals stay within ±1 of 17/25, no perfect site, no randomness.
+- Replaced the `features/landing-site/` stubs: `model.ts` now exports
+  `scoreRegion`, `tradeoffSummary`, `totalScore` and `strengthAndWeakness`
+  (importing the region table from `sim/regions.ts`); added `model.test.ts`
+  with 11 literal-input tests covering axes, totals spread, summary wording,
+  unknown-id safety and pin bounds.
+- Added `features/landing-site/view.ts` (`mountLandingSite(root, run, setRun)`
+  → teardown), `landing-site.css`, and the `<section id="landing-site">`
+  markup in `index.html` outside `#landing`. Map fades up, five pins are
+  keyboard-operable buttons with `aria-pressed` and arrow-key roving, the panel
+  is `aria-live="polite"`, score dots fill with a 60 ms stagger, LAND HERE
+  enables on first selection, and the landing transition scales the map toward
+  the chosen pin then navigates on a tracked timer cleared in teardown.
+- Registered `landing-site` in `src/ui/registry.ts` (`SCREEN_MOUNTS` and
+  `SCREENS`). `nextStop('interior')` now resolves to `landing-site`; `nextStop('landing-site')`
+  stays `landing` until `base` exists. Updated `registry.test.ts` (12 tests).
+
+**Files**
+
+- Added: `src/sim/regions.ts`, `src/features/landing-site/model.test.ts`,
+  `src/features/landing-site/view.ts`, `src/features/landing-site/landing-site.css`.
+- Updated: `src/features/landing-site/model.ts` (stubs replaced), `index.html`
+  (added `#landing-site`), `src/ui/registry.ts`, `src/ui/registry.test.ts`,
+  `docs/team/decisions.md` (D-029), `docs/team/tasks.md` (TASK-028 done),
+  `docs/team/issues.md` (ISS-017 fixed), `docs/team/progress-log.md`,
+  `docs/architecture.md`, `AGENTS.md` §1 and §8.
+
+**Problems**
+
+- None; `npm run check` (imports + markup + tsc) and `npm test` pass cleanly.
+  No browser is connected to this session, so keyboard/animation behaviour has
+  not been eyeballed in a real browser (ISS-013); the acceptance checklist in
+  the plan still needs a browser pass.
+- Assets: `Assets/images/landing-site/map.webp` plus five thumbnail WebPs were
+  placed by the user before this work; the view imports them as typed assets.
+
+**Next**
+
+- Open `#/landing-site` in a real browser: Tab/arrows to a pin, Enter to select,
+  Tab to LAND HERE; confirm the landing transition navigates and back/forward do
+  not leave two screens visible. Verify `prefers-reduced-motion` removes the pin
+  pulse and reticle spin.
+
+---
+
 ## 2026-10-22 — Make the player try again on the ration check, on purpose (ISS-034, ISS-035)
 
 **Did**

@@ -11,6 +11,10 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
+| ISS-039 | Landing-site axis scores render no dots, so the panel shows no scores | medium | agent | fixed | this branch |
+| ISS-038 | `check-markup` Rule 6 never resolves a view for most screens, so hook scoping is unenforced | medium | agent | fixed | this branch |
+| ISS-037 | `check-markup` skips quoted mount keys, so `landing-site` is never validated | medium | agent | fixed | this branch |
+| ISS-036 | Landing-site thumbnail layers escape the panel and cover the whole screen | high | agent | fixed | this branch |
 | ISS-035 | The wrong answer gives a direction on the first attempt, which ends the thinking | low | agent | fixed | 969d1c9 |
 | ISS-034 | Wrong answer reverts on a timer before the player can read the feedback | low | agent | fixed | 0f22185, 86756ae |
 | ISS-033 | Parts tour video too fast to read, no way to look back | low | agent | open | — |
@@ -25,7 +29,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | ISS-023 | Docking renderer first pass showed a hard black rectangle | low | agent | fixed | this branch |
 | ISS-024 | `architecture.md` file tree omits launch, briefing and supply features and their images | low | unassigned | open | — |
 | ISS-015 | `frame.test.ts:81` fails ~40% of runs (flaky) | high | agent | fixed | adc5767 |
-| ISS-017 | `START MISSION` has no destination; next scene is a stub | medium | unassigned | open | — |
+| ISS-017 | `START MISSION` has no destination; next scene is a stub | medium | agent | fixed | this branch |
 | ISS-018 | Seven cinematic PNGs committed, 12 MB, never referenced | medium | unassigned | open | — |
 | ISS-019 | Cinematics mix three visual styles | low | unassigned | open | — |
 | ISS-020 | NASA insignia appears on children's suits and props | low | unassigned | open | — |
@@ -46,6 +50,77 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | ISS-014 | `base.css` calls the page non-interactive while draggable | low | unassigned | open | — |
 
 ---
+
+## ISS-039 — Landing-site axis scores render no dots, so the panel shows no scores
+
+- **Reported by:** agent, 2026-11-07, while verifying the Site Analysis panel after
+  ISS-036.
+- **Where:** `src/features/landing-site/view.ts` (`scoreDots`), `index.html`
+  (`.landing-site__axis-score`), `src/features/landing-site/landing-site.css`
+  (`.landing-site__dot`).
+- **Problem:** each axis row contains an empty `<span data-landing-score="…">`, and the
+  stylesheet styles five-dot rows, but nothing ever created the dots. `setAxisDots`
+  toggled `is-filled` on the empty container itself, so every axis showed its name and
+  no score at all.
+- **Cause:** the dot-construction step was missing from the view; the `data-landing-score`
+  hook was treated as the dot rather than the container.
+- **Fix:** build five `<span class="landing-site__dot">` children per axis on mount, set
+  `--i` on each for the 60 ms stagger, and store them as arrays so `setAxisDots` toggles
+  the right elements. The container gets `role="img"` and an `aria-label` of
+  "N out of 5" so the score is announced, not just seen.
+- **Pre-existing:** no; the screen never showed scores in a browser.
+
+## ISS-038 — `check-markup` Rule 6 never resolves a view for most screens, so hook scoping is unenforced
+
+- **Reported by:** agent, 2026-11-07, while diagnosing ISS-036.
+- **Where:** `scripts/check-markup.mjs` (Rule 6).
+- **Problem:** Rule 6 is meant to prove each screen's `data-*` hooks sit inside that
+  screen's own section, not merely somewhere in `index.html`. It found the view by
+  searching view files for the literal string `"#id"`. Only `interior/view.ts` contains
+  such a string (in a comment), so every other screen was skipped and the rule was
+  effectively dead — a hook moved into another screen's section would pass.
+- **Cause:** the mount-id-to-view mapping was guessed from view contents instead of
+  read from `registry.ts`, which is the file that actually performs that mapping.
+- **Fix:** parse the registry's `import { mountX } from '../features/<dir>/view'` lines
+  and its `SCREENS` entries to build the mapping, then scope each mounted screen's hooks
+  with it. Rule 6 now checks all six screens, including `landing-site`.
+- **Pre-existing:** yes; the rule has been inert since it was added.
+
+## ISS-037 — `check-markup` skips quoted mount keys, so `landing-site` is never validated
+
+- **Reported by:** agent, 2026-11-07, while diagnosing ISS-036.
+- **Where:** `scripts/check-markup.mjs` (Rules 2, 3 and 6 — the `mounts` parse).
+- **Problem:** `SCREEN_MOUNTS` in `registry.ts` uses a quoted key for `'landing-site'`
+  because the route contains a hyphen, but the checker's regex only matched bare keys.
+  The screen was silently excluded from every rule that iterates mounts, and
+  `npm run check` printed "5 routed screen(s)" while six were mounted.
+- **Cause:** the regex `^\s*\w+:\s*'#([\w-]+)',` cannot match `'landing-site':`.
+- **Fix:** accept optional quotes around the key. The checker now reports six routed
+  screens and validates `landing-site`'s hooks against its own section.
+- **Pre-existing:** no; introduced when `landing-site` was registered.
+
+## ISS-036 — Landing-site thumbnail layers escape the panel and cover the whole screen
+
+- **Reported by:** the user, 2026-11-07: "the thumbnail image is not being displayed
+  inside the side panel and being showed in the entire screen", and earlier "there are
+  no clickable options".
+- **Where:** `index.html` (`#landing-site` Site Analysis panel),
+  `src/features/landing-site/landing-site.css` (`.landing-site__thumbnail`).
+- **Problem:** the two thumbnail `<img>` layers had no positioned wrapper. The CSS makes
+  them `position: absolute; inset: 0`, so their containing block was the nearest
+  positioned ancestor — `.landing-site`, which is `position: fixed; inset: 0`. Both
+  images therefore covered the full viewport. Because they follow the map stage in DOM
+  order they also swallowed pointer events: the pins were visible but unclickable, and
+  once a region was selected the loaded thumbnail covered the whole screen.
+- **Cause:** `landing-site.css` defined `.landing-site__thumbnails` as the positioned
+  container, but the markup placed the images directly in the panel. Nothing required
+  the wrapper to exist, and ISS-037/ISS-038 meant `check-markup` never inspected this
+  screen.
+- **Fix:** wrap the two images in
+  `<div class="landing-site__thumbnails" data-landing-thumbnails>`; `view.ts` now
+  requires the wrapper so a future removal throws on mount; the checker fixes above make
+  the screen part of `npm run check`.
+- **Pre-existing:** no; the screen never worked in a real browser.
 
 ## ISS-035 — The wrong answer gives a direction on the first attempt, which ends the thinking
 
@@ -362,6 +437,12 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 - **Fix:** build `features/landing-site/` (TASK-028), then change `onSubmit` to
   call `navigate('landing-site')` and hand over the run state. The comment in
   `onSubmit` marks the exact spot.
+- **Resolution:** `features/landing-site/` is now built (TASK-028 done), so the
+  journey flows `naming → briefing → supply → launch → interior → landing-site`
+  with no stub in the chain. START MISSION navigates to `nextStop('naming')`
+  (`briefing`, which is built), and LAND HERE on the landing-site screen hands
+  to `nextStop('landing-site')` (`landing` until `base` exists). The screen is
+  reachable directly via `#/landing-site` and opens without throwing.
 
 ## ISS-018 — Seven cinematic PNGs committed, 12 MB, never referenced
 

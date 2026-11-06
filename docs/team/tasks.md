@@ -20,7 +20,7 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 | TASK-025 | Folder structure: `sim/` rename, feature zones, cross-feature rule | G-6 | agent | done | — | D-013..D-018. Branch `docs/agent-orientation` |
 | TASK-026 | `src/ui/routes.ts` + `router.ts`, hash routing | G-4 | agent | done | — | 15 tests. **Not wired** — D-014 |
 | TASK-027 | Write `ui/registry.ts`, wire the router into `main.ts` | G-4 | unassigned | open | TASK-028 | arrives with the first feature |
-| TASK-028 | `features/landing-site/` — pick a region, score 5 axes | G-4 | unassigned | open | — | **now blocks START MISSION**, ISS-017 |
+| TASK-028 | `features/landing-site/` — pick a region, score 5 axes | G-4 | agent | done | — | **Blocks START MISSION no longer** — ISS-017 fixed; chain flows naming → ... → landing-site |
 | TASK-032 | `features/naming/` — main menu, name entry, rotating stage | G-4 | agent | done | — | Scene one. D-021. Entry route |
 | TASK-033 | Wire hash routing into `main.ts`, make naming the entry | G-4 | agent | done | — | registry.ts became real |
 | TASK-034 | Split the cutout sheet into two WebP assets | G-1 | agent | done | — | 1.3 MB PNG → 125 KB WebP |
