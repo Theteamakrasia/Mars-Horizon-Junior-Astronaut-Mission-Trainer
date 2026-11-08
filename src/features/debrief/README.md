@@ -1,7 +1,7 @@
 # `debrief/` — explain why the run was won or lost
 
-**Not implemented.** Task: **TASK-031**. Goal: **G-4**. Blocked on **TASK-016**
-(`src/sim/sol.ts`).
+**Built.** Task: **TASK-031**. Goal: **G-4**. Attribution reads the per-sol ledger from
+`src/sim/sol.ts`.
 
 See `../README.md` for the layout rules.
 

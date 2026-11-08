@@ -8,6 +8,58 @@ than a documented one.
 
 ---
 
+## 2026-11-08 — Build the `base → act → debrief` game loop
+
+**Did**
+
+- Implemented the pure simulation: `sim/constants.ts` (all tuning numbers),
+  `sim/modules.ts` (catalogue, build rules, upkeep), `sim/events.ts` (baked schedule,
+  every event `approximate: true`), real `sim/resources.ts` (`drainForSol`,
+  `depletedStores`), `sim/sol.ts` (`advanceSol`, per-sol ledger, win/loss detection) and
+  `sim/run.ts` (`modules`, `ledger`, `landAt`, `applyBuild`).
+- Built the three screens: `base` (placed modules, five stores, storm warning, build
+  panel with cost/effect previews, Start sols), `act` (turn-based Advance sol, Power
+  Surplus picture from live numbers, location conditions, event log) and `debrief`
+  (outcome, CSS-bar timeline, used/weather-damage summary, ledger attribution with an
+  explicit not-confident path, Play again).
+- Registered all nine screens in `registry.ts`, added the three `<section>`s to
+  `index.html`, and fixed ISS-040 by making `landing-site` call `landAt`.
+- Added the loop's sim tests (modules 25, events 16, resources 18, sol 12, run 19,
+  balance 9) plus screen-model tests; the sim suite is 178 tests and the whole suite is
+  410.
+
+**Files**
+
+- `src/sim/{constants,modules,events,resources,sol,run}.ts` and their tests,
+  `src/sim/balance.test.ts`
+- `src/features/{base,act,debrief}/{model,model.test,view}.ts` and `*.css`
+- `src/features/landing-site/view.ts`, `src/ui/registry.ts`, `src/ui/registry.test.ts`,
+  `index.html`
+- `docs/team/{decisions,issues,tasks}.md`, `docs/architecture.md`, `AGENTS.md`
+
+**Problems**
+
+- The first pass of `base/view.ts` and `act/view.ts` captured `run` once and kept using
+  the stale value, so a second build or a second sol acted on the original state. Both
+  now hold a local mutable `state` and update it after every change.
+- `check-markup` requires every `data-*` hook in a view to exist statically inside that
+  view's section. Dynamically created build buttons needed a hidden placeholder in
+  `#base`.
+- The debrief originally named a cause from a single ledger entry. It now sums the last
+  five sols and only claims a cause when it is more than half the loss, per the plan's
+  attribution rule; otherwise it says it is not sure.
+- No browser automation is installed, so the real-browser acceptance pass (TASK-049) is
+  still outstanding. `npm run check`, `npx vitest run` (410 passing) and `npm run build`
+  all pass.
+
+**Next**
+
+- Human browser pass: naming → briefing → supply → launch → interior → landing-site →
+  base → act → debrief → Play again, plus keyboard-only and reduced-motion.
+- Decide whether to keep the cut sprites/cutscenes (TASK-047) or ship the loop as is.
+
+---
+
 ## 2026-11-07 — Fix the landing-site panel, scores and keyboard (ISS-036 to ISS-039)
 
 **Did**

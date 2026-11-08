@@ -8,6 +8,55 @@ under Rejected below, read that entry first.
 
 Format: number · who decided · **Choice** · **Why** · **Rejected** · **Consequence**.
 
+
+---
+
+**D-035 — agent · 2026-11-08**
+**Choice:** The Final screen is cut as its own route. A win is a panel on `debrief`.
+**Why:** There is no route, task or art for it, and the freeze is today (extended for the loop, but scope is still tight).
+**Rejected:** Building a seventh screen (`features/final/`) with its own route, mount point and tests — adds a screen nobody asked for when the debrief can carry the win panel.
+**Consequence:** `debrief` shows a won-run panel instead of routing to `Final`. `src/ui/routes.ts` has no `final` route.
+
+---
+
+**D-034 — agent · 2026-11-08**
+**Choice:** Region scores drive the simulation: sun → power per array, water → starting water and extractor output, dust → storm severity and solar loss during storm, temp → night power drain, terrain → build cost multiplier.
+**Why:** Makes the landing choice matter. Currently `regionId` is stored and nothing reads it.
+**Rejected:** Leaving the region cosmetic — then `landing-site` is a flavour screen with no consequence, which wastes the player's choice.
+**Consequence:** `sim/run.ts` gains `landAt(run, regionId)` which sets region-adjusted starting stores. `landing-site/view.ts` `commitLanding` calls `landAt` instead of `withState(run, { regionId })` (ISS-040).
+
+---
+
+**D-033 — agent · 2026-11-08**
+**Choice:** Space-weather events are baked-in and labelled `approximate: true`.
+**Why:** DONKI CORS is unverified (ISS-008, D-005). The README promises honesty about estimates.
+**Rejected:** A live fetch (blocked by ISS-008); unlabelled baked data (breaks the honesty promise).
+**Consequence:** `sim/events.ts` carries the baked schedule. Every event has `approximate: true`. The debrief and `act` show the `approximate` tag.
+
+---
+
+**D-032 — agent · 2026-11-08**
+**Choice:** Module catalogue lives in `sim/modules.ts`, not `features/base/model.ts`.
+**Why:** `act` needs module effects and cannot import `base` (R-5). Same reasoning as D-029 (regions table in `sim/`).
+**Rejected:** Duplicating the catalogue in `act` (drift risk, two sources of truth).
+**Consequence:** `sim/modules.ts` owns `ModuleKind`, `ModuleSpec`, `MODULE_CATALOGUE`, `canBuild`, `buildCost`, `upkeepFor`. `features/base/model.ts` becomes a thin re-export plus presentation helpers.
+
+---
+
+**D-031 — agent · 2026-11-08**
+**Choice:** The loop is `base ⇄ act → debrief`. `act` stays a simulation runner; the player returns to `base` between sols to build.
+**Why:** Keeps D-018 (no plan phase) intact while still giving the player decisions between sols.
+**Rejected:** A `plan/` feature (needs a recorded decision per D-018 and is not in scope).
+**Consequence:** `features/act/` is the simulation runner with "Advance sol" and "Back to base". `features/base/` is the build screen reached between sols.
+
+---
+
+**D-030 — agent · 2026-11-08**
+**Choice:** Sols are turn-based: one button press resolves one sol.
+**Why:** Unblocks `sim/sol.ts` and `act`. Real-time needs a fake clock and a ticker.
+**Rejected:** Real-time (more code, flakier tests, no time before the demo).
+**Consequence:** `advanceSol` runs on a button press in `act`. No clock abstraction, no ticker in `dom/`.
+
 ---
 
 **D-029 — agent · 2026-11-06**

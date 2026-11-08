@@ -33,7 +33,8 @@ describe('screenMount', () => {
   });
 
   it('returns null for routes with nothing built', () => {
-    expect(screenMount('base')).toBeNull();
+    // `landing` is the landing page, not a journey screen, so it has no mount.
+    expect(screenMount('landing')).toBeNull();
   });
 });
 
@@ -71,11 +72,18 @@ describe('nextStop', () => {
     expect(nextStop('interior')).toBe('landing-site');
   });
 
-  it('inserts the interstitial before a screen that is not built', () => {
-    // base is a stub, so choosing a landing site falls back to the placeholder
-    // rather than stranding the player.
-    expect(resolveScreen('base')).toBeNull();
-    expect(nextStop('landing-site')).toBe('landing');
+  it('walks from the landing site into the outpost, which is now built', () => {
+    // base is registered, so choosing a landing site opens the outpost rather
+    // than falling back to the placeholder.
+    expect(resolveScreen('base')).not.toBeNull();
+    expect(nextStop('landing-site')).toBe('base');
+  });
+
+  it('walks the outpost into sol control and then the debrief', () => {
+    expect(resolveScreen('act')).not.toBeNull();
+    expect(resolveScreen('debrief')).not.toBeNull();
+    expect(nextStop('base')).toBe('act');
+    expect(nextStop('act')).toBe('debrief');
   });
 
   it('skips the interstitial entirely once the next screen is built', () => {

@@ -7,6 +7,7 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 
 | id | task | goal | owner | status | blocked by | notes |
 | --- | --- | --- | --- | --- | --- | --- |
+| TASK-042 | Record D-030 to D-035, log ISS-040, fix task id hygiene | G-4 | agent | done | — | decisions, issues, task ids |
 | TASK-041 | Give no directional hint on the first wrong answer on the ration check | G-7 | agent | done | — | D-028, ISS-035. The bubble keeps the question on the first wrong pick; the hint appears from the second on. Browser check outstanding |
 | TASK-040 | Make the player try again on the ration check instead of reverting on a timer | G-7 | agent | done | — | D-028, ISS-034. TRY AGAIN button; the working hides the answer until it is earned. Browser check outstanding |
 | TASK-039 | Stop the launch reel showing black and skipping on a slow connection | G-7 | agent | done | — | D-027, ISS-030. Media-driven beats, lazy loading, poster frames; browser check outstanding |
@@ -18,15 +19,20 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 | TASK-033 | Write detailed Markdown description for PR #1 | G-6 | agent | done | — | `docs/pull-requests/001-ci-deployment-gates.md` |
 | TASK-032 | Add CI quality gates, gated Vercel deploy, HTML checks, and changelog | G-6 | agent | done | — | ISS-012; Vercel gate in `deploy.yml` |
 | TASK-025 | Folder structure: `sim/` rename, feature zones, cross-feature rule | G-6 | agent | done | — | D-013..D-018. Branch `docs/agent-orientation` |
-| TASK-026 | `src/ui/routes.ts` + `router.ts`, hash routing | G-4 | agent | done | — | 15 tests. **Not wired** — D-014 |
-| TASK-027 | Write `ui/registry.ts`, wire the router into `main.ts` | G-4 | unassigned | open | TASK-028 | arrives with the first feature |
+| TASK-026 | `src/ui/routes.ts` + `router.ts`, hash routing | G-4 | agent | done | — | 19 tests. Wired into `main.ts` by TASK-027 |
+| TASK-027 | Write `ui/registry.ts`, wire the router into `main.ts` | G-4 | agent | done | — | registry.ts real; router wired; entry is `naming` |
 | TASK-028 | `features/landing-site/` — pick a region, score 5 axes | G-4 | agent | done | — | **Blocks START MISSION no longer** — ISS-017 fixed; chain flows naming → ... → landing-site |
-| TASK-032 | `features/naming/` — main menu, name entry, rotating stage | G-4 | agent | done | — | Scene one. D-021. Entry route |
-| TASK-033 | Wire hash routing into `main.ts`, make naming the entry | G-4 | agent | done | — | registry.ts became real |
-| TASK-034 | Split the cutout sheet into two WebP assets | G-1 | agent | done | — | 1.3 MB PNG → 125 KB WebP |
-| TASK-029 | `features/base/` — place modules | G-4 | unassigned | open | TASK-015 | first place module placement appears |
-| TASK-030 | `features/act/` — advance a sol, resolve the mission | G-4 | unassigned | open | TASK-015, TASK-016 | **no plan phase** — D-018 |
-| TASK-031 | `features/debrief/` — explain why a run was won or lost | G-4 | unassigned | open | TASK-016 | load-bearing now, D-018 |
+| TASK-043 | `features/naming/` — main menu, name entry, rotating stage | G-4 | agent | done | — | Scene one. D-021. Entry route |
+| TASK-044 | Wire hash routing into `main.ts`, make naming the entry | G-4 | agent | done | — | registry.ts became real |
+| TASK-045 | Split the cutout sheet into two WebP assets | G-1 | agent | done | — | 1.3 MB PNG → 125 KB WebP |
+| TASK-029 | `features/base/` — place modules | G-4 | agent | done | — | build panel, stores, storm warning, Start sols |
+| TASK-030 | `features/act/` — advance a sol, resolve the mission | G-4 | agent | done | — | turn-based (D-030); Power Surplus picture; hands to debrief |
+| TASK-031 | `features/debrief/` — explain why a run was won or lost | G-4 | agent | done | — | timeline bars, ledger attribution, confidence note, replay |
+| TASK-046 | Balance acceptance tests and tuning | G-4 | agent | done | — | `sim/balance.test.ts`, 9 tests; numbers in `sim/constants.ts` |
+| TASK-047 | Module sprites, cutscenes, storm haze | G-4 | unassigned | cut | — | cut list §11: the loop works without them; reduced-motion CSS kept |
+| TASK-048 | Registry, `index.html` sections, registry/routes tests | G-4 | agent | done | — | 9 routed screens; `check-markup` passes |
+| TASK-049 | Browser acceptance pass of the whole journey + `dist/` check | G-4 | unassigned | open | — | needs a human with a browser; `npm run build` passes |
+| TASK-050 | Docs matrix: architecture, AGENTS §1/§8, progress log | G-6 | agent | done | — | README status stays stale (ISS-001, D-011) |
 | TASK-001 | Documentation and workflow system (AGENTS.md, architecture, decisions, issues, goals, tasks, progress log) | G-6 | agent | done | — | first pass, same branch |
 | TASK-002 | `scripts/check-imports.mjs` + `npm run check` | G-2, G-6 | agent | done | — | rewritten for zones; verified by fixtures |
 | TASK-003 | Split `src/core/` into pure `core/` and `dom/` | G-2 | agent | done | — | ISS-010. Runtime unverified |
@@ -41,11 +47,11 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 | TASK-012 | Self-host the Orbitron font, drop the CDN request | G-1 | unassigned | open | — | ISS-007. Needed for offline `dist/` |
 | TASK-013 | Rewrite README project-status section | G-6 | unassigned | open | — | ISS-001. Deferred by D-011 |
 | TASK-014 | One-line cleanups: stale comments, `license` field, ISS-003/ISS-004/ISS-014 | G-6 | unassigned | open | — | four separate one-liners, all unowned |
-| TASK-015 | Resource state as pure functions in `src/core/` with tests | G-4 | unassigned | open | — | **the whole game. biggest unstarted item** |
-| TASK-016 | Sol advance: drain, forecast events, reachable failure | G-4 | unassigned | open | TASK-015 | |
-| TASK-017 | Plan phase screen | G-4 | unassigned | open | TASK-015, TASK-016 | needs `ui/` |
-| TASK-018 | Act phase screen | G-4 | unassigned | open | TASK-015, TASK-016 | needs `ui/` |
-| TASK-019 | Debrief explaining the cause of a loss | G-4 | unassigned | open | TASK-016 | README's design promise |
+| TASK-015 | Resource state as pure functions in `sim/` with tests | G-4 | agent | done | — | `sim/resources.ts` + `constants.ts`, 18 tests |
+| TASK-016 | Sol advance: drain, forecast events, reachable failure | G-4 | agent | done | — | `sim/sol.ts` + ledger, 12 tests; turn-based (D-030) |
+| TASK-017 | Plan phase screen | G-4 | — | cut | — | no plan phase: act is built without one (confirmed by owner) |
+| TASK-018 | Act phase screen | G-4 | agent | done | — | built as TASK-030 |
+| TASK-019 | Debrief explaining the cause of a loss | G-4 | agent | done | — | built as TASK-031 |
 | TASK-020 | `src/data/` — DONKI and api.nasa.gov clients with fallbacks | G-5 | unassigned | blocked | TASK-007, TASK-006 | ISS-008 |
 | TASK-021 | Approximate-data marker in the UI | G-5 | unassigned | open | TASK-020 | README promises honesty about estimates |
 | TASK-022 | Decision on Supabase before Nov 8 | — | unassigned | open | — | D-003. **No owner.** Escalate |
@@ -59,9 +65,9 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 until then `docs/architecture.md` marks it *does not exist*. The checker already knows
 about the zone, so nothing needs adding when the code lands.
 
-**TASK-028 is the best first task for a new person.** One folder, four files, no
-dependency on the resource model, and it is the only screen whose rules are fully
-specified by the README.
+**TASK-028 is the reference example.** One folder, four files, no dependency on the
+resource model, and its rules are fully specified by the README — read it before adding a
+screen.
 
 **TASK-004 is complete on this branch.** The open-space test uses a deterministic trajectory;
 CI can run the suite without the known random launch causing false failures.
@@ -70,13 +76,16 @@ CI can run the suite without the known random launch causing false failures.
 state) explicitly deferred (D-003) with nothing scheduled against the Nov 8 freeze. If it
 is in the demo, the current plan does not contain it.
 
-**TASK-015 is the project.** Everything in G-4 depends on it. `sim/resources.ts` and
-`sim/sol.ts` are pure functions — exactly the kind of work the existing 94 tests and the
-`sim/` zone are built for.
+**TASK-015 is done.** `sim/resources.ts`, `sim/modules.ts`, `sim/events.ts`, `sim/sol.ts`
+and `sim/run.ts` are implemented and tested; the suite is 410 tests.
 
 **TASK-007 blocks TASK-020**, and TASK-020 is most of G-5. One browser session answers
 ISS-008 and unblocks a sprint's worth of work.
 
-**Sol stepping is undecided** (D-009 territory, recorded in `architecture.md` known
-simplification 9). Whoever builds TASK-016 should get the answer from the team first. The
-structure works either way.
+**Sol stepping is decided: turn-based (D-030).** `advanceSol` runs on a button press in
+`act`; there is no clock abstraction and no ticker.
+
+**Task ids were duplicated before this pass.** TASK-035/036/037 each appeared twice
+(CI/deploy work and the naming/routing/cutout work). The older naming/routing/cutout rows
+are now TASK-043/044/045, and the loop work uses TASK-046 onward. The plan's proposed
+TASK-042–050 mapping is superseded by this table.

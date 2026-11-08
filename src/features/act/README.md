@@ -1,7 +1,7 @@
 # `act/` — advance a sol, resolve a mission
 
-**Not implemented.** Task: **TASK-030**. Goal: **G-4**. Blocked on **TASK-015** and
-**TASK-016** (`src/sim/resources.ts`, `src/sim/sol.ts`).
+**Built.** Task: **TASK-030**. Goal: **G-4**. The simulation lives in
+`src/sim/resources.ts` and `src/sim/sol.ts`.
 
 See `../README.md` for the layout rules.
 
@@ -45,19 +45,16 @@ state.
 logic at most. If you find yourself writing simulation rules here, they belong in
 `src/sim/`, and putting them there means they get tested like `drift.ts` already is.
 
-## Sol stepping is UNDECIDED
+## Sol stepping is decided: turn-based
 
-Turn-based (resolved on button press) or real-time (clock-driven) has not been settled by
-the team. The structure supports both: if real-time wins, `sim/` gains a clock abstraction
-and `dom/` a ticker.
-
-**Get the answer before writing this screen.** Real-time would require a fake clock to
-keep the existing pure tests meaningful, and would change how `RunState` is threaded.
+One sol advances per button press, resolved by `advanceSol` in `src/sim/sol.ts` (D-030).
+There is no clock abstraction and no ticker. The screen disables both buttons while a sol
+resolves, so a double press cannot advance twice.
 
 ## What `view.ts` must contain
 
 The active mission with its trade-off visualiser, a Location Conditions panel, and the
 control that commits the sol. Then navigate to `debrief` when the run ends.
 
-Use `nextRoute` from `src/ui/routes.ts` for navigation, not a hand-written path — the
+Use `nextStop` from `src/ui/registry.ts` for navigation, not a hand-written path — the
 route order lives in exactly one place.
