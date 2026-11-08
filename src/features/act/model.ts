@@ -1,35 +1,27 @@
 /**
- * STUB — not implemented. Every export here throws.
+ * `act/` model: presentation helpers only.
  *
- * Intentionally nearly empty. All of act's simulation belongs in src/sim/sol.ts,
- * where it is pure and gets tested like drift.ts already is.
+ * All simulation rules live in `src/sim/sol.ts` (advanceSol, isRunOver) and
+ * `src/sim/modules.ts` (upkeepFor). This file formats what `act/view.ts`
+ * needs to show — nothing more.
  *
- * If you find yourself writing drain arithmetic, event resolution or loss
- * detection here, it belongs in src/sim/ instead. That is the whole reason this
- * screen can be tested at all.
- *
- * This screen runs a sol and shows what happened. It is NOT a decision screen —
- * there is deliberately no planning phase (decision D-018, confirmed by the
- * project owner). If you are asked to add a "choose your action" panel, that is
- * the plan phase and it needs a recorded decision first.
- *
- * Task: TASK-030. Blocked on TASK-015 and TASK-016.
+ * Pure: imports only `sim/`. Never imports `base/` or `debrief/` (R-5).
  */
 
-import type { RunState } from '../../sim/run';
+import type { SolEvent } from '../../sim/events';
+import { eventsForSol } from '../../sim/events';
 
-/**
- * A presentation choice for this screen, not a simulation rule.
- *
- * Kept separate from the pure work so that advancing a sol stays one call into
- * src/sim/sol.ts rather than logic smeared across two layers.
- */
-export interface ActPresentation {
-  readonly title: string;
-  readonly subtitle: string;
+/** Format a whole number with a sign. */
+export function formatSigned(value: number): string {
+  return value >= 0 ? `+${value}` : `${value}`;
 }
 
-/** Headline copy for the active mission. */
-export function missionHeadline(_run: RunState): ActPresentation {
-  throw new Error('STUB: features/act/model.ts is not implemented. See ../README.md.');
+/** Format a store as a whole percent. */
+export function formatStore(value: number): string {
+  return `${Math.round(value)}%`;
+}
+
+/** The events on a given sol, each carrying its `approximate` flag (D-033). */
+export function eventsOn(sol: number): readonly SolEvent[] {
+  return eventsForSol(sol);
 }

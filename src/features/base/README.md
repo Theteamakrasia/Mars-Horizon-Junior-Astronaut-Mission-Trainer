@@ -1,7 +1,7 @@
 # `base/` — establish the outpost
 
-**Not implemented.** Task: **TASK-029**. Goal: **G-4**. Blocked on **TASK-015**
-(`src/sim/resources.ts`).
+**Built.** Task: **TASK-029**. Goal: **G-4**. Model rules come from
+`src/sim/modules.ts` (D-032), not from this folder.
 
 See `../README.md` for the layout rules.
 
@@ -47,12 +47,8 @@ The outpost overview: placed modules, the Life Support and Resources panel showi
 five stores as percentages, the incoming-weather warning, and the Build New Module
 control.
 
-## Undecided, and it affects this screen
+## Sol stepping is decided
 
-Whether adding a module is an immediate choice or opens a per-sol decision is **not
-decided**, because sol stepping itself is undecided — turn-based or real-time. Recorded
-in `docs/architecture.md` under known simplifications. Ask before assuming.
-
-Whoever builds `act/` (TASK-030) and this screen must agree on it. If sol stepping turns
-out to be real-time, placement becomes a timing problem rather than a single decision,
-and the state shape changes with it.
+Turn-based: one sol advances per **Start sols / Advance sol** press (D-030). Adding a
+module is an immediate choice on this screen, not a per-sol decision. There is no clock
+abstraction and no ticker.

@@ -11,6 +11,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
+| ISS-040 | `landing-site` commits the region but never sets region-dependent starting stores | medium | agent | fixed | this branch |
 | ISS-039 | Landing-site axis scores render no dots, so the panel shows no scores | medium | agent | fixed | this branch |
 | ISS-038 | `check-markup` Rule 6 never resolves a view for most screens, so hook scoping is unenforced | medium | agent | fixed | this branch |
 | ISS-037 | `check-markup` skips quoted mount keys, so `landing-site` is never validated | medium | agent | fixed | this branch |
@@ -792,6 +793,21 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
   flashes, same tests — with the film added after them as the final beat.
   **Fixed in this pass.**
 
+
 ---
 
-**Next free id: ISS-036.**
+## ISS-040 — `landing-site` commits the region but never sets region-dependent starting stores
+
+- **Reported by:** plan, 2026-11-08, from GAME_LOOP_PLAN.md §1
+- **Where:** `src/features/landing-site/view.ts` (`commitLanding`), `src/sim/run.ts` (`newRun`)
+- **Problem:** `commitLanding` calls `withState(run, { regionId })`, which sets `regionId` but leaves the stores at `createInitialStores()` defaults. Region-dependent starting stores (water, power, etc. from D-034) are never applied, so the landing choice has no mechanical effect.
+- **Cause:** `landAt` does not exist yet; `run.ts` is a stub.
+- **Fix:** Add `landAt(run, regionId)` to `src/sim/run.ts` that sets `regionId` and region-adjusted starting stores. Change `commitLanding` to call `landAt` instead of `withState(run, { regionId })`. Add a test.
+- **Pre-existing:** yes; the region was always cosmetic.
+- **Status:** fixed in this branch. `landAt` is implemented in `sim/run.ts` and
+  `commitLanding` calls it. `run.test.ts` covers region-adjusted stores for every region.
+- **Related:** D-034, GAME_LOOP_PLAN §4.4.
+
+---
+
+**Next free id: ISS-041.**

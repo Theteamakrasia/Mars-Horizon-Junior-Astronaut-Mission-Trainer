@@ -1,6 +1,6 @@
 # Architecture
 
-The annotated truth about this repository as of 2026-10-06. Everything here was read
+The annotated truth about this repository as of 2026-11-08. Everything here was read
 from the files, not inferred from intent. Where a file is empty or does not exist, it
 says so — **an empty file is a promise, not an implementation.**
 
@@ -19,7 +19,7 @@ than eyeballed, and it is what `npm run check` protects.
 
 ## The invariant, and why it is enforced
 
-94 tests run in about 15ms with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
+410 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
 reference it would still work, and the cost would surface later as an untestable bug.
 Enforced as `no-dom-in-pure-zone`.
 
@@ -111,7 +111,7 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
 │   │   ├── CONVENTIONS.md, INTEGRATIONS.md, TESTING.md, CONCERNS.md
 │   └── team/
 │       ├── decisions.md                complete   numbered, newest first
-│       ├── issues.md                   complete   15 issues, ISS-001..ISS-015
+│       ├── issues.md                   complete   every logged issue, ISS-001..ISS-040
 │       ├── goals.md  tasks.md  progress-log.md
 ├── .github/workflows/
 │   ├── ci.yml                          PR/main checks: typecheck, tests, HTML, build
@@ -124,11 +124,11 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
 │                                                 code — see ISS-001. Not rewritten (D-011).
 │
 └── src/
-    ├── main.ts                         complete   89 lines. Composition root only: resolves four
-    │                                             elements by id, wires starfield + astronaut,
-    │                                             reads ?motion= and prefers-reduced-motion.
-    │                                             **Does not import ui/router.ts** — routing is
-    │                                             implemented but not wired, see ui/ below.
+    ├── main.ts                         complete   composition root. Resolves the landing elements
+    │                                             by id, wires starfield + astronaut, reads
+    │                                             ?motion= and prefers-reduced-motion, then starts
+    │                                             the router. Owns the single in-memory `RunState`
+    │                                             and hands it to screens as (root, run, setRun).
     ├── style.css                       complete   5 lines. Landing-page entry only. Imports the
     │                                             four stylesheets in DOM stacking order.
     ├── vite-env.d.ts                   complete   1 line. Ambient declaration, exempt from
@@ -156,16 +156,37 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   ├── drift.test.ts               complete   30 tests
     │   ├── deform.test.ts              complete   30 tests
     │   ├── frame.test.ts               complete   19 tests; open-space trajectory is deterministic
-    │   ├── resources.ts                STUB       62 lines. Exports ResourceName,
-    │   │                                         RESOURCE_NAMES, ResourceStores,
-    │   │                                         createInitialStores, drainForSol,
-    │   │                                         depletedStores. **Every function throws.**
-    │   │                                         Types are real; arithmetic is not written.
-    │   ├── sol.ts                      STUB       Exports SolEvent, SolResult, advanceSol,
-    │   │                                         isRunOver. Sol stepping undecided. All throw.
-    │   ├── run.ts                      STUB       Exports RunStatus, RunState, newRun,
-    │   │                                         withState. RunState is the only thing
-    │   │                                         shared between screens. All throw.
+    │   ├── resources.ts                complete   ResourceName, ResourceStores, StoreChange,
+    │   │                                         DrainResult, drainForSol, depletedStores,
+    │   │                                         createInitialStores. Pure arithmetic, never
+    │   │                                         mutates its argument. 18 tests.
+    │   ├── sol.ts                      complete   LedgerEntry, SolResult, advanceSol, isRunOver.
+    │   │                                         Solar generation, module draw + night drain,
+    │   │                                         crew use offset by modules, events,
+    │   │                                         clamp/cap, ledger, status. Turn-based (D-030).
+    │   │                                         12 tests.
+    │   ├── run.ts                      complete   RunStatus, RunState, newRun, landAt, withState,
+    │   │                                         applyBuild. RunState is the only thing shared
+    │   │                                         between screens; it carries `modules` and the
+    │   │                                         per-sol `ledger`. 19 tests.
+    │   ├── constants.ts                complete   every tuning number: starting stores, crew use,
+    │   │                                         solar per sun score, night drain, storm severity,
+    │   │                                         build costs, target sol (20), power cap,
+    │   │                                         battery charge. Edit here to retune.
+    │   ├── modules.ts                  complete   ModuleKind, ModuleSpec, MODULE_CATALOGUE,
+    │   │                                         STARTING_MODULES, canBuild, adjustedBuildCost,
+    │   │                                         buildPreview, upkeepFor, extraBatteryCount.
+    │   │                                         Catalogue in `sim/` because `act` needs it and
+    │   │                                         cannot import `base` (D-032). 25 tests.
+    │   ├── events.ts                   complete   SolEvent, EVENT_SCHEDULE, eventsForSol,
+    │   │                                         forecastFrom, isStormSol. Baked schedule
+    │   │                                         (warning sol 2, storm 5, supply pod 10, flare
+    │   │                                         14, win check 20). Every event
+    │   │                                         `approximate: true` (D-033). 16 tests.
+    │   ├── balance.test.ts             complete   9 acceptance tests: default survives the storm,
+    │   │                                         default cannot win, a thoughtful build wins
+    │   │                                         three of five regions, over-building loses,
+    │   │                                         sun-vs-water failures differ.
     │   └── regions.ts                  complete   The five landing regions: id, name,
     │                                             blurb, pin {x, y} as stage %, and five
     │                                             axis scores (0-5). Pure authored data,
@@ -179,25 +200,27 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         Route, ROUTE_ORDER, DEFAULT_ROUTE, parseRoute,
     │   │                                         routeToHash, nextRoute, previousRoute. No DOM,
     │   │                                         so it is unit tested like sim/.
-    │   ├── routes.test.ts              complete   15 tests. Every input literal — no Math.random,
+    │   ├── routes.test.ts              complete   19 tests. Every input literal — no Math.random,
     │   │                                         no clock, so it cannot flake.
-    │   └── router.ts                   PARTIAL    startRouter(options) -> teardown, and
-    │                                             navigate(route). Reads location.hash, listens for
-    │                                             hashchange, normalises an unknown hash to the
-    │                                             default via replaceState. **NOT WIRED into
-    │                                             main.ts** — no features exist to route to, and
-    │                                             half-wiring it could break the landing page.
-    │                                             DOM behaviour UNVERIFIED in a browser.
+    │   ├── registry.test.ts            complete   13 tests over the route → screen tables
+    │   ├── router.ts                   complete   startRouter(options) -> teardown, and
+    │   │                                         navigate(route). Reads location.hash, listens for
+    │   │                                         hashchange, normalises an unknown hash to the
+    │   │                                         default via replaceState, and mounts/unmounts
+    │   │                                         exactly one screen. Wired into `main.ts`.
+    │   │                                         DOM behaviour UNVERIFIED in a browser.
     │   ├── button-strip.ts             complete   createButtonStrip(root, options) -> ButtonStripSpec;
     │   │                                         full-width fixed-height bottom strip owning Next /
     │   │                                         Prev / action buttons; teardown mandatory.
-    │   └── button-strip.css            complete   structural styles only (flex row, gap, padding);
-    │                                             features theme colours in their own CSS.
-    │   # registry.ts                   complete   the one composition seam. Exports ScreenFactory,
-    │                                             screenMount, resolveScreen. Maps routes onto
+    │   ├── button-strip.css            complete   structural styles only (flex row, gap, padding);
+    │   │                                         features theme colours in their own CSS.
+    │   └── registry.ts                 complete   the one composition seam. Exports ScreenFactory,
+    │                                             screenMount, resolveScreen, nextStop,
+    │                                             allScreenMounts. Maps all nine built routes onto
     │                                             feature views; the only file permitted to import
-    │                                             them. Returns null for routes with nothing built,
-    │                                             so the router can fall through instead of throwing.
+    │                                             them. `ScreenFactory` is (root, run, setRun) ->
+    │                                             teardown. Returns null for routes with nothing
+    │                                             built, so the router can fall through.
     │
     ├── dom/                            landing-page side effects only. Untested (ISS-011).
     │   ├── floatAstronaut.ts           complete   218 lines. The rAF loop, the two transforms, the
@@ -216,8 +239,8 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   └── spaceweather.ts             STUB       Exports SpaceWeatherEvent, SpaceWeatherSource,
     │                                             fetchSpaceWeather, lastSource. All throw.
     │
-    ├── features/                       one folder per screen. naming and landing-site are BUILT; the rest are stubs.
-    │   │                               Every stub throws, so nothing silently returns undefined.
+    ├── features/                       one folder per screen. Every journey screen is built.
+    │   │                               There are no feature stubs left.
     │   ├── README.md                   the layout contract: four files, depth 2, which rules are
     │   │                               enforced vs convention
     │   ├── naming/                     COMPLETE   Scene one. The entry screen.
@@ -227,12 +250,40 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │   │                                     checkName, displayName. Pure; length counted in
     │   │   │                                     code points so an emoji costs 1, not 2.
     │   │   ├── model.test.ts            complete   21 tests, every input a literal
-    │   │   ├── view.ts                  complete   mountNaming(root, run) -> teardown. Validates on
-    │   │   │                                     every keystroke; START MISSION disabled until the
-    │   │   │                                     name is usable.
+    │   │   ├── view.ts                  complete   mountNaming(root, run, setRun) -> teardown.
+    │   │   │                                     Validates on every keystroke; START MISSION
+    │   │   │                                     disabled until the name is usable.
     │   │   └── naming.css               complete   measured palette + naming-mars-turn (150s) and
     │   │                                         naming-astronaut-float (9s), both removed under
     │   │                                         prefers-reduced-motion
+    │   ├── briefing/                   COMPLETE   The mission briefing.
+    │   │   ├── README.md                           the contract
+    │   │   ├── model.ts                 complete   BEATS, beatsThrough, greetingFor. Pure.
+    │   │   ├── model.test.ts            complete   literal-input tests
+    │   │   ├── view.ts                  complete   mountBriefing(root, run, setRun) -> teardown
+    │   │   └── briefing.css             complete   beat cards
+    │   ├── supply/                     COMPLETE   The ration-check puzzle.
+    │   │   ├── README.md                           the contract
+    │   │   ├── model.ts                 complete   SUPPLY_BEATS, packsFor, judge, hintFor,
+    │   │   │                                     workingSentence, approximateTotalKg. 49 tests.
+    │   │   ├── model.test.ts            complete   49 literal-input tests
+    │   │   ├── view.ts                  complete   mountSupply(root, run, setRun) -> teardown
+    │   │   └── supply.css               complete   beats and the ration check
+    │   ├── launch/                     COMPLETE   The launch reel and spacecraft tour.
+    │   │   ├── README.md                           the contract
+    │   │   ├── model.ts                 complete   TITLE, SHOTS, PARTS, beat durations,
+    │   │   │                                     resolveBeatStart. 32 tests.
+    │   │   ├── model.test.ts            complete   32 literal-input tests
+    │   │   ├── view.ts                  complete   mountLaunch(root, run, setRun) -> teardown;
+    │   │   │                                     media-driven beats, poster frames
+    │   │   └── launch.css               complete   film stage, parts tour, reduced motion
+    │   ├── interior/                   COMPLETE   Walk the station and visit every room.
+    │   │   ├── README.md                           the contract
+    │   │   ├── model.ts                 complete   ROOMS, walker stepping, sprite mapping,
+    │   │   │                                     visited tracking. 42 tests.
+    │   │   ├── model.test.ts            complete   42 literal-input tests
+    │   │   ├── view.ts                  complete   mountInterior(root, run, setRun) -> teardown
+    │   │   └── interior.css             complete   room stage, walker and exit prompts
     │   ├── landing-site/               COMPLETE   TASK-028. Choose a landing region, score 5 axes.
     │   │   ├── README.md                           the contract
     │   │   ├── model.ts                           complete   REGIONS, scoreRegion,
@@ -241,27 +292,33 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │   ├── model.test.ts                      complete   11 literal-input tests
     │   │   ├── view.ts                            complete   mountLandingSite(root, run, setRun) -> teardown
     │   │   └── landing-site.css                   complete   16:9 stage, five pins, Site Analysis panel
-```
-
-    │   ├── base/                       STUB       TASK-029, blocked on TASK-015.
-    │   │   ├── README.md
-    │   │   ├── model.ts                           ModuleKind, ModuleSpec, MODULE_CATALOGUE,
-    │   │   │                                       canPlace, upkeepFor
-    │   │   ├── view.ts                            mountBase
-    │   │   └── base.css
-    │   ├── act/                        STUB       TASK-030. Simulation runner, NOT a decision
-    │   │   │                           screen: no plan phase (D-018). Sol stepping undecided.
-    │   │   ├── README.md
-    │   │   ├── model.ts                           ActPresentation, missionHeadline
-    │   │   ├── view.ts                            mountAct
-    │   │   └── act.css
-    │   └── debrief/                    STUB       TASK-031. Load-bearing, not polish: with no
-    │       │                           plan phase it is the only place a player learns why
-    │       │                           they lost — the README's central teaching promise.
-    │       ├── README.md
-    │       ├── model.ts                           Explanation, explainOutcome, consumptionSummary
-    │       ├── view.ts                            mountDebrief
-    │       └── debrief.css
+    │   ├── base/                       COMPLETE   TASK-029. Outpost overview and build panel.
+    │   │   ├── README.md                           the contract
+    │   │   ├── model.ts                 complete   BUILDABLE, canPlace, upkeep, blockedKinds,
+    │   │   │                                     previewOf, formatStore, formatCost. Re-exports
+    │   │   │                                     the `sim/modules.ts` catalogue (D-032).
+    │   │   ├── model.test.ts            complete   11 literal-input tests
+    │   │   ├── view.ts                  complete   mountBase(root, run, setRun) -> teardown.
+    │   │   │                                     Holds a mutable local `state`; build panel,
+    │   │   │                                     five stores, storm warning, Start sols.
+    │   │   └── base.css                 complete   two-column grid, build list, store rows
+    │   ├── act/                        COMPLETE   TASK-030. Turn-based sol control (D-030).
+    │   │   ├── README.md                           the contract
+    │   │   ├── model.ts                 complete   formatSigned, eventsOn. Pure, 7 tests.
+    │   │   ├── model.test.ts            complete   7 literal-input tests
+    │   │   ├── view.ts                  complete   mountAct(root, run, setRun) -> teardown.
+    │   │   │                                     Advance sol -> advanceSol; on a finished run,
+    │   │   │                                     setRun then navigate to `debrief`.
+    │   │   └── act.css                  complete   day/night scene, Power Surplus steps, event log
+    │   └── debrief/                    COMPLETE   TASK-031. Why the run was won or lost.
+    │       ├── README.md                           the contract
+    │       ├── model.ts                 complete   Explanation, ConsumptionSummary, explainOutcome,
+    │       │                                     consumptionSummary, depletedStores. Conservative
+    │       │                                     ledger attribution. 12 tests.
+    │       ├── model.test.ts            complete   12 literal-input tests
+    │       ├── view.ts                  complete   mountDebrief(root, run, setRun) -> teardown.
+    │       │                                     CSS-bar timeline, used/weather summary, replay.
+    │       └── debrief.css              complete   timeline bars, outcome panel, honesty note
     │
     └── styles/                         plain CSS, landing page only
         ├── base.css                    complete   94 lines. Tokens, reset, backdrop, nebulae.
@@ -361,7 +418,10 @@ The planet rotates **in the image plane** (`rotate()`), not on a 3D axis. This i
 forced by the asset: a sphere spun about its own axis looks identical, so a `rotateY`
 would appear to do nothing (D-020).
 
-Zero network calls, zero storage. There is no game state.
+Zero network calls, zero storage. The only state is the in-memory `RunState` that
+`main.ts` owns and passes to each screen as `(root, run, setRun)`; a refresh loses it,
+because persistence is deferred (D-003). Space-weather events come from the baked
+schedule in `sim/events.ts`, not a live feed (D-033).
 
 ## Boot order
 
@@ -384,9 +444,8 @@ Zero network calls, zero storage. There is no game state.
     `startScreenRouter()` calls `startRouter`, which resolves the hash — defaulting to
     `naming` — and mounts that screen, hiding the landing layers behind it.
 
-Routing is last because it is not wired until a screen exists to route to.
-`BACK TO MAIN MENU` returns to `landing`, which keeps running behind the mounted
-screen.
+Routing is last so every screen it can mount is already defined. `BACK TO MAIN MENU`
+returns to `landing`, which keeps running behind the mounted screen.
 
 ## Module contracts
 
@@ -416,8 +475,32 @@ screen.
 | | `Region` | `id, name, blurb, pin {x, y}, scores` — the five authored regions |
 | | `REGIONS` | `readonly Region[]` — Arcadia, Jezero, Olympus, Valles, Argyre |
 | | `totalScore` | `(score) -> number`, sum of the five axes, 0-25 |
-| `ui/routes` | `Route` | `'naming' \| 'landing' \| 'landing-site' \| 'base' \| 'act' \| 'debrief'` |
-| | `ROUTE_ORDER` | the six routes in play order, `naming` first |
+| `sim/constants` | tuning constants | `CREW`, `TARGET_SOL` 20, `BASE_STORES`, per-sol crew use, solar per sun score, night drain, storm severity, build costs, power cap, battery charge. **Every number lives here** — edit here to retune, then re-run the balance tests |
+| `sim/resources` | `ResourceName`, `ResourceStores` | the five stores as 0-100 percentages; `readonly` |
+| | `StoreChange` | `{ store, cause, delta }` — one line of the ledger |
+| | `drainForSol` | `(stores, sol, powerDraw, solarArrays, modules, region) -> DrainResult`; pure, never mutates its argument. Takes pre-computed draw/arrays so `resources` never imports `modules` |
+| | `depletedStores` | `(stores) -> ResourceName[]`; the stores at or below zero |
+| | `createInitialStores` | `() -> ResourceStores` |
+| `sim/modules` | `ModuleKind` | the nine catalogue kinds |
+| | `MODULE_CATALOGUE`, `STARTING_MODULES` | every spec, and the modules a run begins with |
+| | `canBuild` | `(kind, modules, stores, terrain) -> boolean` |
+| | `adjustedBuildCost` | `(kind, terrain) -> number` |
+| | `buildPreview` | `(kind, modules, stores, terrain) -> preview \| null`; null for an unknown kind |
+| | `upkeepFor` | `(modules) -> {powerDraw, solarArrays}` |
+| | `extraBatteryCount` | `(modules) -> number` |
+| `sim/events` | `SolEvent` | `kind, sol, summary, approximate` |
+| | `EVENT_SCHEDULE` | the baked schedule: warning sol 2, storm 5, supply pod 10, flare 14, win check 20 |
+| | `eventsForSol`, `forecastFrom`, `isStormSol` | lookups over the schedule. Every event is `approximate: true` (D-033) |
+| `sim/sol` | `advanceSol` | `(run) -> SolResult`; solar generation, module draw + night drain, crew use, events, clamp/cap, ledger entry, status. **Turn-based: one sol per call** (D-030) |
+| | `LedgerEntry`, `SolResult` | one sol's stores and `changes`; the new stores, status, events and ledger |
+| | `isRunOver` | `(run) -> boolean` |
+| `sim/run` | `RunState` | `sol, regionId, astronautName, stores, status, modules, ledger` — the only thing shared between screens |
+| | `newRun` | `(regionId, astronautName?) -> RunState` |
+| | `landAt` | `(run, regionId) -> RunState`; sets the region and its region-adjusted starting stores |
+| | `applyBuild` | `(run, kind) -> RunState \| null`; null when the build is blocked |
+| | `withState` | `(run, patch) -> RunState` |
+| `ui/routes` | `Route` | `'naming' \| 'briefing' \| 'supply' \| 'launch' \| 'interior' \| 'landing' \| 'landing-site' \| 'base' \| 'act' \| 'debrief'` |
+| | `ROUTE_ORDER` | the routes in play order, `naming` first |
 | | `DEFAULT_ROUTE` | `'naming'` — the entry screen (D-021) |
 | | `parseRoute` | `(hash) -> Route \| null`; tolerant of missing/duplicated `/`, whitespace, case, query string. Returns null rather than throwing |
 | | `routeToHash` | `(route) -> '#/<route>'` |
@@ -426,18 +509,28 @@ screen.
 | | `navigate` | `(route) => void`; assigns `location.hash` so Back works |
 | `ui/registry` | `screenMount` | `(route) => selector \| null`; null when nothing is built for that route |
 | | `resolveScreen` | `(route) => ScreenFactory \| null`; null when nothing is built |
-| | `ScreenFactory` | `(mount, run) => teardown`; teardown is mandatory, not optional |
+| | `nextStop` | `(route) => Route \| null`; the next built screen, or the placeholder when the next is unbuilt |
+| | `allScreenMounts` | `() => string[]`; every mount selector, for the shell to hide |
+| | `ScreenFactory` | `(root, run, setRun) => teardown`; teardown is mandatory, not optional |
 | `features/naming/model` | `MAX_NAME_LENGTH` | 24, counted in code points |
 | | `normaliseName` | trims and collapses whitespace runs |
 | | `checkName` | `(raw) -> {ok, value, problem}`; returns the normalised value so a caller never normalises twice |
 | | `displayName` | strips control characters and caps length — the one string interpolated into markup |
-| `features/naming/view` | `mountNaming` | `(root, run) -> teardown`; START MISSION disabled until the name is usable |
+| `features/naming/view` | `mountNaming` | `(root, run, setRun) -> teardown`; START MISSION disabled until the name is usable |
 | `features/landing-site/model` | `REGIONS` | the five authored regions, re-exported from `sim/regions` |
 | | `scoreRegion` | `(regionId) -> SiteScore`; all-zero safe score for an unknown id, never throws |
 | | `tradeoffSummary` | `(score) -> string`; names strongest and weakest axis, never "recommended" |
 | | `totalScore` | `(score) -> number`, 0-25 |
 | | `strengthAndWeakness` | `(score) -> {strength, weakness}` axes |
-| `features/landing-site/view` | `mountLandingSite` | `(root, run, setRun) -> teardown`; map + five pins + Site Analysis panel, LAND HERE navigates to `nextStop('landing-site')` |
+| `features/landing-site/view` | `mountLandingSite` | `(root, run, setRun) -> teardown`; map + five pins + Site Analysis panel, LAND HERE calls `landAt` then navigates to `nextStop('landing-site')` |
+| `features/base/model` | `BUILDABLE`, `canPlace`, `upkeep`, `blockedKinds`, `previewOf` | build rules over the `sim/modules.ts` catalogue (D-032), plus `formatStore` and `formatCost` |
+| `features/base/view` | `mountBase` | `(root, run, setRun) -> teardown`; placed modules, five stores, storm warning, build panel, Start sols → `act`. Holds a mutable local `state` so a second build is not applied to stale data |
+| `features/act/model` | `formatSigned`, `eventsOn` | presentation helpers over the sim's event schedule |
+| `features/act/view` | `mountAct` | `(root, run, setRun) -> teardown`; Advance sol calls `advanceSol`, then `setRun`; a finished run navigates to `debrief`. Disables both buttons during the transition so a double press cannot advance twice |
+| `features/debrief/model` | `explainOutcome` | `(run, history) -> {headline, detail, confident}`; conservative ledger attribution — only claims a cause when it is more than half the loss in the last five sols |
+| | `consumptionSummary` | `(run, history) -> {used, wasted}`; totals negative deltas and the weather share |
+| | `depletedStores` | `(stores) -> ResourceName[]` |
+| `features/debrief/view` | `mountDebrief` | `(root, run, setRun) -> teardown`; CSS-bar timeline, used/weather summary, confidence note, Play again → `landing-site` |
 | `features/launch/model` | `TITLE` | `'THE MISSION BEGINS'` — the card that holds before the first still |
 | | `TITLE_DURATION_MS` | 900 — the card alone; 200ms in and out leaves 500ms of readability |
 | | `FADE_MS` | 350 — every dissolve: the title lift, each shot, the film's arrival |
@@ -475,40 +568,22 @@ The only zone allowed to `fetch`. Two sources:
 Config read only in `data/`. Requires ISS-006 first, or the key is committed to a public
 repository.
 
-### `src/features/` — one folder per screen
-
-Four screens in scope before the freeze: `landing-site`, `base`, `act`, `debrief`. There
-is deliberately **no `plan/`** — act is built without one, confirmed by the owner.
-
-### `src/sim/{resources,sol,run}.ts` — the game model
-
-The pure simulation: five stores with per-sol drain, advancing a sol and resolving
-events, and the `RunState` that `main.ts` owns and passes to every screen. This is the
-largest unstarted body of work and the natural home for the 79-test pattern.
-
 ## Known simplifications
 
 Deliberate shortcuts, and why each was accepted.
 
-1. **`src/sim/` has no game state.** No resource model, no sol counter, no module graph.
-   Accepted because none of it exists yet and inventing a shape would be guesswork baked
-   into architecture.
-2. **`features/`, `data/`, `sim/{resources,sol,run}.ts` and `ui/registry.ts` are stubs,
-   not implementations.** Every export has a real type and a real signature; every body
-   is `throw new Error('STUB: ...')`. Accepted on the owner's instruction, after two
-   rounds of this — first the folders were left absent, then given README contracts.
-   **A stub was the right answer and I reached for it too late.** An empty directory
-   produces *no* `git status` output at all, and a README makes a folder visible without
-   making its *files* visible. Both intermediate states left the owner unable to see
-   the structure they had asked for. The cost of stubs is that a stub can be mistaken
-   for work: mitigated by every file naming itself STUB on line 1, by `architecture.md`
-   marking them **stub**, and by throwing rather than returning `undefined` — verified by
-   running a probe that called `createInitialStores`, `advanceSol` and `newRun` and
-   confirmed each throws.
-3. **`ui/router.ts` is implemented, tested in part, and not wired.** Half-wiring it with
-   no features to switch to could break the landing page, and the DOM half cannot be
-   tested without jsdom (ISS-013). Accepted deliberately: the pure half
-   (`routes.ts`, 15 tests) carries the logic worth protecting.
+1. **`src/sim/` now carries the game model.** Five stores with per-sol drain
+   (`resources.ts`), module catalogue and build rules (`modules.ts`), the baked event
+   schedule (`events.ts`), sol advance and win/loss (`sol.ts`), and `RunState` (`run.ts`).
+   The earlier version of this file said there was no game state; that stopped being true
+   when the loop was built (D-030–D-035).
+2. **`data/` is still a stub; every feature is implemented.** `data/spaceweather.ts` has a
+   real type and a real signature and every body throws, because the live feed is blocked
+   on ISS-008. All nine journey screens are built. The old "features are stubs" entry
+   applied to the pre-loop tree and is no longer accurate.
+3. **`ui/router.ts` is wired into `main.ts`.** Its DOM half still cannot be tested without
+   jsdom (ISS-013), so the pure half (`routes.ts`) carries the tests. The browser
+   behaviour is unverified (TASK-049).
 4. **Routing is hash-based rather than a state machine.** Costs a URL bar and a
    `hashchange` listener. Rejected multi-page because there is no persistence, so a
    navigation would lose the run state a multi-mission loop needs.
@@ -522,10 +597,9 @@ Deliberate shortcuts, and why each was accepted.
 8. **Frame-rate independence by substepping rather than a fixed-timestep accumulator.**
    Simpler, and the drift maths is linear. `deform.test.ts` asserts one long frame matches
    six short ones.
-9. **Sol stepping is undecided.** Turn-based or real-time, the tree works either way,
-   because pure transition functions are correct for turn-based *and* are the right seam
-   for real-time. If real-time wins, `sim/` gains a clock abstraction and `dom/` a ticker.
-   Nothing in this structure forecloses it.
+9. **Sol stepping is turn-based (D-030).** One sol advances per button press in `act`;
+   there is no clock abstraction and no ticker. The pure `advanceSol` transition is also
+   the right seam if real-time is ever wanted, but that is not in scope.
 10. **The `KNOWN` set is empty.** Deliberate, per the reasoning above.
 11. **No DOM test coverage.** Accepted only because there is no jsdom yet — ISS-011,
     ISS-013. The largest real gap in the repository.

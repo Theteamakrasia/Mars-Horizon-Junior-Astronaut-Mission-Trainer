@@ -13,19 +13,20 @@ demo **Nov 14-15**.
 **The one invariant: `sim/` and each feature's `model.ts` are pure — no `document`, no
 `window`, no network.**
 
-That is what lets 94 tests run in ~15ms with no browser and no mocks, so the game can be
-asserted on rather than eyeballed. Everything else here exists to protect it. If you are
-unsure where code goes: if it touches the DOM it is not pure.
+That is what lets 410 tests run in a few seconds with no browser and no mocks, so the game
+can be asserted on rather than eyeballed. Everything else here exists to protect it. If
+you are unsure where code goes: if it touches the DOM it is not pure.
 
-**Current reality: the game has two screens.** The **naming menu is built and is the
-entry route** — the player names their astronaut and presses START MISSION, which now
-flows through `briefing → supply → launch → interior → landing-site` (ISS-017 fixed,
-TASK-028 done). The polished landing page still works behind it and is what
-BACK TO MAIN MENU returns to.
+**Current reality: the whole journey is built.** The **naming menu is the entry route** —
+the player names their astronaut and presses START MISSION, which flows through
+`briefing → supply → launch → interior → landing-site → base → act → debrief`. `base` is
+the outpost (build modules, read the storm warning), `act` advances one sol per press, and
+`debrief` explains a win or loss from the per-sol ledger. The polished landing page still
+works behind it and is what BACK TO MAIN MENU returns to.
 
-Everything else is a **stub**: real types, real signatures, every body `throw`s —
-`sim/{sol,resources}` partly, `sim/run.ts` partly, `data/spaceweather.ts`, and the
-`base`, `act` and `debrief` features. No sol loop, no save, no network call.
+What is still a **stub**: `data/spaceweather.ts` (blocked on ISS-008). There is **no save**
+and **no network call** — the run lives in memory only, and the space-weather schedule is
+baked in and labelled approximate (D-033).
 
 **A stub is not an implementation.** If a file says STUB, calling it throws. That is
 deliberate: it fails loudly instead of silently returning `undefined`.
@@ -50,7 +51,7 @@ human upholds it and nothing catches you.
 | R-10 | No `on*="..."` inline handlers in markup | **enforced** | `no-inline-handler` |
 | R-11 | A relative import that resolves to nothing is an error | **enforced** | `unresolved-import` |
 | R-12 | Typecheck clean; `strict`, `noUnusedLocals` | **enforced** | `npm run check` |
-| R-13 | Tests pass. **Currently violated ~40% of the time** | **enforced** | `npm test`, ISS-015 |
+| R-13 | Tests pass (410 today) | **enforced** | `npm test`, watch ISS-015 |
 | R-14 | No `index.ts` barrel files — import concrete paths | convention | nothing |
 | R-15 | Feature CSS is imported by its own `view.ts`, never added to `style.css` | convention | nothing |
 | R-16 | Files are UTF-8, LF, no BOM. Preserve a file's existing endings | convention | **nothing** — ISS-005 |
@@ -77,15 +78,17 @@ startFloatingAstronaut → rAF tick → stepAstronaut (pure) → render transfor
 stepAstronaut → stepDrift (bounce maths) + stepDeform (spring maths)
 
 startRouter → location.hash → parseRoute (pure) → onRoute
-            → registry.resolveScreen → features/naming/view.ts
+            → registry.resolveScreen → features/<screen>/view.ts
             → unmount the previous screen first
+            → factory(root, run, setRun); run is the in-memory RunState
 ```
 
 The menu's rotation is **CSS keyframes**, not JS — no `requestAnimationFrame`, so no
 loop to leak when you navigate away.
 
-**Zero network calls, zero storage.** The player's name lives in memory only and is
-lost on refresh.
+**Zero network calls, zero storage.** The whole run — name, region, stores, modules and
+the per-sol ledger — lives in `main.ts` memory only and is lost on refresh. Space weather
+comes from the baked schedule in `sim/events.ts` (D-033), not a live feed.
 
 ## 4. Boot order
 
@@ -166,9 +169,13 @@ opening its folder — that is the whole point of the layout.
 | Drift, bounce, throw, speed | `src/sim/drift.ts` |
 | Squash-and-stretch feel, spring constants | `src/sim/deform.ts` |
 | How drift and deformation combine per frame | `src/sim/frame.ts` |
-| Resource drain, power/O2/water/food/shielding | `src/sim/resources.ts` — **STUB, throws** |
-| Advancing a sol, resolving events, detecting loss | `src/sim/sol.ts` — **STUB, throws** |
-| Run state shape and progression | `src/sim/run.ts` — **STUB, throws** |
+| Resource drain, power/O2/water/food/shielding | `src/sim/resources.ts` — complete, 18 tests |
+| Advancing a sol, resolving events, detecting loss | `src/sim/sol.ts` — complete, 12 tests |
+| Run state shape and progression | `src/sim/run.ts` — complete, 19 tests |
+| Module catalogue, build costs, upkeep | `src/sim/modules.ts` — complete, 25 tests |
+| The baked event schedule | `src/sim/events.ts` — complete, 16 tests |
+| Every tuning number | `src/sim/constants.ts` — edit here to retune |
+| Balance acceptance rules | `src/sim/balance.test.ts` — 9 tests |
 | The rAF loop, transforms, resize, reduced motion | `src/dom/floatAstronaut.ts` |
 | Pointer grab, throw velocity, pointer capture | `src/dom/pointerGrab.ts` |
 | Star generation and twinkle randomness | `src/dom/starfield.ts` |
@@ -178,6 +185,9 @@ opening its folder — that is the whole point of the layout.
 | Name length, trimming, emoji, validation | `src/features/naming/model.ts` — pure, 21 tests |
 | The rotating Mars-behind-astronaut stage | `src/features/naming/naming.css` |
 | **Choosing where to land on Mars** | `src/features/landing-site/` — **built** (TASK-028 done) |
+| **Building the outpost between sols** | `src/features/base/` — **built**, 11 tests |
+| **Advancing a sol** | `src/features/act/` — **built**, 7 tests |
+| **Why the run was won or lost** | `src/features/debrief/` — **built**, 12 tests |
 | Where START MISSION goes | `onSubmit` in `src/features/naming/view.ts` — flows to `briefing` |
 | Boot, element lookup, `?motion=`, mounting screens | `src/main.ts` |
 | Page structure, element ids, font link | `index.html` |
@@ -190,7 +200,7 @@ opening its folder — that is the whole point of the layout.
 | Strictness, module resolution, compiled files | `tsconfig.json` |
 | Layer rules, banned APIs, the `KNOWN` set | `scripts/check-imports.mjs` |
 | **Any NASA-API call** | `src/data/spaceweather.ts` — **STUB, throws**, blocked on ISS-008 |
-| A game screen | `src/features/<name>/` — **STUBs, every export throws** |
+| A game screen | `src/features/<name>/` — every journey screen is built |
 | What a screen is meant to contain | the `README.md` in that screen's folder |
 | Per-screen pure logic / DOM / styles | `model.ts` / `view.ts` / `<name>.css` |
 

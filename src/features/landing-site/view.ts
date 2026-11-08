@@ -18,7 +18,7 @@
  * Task: TASK-028.
  */
 
-import { newRun, type RunState, withState } from '../../sim/run';
+import { landAt, newRun, type RunState } from '../../sim/run';
 import { nextStop } from '../../ui/registry';
 import { navigate } from '../../ui/router';
 
@@ -358,10 +358,12 @@ export function mountLandingSite(
 
   /**
    * Hand the chosen region to the shell as run state, then navigate to the
-   * next stop. `base` is not built yet, so nextStop resolves to `landing`.
+   * next stop. `landAt` sets the region and applies region-adjusted starting
+   * stores — `withState(run, { regionId })` left the stores at defaults, which
+   * made the landing choice cosmetic (ISS-040).
    */
   function commitLanding(regionId: string): void {
-    const next = run === null ? newRun(regionId) : withState(run, { regionId });
+    const next = run === null ? newRun(regionId) : landAt(run, regionId);
     setRun(next);
 
     const stop = nextStop('landing-site');

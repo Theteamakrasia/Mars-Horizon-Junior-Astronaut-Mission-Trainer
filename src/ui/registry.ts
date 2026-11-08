@@ -12,6 +12,9 @@ import { mountLandingSite } from '../features/landing-site/view';
 import { mountLaunch } from '../features/launch/view';
 import { mountNaming } from '../features/naming/view';
 import { mountSupply } from '../features/supply/view';
+import { mountBase } from '../features/base/view';
+import { mountAct } from '../features/act/view';
+import { mountDebrief } from '../features/debrief/view';
 import type { RunState } from '../sim/run';
 
 import { nextRoute, type Route } from './routes';
@@ -42,6 +45,9 @@ const SCREEN_MOUNTS: Readonly<Partial<Record<Route, string>>> = {
   launch: '#launch',
   interior: '#interior',
   'landing-site': '#landing-site',
+  base: '#base',
+  act: '#act',
+  debrief: '#debrief',
 };
 
 const SCREENS: Readonly<Partial<Record<Route, ScreenFactory>>> = {
@@ -52,9 +58,14 @@ const SCREENS: Readonly<Partial<Record<Route, ScreenFactory>>> = {
   // Registered so the launch hands into the tour instead of the interstitial.
   interior: mountInterior,
   // Registered so the interior hands into the landing-site choice instead of
-  // the interstitial. base is not built yet, so landing-site hands back to
-  // `landing`.
+  // the interstitial.
   'landing-site': mountLandingSite,
+  // The outpost: build modules between sols.
+  base: mountBase,
+  // Advance one sol, then resolve to `debrief`.
+  act: mountAct,
+  // Explain why the run was won or lost.
+  debrief: mountDebrief,
 };
 
 /**
