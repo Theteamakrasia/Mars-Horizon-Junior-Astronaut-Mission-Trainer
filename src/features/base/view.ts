@@ -1,218 +1,223 @@
 /**
- * `base/` view: the outpost overview and build panel.
+ * The base screen: spend a fixed number of build points on modules before the
+ * landing, with a live preview of what the build will do.
  *
- * Owns the DOM only. Build rules live in ./model.ts, which re-exports the
- * `sim/modules.ts` catalogue (D-032). Never imports `act/` or `debrief/`
- * (R-5).
+ * Owns the DOM only. Placement rules and the preview come from ./model, and the
+ * preview runs the real sol step, so it cannot promise what the sim will not
+ * deliver.
  *
- * What the screen shows:
- * - Placed modules as a list under the outpost
- * - Life Support and Resources panel: five stores as percentages
- * - Incoming-weather warning, with an `Estimated` tag (D-033)
- * - Build New Module: buildable modules, each with cost and effect preview
- * - Start sols → `act`
- *
- * Accessibility: every build button is keyboard reachable and announces why it
- * is disabled. No `on*` inline handlers.
- *
- * Styles go in ./base.css, imported here (AGENTS.md R-15).
+ * Space-weather data is fetched here (through `dom/forecastLoader`) so the
+ * forecast warning is on screen before the player commits, which is the README's
+ * first lesson: forecast before you act.
  */
 
-import { applyBuild, newRun, type RunState } from '../../sim/run';
-import { TARGET_SOL } from '../../sim/constants';
-import { eventsForSol } from '../../sim/events';
+import { loadForecast, type LoadedForecast } from '../../dom/forecastLoader';
+import { clear, h } from '../../dom/h';
+import { createForecast } from '../../sim/forecast';
+import { newRun, startOutpost, withState, type RunState } from '../../sim/run';
+import { regionById } from '../../sim/regions';
 import { nextStop } from '../../ui/registry';
 import { navigate } from '../../ui/router';
 
+import '../../styles/game.css';
+import './base.css';
+
 import {
+  BUDGET_NONE,
   BUILDABLE,
+  BUILD_BUDGET,
+  CORE_MODULES,
+  addModule,
   canPlace,
-  formatCost,
-  formatStore,
-  previewOf,
+  extraSlots,
+  pointsLeft,
+  previewFor,
+  removeModule,
+  specOf,
+  upcomingWarnings,
+  upkeepFor,
   type ModuleKind,
 } from './model';
 
-import './base.css';
-
-function require<T extends HTMLElement>(root: HTMLElement, selector: string): T {
-  const element = root.querySelector<T>(selector);
-
-  if (!element) {
-    throw new Error(`base: missing required element ${selector}`);
-  }
-
-  return element;
-}
-
-/**
- * Mount the screen into `root` and return a teardown.
- *
- * `run` is null when opened directly by hash; build still works because
- * `newRun` created one on landing.
- */
 export function mountBase(
-  root: HTMLElement,
+  mount: HTMLElement,
   run: RunState | null,
   setRun: (next: RunState | null) => void,
 ): () => void {
-  let state = run ?? newRun('jezero');
-  setRun(state);
+  const start = run ?? newRun('', 'Astronaut');
+  const regionId = start.regionId;
+  const region = regionById(regionId);
+  let extras: readonly ModuleKind[] = start.modules.length > 0 ? start.modules.slice(CORE_MODULES.length) : [];
+  let loaded: LoadedForecast | null = null;
+  let disposed = false;
+  const controller = new AbortController();
 
-  const storesPanel = require<HTMLElement>(root, '[data-base-stores]');
-  const moduleList = require<HTMLElement>(root, '[data-base-modules]');
-  const buildPanel = require<HTMLElement>(root, '[data-base-build]');
-  const warningPanel = require<HTMLElement>(root, '[data-base-warning]');
-  const startButton = require<HTMLButtonElement>(root, '[data-base-start]');
-  const backButton = require<HTMLButtonElement>(root, '[data-base-back]');
-  const namePanel = require<HTMLElement>(root, '[data-base-name]');
+  mount.classList.add('gx', 'base');
 
-  const cleanups: Array<() => void> = [];
+  const root = h('div', { class: 'base__body' });
 
-  renderAll(state);
+  function warnings(): HTMLElement {
+    const events = upcomingWarnings(loaded?.forecast ?? start.forecast);
+    const list = h('ul', { class: 'base__preview' });
 
-  const onBuildClick = (event: Event): void => {
-    const target = event.target as HTMLElement | null;
-    const button = target?.closest<HTMLElement>('[data-base-build-action]');
-    const kind = button?.dataset.baseBuildAction as ModuleKind | undefined;
-
-    if (!kind) return;
-
-    const built = applyBuild(state, kind);
-    if (!built) {
-      // Disabled buttons prevent the click, but announce anyway.
-      return;
+    for (const event of events) {
+      list.append(
+        h(
+          'li',
+          null,
+          `Sol ${event.sol}: `,
+          event.summary,
+          event.approximate ? ' ' : null,
+          event.approximate ? h('span', { class: 'gx__tag', text: 'approximate' }) : null,
+        ),
+      );
     }
 
-    state = built;
-    setRun(state);
-    renderAll(state);
-  };
+    return h(
+      'section',
+      { class: 'gx__panel' },
+      h('h2', { class: 'gx__h', text: 'Forecast: read ahead' }),
+      list,
+      h('p', { class: 'gx__note', text: loaded === null ? 'Checking NASA space-weather data…' : loaded.detail }),
+    );
+  }
 
-  const onStart = (): void => {
-    const next = nextStop('base');
-    if (next !== null) {
-      navigate(next);
+  function render(focusKey?: string): void {
+    clear(root);
+    const focusable = new Map<string, HTMLElement>();
+
+    const left = h('div', { class: 'base__col' });
+    const right = h('div', { class: 'base__col' });
+
+    // ---- Left: the ground, and what the build will do.
+    const ground = h('div', { class: 'base__ground', role: 'list', 'aria-label': 'Modules on the surface' });
+
+    for (const kind of CORE_MODULES) {
+      const spec = specOf(kind);
+
+      ground.append(
+        h('div', { class: 'base__tile base__tile--core', role: 'listitem' }, h('span', { class: 'base__tile-emoji', text: spec.emoji }), spec.name, h('small', { text: 'comes with the lander' })),
+      );
     }
-  };
 
-  const onBack = (): void => {
-    navigate('landing-site');
-  };
+    for (const kind of extras) {
+      const spec = specOf(kind);
 
-  startButton.addEventListener('click', onStart);
-  backButton.addEventListener('click', onBack);
-  buildPanel.addEventListener('click', onBuildClick);
+      ground.append(h('div', { class: 'base__tile', role: 'listitem' }, h('span', { class: 'base__tile-emoji', text: spec.emoji }), spec.name));
+    }
 
-  cleanups.push(
-    () => startButton.removeEventListener('click', onStart),
-    () => backButton.removeEventListener('click', onBack),
-    () => buildPanel.removeEventListener('click', onBuildClick),
+    const upkeep = upkeepFor(extras, regionId);
+    const preview = h('ul', { class: 'base__preview' });
+
+    for (const line of previewFor(extras, regionId)) {
+      preview.append(h('li', null, h('strong', { class: `gx__tone-${line.tone}`, text: `${line.label}: ` }), line.text));
+    }
+
+    left.append(
+      h('section', { class: 'gx__panel' }, h('h2', { class: 'gx__h', text: 'Your outpost' }), ground),
+      h(
+        'section',
+        { class: 'gx__panel', 'aria-live': 'polite' },
+        h('h2', { class: 'gx__h', text: 'What a normal sol will do' }),
+        preview,
+        h('p', { class: 'gx__note', text: `Panels make ${upkeep.dayGeneration} kWh a day. The outpost uses ${upkeep.dailyDemand} kWh. Batteries cover ${upkeep.nightHoursCovered} of 12 night hours.` }),
+      ),
+      warnings(),
+    );
+
+    // ---- Right: the catalogue.
+    const left_points = pointsLeft(extras);
+    const catalogue = h('section', { class: 'gx__panel' }, h('h2', { class: 'gx__h', text: 'Build new module' }));
+
+    catalogue.append(
+      h(
+        'p',
+        { class: 'base__budget' },
+        h('span', { text: `Build points left: ${left_points} of ${BUILD_BUDGET}` }),
+        h('span', { text: `Room: ${extras.length} of ${extraSlots(regionId)} extra modules` }),
+      ),
+    );
+
+    for (const spec of BUILDABLE) {
+      const have = extras.filter((kind) => kind === spec.kind).length;
+      const placement = canPlace(spec.kind, extras, regionId);
+      const add = h('button', { class: 'gx__btn', type: 'button', 'aria-label': `Add ${spec.name}`, disabled: !placement.ok }, '+');
+      const remove = h('button', { class: 'gx__btn', type: 'button', 'aria-label': `Remove ${spec.name}`, disabled: have === 0 }, '−');
+
+      focusable.set(`add-${spec.kind}`, add);
+      focusable.set(`remove-${spec.kind}`, remove);
+
+      add.addEventListener('click', () => {
+        extras = addModule(extras, spec.kind, regionId);
+        render(`add-${spec.kind}`);
+      });
+      remove.addEventListener('click', () => {
+        extras = removeModule(extras, spec.kind);
+        render(`remove-${spec.kind}`);
+      });
+
+      catalogue.append(
+        h(
+          'div',
+          { class: 'base__card' },
+          h('span', { class: 'base__card-emoji', text: spec.emoji }),
+          h('div', null, h('p', { class: 'base__card-name', text: `${spec.name} · ${spec.cost} pts` }), h('p', { class: 'base__card-line', text: `Gives: ${spec.gives}` }), h('p', { class: 'base__card-line', text: `Costs: ${spec.needs}` })),
+          h('div', { class: 'base__stepper' }, remove, h('span', { class: 'base__count', text: String(have) }), add),
+          !placement.ok && have === 0 ? h('p', { class: 'base__card-why', text: placement.reason }) : null,
+        ),
+      );
+    }
+
+    const launch = h('button', { class: 'gx__btn gx__btn--primary', type: 'button' }, 'Land the outpost: start sol 1');
+
+    launch.addEventListener('click', () => {
+      const forecast = loaded?.forecast ?? start.forecast;
+      const prepared = withState(start, { forecast: forecast.length > 0 ? forecast : createForecast([]) });
+      const landed = startOutpost(prepared, [...CORE_MODULES, ...extras]);
+
+      setRun(landed);
+      navigate(nextStop('base') ?? 'act');
+    });
+
+    right.append(
+      catalogue,
+      h('div', { class: 'base__footer' }, launch, h('span', { class: 'gx__note', text: BUDGET_NONE })),
+    );
+
+    root.append(left, right);
+
+    if (focusKey !== undefined) focusable.get(focusKey)?.focus();
+  }
+
+  mount.replaceChildren(
+    h(
+      'header',
+      { class: 'gx__top' },
+      h(
+        'div',
+        null,
+        h('p', { class: 'gx__kicker', text: 'Step 2 of 3' }),
+        h('h1', { class: 'gx__title', text: 'Build your outpost' }),
+        h('p', { class: 'gx__sub', text: `${region ? region.name : 'Mars'}: everything you add uses power, and you cannot bring everything.` }),
+      ),
+    ),
+    root,
   );
 
+  render();
+
+  void loadForecast(controller.signal).then((result) => {
+    if (disposed) return;
+
+    loaded = result;
+    setRun(withState(start, { forecast: result.forecast }));
+    render();
+  });
+
   return () => {
-    for (const cleanup of cleanups) {
-      cleanup();
-    }
+    disposed = true;
+    controller.abort();
+    mount.classList.remove('gx', 'base');
+    mount.replaceChildren();
   };
-
-  // ---- rendering --------------------------------------------------------
-
-  function renderAll(current: RunState): void {
-    namePanel.textContent =
-      current.astronautName === '' ? 'Astronaut' : current.astronautName;
-    renderStores(current);
-    renderModules(current);
-    renderBuild(current);
-    renderWarning(current);
-  }
-
-  function renderStores(current: RunState): void {
-    const { power, oxygen, water, food, shielding } = current.stores;
-    storesPanel.innerHTML = `
-      <div class="base__store" data-base-store="power"><span class="base__store-label">Power</span><span class="base__store-value">${formatStore(power)}</span></div>
-      <div class="base__store" data-base-store="oxygen"><span class="base__store-label">Oxygen</span><span class="base__store-value">${formatStore(oxygen)}</span></div>
-      <div class="base__store" data-base-store="water"><span class="base__store-label">Water</span><span class="base__store-value">${formatStore(water)}</span></div>
-      <div class="base__store" data-base-store="food"><span class="base__store-label">Food</span><span class="base__store-value">${formatStore(food)}</span></div>
-      <div class="base__store" data-base-store="shielding"><span class="base__store-label">Shielding</span><span class="base__store-value">${formatStore(shielding)}</span></div>
-    `;
-  }
-
-  function renderModules(current: RunState): void {
-    moduleList.innerHTML = current.modules
-      .map(
-        (kind) =>
-          `<li class="base__module" data-base-module="${kind}">${formatKindName(
-            kind,
-          )}</li>`,
-      )
-      .join('');
-  }
-
-  function renderBuild(current: RunState): void {
-    const items = BUILDABLE.map((kind) => {
-      const preview = previewOf(kind, current);
-      const can = canPlace(kind, current);
-      const disabledReason = preview
-        ? !preview.underCap
-          ? 'At build limit'
-          : !preview.affordable
-            ? 'Not enough power'
-            : ''
-        : 'Unknown module';
-
-      return `
-        <div class="base__build-item">
-          <button type="button" class="base__build-button" ${can ? '' : 'disabled'} data-base-build-action="${kind}">
-            ${formatKindName(kind)}
-          </button>
-          <span class="base__build-cost">${preview ? formatCost(preview.buildCost) : '—'}</span>
-          <span class="base__build-preview">${preview ? preview.provides.join(', ') : ''}</span>
-          ${disabledReason ? `<span class="base__build-disabled" aria-hidden="true">${disabledReason}</span>` : ''}
-        </div>
-      `;
-    }).join('');
-
-    buildPanel.innerHTML = `
-      <h3 class="base__build-title">Build New Module</h3>
-      <div class="base__build-list">${items}</div>
-    `;
-  }
-
-  function renderWarning(current: RunState): void {
-    const warning = nextWarning(current.sol);
-
-    if (!warning) {
-      warningPanel.hidden = true;
-      return;
-    }
-
-    warningPanel.hidden = false;
-    warningPanel.innerHTML = `
-      <span class="base__warning-tag">Estimated</span>
-      <span class="base__warning-text">${warning.summary}</span>
-    `;
-  }
-}
-
-/**
- * The next storm warning at or after `sol`.
- *
- * The warning is baked into the schedule a few sols before the storm (D-033),
- * so the outpost can act on it before the storm lands.
- */
-function nextWarning(sol: number) {
-  for (let next = sol + 1; next <= TARGET_SOL; next += 1) {
-    const warning = eventsForSol(next).find((e) => e.kind === 'storm-warning');
-    if (warning) return warning;
-  }
-
-  return undefined;
-}
-
-function formatKindName(kind: ModuleKind): string {
-  return kind
-    .split('-')
-    .map((part: string) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
 }

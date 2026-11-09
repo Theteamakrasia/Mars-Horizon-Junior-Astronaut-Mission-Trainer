@@ -1,234 +1,308 @@
 /**
- * `act/` view: advance one sol, then resolve the outcome.
+ * The act screen: the sol-by-sol simulation.
  *
- * Owns the DOM only. Simulation lives in `src/sim/sol.ts` (advanceSol) and
- * `src/sim/modules.ts` (upkeepFor). Never imports `base/` or `debrief/` (R-5).
+ * Turn-based. The player presses one button to run a sol; the only clock in the
+ * game is the countdown on a crisis, and a "take your time" switch turns that off.
+ * All rules are in `src/sim/`, so this file only draws state and forwards choices.
  *
- * What the screen shows:
- * - Sol counter and a day/night scene (`data-phase`)
- * - **Advance sol** and **Back to base** buttons
- * - The Power Surplus picture built from live numbers:
- *   sun → arrays → +N kW → storing M kW → night drain −K kW
- * - Location Conditions panel from the region scores
- * - Event log for the sol, with `approximate` events tagged (D-033)
- *
- * Behaviour:
- * - Advance calls `advanceSol` and plays the sol transition
- * - On `status !== 'active'`, `setRun`, then navigate to `debrief`
- * - Buttons are disabled during a transition so a double press cannot advance twice
- *
- * Accessibility: keyboard operable, no `on*` inline handlers.
- *
- * Styles go in ./act.css, imported here (AGENTS.md R-15).
+ * Crisis choices (D-029) are a deliberate exception to D-018's "no mid-sol
+ * choices": three forecast events stop the clock and ask. Every option costs
+ * something, and Earth's reply is delayed in proportion to the sol.
  */
 
-import { advanceSol } from '../../sim/sol';
-import { newRun, type RunState } from '../../sim/run';
-import { upkeepFor } from '../../sim/modules';
-import { REGIONS } from '../../sim/regions';
-import {
-  NIGHT_DRAIN_BASE,
-  SOLAR_POWER_PER_SUN_SCORE,
-} from '../../sim/constants';
-import type { SolEvent } from '../../sim/events';
+import { loadForecast } from '../../dom/forecastLoader';
+import { clear, h } from '../../dom/h';
+import { earthAdvice, earthIsInTime, optionOf, pendingCrisis, type Crisis } from '../../sim/crises';
+import { oneWayMinutes, roundTripMinutes } from '../../sim/comms';
+import { withState, type RunState } from '../../sim/run';
+import { siteScore, regionById, SITE_AXES } from '../../sim/regions';
+import { advanceSol, decide, powerPicture, WIN_SOL } from '../../sim/sol';
 import { nextStop } from '../../ui/registry';
 import { navigate } from '../../ui/router';
 
-import { eventsOn, formatSigned } from './model';
-
+import '../../styles/game.css';
 import './act.css';
 
-function require<T extends HTMLElement>(root: HTMLElement, selector: string): T {
-  const element = root.querySelector<T>(selector);
+import { meterRows, missionHeadline, powerSentence, progressPercent, secondsLeft } from './model';
 
-  if (!element) {
-    throw new Error(`act: missing required element ${selector}`);
-  }
+const AXIS_NAMES: Readonly<Record<string, string>> = { water: 'Water', sun: 'Sun', terrain: 'Terrain', dust: 'Dust', temp: 'Warmth' };
 
-  return element;
-}
-
-/** How long the sol transition holds the "resolving" state. */
-const ADVANCE_MS = 700;
-
-/** How long the outcome is held before the debrief takes over. */
-const OUTCOME_MS = 600;
-
-/**
- * Mount the screen into `root` and return a teardown.
- *
- * `run` is null when opened directly by hash; `newRun` creates a default run
- * so the screen still works.
- */
 export function mountAct(
-  root: HTMLElement,
-  run: RunState | null,
+  mount: HTMLElement,
+  initial: RunState | null,
   setRun: (next: RunState | null) => void,
 ): () => void {
-  let state = run ?? newRun('jezero');
-  setRun(state);
-
-  const solCounter = require<HTMLElement>(root, '[data-act-sol]');
-  const phaseLayer = require<HTMLElement>(root, '[data-act-phase]');
-  const advanceButton = require<HTMLButtonElement>(root, '[data-act-advance]');
-  const backButton = require<HTMLButtonElement>(root, '[data-act-back]');
-  const surplusPanel = require<HTMLElement>(root, '[data-act-surplus]');
-  const conditionsPanel = require<HTMLElement>(root, '[data-act-conditions]');
-  const eventLog = require<HTMLElement>(root, '[data-act-events]');
-
-  const cleanups: Array<() => void> = [];
-  const timers = new Set<number>();
-  let resolving = false;
+  let run = initial;
   let disposed = false;
+  let timer: number | null = null;
+  let overlay: HTMLElement | null = null;
+  let loadingForecast = false;
+  let calmMode = false;
+  const controller = new AbortController();
 
-  render(state);
-  renderEvents(eventsOn(state.sol));
+  mount.classList.add('gx', 'act');
 
-  const wait = (ms: number): Promise<void> =>
-    new Promise((resolve) => {
-      const timer = window.setTimeout(() => {
-        timers.delete(timer);
-        resolve();
-      }, ms);
-      timers.add(timer);
-    });
-
-  const onAdvance = async (): Promise<void> => {
-    if (resolving || state.status !== 'active') return;
-
-    resolving = true;
-    advanceButton.disabled = true;
-    backButton.disabled = true;
-    phaseLayer.setAttribute('data-act-phase', 'resolving');
-
-    await wait(ADVANCE_MS);
-    if (disposed) return;
-
-    const result = advanceSol(state);
-    const entry = result.ledger[result.ledger.length - 1];
-
-    state = {
-      ...state,
-      sol: entry.sol,
-      stores: result.stores,
-      status: result.status,
-      ledger: result.ledger,
-    };
-    setRun(state);
-
-    render(state);
-    renderEvents(result.events);
-
-    resolving = false;
-    advanceButton.disabled = false;
-    backButton.disabled = false;
-
-    if (state.status === 'active') return;
-
-    phaseLayer.setAttribute('data-act-phase', state.status);
-    await wait(OUTCOME_MS);
-    if (disposed) return;
-
-    const stop = nextStop('act');
-    if (stop !== null) {
-      navigate(stop);
-    }
-  };
-
-  const onBack = (): void => {
-    navigate('base');
-  };
-
-  advanceButton.addEventListener('click', onAdvance);
-  backButton.addEventListener('click', onBack);
-
-  cleanups.push(
-    () => advanceButton.removeEventListener('click', onAdvance),
-    () => backButton.removeEventListener('click', onBack),
-  );
-
-  return () => {
-    disposed = true;
-    for (const timer of timers) {
-      window.clearTimeout(timer);
-    }
-    timers.clear();
-    for (const cleanup of cleanups) {
-      cleanup();
-    }
-  };
-
-  // ---- rendering --------------------------------------------------------
-
-  function render(current: RunState): void {
-    solCounter.textContent = `Sol ${current.sol}`;
-    phaseLayer.setAttribute(
-      'data-act-phase',
-      current.status === 'active' ? 'day' : current.status,
-    );
-    renderSurplus(current);
-    renderConditions(current);
+  function stopTimer(): void {
+    if (timer !== null) window.clearInterval(timer);
+    timer = null;
   }
 
-  function renderSurplus(current: RunState): void {
-    const region = REGIONS.find((r) => r.id === current.regionId);
-    const { powerDraw, solarArrays } = upkeepFor(current.modules);
-    const sun = region ? region.scores.sun : 3;
-    const generation = solarArrays * sun * SOLAR_POWER_PER_SUN_SCORE;
-    const temp = region ? region.scores.temp : 3;
-    const nightDrain = Math.max(1, NIGHT_DRAIN_BASE - temp);
-    const surplus = generation - powerDraw - nightDrain;
-
-    surplusPanel.innerHTML = `
-      <div class="act__surplus-step">sun ${sun}</div>
-      <div class="act__surplus-step">arrays ${solarArrays}</div>
-      <div class="act__surplus-step generation">${formatSigned(generation)} kW</div>
-      <div class="act__surplus-step draw">${formatSigned(-powerDraw)} kW</div>
-      <div class="act__surplus-step night">${formatSigned(-nightDrain)} kW</div>
-      <div class="act__surplus-step result">
-        storing ${formatSigned(Math.max(0, surplus))} kW
-      </div>
-    `;
+  function closeOverlay(): void {
+    stopTimer();
+    overlay?.remove();
+    overlay = null;
   }
 
-  function renderConditions(current: RunState): void {
-    const region = REGIONS.find((r) => r.id === current.regionId);
-    const scores = region
-      ? region.scores
-      : { water: 3, sun: 3, terrain: 3, dust: 3, temp: 3 };
+  function step(): void {
+    if (run === null) return;
 
-    conditionsPanel.innerHTML = `
-      <div class="act__condition"><span class="act__condition-label">Water</span><span class="act__condition-value">${scores.water} / 5</span></div>
-      <div class="act__condition"><span class="act__condition-label">Sun</span><span class="act__condition-value">${scores.sun} / 5</span></div>
-      <div class="act__condition"><span class="act__condition-label">Terrain</span><span class="act__condition-value">${scores.terrain} / 5</span></div>
-      <div class="act__condition"><span class="act__condition-label">Dust</span><span class="act__condition-value">${scores.dust} / 5</span></div>
-      <div class="act__condition"><span class="act__condition-label">Temp</span><span class="act__condition-value">${scores.temp} / 5</span></div>
-    `;
-  }
+    run = advanceSol(run);
+    setRun(run);
 
-  function renderEvents(events: readonly SolEvent[]): void {
-    if (events.length === 0) {
-      eventLog.innerHTML = '<div class="act__event-none">No events this sol.</div>';
+    if (run.status !== 'active') {
+      navigate(nextStop('act') ?? 'debrief');
+
       return;
     }
 
-    eventLog.innerHTML = events
-      .map(
-        (event) => `
-        <div class="act__event">
-          <span class="act__event-kind">${formatEventKind(event.kind)}</span>
-          <span class="act__event-summary">${event.summary}</span>
-          ${event.approximate ? '<span class="act__event-approx">Estimated</span>' : ''}
-        </div>
-      `,
-      )
-      .join('');
+    render();
   }
 
-  function formatEventKind(kind: string): string {
-    return kind
-      .split('-')
-      .map((part: string) => part.charAt(0).toUpperCase() + part.slice(1))
-      .join(' ');
+  function choose(crisis: Crisis, optionId: string, timedOut: boolean): void {
+    if (run === null) return;
+
+    closeOverlay();
+    run = decide(run, crisis.id, optionId, timedOut);
+    setRun(run);
+    step();
   }
+
+  function openCrisis(crisis: Crisis): void {
+    if (run === null) return;
+
+    const current = run;
+    const sol = current.sol + 1;
+    const inTime = earthIsInTime(current, crisis);
+    const clockBar = h('span');
+    const clockText = h('p', { class: 'gx__note', 'aria-hidden': 'true' });
+    const earthBox = h('div', { class: 'act__earth', 'aria-live': 'polite', hidden: true });
+    const options = h('div', { class: 'act__options' });
+
+    for (const option of crisis.options) {
+      const button = h('button', { class: 'gx__btn act__option', type: 'button', 'data-choice': option.id }, h('strong', { text: option.label }), h('span', { text: option.detail }));
+
+      button.addEventListener('click', () => choose(crisis, option.id, false));
+      options.append(button);
+    }
+
+    const ask = h('button', { class: 'gx__btn gx__btn--ghost', type: 'button' }, 'Ask Mission Control');
+
+    ask.addEventListener('click', () => {
+      earthBox.hidden = false;
+
+      if (!inTime) {
+        earthBox.textContent = `Earth is ${oneWayMinutes(sol)} minutes away each way. A reply would take ${roundTripMinutes(sol)} minutes, and this problem arrives in ${crisis.windowMinutes}. You are on your own: the crew has to decide.`;
+
+        return;
+      }
+
+      const advice = earthAdvice(current, crisis);
+      const label = optionOf(crisis, advice.optionId)?.label ?? advice.optionId;
+
+      earthBox.textContent = `Mission Control, ${roundTripMinutes(sol)} minutes later: ${advice.text} (They suggest: ${label}.)`;
+    });
+
+    const calm = h('input', { type: 'checkbox', id: 'act-calm' });
+
+    calm.checked = calmMode;
+    calm.addEventListener('change', () => {
+      calmMode = calm.checked;
+      if (calmMode) {
+        stopTimer();
+        clockBar.style.width = '100%';
+        clockText.textContent = 'Take your time.';
+      } else {
+        startClock();
+      }
+    });
+
+    function startClock(): void {
+      if (crisis.countdownSeconds === null || calmMode) return;
+
+      const total = crisis.countdownSeconds;
+      const began = performance.now();
+
+      stopTimer();
+      timer = window.setInterval(() => {
+        const elapsed = performance.now() - began;
+
+        clockBar.style.width = `${Math.max(0, 100 - (elapsed / (total * 1000)) * 100)}%`;
+        clockText.textContent = `${secondsLeft(total, elapsed)} seconds left. If the clock runs out, nothing is done.`;
+
+        if (elapsed >= total * 1000) choose(crisis, crisis.defaultOptionId, true);
+      }, 100);
+    }
+
+    overlay = h(
+      'div',
+      { class: 'act__overlay', role: 'dialog', 'aria-modal': 'true', 'aria-label': crisis.title },
+      h(
+        'div',
+        { class: 'act__dialog' },
+        h('p', { class: 'gx__kicker', text: crisis.urgent ? `Sol ${sol}: decide now` : `Sol ${sol}: decide` }),
+        h('h2', { class: 'gx__title', text: crisis.title }),
+        h('p', { text: crisis.prompt }),
+        crisis.urgent ? h('div', { class: 'act__clock' }, clockBar) : null,
+        crisis.urgent ? clockText : null,
+        options,
+        h('div', { class: 'act__go' }, ask, crisis.urgent ? h('label', null, calm, ' Take your time (no countdown)') : null),
+        earthBox,
+      ),
+    );
+
+    mount.append(overlay);
+    overlay.querySelector<HTMLElement>('.act__option')?.focus();
+    startClock();
+  }
+
+  function onRunSol(): void {
+    if (run === null) return;
+
+    const crisis = pendingCrisis(run);
+
+    if (crisis === null) step();
+    else openCrisis(crisis);
+  }
+
+  function notice(text: string, label: string, route: 'landing-site' | 'base'): void {
+    const button = h('button', { class: 'gx__btn gx__btn--primary', type: 'button' }, label);
+
+    button.addEventListener('click', () => navigate(route));
+    mount.replaceChildren(h('header', { class: 'gx__top' }, h('h1', { class: 'gx__title', text: 'Not ready yet' })), h('p', { text }), h('div', null, button));
+  }
+
+  function render(): void {
+    if (run === null || run.regionId === '') {
+      notice('Pick a landing site first.', 'Choose a landing site', 'landing-site');
+
+      return;
+    }
+
+    if (run.modules.length === 0) {
+      notice('Build your outpost before the first sol.', 'Build the outpost', 'base');
+
+      return;
+    }
+
+    const state = run;
+    const mission = missionHeadline(state);
+    const region = regionById(state.regionId);
+    const score = siteScore(state.regionId);
+    const power = powerPicture(state);
+    const last = state.log[state.log.length - 1];
+
+    // ---- Resource meters.
+    const meters = h('section', { class: 'gx__panel', 'aria-label': 'Resources' }, h('h2', { class: 'gx__h', text: 'Resources' }));
+
+    for (const row of meterRows(state)) {
+      meters.append(
+        h(
+          'div',
+          { class: 'gx__meter', 'data-tone': row.tone, role: 'meter', 'aria-label': row.label, 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(row.percent) },
+          h('span', { text: `${row.emoji} ${row.label}` }),
+          h('span', { class: 'gx__meter-bar' }, h('span', { class: 'gx__meter-fill', style: `width:${row.percent}%` })),
+          h('span', { class: 'gx__meter-val', text: `${row.percent}%` }),
+        ),
+      );
+    }
+
+    // ---- The trade-off picture: the README's sun, arrays, battery, night.
+    const picture = h(
+      'section',
+      { class: 'gx__panel' },
+      h('h2', { class: 'gx__h', text: 'Power: day against night' }),
+      h(
+        'div',
+        { class: 'act__picture', 'aria-hidden': 'true' },
+        h('div', null, '☀️', h('strong', { text: `+${power.generatedKw} kW` }), 'panels, daytime'),
+        h('div', null, '🔋', h('strong', { text: `${power.storedKwh}` }), `of ${power.capacityKwh} kWh stored`),
+        h('div', null, '🌙', h('strong', { text: `−${power.nightDrainKw} kW` }), 'drain at night'),
+        h('div', null, '🧑‍🚀', h('strong', { text: `${state.panelHealth < 1 ? Math.round(state.panelHealth * 100) : 100}%` }), 'panel health'),
+      ),
+      h('p', { class: 'gx__note', text: powerSentence(power.generatedKw, power.storedKwh, power.nightDrainKw) }),
+    );
+
+    // ---- Conditions and forecast.
+    const conditions = h(
+      'section',
+      { class: 'gx__panel' },
+      h('h2', { class: 'gx__h', text: `Conditions at ${region?.name ?? 'your site'}` }),
+      h('p', { text: SITE_AXES.map((axis) => `${AXIS_NAMES[axis]} ${score[axis]}/5`).join(' · ') }),
+    );
+
+    const forecastList = h('ul', { class: 'act__list' });
+
+    for (const event of state.forecast.filter((entry) => entry.sol > state.sol)) {
+      forecastList.append(h('li', null, `Sol ${event.sol}: `, event.summary, event.approximate ? ' ' : null, event.approximate ? h('span', { class: 'gx__tag', text: 'approximate' }) : null));
+    }
+
+    const forecast = h('section', { class: 'gx__panel' }, h('h2', { class: 'gx__h', text: 'Forecast' }), forecastList.childElementCount > 0 ? forecastList : h('p', { text: 'Nothing else is coming. Keep the numbers steady.' }));
+
+    // ---- What happened last sol.
+    const happened = h('section', { class: 'gx__panel', 'aria-live': 'polite' }, h('h2', { class: 'gx__h', text: last ? `What happened on sol ${last.sol}` : 'Before the first sol' }));
+
+    if (last === undefined) {
+      happened.append(h('p', { text: 'Your outpost has landed. Read the forecast, then run the first sol.' }));
+    } else {
+      const list = h('ul', { class: 'act__list' });
+
+      for (const event of last.events) list.append(h('li', { text: event.summary }));
+      for (const note of last.notes) list.append(h('li', { text: note }));
+      if (list.childElementCount === 0) list.append(h('li', { text: 'A quiet sol. Everything ran as expected.' }));
+      happened.append(list);
+    }
+
+    const waiting = loadingForecast && state.forecast.length === 0;
+    const go = h('button', { class: 'gx__btn gx__btn--primary', type: 'button', disabled: waiting }, waiting ? 'Reading space weather…' : `Run sol ${state.sol + 1}`);
+
+    go.addEventListener('click', onRunSol);
+
+    clear(mount);
+    mount.append(
+      h(
+        'header',
+        { class: 'gx__top' },
+        h('div', null, h('p', { class: 'gx__kicker', text: `Sol ${state.sol} of ${WIN_SOL}` }), h('h1', { class: 'gx__title', text: mission.title }), h('p', { class: 'gx__sub', text: mission.subtitle })),
+        h('div', { class: 'act__go' }, go),
+      ),
+      h('div', { class: 'act__progress', role: 'progressbar', 'aria-label': 'Mission progress', 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(progressPercent(state)) }, h('span', { style: `width:${progressPercent(state)}%` })),
+      h('div', { class: 'act__body' }, h('div', { class: 'act__col' }, meters, picture, conditions), h('div', { class: 'act__col' }, happened, forecast)),
+    );
+
+    if (overlay !== null) mount.append(overlay);
+  }
+
+  render();
+
+  if (run !== null && run.modules.length > 0 && run.forecast.length === 0) {
+    loadingForecast = true;
+    render();
+
+    void loadForecast(controller.signal).then((result) => {
+      if (disposed || run === null) return;
+
+      loadingForecast = false;
+      run = withState(run, { forecast: result.forecast });
+      setRun(run);
+      render();
+    });
+  }
+
+  return () => {
+    disposed = true;
+    controller.abort();
+    closeOverlay();
+    mount.classList.remove('gx', 'act');
+    mount.replaceChildren();
+  };
 }

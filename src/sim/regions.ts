@@ -81,3 +81,25 @@ export const REGIONS: readonly Region[] = [
 export function totalScore(score: SiteScore): number {
   return score.water + score.sun + score.terrain + score.dust + score.temp;
 }
+
+/**
+ * What an unknown or not-yet-chosen region scores: middling on every axis.
+ *
+ * A deep link with no region chosen gets this rather than throwing, so a screen
+ * reached by URL still plays. It is also the default the sim uses before the
+ * player lands.
+ */
+export const NEUTRAL_SCORE: SiteScore = { water: 3, sun: 3, terrain: 3, dust: 3, temp: 3 };
+
+/** The region with this id, or null. */
+export function regionById(id: string): Region | null {
+  return REGIONS.find((region) => region.id === id) ?? null;
+}
+
+/**
+ * A region's scores. An unknown id (a deep link with no region chosen) gets the
+ * neutral score rather than throwing, so a screen reached by URL still plays.
+ */
+export function siteScore(regionId: string): SiteScore {
+  return regionById(regionId)?.scores ?? NEUTRAL_SCORE;
+}

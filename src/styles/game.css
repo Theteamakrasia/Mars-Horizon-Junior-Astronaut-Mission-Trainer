@@ -1,0 +1,201 @@
+/* ==========================================================================
+   GAME SCREENS — shared look for landing-site, base, act and debrief.
+   Same palette as the naming menu. Feature-specific rules live beside each
+   feature; only what all four share is here. Not imported by the landing page.
+   ========================================================================== */
+
+.gx {
+  --g-bg: #070e12;
+  --g-panel: #131d24;
+  --g-field: #152029;
+  --g-border: #2e3c45;
+  --g-text: #fcfcfc;
+  --g-muted: #a7b6bf;
+  --g-accent: #fa6200;
+  --g-good: #3ddc97;
+  --g-warn: #ffc247;
+  --g-bad: #ff6b6b;
+
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding: clamp(0.75rem, 2vmin, 1.5rem);
+  gap: clamp(0.6rem, 1.6vmin, 1.2rem);
+  background: radial-gradient(ellipse at 20% 0%, #1a2a33 0%, var(--g-bg) 60%);
+  color: var(--g-text);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: clamp(0.9rem, 1.5vmin + 0.3rem, 1.05rem);
+  line-height: 1.45;
+  overflow: auto;
+}
+
+.gx[hidden] {
+  display: none;
+}
+
+.gx *,
+.gx *::before,
+.gx *::after {
+  box-sizing: border-box;
+}
+
+.gx__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.gx__kicker {
+  margin: 0;
+  color: var(--g-accent);
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.gx__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.15rem, 2.8vmin + 0.4rem, 1.9rem);
+  letter-spacing: 0.04em;
+}
+
+.gx__sub {
+  margin: 0.15rem 0 0;
+  color: var(--g-muted);
+}
+
+.gx__panel {
+  background: var(--g-panel);
+  border: 1px solid var(--g-border);
+  border-radius: 0.75rem;
+  padding: clamp(0.7rem, 1.6vmin, 1.1rem);
+  min-width: 0;
+}
+
+.gx__h {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--g-muted);
+}
+
+.gx__btn {
+  appearance: none;
+  border: 1px solid var(--g-border);
+  background: var(--g-field);
+  color: var(--g-text);
+  font: inherit;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  padding: 0.7rem 1.1rem;
+  min-height: 2.75rem;
+  border-radius: 0.6rem;
+  cursor: pointer;
+}
+
+.gx__btn:hover:not(:disabled) {
+  border-color: var(--g-accent);
+}
+
+.gx__btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.gx__btn--primary {
+  background: var(--g-accent);
+  border-color: var(--g-accent);
+  color: #170a00;
+  font-weight: 700;
+}
+
+.gx__btn--ghost {
+  background: transparent;
+}
+
+.gx :focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+}
+
+.gx__meter {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr 3rem;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.35rem 0;
+}
+
+.gx__meter-bar {
+  height: 0.8rem;
+  background: #0b1318;
+  border: 1px solid var(--g-border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.gx__meter-fill {
+  display: block;
+  height: 100%;
+  background: var(--g-good);
+  transition: width 0.4s ease;
+}
+
+.gx__meter[data-tone='low'] .gx__meter-fill {
+  background: var(--g-warn);
+}
+
+.gx__meter[data-tone='critical'] .gx__meter-fill {
+  background: var(--g-bad);
+}
+
+.gx__meter-val {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.gx__note {
+  margin: 0.5rem 0 0;
+  color: var(--g-muted);
+  font-size: 0.85em;
+}
+
+.gx__tag {
+  display: inline-block;
+  padding: 0.05rem 0.5rem;
+  border: 1px solid var(--g-warn);
+  border-radius: 999px;
+  color: var(--g-warn);
+  font-size: 0.75em;
+}
+
+.gx__tone-ok {
+  color: var(--g-good);
+}
+
+.gx__tone-warn {
+  color: var(--g-warn);
+}
+
+.gx__tone-bad {
+  color: var(--g-bad);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gx *,
+  .gx *::before,
+  .gx *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}

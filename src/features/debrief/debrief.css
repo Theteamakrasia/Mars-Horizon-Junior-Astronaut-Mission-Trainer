@@ -1,294 +1,73 @@
-/* `debrief/` — explain why the run was won or lost. */
+/* DEBRIEF — why it ended, and what to try next. Imported by ./view.ts only. */
 
-.debrief {
-  background: #0b1015;
-  color: #f0f0f0;
-  display: flex;
-  flex-direction: column;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  inset: 0;
-  line-height: 1.5;
-  overflow: hidden;
-  position: fixed;
+.debrief__banner {
+  border-left: 5px solid var(--g-accent);
 }
 
-.debrief__header {
-  align-items: center;
-  background: #0b1120;
-  border-bottom: 1px solid #23314a;
-  display: flex;
-  justify-content: space-between;
-  padding: 0.75rem 1rem;
+.debrief__banner[data-status='won'] {
+  border-left-color: var(--g-good);
 }
 
-.debrief__brand {
-  align-items: center;
-  display: flex;
-  gap: 0.5rem;
-}
-
-.debrief__brand-text {
-  font-size: 1.25rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-.debrief__brand-sub {
-  font-size: 0.75rem;
-  opacity: 0.6;
-}
-
-.debrief__nav {
-  color: #c7cfde;
-  font-size: 0.875rem;
-}
-
-.debrief__body {
-  align-items: stretch;
+.debrief__cols {
   display: grid;
-  flex: 1;
-  gap: 1rem;
-  grid-template-columns: 1fr 320px;
-  overflow-y: auto;
-  padding: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  gap: clamp(0.6rem, 1.6vmin, 1.2rem);
 }
 
-.debrief__outcome {
-  background: #0b1120;
-  border: 1px solid #23314a;
-  border-radius: 8px;
-  grid-column: 1 / -1;
-  padding: 1rem;
-}
-
-.debrief__outcome--won {
-  border-color: #2d6a3d;
-}
-
-.debrief__outcome--lost {
-  border-color: #6a3d3d;
-}
-
-.debrief__headline {
-  color: #c7cfde;
-  font-size: 1.5rem;
-  margin: 0 0 0.5rem;
-}
-
-.debrief__outcome--won .debrief__headline {
-  color: #6fbf73;
-}
-
-.debrief__outcome--lost .debrief__headline {
-  color: #e08060;
-}
-
-.debrief__detail {
-  color: #a8b6cc;
-  font-size: 1rem;
-  line-height: 1.5;
-  margin: 0 0 0.75rem;
-}
-
-.debrief__confidence {
-  color: #a8b6cc;
-  font-size: 0.8125rem;
-  opacity: 0.7;
-}
-
-.debrief__timeline {
-  background: #0b1120;
-  border: 1px solid #23314a;
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  grid-column: 1 / -1;
-  padding: 1rem;
-}
-
-.debrief__timeline-empty {
-  color: #a8b6cc;
-  font-size: 0.875rem;
-  opacity: 0.6;
-  padding-top: 0.25rem;
-}
-
-.debrief__section-title {
-  border-bottom: 1px solid #23314a;
-  color: #c7cfde;
-  font-size: 1rem;
-  margin: 0 0 0.5rem;
-  padding-bottom: 0.4rem;
-  text-transform: uppercase;
-}
-
-.debrief__timeline-sol {
-  align-items: center;
-  border-bottom: 1px solid #1d2942;
+.debrief__stats {
   display: grid;
-  gap: 0.5rem 0.75rem;
-  grid-template-columns: 52px 1fr;
-  font-size: 0.875rem;
-  padding: 0.5rem 0;
-}
-
-.debrief__timeline-sol:last-child {
-  border-bottom: none;
-}
-
-.debrief__timeline-sol-label {
-  color: #6a9eff;
-  font-variant-numeric: tabular-nums;
-}
-
-.debrief__bars {
-  display: flex;
-  gap: 4px;
-}
-
-.debrief__bar {
-  background: #1d2942;
-  border-radius: 2px;
-  flex: 1;
-  height: 10px;
-  overflow: hidden;
-}
-
-.debrief__bar-fill {
-  background: #6a9eff;
-  display: block;
-  height: 100%;
-  width: calc(var(--value, 0) * 1%);
-}
-
-.debrief__bar--power .debrief__bar-fill {
-  background: #f2c14e;
-}
-
-.debrief__bar--oxygen .debrief__bar-fill {
-  background: #6ad0ff;
-}
-
-.debrief__bar--water .debrief__bar-fill {
-  background: #5a8dff;
-}
-
-.debrief__bar--food .debrief__bar-fill {
-  background: #6fbf73;
-}
-
-.debrief__bar--shielding .debrief__bar-fill {
-  background: #c78aff;
-}
-
-.debrief__timeline-sol-values {
-  color: #a8b6cc;
-  font-size: 0.75rem;
-  font-variant-numeric: tabular-nums;
-  grid-column: 2;
-}
-
-.debrief__note {
-  color: #a8b6cc;
-  font-size: 0.75rem;
-  margin: 0.6rem 0 0;
-  opacity: 0.7;
-}
-
-.debrief__summary {
-  background: #0b1120;
-  border: 1px solid #23314a;
-  border-radius: 8px;
-  color: #c7cfde;
-  padding: 1rem;
-}
-
-.debrief__summary-row {
-  align-items: center;
-  border-bottom: 1px solid #23314a;
-  display: flex;
-  justify-content: space-between;
-  padding: 0.4rem 0;
-}
-
-.debrief__summary-row:last-child {
-  border-bottom: none;
-}
-
-.debrief__summary-label {
-  font-size: 0.875rem;
-}
-
-.debrief__summary-value {
-  color: #6a9eff;
-  font-variant-numeric: tabular-nums;
-}
-
-.debrief__lesson {
-  background: #0b1120;
-  border: 1px solid #23314a;
-  border-radius: 8px;
-  color: #c7cfde;
-  padding: 1rem;
-}
-
-.debrief__lesson-cause {
-  color: #c7cfde;
-  font-size: 1.125rem;
-  font-weight: 600;
-  margin: 0 0 0.5rem;
-}
-
-.debrief__lesson-detail {
-  color: #a8b6cc;
-  font-size: 0.9375rem;
-  line-height: 1.5;
-  margin: 0 0 0.75rem;
-}
-
-.debrief__lesson-modules {
-  color: #a8b6cc;
-  font-size: 0.8125rem;
-  opacity: 0.7;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 1rem;
   margin: 0;
 }
 
-.debrief__actions {
-  align-items: center;
-  background: #0b1120;
-  border-top: 1px solid #23314a;
-  color: #c7cfde;
-  display: flex;
-  gap: 0.75rem;
-  justify-content: space-between;
-  padding: 0.75rem 1rem;
+.debrief__stats dt {
+  color: var(--g-muted);
 }
 
-.debrief__button {
-  background: #6a9eff;
-  border: none;
-  border-radius: 6px;
-  color: #041020;
-  cursor: pointer;
-  font: inherit;
-  font-weight: 600;
-  padding: 0.5rem 1rem;
+.debrief__stats dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.debrief__review {
+  margin: 0 0 0.9rem;
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid var(--g-border);
+}
+
+.debrief__review:last-child {
+  border-bottom: 0;
+}
+
+.debrief__verdict {
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
-.debrief__button--back {
-  background: transparent;
-  border: 1px solid #23314a;
-  color: inherit;
+.debrief__table-wrap {
+  overflow-x: auto;
 }
 
-.debrief__button:hover:not(:disabled) {
-  opacity: 0.9;
+.debrief__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
 }
 
-.debrief__button:focus-visible {
-  outline: 2px solid #6a9eff;
-  outline-offset: 2px;
+.debrief__table th,
+.debrief__table td {
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid var(--g-border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.debrief__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
 }

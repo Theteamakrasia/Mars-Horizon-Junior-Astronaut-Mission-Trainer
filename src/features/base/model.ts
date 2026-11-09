@@ -1,92 +1,204 @@
 /**
- * `base/` model: outpost build logic and presentation helpers.
+ * Pure rules for the base screen: what can be built, what it costs, and what a
+ * set of modules adds up to.
  *
- * Pure: reads `sim/modules.ts` and `sim/run.ts` only. Never imports `act/` or
- * `debrief/` — R-5 keeps features independent, and state travels through
- * `RunState`.
- *
- * This is a thin wrapper around `sim/modules.ts`: the catalogue, costs and
- * caps live there (D-032). Everything here is for presenting the catalogue to
- * the player in the build panel.
+ * The catalogue and every tuning number live in `sim/modules.ts` so the sol step
+ * and this screen can never disagree. Terrain reaches here as a region id on the
+ * run, never by importing landing-site (R-5).
  */
 
-import type { ResourceStores } from '../../sim/resources';
-import { REGIONS } from '../../sim/regions';
 import {
-  adjustedBuildCost,
-  buildPreview,
-  canBuild,
+  BUILD_BUDGET,
+  CORE_MODULES,
   MODULE_CATALOGUE,
-  STARTING_MODULES,
+  NIGHT_HOURS,
+  SUN_HOURS,
+  countOf,
+  extraModuleCount,
+  extraSlots,
+  extrasOf,
+  pointsSpent,
+  specOf,
+  systemsFor,
   type ModuleKind,
-  upkeepFor,
+  type ModuleSpec,
 } from '../../sim/modules';
-import type { RunState } from '../../sim/run';
+import { createForecast, type ForecastEvent } from '../../sim/forecast';
+import { newRun, startOutpost } from '../../sim/run';
+import { projectSol } from '../../sim/sol';
+import { siteScore } from '../../sim/regions';
+
+export { BUILD_BUDGET, CORE_MODULES, MODULE_CATALOGUE, extraSlots, pointsSpent, specOf };
+export type { ModuleKind, ModuleSpec };
+
+/** Reminder shown beside the launch button: building nothing extra is allowed, and teaches something. */
+export const BUDGET_NONE = 'You can land with nothing extra. It is allowed, and you will see why it is hard.';
+
+/** Modules a player can add, in catalogue order: everything that is not a core module. */
+export const BUILDABLE: readonly ModuleSpec[] = MODULE_CATALOGUE.filter((spec) => spec.cost > 0);
+
+export interface Placement {
+  readonly ok: boolean;
+  /** Why not, in a sentence for a child. Empty when it can be built. */
+  readonly reason: string;
+}
+
+/** Everything on the surface for a chosen set of extras. */
+export function allModules(extras: readonly ModuleKind[]): readonly ModuleKind[] {
+  return [...CORE_MODULES, ...extras];
+}
+
+/** Build points still free. */
+export function pointsLeft(extras: readonly ModuleKind[]): number {
+  return BUILD_BUDGET - pointsSpent(allModules(extras));
+}
 
 /**
- * The starting modules as `ModuleKind` — kept here so the build panel can list
- * what is already on the outpost without importing the catalogue directly.
- */
-export const STARTING_PLACED: readonly ModuleKind[] = STARTING_MODULES;
-
-/** All buildable (non-starting) modules, in catalogue order. */
-export const BUILDABLE: readonly ModuleKind[] = MODULE_CATALOGUE.filter(
-  (spec) => !spec.startsBuilt,
-).map((spec) => spec.kind);
-
-/**
- * Whether the player can place one more copy of `kind` right now.
+ * Can one more of this module go here?
  *
- * Delegates to `sim/modules.ts` `canBuild`, defaulting to neutral terrain (3)
- * when the region is unknown. The view passes the region's terrain from
- * `RunState.regionId`.
+ * Checked in the order a child would hit the limits: the site's rules first
+ * (ice, ground), then room, then the budget. The reason names the one that
+ * actually stopped it.
  */
-export function canPlace(kind: ModuleKind, run: RunState): boolean {
-  const region = run.regionId === '' ? 3 : regionTerrain(run.regionId);
-  return canBuild(kind, run.modules, run.stores, region);
+export function canPlace(kind: ModuleKind, extras: readonly ModuleKind[], regionId: string): Placement {
+  const spec = specOf(kind);
+  const score = siteScore(regionId);
+  const modules = allModules(extras);
+
+  if (spec.requires !== undefined && score[spec.requires.axis] < spec.requires.min) {
+    return { ok: false, reason: spec.requires.why };
+  }
+
+  if (countOf(modules, kind) >= spec.maxCount) {
+    return { ok: false, reason: `You already have the most ${spec.name} units allowed.` };
+  }
+
+  if (extraModuleCount(modules) >= extraSlots(regionId)) {
+    return { ok: false, reason: 'There is no room left on this ground. Flatter sites have more room.' };
+  }
+
+  if (spec.cost > pointsLeft(extras)) {
+    return { ok: false, reason: `Not enough build points. It costs ${spec.cost} and you have ${pointsLeft(extras)}.` };
+  }
+
+  return { ok: true, reason: '' };
 }
 
-/** Build cost after terrain adjustment, for the cost display. */
-export function costOf(kind: ModuleKind, run: RunState): number {
-  return adjustedBuildCost(kind, regionTerrain(run.regionId));
+/** Add a module if allowed; otherwise return the list unchanged. */
+export function addModule(extras: readonly ModuleKind[], kind: ModuleKind, regionId: string): readonly ModuleKind[] {
+  return canPlace(kind, extras, regionId).ok ? [...extras, kind] : extras;
 }
 
-/** Total power draw and number of solar arrays across placed modules. */
-export function upkeep(run: RunState): {
+/** Remove one module of this kind, if there is one. Core modules are not in `extras`. */
+export function removeModule(extras: readonly ModuleKind[], kind: ModuleKind): readonly ModuleKind[] {
+  const index = extras.lastIndexOf(kind);
+
+  if (index < 0) return extras;
+
+  return [...extras.slice(0, index), ...extras.slice(index + 1)];
+}
+
+export interface Upkeep {
+  /** Constant draw of everything built, in kW. */
   readonly powerDraw: number;
-  readonly solarArrays: number;
-} {
-  return upkeepFor(run.modules);
+  /** kWh the panels make on a clear day. */
+  readonly dayGeneration: number;
+  /** kWh the outpost needs per sol, day and night. */
+  readonly dailyDemand: number;
+  /** kWh needed to get through the night. */
+  readonly nightNeed: number;
+  readonly batteryKwh: number;
+  /** Hours of night the batteries can cover on their own, out of 12. */
+  readonly nightHoursCovered: number;
 }
 
-/** Modules the player cannot place because they are at cap or unaffordable. */
-export function blockedKinds(run: RunState): readonly ModuleKind[] {
-  return BUILDABLE.filter((kind) => !canPlace(kind, run));
+/** Total power draw and storage for a set of extras at a site. */
+export function upkeepFor(extras: readonly ModuleKind[], regionId: string): Upkeep {
+  const systems = systemsFor(allModules(extras), regionId);
+  const net = systems.loadKw - systems.nuclearKw;
+  const nightNeed = Math.max(0, net) * NIGHT_HOURS;
+
+  return {
+    powerDraw: Math.round(systems.loadKw * 10) / 10,
+    dayGeneration: Math.round(systems.solarKw * systems.sunFactor * SUN_HOURS),
+    dailyDemand: Math.round(systems.loadKw * (SUN_HOURS + NIGHT_HOURS)),
+    nightNeed: Math.round(nightNeed),
+    batteryKwh: systems.batteryKwh,
+    nightHoursCovered: net <= 0 ? NIGHT_HOURS : Math.min(NIGHT_HOURS, Math.round((systems.batteryKwh / net) * 10) / 10),
+  };
 }
 
-/** Preview of a build: cost, what it gives, and why it might be disabled. */
-export function previewOf(kind: ModuleKind, run: RunState) {
-  return buildPreview(kind, run.modules, run.stores, regionTerrain(run.regionId));
+/** A line of the preview: what a calm sol will do. */
+export interface PreviewLine {
+  readonly label: string;
+  readonly text: string;
+  readonly tone: 'ok' | 'warn' | 'bad';
 }
 
 /**
- * Format a store value for the resource panel: whole percent, no decimals.
+ * What would happen on a calm sol with this build, in sentences.
+ *
+ * Uses the real sol step rather than a separate estimate, so the preview cannot
+ * disagree with what the player is about to live through.
  */
-export function formatStore(value: number): string {
-  return `${Math.round(value)}%`;
+export function previewFor(extras: readonly ModuleKind[], regionId: string): readonly PreviewLine[] {
+  const run = startOutpost(newRun(regionId, ''), allModules(extras));
+  const calm = projectSol(run);
+  const lines: PreviewLine[] = [];
+  const upkeep = upkeepFor(extras, regionId);
+
+  if (calm.blackout > 0 || upkeep.dayGeneration < upkeep.dailyDemand) {
+    lines.push({
+      label: 'Power',
+      text: `The panels make ${upkeep.dayGeneration} kWh a day but the outpost needs ${upkeep.dailyDemand}. The batteries will run flat and life support will slow down.`,
+      tone: 'bad',
+    });
+  } else if (upkeep.nightHoursCovered < NIGHT_HOURS) {
+    lines.push({
+      label: 'Power',
+      text: `The batteries only cover ${upkeep.nightHoursCovered} of the 12 night hours. Add storage or a power source that works in the dark.`,
+      tone: 'warn',
+    });
+  } else {
+    lines.push({ label: 'Power', text: 'The panels and batteries carry you through a whole night.', tone: 'ok' });
+  }
+
+  const daysUntilEmpty = (store: number, change: number): number => (change < 0 ? Math.floor(store / -change) : Number.POSITIVE_INFINITY);
+
+  const foodDays = daysUntilEmpty(run.stores.food, calm.net.food);
+  const waterDays = daysUntilEmpty(run.stores.water, calm.net.water);
+
+  lines.push(
+    foodDays === Number.POSITIVE_INFINITY
+      ? { label: 'Food', text: 'You grow as much as the crew eats.', tone: 'ok' }
+      : { label: 'Food', text: `Food runs out in about ${foodDays} sols. Only a greenhouse makes more.`, tone: foodDays < 12 ? 'bad' : 'warn' },
+  );
+
+  lines.push(
+    waterDays === Number.POSITIVE_INFINITY
+      ? { label: 'Water', text: 'Water is topped up as fast as it is used.', tone: 'ok' }
+      : { label: 'Water', text: `Water runs out in about ${waterDays} sols unless something brings more.`, tone: waterDays < 12 ? 'warn' : 'ok' },
+  );
+
+  lines.push({
+    label: 'Shielding',
+    text: `Starts at ${Math.round(run.stores.shielding)} out of 100 and wears down a little every sol.`,
+    tone: run.stores.shielding < 40 ? 'warn' : 'ok',
+  });
+
+  return lines;
 }
 
-/**
- * Format a build cost as a whole power figure, e.g. "15 power".
- */
-export function formatCost(value: number): string {
-  return `${value} power`;
+/** The earliest forecast events, for the "read ahead" warning the README asks for. */
+export function upcomingWarnings(forecast: readonly ForecastEvent[], count = 3): readonly ForecastEvent[] {
+  const source = forecast.length > 0 ? forecast : createForecast([]);
+
+  return [...source].sort((a, b) => a.sol - b.sol).slice(0, count);
 }
 
-/** Terrain score for the run's region, or neutral 3 when unknown. */
-function regionTerrain(regionId: string): number {
-  return REGIONS.find((r) => r.id === regionId)?.scores.terrain ?? 3;
-}
+/** The extras a build has, grouped for the placed-modules display. */
+export function groupedExtras(extras: readonly ModuleKind[]): readonly { readonly kind: ModuleKind; readonly count: number }[] {
+  const kinds = [...new Set(extrasOf(allModules(extras)))];
 
-export type { ResourceStores };
-export type { ModuleKind };
+  return kinds.map((kind) => ({ kind, count: countOf(extras, kind) }));
+}
