@@ -11,6 +11,8 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
+| ISS-043 | Space weather had one live source, so a DONKI outage silently replaced every run's flares with baked history | high | agent | fixed | this branch |
+| ISS-042 | `AGENTS.md`, `src/data/README.md` and `architecture.md` describe `data/` as a stub and `sim/events.ts` as real | medium | agent | fixed | this branch |
 | ISS-040 | `landing-site` commits the region but never sets region-dependent starting stores | medium | agent | fixed | this branch |
 | ISS-041 | Launch parts tour controls are clipped off-screen, so the journey cannot pass `launch` | high | agent | fixed | this branch |
 | ISS-039 | Landing-site axis scores render no dots, so the panel shows no scores | medium | agent | fixed | this branch |
@@ -36,8 +38,8 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | ISS-019 | Cinematics mix three visual styles | low | unassigned | open | — |
 | ISS-020 | NASA insignia appears on children's suits and props | low | unassigned | open | — |
 | ISS-001 | README claims no installable build exists | high | unassigned | open | — |
-| ISS-006 | `.gitignore` omits `.env*`, leaking API keys | high | unassigned | open | — |
-| ISS-008 | DONKI CORS and reachability unverified | high | unassigned | blocked | needs a browser check |
+| ISS-006 | `.gitignore` omits `.env*`, leaking API keys | high | agent | fixed | this branch |
+| ISS-008 | DONKI CORS and reachability unverified | high | agent | fixed | this branch |
 | ISS-002 | Starfield layers drift out and never refill | medium | unassigned | open | — |
 | ISS-005 | Mixed CRLF/LF line endings, no `.gitattributes` | medium | unassigned | open | — |
 | ISS-007 | Google Fonts CDN defeats the offline `dist/` goal | medium | unassigned | open | — |
@@ -50,6 +52,44 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | ISS-012 | No CI; nothing runs checks on push | low | agent | fixed | adc5767 |
 | ISS-013 | Vitest runs node-env, no jsdom, so DOM is untestable | low | unassigned | open | — |
 | ISS-014 | `base.css` calls the page non-interactive while draggable | low | unassigned | open | — |
+
+---
+
+## ISS-043 — Space weather had one live source, so a DONKI outage silently replaced every run's flares with baked history
+
+- **Reported by:** agent, 2026-11-09, while verifying the live NASA flare path.
+- **Where:** `src/data/spaceweather.ts`, `src/dom/forecastLoader.ts`.
+- **Problem:** the client had one live source (DONKI through `api.nasa.gov`). During
+  verification DONKI returned `503 upstream connect error`, then `429 OVER_RATE_LIMIT` for
+  the shared `DEMO_KEY`, so every run silently used two baked flares marked approximate.
+  The screen still presented a "live" forecast; only the `approximate` tag gave it away.
+- **Cause:** D-005/D-006 chose one source and one fallback. No second live source existed,
+  so a service outage removed the feature rather than degrading it.
+- **Fix:** add NOAA SWPC's GOES X-ray flare feed as a second live source, tried after NASA
+  DONKI and before the baked history (D-037). `SpaceWeatherSource` gains `'noaa'`, and the
+  detail sentence names the source that answered. Nine new tests cover the chain and the
+  NOAA wire format; `spaceweather.test.ts` is 26 tests. An aborted request is also no longer
+  cached, so a screen closed mid-fetch cannot poison the next screen's forecast.
+- **Pre-existing:** yes; the gap dates from commit `e67cac6`.
+
+---
+
+## ISS-042 — Docs describe `data/` as a stub and `sim/events.ts` as real, but neither is true
+
+- **Reported by:** agent, 2026-11-09, while hooking up the live data.
+- **Where:** `AGENTS.md` §1/§3/§8, `src/data/README.md`, `docs/architecture.md`.
+- **Problem:** the docs said `data/spaceweather.ts` was a stub that throws, that the project
+  made "zero network calls", that the space-weather schedule lived in `sim/events.ts`, and
+  that tuning numbers lived in `sim/constants.ts`. `sim/events.ts`, `sim/constants.ts` and
+  `sim/balance.test.ts` do not exist. The client is implemented, wired into `base` and
+  `act`, and the forecast lives in `sim/forecast.ts`. `src/data/README.md` also said
+  "BLOCKED: do not write the DONKI client yet".
+- **Cause:** `e67cac6` added the forecast, crisis and comms systems without the doc-matrix
+  pass; later doc edits copied the old tree forward.
+- **Fix:** rewrite the data sections, file tree and module contracts to match the code;
+  point `AGENTS.md` §8 at `forecast.ts`, `crises.ts`, `comms.ts` and `dom/forecastLoader.ts`;
+  correct the test count (`393`) and R-13.
+- **Pre-existing:** yes.
 
 ---
 
@@ -566,11 +606,12 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
   irreversible disclosure once pushed — git history keeps it even if the file is later
   removed. It is a shared-key revocation problem for DEMO_KEY and a personal-key
   problem for a registered key.
-- **Fix:** add `.env` and `.env*.local` to `.gitignore`, and ship `.env.example`
-  listing `VITE_NASA_API_KEY=` with no value. **Not done in this pass** (D-009) — flag it
-  as the first thing to do before anyone writes `src/data/`.
-- **Note on severity:** latent today, not live. No key exists in the repo yet. It becomes
-  live the moment someone creates `.env.local` and commits without this rule.
+- **Fix:** `.gitignore` now ignores `.env` and `.env.*`, with `!.env.example` as the one
+  documented exception; `.env.example` lists `VITE_NASA_API_KEY=` with no value. Checked
+  with `git check-ignore`: a planted `.env` and `.env.local` are ignored, `.env.example`
+  is not. Fixed on this branch.
+- **Note on severity:** latent today, not live. No key exists in the repo, and the key is
+  optional — the game runs on `DEMO_KEY`, then NOAA, then baked history.
 
 ## ISS-008 — DONKI CORS and reachability unverified
 
@@ -590,11 +631,14 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 - **Risk:** if DONKI sends no CORS header, a direct browser fetch fails at runtime. The
   demo would show dead space weather in front of judges on Nov 14 with no error the team
   anticipated.
-- **Fix:** unblocked. Open `https://ccmc.gsfc.nasa.gov/donkinisearch/search?...` in a real
-  browser with devtools open and read the response headers. Record the result here. If
-  there is no ACAO header, D-005 must be revisited in favour of a proxy (D-005's
-  rejected alternative) or baked-in data. **Do not build the data layer before this is
-  answered.**
+- **Result (2026-11-09):** verified from a real browser. `api.nasa.gov/DONKI/FLR` sends
+  `Access-Control-Allow-Origin: *` and `content-type: application/json`, so a direct
+  browser call is allowed. The DONKI service behind it was returning `503 upstream connect
+  error ... connection timeout`, and repeated calls returned `429 OVER_RATE_LIMIT` for
+  `DEMO_KEY`. CORS is answered; **availability** is the remaining problem (ISS-009,
+  ISS-043).
+- **Fix:** the client calls `api.nasa.gov/DONKI/FLR` rather than `ccmc.gsfc.nasa.gov`, and
+  NOAA SWPC is the second live source when DONKI is down (D-037). Status: fixed.
 
 ## ISS-002 — Starfield layers drift out and never refill
 
@@ -669,9 +713,15 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 - **Cause:** nobody has registered a personal key at `api.nasa.gov`.
 - **Risk:** a shared key can be throttled or revoked at any time, including during the
   Nov 14-15 demo. Six developers hitting it during testing compounds the problem.
-- **Fix:** register a personal key before Nov 8 feature freeze and put it in
-  `.env.local` (see ISS-006). Ship baked-in fallback data so a throttled key degrades to
-  static numbers rather than an empty screen.
+- **Fix:** register a personal key before the demo and put it in `.env.local` (see
+  ISS-006, and `.env.example` for the name). Live data no longer depends on it: NOAA SWPC
+  is a second source (ISS-043, D-037).
+- **Measured (2026-11-09):** `api.nasa.gov/DONKI/FLR` returned `429 OVER_RATE_LIMIT` for
+  `DEMO_KEY` after a handful of calls. The limit is real and reachable in one testing
+  session, so the mitigation below is not theoretical.
+- **Mitigation (2026-11-09):** when the shared key is throttled the client falls through to
+  NOAA SWPC, so the run still gets live flares — just from the other agency. Status stays
+  open because a personal key is still the only way to guarantee NASA-sourced numbers.
 
 ## ISS-011 — All three DOM modules have zero test coverage
 

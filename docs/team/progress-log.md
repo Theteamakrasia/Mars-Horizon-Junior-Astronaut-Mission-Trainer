@@ -8,6 +8,56 @@ than a documented one.
 
 ---
 
+## 2026-11-09 — Hook live space weather up to a second source (ISS-043, D-037)
+
+**Did**
+
+- Verified the existing client is really live: a headless browser on `#/base` sends
+  `GET https://api.nasa.gov/DONKI/FLR?...&api_key=DEMO_KEY`, and NASA answered `503
+  upstream connect error`, then `429 OVER_RATE_LIMIT`. The run fell back to two baked
+  flares, so the "live forecast" was history.
+- Added NOAA SWPC's GOES X-ray feed as the second live source, after NASA and before the
+  baked fallback. `SpaceWeatherSource` is now `'donki' | 'noaa' | 'fallback'`, and the
+  detail sentence names the agency that answered.
+- Stopped caching a request the caller aborted, so a screen closed mid-fetch cannot leave
+  the next screen with a stale fallback.
+- Re-verified in headless Chrome: `#/base` now shows an M3.5 flare "seen on 5 November
+  2026" with the note "Live flares from NOAA's space-weather centre, last 7 days" and no
+  `approximate` tag.
+- Closed ISS-006 (`.env*` ignored, `.env.example` added), ISS-008 (CORS verified; the
+  remaining problem is service availability, not CORS) and corrected the stale docs
+  (ISS-042).
+
+**Files**
+
+- `src/data/spaceweather.ts`, `src/data/spaceweather.test.ts`, `src/data/README.md`
+- `src/dom/forecastLoader.ts`, `src/sim/forecast.ts`, `src/features/base/view.ts`
+- `.gitignore`, `.env.example`
+- `AGENTS.md`, `docs/architecture.md`
+- `docs/team/{issues,decisions,tasks,progress-log}.md`
+
+**Problems**
+
+- DONKI is not usable right now from this network: 503 on the first calls, then 429 for
+  `DEMO_KEY`. That is why the change is two sources rather than a NASA-only fix; the NASA
+  path is still first in the chain.
+- The live NOAA feed often tops out at M-class, so flare intensity is usually 2, not the 3
+  the baked X-class fallback produced. That is the honest number, but balance will feel
+  gentler on a quiet week.
+- The summary used to say "like the one NASA recorded", which would have been a lie when
+  NOAA answered. Reworded to "about the strength of one seen on …".
+- `AGENTS.md` and `architecture.md` had drifted further than the data layer: they referenced
+  `sim/events.ts`, `sim/constants.ts` and `sim/balance.test.ts`, none of which exist. Fixed
+  the parts touched here; the wider tree audit is still ISS-024.
+
+**Next**
+
+- Obtain a personal `VITE_NASA_API_KEY` before the demo so DONKI is the usual source
+  (ISS-009).
+- Human browser pass of `base` → `act` → `debrief` with live data (TASK-049).
+
+---
+
 ## 2026-11-09 — Fix the launch parts tour clipping its controls (ISS-041)
 
 **Did**

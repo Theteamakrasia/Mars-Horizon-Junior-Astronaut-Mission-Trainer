@@ -24,9 +24,11 @@ the outpost (build modules, read the storm warning), `act` advances one sol per 
 `debrief` explains a win or loss from the per-sol ledger. The polished landing page still
 works behind it and is what BACK TO MAIN MENU returns to.
 
-What is still a **stub**: `data/spaceweather.ts` (blocked on ISS-008). There is **no save**
-and **no network call** — the run lives in memory only, and the space-weather schedule is
-baked in and labelled approximate (D-033).
+What is still a **stub**: nothing in the journey. `data/spaceweather.ts` is implemented and
+live: it reads solar flares from NASA DONKI, falls through to NOAA SWPC when DONKI is
+unreachable or throttled, and finally to famous past flares marked `approximate`. There is
+**no save** — the run lives in memory only — and the forecast's *timing* is baked
+(`sim/forecast.ts`), so only the flare *size* comes from the network (D-033, D-037).
 
 **A stub is not an implementation.** If a file says STUB, calling it throws. That is
 deliberate: it fails loudly instead of silently returning `undefined`.
@@ -51,7 +53,7 @@ human upholds it and nothing catches you.
 | R-10 | No `on*="..."` inline handlers in markup | **enforced** | `no-inline-handler` |
 | R-11 | A relative import that resolves to nothing is an error | **enforced** | `unresolved-import` |
 | R-12 | Typecheck clean; `strict`, `noUnusedLocals` | **enforced** | `npm run check` |
-| R-13 | Tests pass (410 today) | **enforced** | `npm test`, watch ISS-015 |
+| R-13 | Tests pass (393 today) | **enforced** | `npm test`, watch ISS-015 |
 | R-14 | No `index.ts` barrel files — import concrete paths | convention | nothing |
 | R-15 | Feature CSS is imported by its own `view.ts`, never added to `style.css` | convention | nothing |
 | R-16 | Files are UTF-8, LF, no BOM. Preserve a file's existing endings | convention | **nothing** — ISS-005 |
@@ -86,9 +88,12 @@ startRouter → location.hash → parseRoute (pure) → onRoute
 The menu's rotation is **CSS keyframes**, not JS — no `requestAnimationFrame`, so no
 loop to leak when you navigate away.
 
-**Zero network calls, zero storage.** The whole run — name, region, stores, modules and
-the per-sol ledger — lives in `main.ts` memory only and is lost on refresh. Space weather
-comes from the baked schedule in `sim/events.ts` (D-033), not a live feed.
+**No save, and one live network path.** The whole run — name, region, stores, modules and
+the per-sol ledger — lives in `main.ts` memory only and is lost on refresh. The only
+request outside the landing page is space weather: `base` and `act` call
+`dom/forecastLoader` → `data/spaceweather.ts`, which tries NASA DONKI, then NOAA SWPC,
+then famous past flares marked approximate. The event *schedule* is still baked in
+`sim/forecast.ts` (D-033); only the flare size is live.
 
 ## 4. Boot order
 
@@ -173,9 +178,10 @@ opening its folder — that is the whole point of the layout.
 | Advancing a sol, resolving events, detecting loss | `src/sim/sol.ts` — complete, 12 tests |
 | Run state shape and progression | `src/sim/run.ts` — complete, 19 tests |
 | Module catalogue, build costs, upkeep | `src/sim/modules.ts` — complete, 25 tests |
-| The baked event schedule | `src/sim/events.ts` — complete, 16 tests |
-| Every tuning number | `src/sim/constants.ts` — edit here to retune |
-| Balance acceptance rules | `src/sim/balance.test.ts` — 9 tests |
+| The forecast, its fixed sols, flare intensity | `src/sim/forecast.ts` |
+| Crisis choices and what each one costs | `src/sim/crises.ts` |
+| Earth-Mars delay, "can Earth answer in time" | `src/sim/comms.ts` |
+| Every tuning number | `src/sim/modules.ts` — edit here to retune |
 | The rAF loop, transforms, resize, reduced motion | `src/dom/floatAstronaut.ts` |
 | Pointer grab, throw velocity, pointer capture | `src/dom/pointerGrab.ts` |
 | Star generation and twinkle randomness | `src/dom/starfield.ts` |
@@ -199,7 +205,8 @@ opening its folder — that is the whole point of the layout.
 | Build output, asset handling, offline base | `vite.config.ts` |
 | Strictness, module resolution, compiled files | `tsconfig.json` |
 | Layer rules, banned APIs, the `KNOWN` set | `scripts/check-imports.mjs` |
-| **Any NASA-API call** | `src/data/spaceweather.ts` — **STUB, throws**, blocked on ISS-008 |
+| Joining live flares to the forecast | `src/dom/forecastLoader.ts` |
+| **Any NASA-API call** | `src/data/spaceweather.ts` — live; NASA DONKI → NOAA SWPC → baked |
 | A game screen | `src/features/<name>/` — every journey screen is built |
 | What a screen is meant to contain | the `README.md` in that screen's folder |
 | Per-screen pure logic / DOM / styles | `model.ts` / `view.ts` / `<name>.css` |
@@ -210,7 +217,7 @@ opening its folder — that is the whole point of the layout.
 npm install
 npm run dev        # Vite dev server
 npm run check      # layer + banned-API check, then tsc --noEmit   <- run this
-npm test           # vitest, 116 tests                            <- 40% flaky, ISS-015
+npm test           # vitest, 393 tests                            <- 40% flaky, ISS-015
 npm run build      # to dist/
 npm run preview    # serve the build
 npm run typecheck  # tsc alone

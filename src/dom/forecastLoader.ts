@@ -5,13 +5,19 @@
  * (the rules), and two different screens need it: neither may import the other.
  */
 
-import { describeWhen, fetchSpaceWeather, lastDetail, lastSource } from '../data/spaceweather';
+import {
+  describeWhen,
+  fetchSpaceWeather,
+  lastDetail,
+  lastSource,
+  type SpaceWeatherSource,
+} from '../data/spaceweather';
 import { createForecast, type ForecastEvent } from '../sim/forecast';
 
 export interface LoadedForecast {
   readonly forecast: readonly ForecastEvent[];
-  /** `donki` for live NASA flares, `fallback` for famous past ones. */
-  readonly source: 'donki' | 'fallback';
+  /** `donki` for live NASA flares, `noaa` for live NOAA flares, `fallback` for famous past ones. */
+  readonly source: SpaceWeatherSource;
   /** One sentence about how the numbers were found. */
   readonly detail: string;
 }
@@ -23,7 +29,7 @@ export async function loadForecast(signal?: AbortSignal): Promise<LoadedForecast
     flares.map((flare) => ({
       classType: flare.classType,
       approximate: flare.approximate,
-      when: describeWhen(flare.peakTime),
+      when: `on ${describeWhen(flare.peakTime)}`,
     })),
   );
 

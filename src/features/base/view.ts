@@ -78,7 +78,7 @@ export function mountBase(
       { class: 'gx__panel' },
       h('h2', { class: 'gx__h', text: 'Forecast: read ahead' }),
       list,
-      h('p', { class: 'gx__note', text: loaded === null ? 'Checking NASA space-weather data…' : loaded.detail }),
+      h('p', { class: 'gx__note', text: loaded === null ? 'Checking live space-weather data…' : loaded.detail }),
     );
   }
 

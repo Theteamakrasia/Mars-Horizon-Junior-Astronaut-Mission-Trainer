@@ -282,7 +282,7 @@ a player takes away without ever being told a lesson:
 | **Closed-loop living** | Recycling water, regenerating air, and growing food instead of resupplying — the core of real off-world life support |
 | **Reading data** | Weather radar, resource stores, and forecasts are how you make decisions, not decoration |
 | **Preparation & margin** | Winners build reserves *before* the crisis. This is a life skill, not just a game one |
-| **Reading real NASA data** | Site conditions and space weather come from actual NASA sources, not made-up numbers |
+| **Reading real space-weather data** | Solar-flare strength comes from live NASA data, with NOAA as a backup, not made-up numbers |
 | **Second attempts** | Losing teaches more than winning, because the debrief explains exactly *why* |
 
 <a id="the-science-is-real"></a>
@@ -381,6 +381,11 @@ resources. These are the ones we build on:
 **A note on honesty:** where we don't have a hard number, we tell the player it's an
 approximation. Faking precision would teach kids to trust data that isn't real, which is the
 exact opposite of what this game is for.
+
+Live flare strength is read from DONKI through the NASA API portal. When NASA is
+unavailable, the game falls through to NOAA's Space Weather Prediction Center, and if
+neither answers it uses famous past flares — always labelled approximate. The forecast's
+timing is part of the game design and is not taken from either feed.
 
 ---
 

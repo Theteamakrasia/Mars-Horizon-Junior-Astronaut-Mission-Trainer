@@ -8,15 +8,19 @@ import {
   lastDetail,
   lastSource,
   parseFlares,
+  parseNoaaFlares,
   resetSpaceWeather,
   strongest,
 } from './spaceweather';
 
 /*
- * NOTE ON WHAT THESE TESTS PROVE. The fixtures below follow NASA's documented
- * DONKI flare schema, but this project has never seen a real response on the
- * wire. They test our parsing and our fallbacks, not that the live format
- * matches. "Wire format unverified" is the honest status.
+ * NOTE ON WHAT THESE TESTS PROVE. The DONKI fixtures follow NASA's documented
+ * schema, but this project has never seen a successful DONKI response on the
+ * wire. The NOAA fixtures follow a response it HAS seen, including the `null`
+ * and `"Unk"` fields of a flare that is still in progress.
+ *
+ * What is tested here is our parsing and our fallback chain, not that NASA's
+ * live format matches its documentation.
  */
 
 const NOW = new Date('2026-11-08T00:00:00Z');
@@ -26,10 +30,54 @@ function respond(status: number, body: unknown): typeof fetch {
     ({ ok: status >= 200 && status < 300, status, json: async () => body }) as Response) as typeof fetch;
 }
 
+/** A fetch that answers by URL fragment, so the two-source chain can be tested. */
+function routed(routes: Record<string, { status: number; body: unknown }>): typeof fetch {
+  return (async (url: string) => {
+    const fragment = Object.keys(routes).find((key) => url.includes(key));
+
+    if (fragment === undefined) throw new TypeError(`Failed to fetch: ${url}`);
+
+    const { status, body } = routes[fragment];
+
+    return { ok: status >= 200 && status < 300, status, json: async () => body } as Response;
+  }) as unknown as typeof fetch;
+}
+
 const SAMPLE = [
   { flrID: 'a', classType: 'C3.0', peakTime: '2026-10-20T04:00Z' },
   { flrID: 'b', classType: 'M4.2', peakTime: '2026-10-25T09:30Z' },
   { flrID: 'c', classType: 'X1.1', peakTime: '2026-11-01T12:00Z' },
+];
+
+/** Real NOAA SWPC shape, trimmed: one calm flare, one M, one still in progress. */
+const NOAA_SAMPLE = [
+  {
+    time_tag: '2026-11-02T20:56:00Z',
+    begin_time: '2026-11-02T20:56:00Z',
+    begin_class: 'B4.0',
+    max_time: '2026-11-02T21:04:00Z',
+    max_class: 'B5.6',
+    end_time: '2026-11-02T21:11:00Z',
+    end_class: 'B4.8',
+  },
+  {
+    time_tag: '2026-11-05T08:00:00Z',
+    begin_time: '2026-11-05T08:00:00Z',
+    begin_class: 'C1.2',
+    max_time: '2026-11-05T08:40:00Z',
+    max_class: 'M1.4',
+    end_time: '2026-11-05T09:10:00Z',
+    end_class: 'C3.0',
+  },
+  {
+    time_tag: '2026-11-09T16:53:00Z',
+    begin_time: '2026-11-09T16:53:00Z',
+    begin_class: 'C1.1',
+    max_time: '2026-11-09T17:14:00Z',
+    max_class: 'C5.1',
+    end_time: 'Unk',
+    end_class: null,
+  },
 ];
 
 beforeEach(() => {
@@ -57,6 +105,35 @@ describe('parseFlares (wire format unverified)', () => {
 
   it('falls back to the begin time when no peak time is given', () => {
     expect(parseFlares([{ classType: 'M1.0', beginTime: '2026-10-20T04:00Z' }])).toHaveLength(1);
+  });
+});
+
+describe('parseNoaaFlares (real wire format)', () => {
+  it('keeps flares and uses the peak class and time', () => {
+    const events = parseNoaaFlares(NOAA_SAMPLE);
+
+    expect(events.map((event) => event.classType)).toEqual(['B5.6', 'M1.4', 'C5.1']);
+    expect(events.every((event) => event.approximate === false)).toBe(true);
+  });
+
+  it('does not trip over the null end fields of a flare still in progress', () => {
+    expect(parseNoaaFlares([NOAA_SAMPLE[2]])).toEqual([
+      { kind: 'flare', classType: 'C5.1', peakTime: '2026-11-09T17:14:00Z', approximate: false },
+    ]);
+  });
+
+  it('falls back to the begin class when the peak is missing', () => {
+    const events = parseNoaaFlares([{ begin_class: 'C2.0', begin_time: '2026-11-05T08:00:00Z', max_class: null, max_time: null }]);
+
+    expect(events).toEqual([
+      { kind: 'flare', classType: 'C2.0', peakTime: '2026-11-05T08:00:00Z', approximate: false },
+    ]);
+  });
+
+  it('drops malformed records and a response that is not a list', () => {
+    expect(parseNoaaFlares([{ max_class: 'banana', max_time: '2026-11-05T08:00:00Z' }])).toEqual([]);
+    expect(parseNoaaFlares([{ max_class: 'M1.0', max_time: 'Unk' }])).toEqual([]);
+    expect(parseNoaaFlares({ error: 'nope' })).toEqual([]);
   });
 });
 
@@ -143,6 +220,79 @@ describe('fetchSpaceWeather (no network: fetch is injected)', () => {
     }) as unknown as typeof fetch;
 
     await fetchSpaceWeather({ fetchFn: counting, now: NOW });
+    await fetchSpaceWeather({ fetchFn: counting, now: NOW });
+
+    expect(calls).toBe(1);
+  });
+
+  it('prefers NASA when NASA answers', async () => {
+    const seen: string[] = [];
+    const routing = routed({
+      'api.nasa.gov': { status: 200, body: SAMPLE },
+      'services.swpc.noaa.gov': { status: 200, body: NOAA_SAMPLE },
+    });
+    const spy = (async (url: string, init?: RequestInit) => {
+      seen.push(url);
+      return routing(url, init);
+    }) as unknown as typeof fetch;
+
+    const events = await fetchSpaceWeather({ fetchFn: spy, now: NOW });
+
+    expect(events.map((event) => event.classType)).toEqual(['X1.1', 'M4.2']);
+    expect(lastSource()).toBe('donki');
+    expect(lastDetail()).toContain('DONKI');
+    expect(seen).toHaveLength(1);
+  });
+
+  it('falls through to NOAA when NASA is throttled, and says so', async () => {
+    const spy = routed({
+      'api.nasa.gov': { status: 429, body: { error: 'OVER_RATE_LIMIT' } },
+      'services.swpc.noaa.gov': { status: 200, body: NOAA_SAMPLE },
+    });
+
+    const events = await fetchSpaceWeather({ fetchFn: spy, now: NOW });
+
+    expect(events.map((event) => event.classType)).toEqual(['M1.4', 'C5.1']);
+    expect(events.every((event) => event.approximate === false)).toBe(true);
+    expect(lastSource()).toBe('noaa');
+    expect(lastDetail()).toContain('NOAA');
+  });
+
+  it('falls through to NOAA when NASA times out', async () => {
+    const slowNasa = (async (url: string, init?: RequestInit) => {
+      if (url.includes('api.nasa.gov')) {
+        return new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+        });
+      }
+
+      return { ok: true, status: 200, json: async () => NOAA_SAMPLE } as Response;
+    }) as unknown as typeof fetch;
+
+    const events = await fetchSpaceWeather({ fetchFn: slowNasa, now: NOW, timeoutMs: 5 });
+
+    expect(events.map((event) => event.classType)).toEqual(['M1.4', 'C5.1']);
+    expect(lastSource()).toBe('noaa');
+  });
+
+  it('names both failed sources when neither answers', async () => {
+    await fetchSpaceWeather({ fetchFn: respond(503, {}), now: NOW });
+
+    expect(lastDetail()).toContain('NASA answered with an error (503)');
+    expect(lastDetail()).toContain('NOAA answered with an error (503)');
+  });
+
+  it('does not remember an answer the caller abandoned', async () => {
+    let calls = 0;
+    const counting = (async () => {
+      calls += 1;
+      return { ok: true, status: 200, json: async () => SAMPLE } as Response;
+    }) as unknown as typeof fetch;
+
+    const controller = new AbortController();
+    controller.abort();
+    await fetchSpaceWeather({ fetchFn: counting, now: NOW, signal: controller.signal });
+
     await fetchSpaceWeather({ fetchFn: counting, now: NOW });
 
     expect(calls).toBe(1);

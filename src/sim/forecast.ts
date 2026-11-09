@@ -32,7 +32,7 @@ export interface FlareInput {
   /** NASA's flare class, e.g. `M4.2` or `X5.8`. */
   readonly classType: string;
   readonly approximate: boolean;
-  /** When it happened, for the summary, e.g. `11 May 2024`. */
+  /** How the summary refers to it, e.g. `on 11 May 2024`. */
   readonly when: string;
 }
 
@@ -46,7 +46,7 @@ export const SECOND_FLARE_SOL = 10;
 export const DEFAULT_FLARE: FlareInput = {
   classType: 'M5.0',
   approximate: true,
-  when: 'a typical strong flare',
+  when: 'during a typical strong solar cycle',
 };
 
 /**
@@ -74,7 +74,7 @@ export function createForecast(flares: readonly FlareInput[]): readonly Forecast
     kind: 'flare',
     durationSols: 1,
     intensity: flareIntensity(input.classType),
-    summary: `A ${input.classType} solar flare is on its way, like the one NASA recorded ${input.when}.`,
+    summary: `A ${input.classType} solar flare is on its way, about the strength of one seen ${input.when}.`,
     approximate: input.approximate,
   });
 

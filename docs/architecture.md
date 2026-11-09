@@ -178,11 +178,18 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         buildPreview, upkeepFor, extraBatteryCount.
     │   │                                         Catalogue in `sim/` because `act` needs it and
     │   │                                         cannot import `base` (D-032). 25 tests.
-    │   ├── events.ts                   complete   SolEvent, EVENT_SCHEDULE, eventsForSol,
-    │   │                                         forecastFrom, isStormSol. Baked schedule
-    │   │                                         (warning sol 2, storm 5, supply pod 10, flare
-    │   │                                         14, win check 20). Every event
-    │   │                                         `approximate: true` (D-033). 16 tests.
+    │   ├── forecast.ts                 complete   ForecastEvent, FlareInput, DEFAULT_FLARE,
+    │   │                                         flareIntensity, createForecast, eventsStartingOn,
+    │   │                                         stormOn, stormOpacity. The schedule is baked
+    │   │                                         (flare 3, pod 5, storm 7, flare 10); only the
+    │   │                                         flare size comes from data/.
+    │   ├── crises.ts                   complete   Crisis, CrisisOption, crisisForEvent,
+    │   │                                         pendingCrisis, optionOf, decide, earthIsInTime,
+    │   │                                         earthAdvice. Three forecast events stop the
+    │   │                                         clock and ask for a choice (D-029).
+    │   ├── comms.ts                    complete   REAL_MIN/MAX_ONE_WAY_MINUTES, oneWayMinutes,
+    │   │                                         roundTripMinutes, earthCanAnswerInTime. A
+    │   │                                         simplified rising delay over the real range.
     │   ├── balance.test.ts             complete   9 acceptance tests: default survives the storm,
     │   │                                         default cannot win, a thoughtful build wins
     │   │                                         three of five regions, over-building loses,
@@ -227,17 +234,25 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         resize handler, the grab lifecycle. Exports
     │   │                                         startFloatingAstronaut -> teardown. Discards deltas
     │   │                                         over 50ms.
+    │   ├── forecastLoader.ts           complete   LoadedForecast; loadForecast(signal) fetches the
+    │   │                                         flares and runs createForecast. The join between
+    │   │                                         data/ and sim/, shared by base and act without a
+    │   │                                         cross-feature import. Never rejects.
     │   ├── pointerGrab.ts              complete   207 lines. Exports attachGrab -> teardown.
     │   │                                         Velocity is a 100ms windowed average, EMA smoothed.
     │   └── starfield.ts                complete   63 lines. 140 stars across three depth layers.
     │                                             Suspect: layers animate with no looping copy —
     │                                             ISS-002, unverified in a browser.
     │
-    ├── data/                           STUB + contract. The only zone allowed to fetch. Blocked on
-    │   │                               ISS-008 — DONKI's CORS is unverified.
-    │   ├── README.md                   the quarantine rules and why the live client is blocked
-    │   └── spaceweather.ts             STUB       Exports SpaceWeatherEvent, SpaceWeatherSource,
-    │                                             fetchSpaceWeather, lastSource. All throw.
+    ├── data/                           COMPLETE. The only zone allowed to fetch.
+    │   ├── README.md                   the quarantine rules and the live-source chain
+    │   ├── spaceweather.ts             complete   SpaceWeatherEvent, SpaceWeatherSource
+    │   │                                         ('donki' | 'noaa' | 'fallback'),
+    │   │                                         parseFlares, parseNoaaFlares, flareRank,
+    │   │                                         strongest, fetchSpaceWeather, lastSource,
+    │   │                                         lastDetail, describeWhen. NASA DONKI ->
+    │   │                                         NOAA SWPC -> baked, in that order.
+    │   └── spaceweather.test.ts        complete   26 tests; every fetch is injected
     │
     ├── features/                       one folder per screen. Every journey screen is built.
     │   │                               There are no feature stubs left.
@@ -418,10 +433,14 @@ The planet rotates **in the image plane** (`rotate()`), not on a 3D axis. This i
 forced by the asset: a sphere spun about its own axis looks identical, so a `rotateY`
 would appear to do nothing (D-020).
 
-Zero network calls, zero storage. The only state is the in-memory `RunState` that
+Zero storage and no backend. The only state is the in-memory `RunState` that
 `main.ts` owns and passes to each screen as `(root, run, setRun)`; a refresh loses it,
-because persistence is deferred (D-003). Space-weather events come from the baked
-schedule in `sim/events.ts`, not a live feed (D-033).
+because persistence is deferred (D-003).
+
+The one network path outside the landing page is space weather. `base` and `act` call
+`dom/forecastLoader` → `data/spaceweather`, which tries NASA DONKI, then NOAA SWPC, then
+baked history. The event *schedule* is still baked in `sim/forecast.ts` (D-033); only the
+flare *size* is live.
 
 ## Boot order
 
@@ -452,6 +471,13 @@ returns to `landing`, which keeps running behind the mounted screen.
 | module | exports | contract |
 | --- | --- | --- |
 | `main.ts` | none (side effects) | composition root; throws on a missing element id |
+| `dom/forecastLoader` | `LoadedForecast`, `loadForecast` | `(signal?) -> Promise<LoadedForecast>`; never rejects. Fetches flares through `data/spaceweather`, then runs `sim/forecast.createForecast`. Sits in `dom/` because it joins `data/` and `sim/`, and both `base` and `act` need it without importing each other (R-5) |
+| `data/spaceweather` | `SpaceWeatherEvent`, `SpaceWeatherSource` | a flare as the game uses it; source is `'donki' \| 'noaa' \| 'fallback'` |
+| | `fetchSpaceWeather` | `(options?) -> Promise<SpaceWeatherEvent[]>`; never rejects. Tries NASA DONKI, then NOAA SWPC, then `FALLBACK_FLARES`. Remembers one answer so two screens cost one request; an answer abandoned by its caller is not remembered |
+| | `parseFlares`, `parseNoaaFlares` | `(json) -> SpaceWeatherEvent[]`; validate every field and drop anything malformed rather than trusting the wire |
+| | `flareRank`, `strongest` | class ranking (X > M > C, bigger number first) and the strongest N |
+| | `lastSource`, `lastDetail`, `resetSpaceWeather` | what the UI reports; reset is for tests |
+| | `describeWhen` | `(peakTime) -> string`, e.g. `11 May 2024`; `'recently'` on a bad date |
 | `sim/drift` | `stepDrift` | `(state, dt, size, viewport) -> DriftResult`; reflects off walls, returns the fastest `Impact` or null |
 | | `createInitialDrift` | `(size, viewport, speed) -> DriftState`; random 30-45 degree diagonal. **5 `Math.random()` calls** |
 | | `driftSpeedForViewport` | `(width) -> number`, clamped 96..176 px/s |
@@ -488,9 +514,14 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `buildPreview` | `(kind, modules, stores, terrain) -> preview \| null`; null for an unknown kind |
 | | `upkeepFor` | `(modules) -> {powerDraw, solarArrays}` |
 | | `extraBatteryCount` | `(modules) -> number` |
-| `sim/events` | `SolEvent` | `kind, sol, summary, approximate` |
-| | `EVENT_SCHEDULE` | the baked schedule: warning sol 2, storm 5, supply pod 10, flare 14, win check 20 |
-| | `eventsForSol`, `forecastFrom`, `isStormSol` | lookups over the schedule. Every event is `approximate: true` (D-033) |
+| `sim/forecast` | `ForecastEvent`, `FlareInput`, `ForecastKind` | the four forecast events; `intensity` is 1-3 for a flare and 0 for the pod and storm |
+| | `flareIntensity` | `(classType) -> 1 \| 2 \| 3`; X = 3, M = 2, C and below = 1 |
+| | `createForecast` | `(flares) -> ForecastEvent[]`; schedule is fixed at sols 3 / 5 / 7 / 10. A missing flare uses `DEFAULT_FLARE`, marked approximate. Only the size is live |
+| | `eventsStartingOn`, `stormOn`, `stormOpacity` | lookups over the forecast; opacity is a calm-site curve, 0.2-0.95 |
+| `sim/crises` | `Crisis`, `CrisisOption`, `crisisForEvent`, `pendingCrisis` | the moment a forecast event stops the clock and what is asked |
+| | `optionOf`, `decide`, `earthIsInTime`, `earthAdvice` | option lookup, the recorded choice, and the "Earth cannot answer in time" copy |
+| `sim/comms` | `REAL_MIN_ONE_WAY_MINUTES`, `REAL_MAX_ONE_WAY_MINUTES` | the real 3-22 minute range, for the approximation note |
+| | `oneWayMinutes`, `roundTripMinutes`, `earthCanAnswerInTime` | a simplified rising delay over the run; labelled approximate in the UI |
 | `sim/sol` | `advanceSol` | `(run) -> SolResult`; solar generation, module draw + night drain, crew use, events, clamp/cap, ledger entry, status. **Turn-based: one sol per call** (D-030) |
 | | `LedgerEntry`, `SolResult` | one sol's stores and `changes`; the new stores, status, events and ledger |
 | | `isRunOver` | `(run) -> boolean` |
@@ -550,37 +581,39 @@ returns to `landing`, which keeps running behind the mounted screen.
 | `dom/starfield` | `createStarfield` | `(container) => void`; appends, never clears |
 | `ui/button-strip` | `createButtonStrip` | `(root, options) -> ButtonStripSpec`; full-width fixed-height bottom strip holding Next / Prev / action buttons; teardown is mandatory |
 
-## Planned contracts
+## The data layer
 
-Declared so the checker and this document agree. **Not implemented, not tested, and
-marked here so nobody reads them as existing.**
+`src/data/` is the only zone allowed to `fetch` (R-8). It is implemented and tested.
 
-### `src/data/` — the network layer
+`fetchSpaceWeather()` tries three sources in order and names the one that answered:
 
-The only zone allowed to `fetch`. Two sources:
+1. **NASA DONKI**, through `api.nasa.gov/DONKI/FLR` — the NASA source. The API portal is
+   browser-callable (`Access-Control-Allow-Origin` verified). It uses
+   `VITE_NASA_API_KEY` if set, otherwise the shared `DEMO_KEY`.
+2. **NOAA SWPC**, `services.swpc.noaa.gov/json/goes/primary/xray-flares-7-day.json` —
+   `Access-Control-Allow-Origin: *`, and the GOES measurements DONKI itself mirrors. It is
+   second because the game promises NASA data, but it keeps the demo live when DONKI 503s
+   or throttle-limits the shared key (ISS-008, ISS-009).
+3. **Baked history**, `FALLBACK_FLARES` — famous flares, each marked `approximate`.
 
-- **DONKI** (`ccmc.gsfc.nasa.gov`) for solar flares and CMEs, driving in-game storm
-  warnings. Direct browser fetch plus a baked-in fallback. **Blocked on ISS-008: CORS
-  unverified.** Do not build before a human checks it in a real browser.
-- **api.nasa.gov** with `VITE_NASA_API_KEY`, falling back to `DEMO_KEY`. Confirmed
-  reachable: HTTP 200, `Access-Control-Allow-Origin` echoing the request origin.
-
-Config read only in `data/`. Requires ISS-006 first, or the key is committed to a public
-repository.
+A failure at any step falls through rather than showing an empty screen. `lastDetail()`
+returns a sentence naming what happened, and `lastSource()` drives the approximate label.
+`.env*` is git-ignored (ISS-006) and `.env.example` documents the key name without storing
+a value.
 
 ## Known simplifications
 
 Deliberate shortcuts, and why each was accepted.
 
 1. **`src/sim/` now carries the game model.** Five stores with per-sol drain
-   (`resources.ts`), module catalogue and build rules (`modules.ts`), the baked event
-   schedule (`events.ts`), sol advance and win/loss (`sol.ts`), and `RunState` (`run.ts`).
-   The earlier version of this file said there was no game state; that stopped being true
-   when the loop was built (D-030–D-035).
-2. **`data/` is still a stub; every feature is implemented.** `data/spaceweather.ts` has a
-   real type and a real signature and every body throws, because the live feed is blocked
-   on ISS-008. All nine journey screens are built. The old "features are stubs" entry
-   applied to the pre-loop tree and is no longer accurate.
+   (`resources.ts`), module catalogue and build rules (`modules.ts`), the forecast
+   (`forecast.ts`), crisis choices (`crises.ts`), comms delay (`comms.ts`), sol advance and
+   win/loss (`sol.ts`), and `RunState` (`run.ts`). The earlier version of this file said
+   there was no game state; that stopped being true when the loop was built (D-030-D-035).
+2. **The data layer is live; the forecast's timing is still baked.** `data/spaceweather.ts`
+   supplies live flare sizes, and the sols they land on (3, 5, 7, 10) are fixed in
+   `sim/forecast.ts` (D-033). All nine journey screens are built. The old "data is a stub"
+   entry applied to the pre-loop tree and is no longer accurate.
 3. **`ui/router.ts` is wired into `main.ts`.** Its DOM half still cannot be tested without
    jsdom (ISS-013), so the pure half (`routes.ts`) carries the tests. The browser
    behaviour is unverified (TASK-049).

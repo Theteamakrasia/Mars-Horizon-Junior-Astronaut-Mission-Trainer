@@ -1,39 +1,48 @@
 /**
- * Real solar flares from NASA's DONKI space-weather database.
+ * Real solar flares, live from space-weather services.
  *
  * The ONLY place in the project allowed to call `fetch`. `npm run check` fails
  * the build on network access anywhere else, so failures and fallbacks are
  * handled in one file rather than scattered.
  *
- * How it reaches DONKI: through `api.nasa.gov/DONKI/FLR`, the NASA API portal's
- * front for the same database. That host is the one the repo already verified as
- * browser-callable (it answers with a correct CORS header), which sidesteps the
- * unverified `ccmc.gsfc.nasa.gov` path (ISS-008). The response SHAPE below is
- * written from NASA's published schema and a sample in a third-party repo, and
- * has NOT been seen on the wire from this project — the tests say so.
+ * Two live sources, tried in order:
+ *
+ *   1. NASA's DONKI database, through `api.nasa.gov/DONKI/FLR`. This is the
+ *      source the project promises, and the NASA API portal is the host the repo
+ *      verified as browser-callable (it answers with a correct CORS header),
+ *      which sidesteps the unverified `ccmc.gsfc.nasa.gov` path (ISS-008).
+ *   2. NOAA SWPC's GOES X-ray flare feed, `services.swpc.noaa.gov`. It sends
+ *      `Access-Control-Allow-Origin: *` and is what the measurements behind
+ *      DONKI actually come from. It is here because DONKI has been returning
+ *      503 and rate-limiting the shared `DEMO_KEY` (ISS-008, ISS-009) — without
+ *      a second source the game would show baked-in history on demo night.
  *
  * What the player is promised: the screen is told where the numbers came from.
  * Every failure — slow, throttled, offline, malformed, or a quiet month with no
  * flares — resolves to famous flares from the record, marked `approximate`.
+ *
+ * The DONKI success shape is written from NASA's published schema and has NOT
+ * been seen on the wire from this project. The NOAA shape HAS been seen and is
+ * covered by tests. Both are validated field by field rather than trusted.
  */
 
 /** One flare, as the game uses it. */
 export interface SpaceWeatherEvent {
   readonly kind: 'flare';
-  /** NASA's class: a letter (C, M, X) and a number, e.g. `M4.2`. */
+  /** The flare class: a letter (B, C, M, X) and a number, e.g. `M4.2`. */
   readonly classType: string;
-  /** ISO 8601 peak time. */
+  /** ISO 8601 time of the flare's peak. */
   readonly peakTime: string;
   /** True when this came from baked-in history rather than a live reading. */
   readonly approximate: boolean;
 }
 
 /** Where the data came from, so the UI can be honest about it. */
-export type SpaceWeatherSource = 'donki' | 'fallback';
+export type SpaceWeatherSource = 'donki' | 'noaa' | 'fallback';
 
 /**
- * Famous flares, from the public record. Used when the live call cannot supply
- * any, and marked approximate so the debrief says so.
+ * Famous flares, from the public record. Used when neither live source can
+ * supply any, and marked approximate so the debrief says so.
  */
 export const FALLBACK_FLARES: readonly SpaceWeatherEvent[] = [
   { kind: 'flare', classType: 'X5.8', peakTime: '2024-05-11T01:23:00Z', approximate: true },
@@ -41,6 +50,7 @@ export const FALLBACK_FLARES: readonly SpaceWeatherEvent[] = [
 ];
 
 const DONKI_FLARES_URL = 'https://api.nasa.gov/DONKI/FLR';
+const NOAA_FLARES_URL = 'https://services.swpc.noaa.gov/json/goes/primary/xray-flares-7-day.json';
 const DEFAULT_TIMEOUT_MS = 4000;
 const LOOKBACK_DAYS = 30;
 
@@ -53,6 +63,29 @@ export interface FetchOptions {
   /** Injected so a test can pin the key; real runs read `VITE_NASA_API_KEY`. */
   readonly apiKey?: string;
 }
+
+/** Why one source had nothing useful. Text is built by `describeFailure`. */
+type FailReason = 'throttled' | 'error' | 'offline' | 'timeout' | 'empty';
+
+interface Fail {
+  readonly ok: false;
+  readonly reason: FailReason;
+  readonly status?: number;
+}
+
+interface SourceAnswer {
+  readonly ok: true;
+  readonly events: readonly SpaceWeatherEvent[];
+}
+
+type Attempt = SourceAnswer | Fail;
+
+interface RequestOk {
+  readonly ok: true;
+  readonly json: unknown;
+}
+
+type RequestResult = RequestOk | Fail;
 
 let source: SpaceWeatherSource = 'fallback';
 let detail = 'No space-weather request has been made yet.';
@@ -86,12 +119,23 @@ export function flareRank(classType: string): number {
 }
 
 /**
+ * Validate one flare record and turn it into an event, or drop it.
+ *
+ * Shared by both parsers so neither can drift into trusting a bare field.
+ */
+function toEvent(classType: unknown, peakTime: unknown): SpaceWeatherEvent | null {
+  if (typeof classType !== 'string' || !/^[A-Za-z]\d+(\.\d+)?$/.test(classType.trim())) return null;
+  if (typeof peakTime !== 'string' || Number.isNaN(Date.parse(peakTime))) return null;
+
+  return { kind: 'flare', classType: classType.trim().toUpperCase(), peakTime, approximate: false };
+}
+
+/**
  * Pull flares out of a DONKI response.
  *
- * Validates every field rather than trusting the wire format. Anything that is
- * not an array of objects with a usable `classType` and `peakTime` is dropped,
- * and a response that is not an array at all yields nothing, which the caller
- * turns into the fallback.
+ * Anything that is not an array of objects with a usable `classType` and
+ * `peakTime` is dropped, and a response that is not an array at all yields
+ * nothing, which the caller turns into the next source or the fallback.
  */
 export function parseFlares(json: unknown): readonly SpaceWeatherEvent[] {
   if (!Array.isArray(json)) return [];
@@ -102,13 +146,36 @@ export function parseFlares(json: unknown): readonly SpaceWeatherEvent[] {
     if (typeof item !== 'object' || item === null) continue;
 
     const record = item as Record<string, unknown>;
-    const classType = record.classType;
-    const peakTime = record.peakTime ?? record.beginTime;
+    const event = toEvent(record.classType, record.peakTime ?? record.beginTime);
 
-    if (typeof classType !== 'string' || !/^[A-Za-z]\d+(\.\d+)?$/.test(classType.trim())) continue;
-    if (typeof peakTime !== 'string' || Number.isNaN(Date.parse(peakTime))) continue;
+    if (event !== null) events.push(event);
+  }
 
-    events.push({ kind: 'flare', classType: classType.trim().toUpperCase(), peakTime, approximate: false });
+  return events;
+}
+
+/**
+ * Pull flares out of a NOAA SWPC GOES X-ray flare feed.
+ *
+ * The feed is one flat array of flare records. `max_class` and `max_time` are
+ * the peak reading; a flare still in progress has `end_class: null` and an
+ * `end_time` of `"Unk"`, both of which are dropped by validation. The feed
+ * covers about seven days, which is why the detail sentence says seven.
+ */
+export function parseNoaaFlares(json: unknown): readonly SpaceWeatherEvent[] {
+  if (!Array.isArray(json)) return [];
+
+  const events: SpaceWeatherEvent[] = [];
+
+  for (const item of json) {
+    if (typeof item !== 'object' || item === null) continue;
+
+    const record = item as Record<string, unknown>;
+    const classType = record.max_class ?? record.begin_class ?? record.end_class;
+    const peakTime = record.max_time ?? record.begin_time ?? record.time_tag;
+    const event = toEvent(classType, peakTime);
+
+    if (event !== null) events.push(event);
   }
 
   return events;
@@ -127,13 +194,18 @@ function isoDate(date: Date): string {
  * Fetch the strongest recent flares.
  *
  * Returns parsed data, never a `Response`, so callers stay testable. Rejects
- * nothing: any failure resolves to the fallback flares, marked approximate. The
- * result is remembered so two screens asking cost one request.
+ * nothing: NASA, then NOAA, then the fallback flares marked approximate. The
+ * result is remembered so two screens asking cost one request — unless the
+ * caller aborted, in which case nothing is remembered and the next screen gets
+ * a real answer.
  */
 export function fetchSpaceWeather(options: FetchOptions = {}): Promise<readonly SpaceWeatherEvent[]> {
   if (pending !== null) return pending;
 
-  pending = load(options);
+  pending = load(options).then((events) => {
+    if (options.signal?.aborted) pending = null;
+    return events;
+  });
 
   return pending;
 }
@@ -146,7 +218,57 @@ async function load(options: FetchOptions): Promise<readonly SpaceWeatherEvent[]
   const now = options.now ?? new Date();
   const start = new Date(now.getTime() - LOOKBACK_DAYS * 24 * 60 * 60 * 1000);
   const key = options.apiKey ?? (import.meta.env.VITE_NASA_API_KEY as string | undefined) ?? 'DEMO_KEY';
-  const url = `${DONKI_FLARES_URL}?startDate=${isoDate(start)}&endDate=${isoDate(now)}&api_key=${encodeURIComponent(key)}`;
+  const donkiUrl = `${DONKI_FLARES_URL}?startDate=${isoDate(start)}&endDate=${isoDate(now)}&api_key=${encodeURIComponent(key)}`;
+
+  const nasa = await trySource(fetchFn, donkiUrl, options, parseFlares);
+
+  if (nasa.ok) {
+    source = 'donki';
+    detail = 'Live flares from NASA\u2019s DONKI space-weather database, last 30 days.';
+
+    return nasa.events;
+  }
+
+  const noaa = await trySource(fetchFn, NOAA_FLARES_URL, options, parseNoaaFlares);
+
+  if (noaa.ok) {
+    source = 'noaa';
+    detail = 'Live flares from NOAA\u2019s space-weather centre, last 7 days.';
+
+    return noaa.events;
+  }
+
+  return useFallback(explain(nasa, noaa));
+}
+
+/** Ask one source, parse what comes back, and keep the strongest two. */
+async function trySource(
+  fetchFn: typeof fetch,
+  url: string,
+  options: FetchOptions,
+  parse: (json: unknown) => readonly SpaceWeatherEvent[],
+): Promise<Attempt> {
+  const result = await requestJson(fetchFn, url, options);
+
+  if (!result.ok) return result;
+
+  const events = strongest(parse(result.json), 2);
+
+  if (events.length === 0) return { ok: false, reason: 'empty' };
+
+  return { ok: true, events };
+}
+
+/**
+ * One request with its own timeout, forwarding the caller's abort signal.
+ * Never throws: a failure becomes a reason the debrief can explain.
+ */
+async function requestJson(
+  fetchFn: typeof fetch,
+  url: string,
+  options: FetchOptions,
+): Promise<RequestResult> {
+  if (options.signal?.aborted) return { ok: false, reason: 'offline' };
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
@@ -157,24 +279,40 @@ async function load(options: FetchOptions): Promise<readonly SpaceWeatherEvent[]
   try {
     const response = await fetchFn(url, { signal: controller.signal });
 
-    if (response.status === 429) return useFallback('NASA\u2019s shared key was busy, so we used famous past flares.');
-    if (!response.ok) return useFallback(`NASA answered with an error (${response.status}).`);
+    if (response.status === 429) return { ok: false, reason: 'throttled' };
+    if (!response.ok) return { ok: false, reason: 'error', status: response.status };
 
-    const events = strongest(parseFlares(await response.json()), 2);
-
-    if (events.length === 0) {
-      return useFallback('No flares were reported in the last 30 days, so we used famous past flares.');
-    }
-
-    source = 'donki';
-    detail = 'Live flares from NASA\u2019s DONKI space-weather database, last 30 days.';
-
-    return events;
+    return { ok: true, json: await response.json() };
   } catch {
-    return useFallback('NASA could not be reached, so we used famous past flares.');
+    return { ok: false, reason: controller.signal.aborted ? 'timeout' : 'offline' };
   } finally {
     clearTimeout(timer);
     options.signal?.removeEventListener('abort', forward);
+  }
+}
+
+/** Turn two failed sources into one child-readable sentence. */
+function explain(nasa: Fail, noaa: Fail): string {
+  if (nasa.reason === 'empty' && noaa.reason === 'empty') {
+    return 'No flares were reported by NASA or NOAA, so we used famous past flares.';
+  }
+
+  return `${describeFailure('NASA', nasa)}, and ${describeFailure('NOAA', noaa)}, so we used famous past flares.`;
+}
+
+/** What went wrong, in the words the debrief shows. */
+function describeFailure(name: string, failure: Fail): string {
+  switch (failure.reason) {
+    case 'throttled':
+      return name === 'NASA' ? 'NASA\u2019s shared key was busy' : `${name} asked us to slow down`;
+    case 'error':
+      return `${name} answered with an error (${failure.status})`;
+    case 'timeout':
+      return `${name} did not answer in time`;
+    case 'empty':
+      return `${name} reported no flares`;
+    default:
+      return `${name} could not be reached`;
   }
 }
 

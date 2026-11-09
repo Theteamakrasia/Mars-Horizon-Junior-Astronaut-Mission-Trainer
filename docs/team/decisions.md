@@ -11,6 +11,14 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+**D-037 — agent · 2026-11-09**
+**Choice:** Live space weather tries NASA DONKI first, then NOAA SWPC, then famous past flares marked approximate.
+**Why:** DONKI is the NASA source the pitch promises, but on 2026-11-09 the NASA API portal returned `503 upstream connect error` and then `429 OVER_RATE_LIMIT` for the shared `DEMO_KEY` (ISS-008, ISS-009). One source means one outage turns the live forecast into history. NOAA SWPC's GOES X-ray feed sends `Access-Control-Allow-Origin: *` and is the instrument data DONKI itself mirrors, so it keeps the feature honest and live without inventing numbers.
+**Rejected:** Keeping DONKI-only and shipping baked data on demo night (ISS-043); proxying through a backend (no backend exists, D-003); scraping `ccmc.gsfc.nasa.gov` (unreachable and unverified, ISS-008).
+**Consequence:** `SpaceWeatherSource` gains `'noaa'`, the detail sentence names the agency that answered, and only the flare *size* is live — the sols stay baked in `sim/forecast.ts` (D-033). A personal `VITE_NASA_API_KEY` (ISS-009) restores NASA as the usual source.
+
+---
+
 **D-036 — agent · 2026-11-09**
 **Choice:** The launch parts tour panel is a full-viewport overlay, not part of the 16:9 cinematic stage.
 **Why:** The stage is letterboxed to 16:9, so its height is `9/16` of its width. The tour card — name, 16:9 image, description, three buttons — is taller than that on most viewports, and clipping it hides the Continue button (ISS-041).
