@@ -1,284 +1,267 @@
 /**
- * The module catalogue and build rules.
+ * The outpost's modules and what a set of them adds up to.
  *
- * Pure: no DOM, no network, no randomness. Imports only `sim/`.
+ * Every module improves one system and loads another — that coupling is the
+ * game. All the tuning numbers are in this one file so the balance is visible
+ * in one place and a test can pin it.
  *
- * The catalogue is the single source of truth for what each module costs and
- * what it demands of every other system. `act` reads module effects from here
- * and cannot import `features/base/` (R-5), so this table lives in `sim/`.
+ * Pure. The `base` screen decides which modules to build; this file turns that
+ * list into the numbers the sol step runs on.
  */
 
-import type { ResourceStores } from './resources';
-import { MODULE_BUILD_CAP } from './constants';
+import { siteScore } from './regions';
 
-/** Every kind of module the player can place. */
 export type ModuleKind =
   | 'habitat'
   | 'life-support'
   | 'solar-array'
   | 'batteries'
   | 'greenhouse'
-  | 'water-extractor'
-  | 'radiation-shelter'
-  | 'extra-solar-array'
-  | 'extra-batteries';
+  | 'ice-miner'
+  | 'regolith-shield'
+  | 'nuclear-unit';
 
-/** What a module needs to build, what it provides, and how many may be placed. */
-export interface ModuleSpec {
-  readonly kind: ModuleKind;
-  /** Human-readable name for the build panel. */
-  readonly name: string;
-  /** What the module provides, for the preview panel. */
-  readonly provides: readonly string[];
-  /** What the module consumes, for the preview panel. */
-  readonly requires: readonly string[];
-  /** Build cost in power, before the region terrain multiplier. */
-  readonly buildCost: number;
-  /** Whether this kind starts built on every run. */
-  readonly startsBuilt: boolean;
-  /** Maximum copies that may be placed. */
-  readonly cap: number;
-}
-
-/** The full catalogue. Order is the build-panel order. */
-export const MODULE_CATALOGUE: readonly ModuleSpec[] = [
-  {
-    kind: 'habitat',
-    name: 'Habitat',
-    provides: ['Shelter', 'Crew capacity (3)'],
-    requires: ['Power'],
-    buildCost: 0,
-    startsBuilt: true,
-    cap: 1,
-  },
-  {
-    kind: 'life-support',
-    name: 'Life Support',
-    provides: ['Oxygen', 'Water recycling'],
-    requires: ['Power', 'Water'],
-    buildCost: 0,
-    startsBuilt: true,
-    cap: 1,
-  },
-  {
-    kind: 'solar-array',
-    name: 'Solar Array',
-    provides: ['Daytime power'],
-    requires: ['Terrain'],
-    buildCost: 0,
-    startsBuilt: true,
-    cap: 1,
-  },
-  {
-    kind: 'batteries',
-    name: 'Batteries',
-    provides: ['Night power storage'],
-    requires: [],
-    buildCost: 0,
-    startsBuilt: true,
-    cap: 1,
-  },
-  {
-    kind: 'greenhouse',
-    name: 'Greenhouse',
-    provides: ['Food'],
-    requires: ['Water', 'Power'],
-    buildCost: 20,
-    startsBuilt: false,
-    cap: MODULE_BUILD_CAP,
-  },
-  {
-    kind: 'water-extractor',
-    name: 'Water Extractor',
-    provides: ['Water'],
-    requires: ['Power'],
-    buildCost: 20,
-    startsBuilt: false,
-    cap: MODULE_BUILD_CAP,
-  },
-  {
-    kind: 'radiation-shelter',
-    name: 'Radiation Shelter',
-    provides: ['Shielding'],
-    requires: [],
-    buildCost: 15,
-    startsBuilt: false,
-    cap: MODULE_BUILD_CAP,
-  },
-  {
-    kind: 'extra-solar-array',
-    name: 'Extra Solar Array',
-    provides: ['More daytime power'],
-    requires: ['Terrain'],
-    buildCost: 15,
-    startsBuilt: false,
-    cap: MODULE_BUILD_CAP,
-  },
-  {
-    kind: 'extra-batteries',
-    name: 'Extra Batteries',
-    provides: ['Higher power cap', 'Charged storage'],
-    requires: [],
-    buildCost: 10,
-    startsBuilt: false,
-    cap: MODULE_BUILD_CAP,
-  },
-] as const;
-
-/** The four modules every run starts with. */
-export const STARTING_MODULES: readonly ModuleKind[] = [
+/** The four modules every outpost lands with. The first set from the README. */
+export const CORE_MODULES: readonly ModuleKind[] = [
   'habitat',
   'life-support',
   'solar-array',
   'batteries',
 ];
 
-/**
- * Power draw per sol for each module. Modules that generate power (solar
- * arrays) have zero draw here; generation is computed separately in `sol.ts`.
- */
-export const MODULE_POWER_DRAW: Readonly<Record<ModuleKind, number>> = {
-  habitat: 2,
-  'life-support': 3,
+/** Build points the lander can carry beyond the core modules. */
+export const BUILD_BUDGET = 14;
+
+/** Crew who live at the outpost. */
+export const CREW_SIZE = 4;
+
+/** Hours of daylight and of night. A sol is about 12 and 12 for this game. */
+export const SUN_HOURS = 12;
+export const NIGHT_HOURS = 12;
+
+/** Per-person daily needs, in tank percent. Simplified from NASA's life-support baselines. */
+export const OXYGEN_PER_CREW = 3.5;
+export const WATER_PER_CREW = 2;
+export const FOOD_PER_CREW = 2.5;
+
+/** Tuning, in one place. */
+export const SOLAR_KW_PER_ARRAY = 25;
+export const BATTERY_KWH_PER_BANK = 100;
+export const NUCLEAR_KW = 10;
+export const LOAD_KW: Readonly<Record<ModuleKind, number>> = {
+  habitat: 4,
+  'life-support': 8,
   'solar-array': 0,
   batteries: 0,
-  greenhouse: 3,
-  'water-extractor': 3,
-  'radiation-shelter': 0,
-  'extra-solar-array': 0,
-  'extra-batteries': 0,
+  greenhouse: 8,
+  'ice-miner': 6,
+  'regolith-shield': 0,
+  'nuclear-unit': 0,
 };
+export const HEATING_KW_PER_COLD_POINT = 1;
+export const OXYGEN_GENERATED = 14;
+export const WATER_RECYCLING = 0.9;
+export const ELECTROLYSIS_WATER = 3;
+export const GREENHOUSE_FOOD = 12;
+export const GREENHOUSE_WATER = 5;
+export const ICE_WATER_PER_WATER_POINT = 3;
+export const SHIELDING_BASE = 20;
+export const SHIELDING_PER_REGOLITH = 30;
+export const SHIELDING_EROSION = 1;
 
-/** Number of solar arrays (base + extra) in a module list. */
-export function solarArrayCount(modules: readonly ModuleKind[]): number {
-  let count = 0;
-  for (const kind of modules) {
-    if (kind === 'solar-array' || kind === 'extra-solar-array') count += 1;
-  }
-  return count;
-}
-
-/** Number of extra battery sets beyond the first. */
-export function extraBatteryCount(modules: readonly ModuleKind[]): number {
-  let count = 0;
-  for (const kind of modules) {
-    if (kind === 'extra-batteries') count += 1;
-  }
-  return count;
-}
-
-/**
- * Total power draw and generation inputs across every placed module.
- *
- * Returns the power drawn per sol and the number of solar arrays, which the
- * sol step combines with region sun to compute daytime generation.
- */
-export function upkeepFor(modules: readonly ModuleKind[]): {
-  readonly powerDraw: number;
-  readonly solarArrays: number;
-} {
-  let powerDraw = 0;
-  let solarArrays = 0;
-
-  for (const kind of modules) {
-    powerDraw += MODULE_POWER_DRAW[kind];
-    if (kind === 'solar-array' || kind === 'extra-solar-array') {
-      solarArrays += 1;
-    }
-  }
-
-  return { powerDraw, solarArrays };
-}
-
-/**
- * The base build cost of a module, in power, before the terrain multiplier.
- *
- * The first solar array and first battery set are free (they start built);
- * every copy after that, and every other buildable module, costs power paid
- * immediately from the stores.
- */
-export function buildCost(kind: ModuleKind): number {
-  const spec = MODULE_CATALOGUE.find((s) => s.kind === kind);
-  if (!spec) return 0;
-  return spec.buildCost;
-}
-
-/**
- * Build cost after the region's terrain multiplier.
- *
- * Good terrain (5) is 20% cheaper, poor terrain (2) is 10% dearer. Rounded up
- * so a cost is never less than the base cost in the worst case.
- */
-export function adjustedBuildCost(kind: ModuleKind, terrain: number): number {
-  const base = buildCost(kind);
-  const multiplier = 1 + (3 - terrain) * 0.1;
-  return Math.ceil(base * multiplier);
-}
-
-/** How many copies of a kind are already placed. */
-function ownedCount(kind: ModuleKind, modules: readonly ModuleKind[]): number {
-  let owned = 0;
-  for (const m of modules) {
-    if (m === kind) owned += 1;
-  }
-  return owned;
-}
-
-/**
- * Can this module be placed right now?
- *
- * Checks the build cap, whether it is already at cap, and whether the run can
- * afford the immediate power cost after the region terrain multiplier.
- */
-export function canBuild(
-  kind: ModuleKind,
-  modules: readonly ModuleKind[],
-  stores: ResourceStores,
-  terrain = 3,
-): boolean {
-  const spec = MODULE_CATALOGUE.find((s) => s.kind === kind);
-  if (!spec) return false;
-
-  if (ownedCount(kind, modules) >= spec.cap) return false;
-  if (stores.power < adjustedBuildCost(kind, terrain)) return false;
-
-  return true;
-}
-
-/**
- * A preview of what building a module costs and what it changes, for the UI.
- *
- * Returns null when the module is unknown. `affordable` and `underCap` are
- * reported separately so the panel can say exactly why a button is disabled.
- */
-export function buildPreview(
-  kind: ModuleKind,
-  modules: readonly ModuleKind[],
-  stores: ResourceStores,
-  terrain = 3,
-): {
+export interface ModuleSpec {
   readonly kind: ModuleKind;
   readonly name: string;
-  readonly buildCost: number;
-  readonly provides: readonly string[];
-  readonly requires: readonly string[];
-  readonly affordable: boolean;
-  readonly underCap: boolean;
-} | null {
-  const spec = MODULE_CATALOGUE.find((s) => s.kind === kind);
-  if (!spec) return null;
+  readonly emoji: string;
+  /** Build points. Core modules cost nothing: they come with the lander. */
+  readonly cost: number;
+  /** How many of this module can exist in total. */
+  readonly maxCount: number;
+  /** What it gives, in plain words. */
+  readonly gives: string;
+  /** What it asks of everything else, in plain words. */
+  readonly needs: string;
+  /** A site axis that must score at least `min` to build it here. */
+  readonly requires?: { readonly axis: 'water' | 'terrain'; readonly min: number; readonly why: string };
+}
 
-  const underCap = ownedCount(kind, modules) < spec.cap;
-  const buildCostValue = adjustedBuildCost(kind, terrain);
-  const affordable = stores.power >= buildCostValue;
+export const MODULE_CATALOGUE: readonly ModuleSpec[] = [
+  {
+    kind: 'habitat',
+    name: 'Habitat',
+    emoji: '🏠',
+    cost: 0,
+    maxCount: 1,
+    gives: 'Shelter for the crew',
+    needs: `Heating and lights: ${LOAD_KW.habitat} kW, all day and night`,
+  },
+  {
+    kind: 'life-support',
+    name: 'Life Support',
+    emoji: '🫁',
+    cost: 0,
+    maxCount: 1,
+    gives: 'Makes oxygen and recycles 90% of the water',
+    needs: `${LOAD_KW['life-support']} kW, and a little water to split into oxygen`,
+  },
+  {
+    kind: 'solar-array',
+    name: 'Solar Array',
+    emoji: '☀️',
+    cost: 2,
+    maxCount: 4,
+    gives: `${SOLAR_KW_PER_ARRAY} kW while the Sun is up. Nothing at night`,
+    needs: 'Dust storms bury it. Sunlight depends on the site',
+  },
+  {
+    kind: 'batteries',
+    name: 'Battery Bank',
+    emoji: '🔋',
+    cost: 2,
+    maxCount: 4,
+    gives: `Stores ${BATTERY_KWH_PER_BANK} kWh to get through the night`,
+    needs: 'Nothing to run, but it only helps if the panels fill it',
+  },
+  {
+    kind: 'greenhouse',
+    name: 'Greenhouse',
+    emoji: '🌱',
+    cost: 3,
+    maxCount: 1,
+    gives: 'Grows food, so you launch less from Earth',
+    needs: `${LOAD_KW.greenhouse} kW and ${GREENHOUSE_WATER}% of your water every sol`,
+  },
+  {
+    kind: 'ice-miner',
+    name: 'Ice Miner',
+    emoji: '⛏️',
+    cost: 3,
+    maxCount: 1,
+    gives: 'Digs up ice and melts it: new water from the ground',
+    needs: `${LOAD_KW['ice-miner']} kW. Only works where there is ice nearby`,
+    requires: { axis: 'water', min: 3, why: 'There is not enough ice near this site to mine.' },
+  },
+  {
+    kind: 'regolith-shield',
+    name: 'Regolith Shield',
+    emoji: '🛡️',
+    cost: 2,
+    maxCount: 2,
+    gives: `Piles Martian soil over the habitat: +${SHIELDING_PER_REGOLITH} shielding`,
+    needs: 'Needs ground firm enough to pile soil on',
+    requires: { axis: 'terrain', min: 2, why: 'The ground here is too steep to pile soil on safely.' },
+  },
+  {
+    kind: 'nuclear-unit',
+    name: 'Nuclear Power Unit',
+    emoji: '☢️',
+    cost: 4,
+    maxCount: 1,
+    gives: `${NUCLEAR_KW} kW day and night, whatever the weather`,
+    needs: 'Expensive to launch. Why real rovers use it',
+  },
+];
+
+/** The spec for a module. Throws on an unknown kind: that is a programming error. */
+export function specOf(kind: ModuleKind): ModuleSpec {
+  const spec = MODULE_CATALOGUE.find((entry) => entry.kind === kind);
+
+  if (spec === undefined) throw new RangeError(`Unknown module kind: ${kind}`);
+
+  return spec;
+}
+
+
+/** What a set of modules adds up to at one site. Everything the sol step needs. */
+export interface Systems {
+  /** Peak solar output, before site sunlight, dust and panel damage. */
+  readonly solarKw: number;
+  /** 0-1: how much of the peak this site's sun delivers. */
+  readonly sunFactor: number;
+  readonly batteryKwh: number;
+  readonly nuclearKw: number;
+  /** Constant draw, day and night, in kW. */
+  readonly loadKw: number;
+  /** The part of the load that is the greenhouse, so it can be switched off. */
+  readonly greenhouseLoadKw: number;
+  readonly heatingKw: number;
+  readonly oxygenGenerated: number;
+  readonly waterRecycling: number;
+  readonly electrolysisWater: number;
+  readonly foodGrown: number;
+  readonly greenhouseWater: number;
+  readonly iceWater: number;
+  readonly shieldingStart: number;
+  readonly shieldingErosion: number;
+  readonly hasGreenhouse: boolean;
+}
+
+/** How many of one kind are in a list. */
+export function countOf(modules: readonly ModuleKind[], kind: ModuleKind): number {
+  return modules.filter((entry) => entry === kind).length;
+}
+
+/**
+ * Total the effect of every module at this site. Pure and deterministic.
+ *
+ * A module that is not in the list contributes nothing, so an outpost with no
+ * greenhouse really does grow no food. That absence is the first decision.
+ */
+export function systemsFor(modules: readonly ModuleKind[], regionId: string): Systems {
+  const score = siteScore(regionId);
+  const count = (kind: ModuleKind): number => countOf(modules, kind);
+
+  const loadKw = modules.reduce((sum, kind) => sum + LOAD_KW[kind], 0);
+  const heatingKw = (5 - score.temp) * HEATING_KW_PER_COLD_POINT;
+  const hasLifeSupport = count('life-support') > 0;
+  const greenhouses = count('greenhouse');
 
   return {
-    kind: spec.kind,
-    name: spec.name,
-    buildCost: buildCostValue,
-    provides: spec.provides,
-    requires: spec.requires,
-    affordable,
-    underCap,
+    solarKw: count('solar-array') * SOLAR_KW_PER_ARRAY,
+    sunFactor: 0.3 + 0.14 * score.sun,
+    batteryKwh: count('batteries') * BATTERY_KWH_PER_BANK,
+    nuclearKw: count('nuclear-unit') * NUCLEAR_KW,
+    loadKw: loadKw + heatingKw,
+    greenhouseLoadKw: greenhouses * LOAD_KW.greenhouse,
+    heatingKw,
+    oxygenGenerated: hasLifeSupport ? OXYGEN_GENERATED : 0,
+    waterRecycling: hasLifeSupport ? WATER_RECYCLING : 0,
+    electrolysisWater: hasLifeSupport ? ELECTROLYSIS_WATER : 0,
+    foodGrown: greenhouses * GREENHOUSE_FOOD,
+    greenhouseWater: greenhouses * GREENHOUSE_WATER,
+    iceWater: count('ice-miner') * ICE_WATER_PER_WATER_POINT * score.water,
+    shieldingStart: SHIELDING_BASE + count('regolith-shield') * SHIELDING_PER_REGOLITH,
+    shieldingErosion: SHIELDING_EROSION,
+    hasGreenhouse: greenhouses > 0,
   };
+}
+
+/** The modules beyond the four the lander brings: the ones the player chose. */
+export function extrasOf(modules: readonly ModuleKind[]): readonly ModuleKind[] {
+  const core = [...CORE_MODULES];
+  const extras: ModuleKind[] = [];
+
+  for (const kind of modules) {
+    const index = core.indexOf(kind);
+
+    if (index >= 0) core.splice(index, 1);
+    else extras.push(kind);
+  }
+
+  return extras;
+}
+
+/** Build points spent on everything that is not a core module. */
+export function pointsSpent(modules: readonly ModuleKind[]): number {
+  return extrasOf(modules).reduce((sum, kind) => sum + specOf(kind).cost, 0);
+}
+
+/** How many extra modules a site's terrain lets the crew build: flat ground, more room. */
+export function extraSlots(regionId: string): number {
+  return siteScore(regionId).terrain + 3;
+}
+
+/** Modules beyond the four core ones. */
+export function extraModuleCount(modules: readonly ModuleKind[]): number {
+  return extrasOf(modules).length;
 }

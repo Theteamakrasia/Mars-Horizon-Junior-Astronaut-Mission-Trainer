@@ -745,131 +745,13 @@
       </div>
     </section>
 
-    <!-- The outpost: place modules between sols. Reached from landing-site.
-    
-         Every element base/view.ts queries carries a data-hook below.
-         scripts/check-markup.mjs fails the build if one is removed. -->
-    <section id="base" class="base" aria-labelledby="base-title">
-      <header class="base__header">
-        <div class="base__brand">
-          <span class="base__brand-mark" aria-hidden="true">&#128640;</span>
-          <span class="base__brand-text">
-            <span class="base__brand-name">MARS HORIZON</span>
-            <span class="base__brand-sub">OUTPOST</span>
-          </span>
-        </div>
-        <nav class="base__nav" aria-label="Primary">Mission Control / Main Menu</nav>
-      </header>
-
-      <div class="base__body">
-        <div class="base__outpost">
-          <h2 class="base__outpost-title" id="base-title">Outpost</h2>
-          <ul class="base__modules" data-base-modules></ul>
-        </div>
-
-        <div class="base__resources">
-          <h2 class="base__resources-title">Life Support and Resources</h2>
-          <div class="base__store-list" data-base-stores></div>
-        </div>
-
-        <div class="base__build">
-          <div class="base__build-panel" data-base-build></div>
-          <!-- Placeholder so check-markup finds the dynamically-added build
-               buttons inside #base. The view clones this shape per module. -->
-          <button type="button" class="base__build-button" data-base-build-action="" hidden></button>
-        </div>
-      </div>
-
-      <div class="base__warning" data-base-warning hidden>
-        <span class="base__warning-tag">Estimated</span>
-        <span class="base__warning-text"></span>
-      </div>
-
-      <div class="base__actions">
-        <p class="base__name" data-base-name>Astronaut</p>
-        <button class="base__button base__button--start" type="button" data-base-start>
-          Start sols
-        </button>
-        <button class="base__button base__button--back" type="button" data-base-back>
-          Back to landing site
-        </button>
-      </div>
-    </section>
-
-    <!-- Advance one sol, then resolve the outcome. Reached from base. -->
-    <section id="act" class="act" aria-label="Sol control">
-      <header class="act__header">
-        <div class="act__brand">
-          <span class="act__brand-mark" aria-hidden="true">&#128640;</span>
-          <span class="act__brand-text">
-            <span class="act__brand-name">MARS HORIZON</span>
-            <span class="act__brand-sub">SOL CONTROL</span>
-          </span>
-        </div>
-        <nav class="act__nav" aria-label="Primary">Mission Control / Main Menu</nav>
-      </header>
-
-      <div class="act__body">
-        <div class="act__scene">
-          <h2 class="act__scene-title">Sol <span data-act-sol>0</span></h2>
-          <div class="act__phase" data-act-phase="day"></div>
-        </div>
-
-        <div class="act__surplus">
-          <h2 class="act__surplus-title">Power Surplus</h2>
-          <div class="act__surplus-steps" data-act-surplus></div>
-        </div>
-
-        <div class="act__conditions">
-          <h2 class="act__conditions-title">Location Conditions</h2>
-          <ul class="act__condition-list" data-act-conditions></ul>
-        </div>
-
-        <div class="act__events">
-          <h2 class="act__events-title">Events</h2>
-          <ul class="act__event-list" data-act-events></ul>
-        </div>
-      </div>
-
-      <div class="act__actions">
-        <button class="act__button act__button--advance" type="button" data-act-advance>
-          Advance sol
-        </button>
-        <button class="act__button act__button--back" type="button" data-act-back>
-          Back to base
-        </button>
-      </div>
-    </section>
-
-    <!-- Explain why the run was won or lost. Reached from act when the run ends. -->
-    <section id="debrief" class="debrief" aria-label="Debrief">
-      <header class="debrief__header">
-        <div class="debrief__brand">
-          <span class="debrief__brand-mark" aria-hidden="true">&#128640;</span>
-          <span class="debrief__brand-text">
-            <span class="debrief__brand-name">MARS HORIZON</span>
-            <span class="debrief__brand-sub">DEBRIEF</span>
-          </span>
-        </div>
-        <nav class="debrief__nav" aria-label="Primary">Mission Control / Main Menu</nav>
-      </header>
-
-      <div class="debrief__body">
-        <div class="debrief__outcome" data-debrief-outcome></div>
-
-        <div class="debrief__timeline" data-debrief-timeline></div>
-
-        <div class="debrief__summary" data-debrief-summary></div>
-
-        <div class="debrief__lesson" data-debrief-lesson></div>
-      </div>
-
-      <div class="debrief__actions">
-        <button class="debrief__button debrief__button--back" type="button" data-debrief-back>
-          Fly again
-        </button>
-      </div>
-    </section>
+    <!-- Post-landing screens. NASA's base/act/debrief views build their own DOM
+         from scratch, so these mount points are empty on purpose. Reached from
+         landing-site: base (build, then land) -> act (one sol per press) ->
+         debrief (why the run ended). -->
+    <section id="base" aria-label="Build your outpost" hidden></section>
+    <section id="act" aria-label="Run the outpost" hidden></section>
+    <section id="debrief" aria-label="Mission debrief" hidden></section>
 
     <script type="module" src="/src/main.ts"></script>
   </body>

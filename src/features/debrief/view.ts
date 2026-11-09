@@ -1,213 +1,140 @@
 /**
- * `debrief/` view: explain why the run was won or lost.
+ * The debrief: why the run ended, what was solved early, what caught the player
+ * out, and a timeline to check the game's reasoning against.
  *
- * Owns the DOM only. Attribution lives in ./model.ts. Never imports `base/`
- * or `act/` (R-5).
- *
- * What the screen shows:
- * - The outcome headline and detail (won or lost, never "you failed")
- * - A sol-by-sol timeline of the five stores, drawn with CSS bars
- * - Resources used, and weather damage that preparation could have reduced
- * - The real cause, attributed from ledger changes, with a confidence note
- * - An honesty note: the weather is baked in, not a live NASA feed (D-033)
- * - A way back to replay (navigate to `landing-site` to land again)
- *
- * R-20: no game-over screen that just says "you failed." A losing run gets a
- * debrief explaining the actual cause. Failures cost resources, never a life.
- *
- * Accessibility: keyboard operable, every bar has a text label, no `on*`
- * inline handlers.
- *
- * Styles go in ./debrief.css, imported here (AGENTS.md R-15).
+ * Owns the DOM only. The reasoning is in ./model and refuses to sound sure when it
+ * is not. A run never ends on a bare failure message: it ends here, with a reason.
  */
 
-import { type RunState } from '../../sim/run';
-import type { ResourceStores } from '../../sim/resources';
+import { lastDetail, lastSource } from '../../data/spaceweather';
+import { clear, h } from '../../dom/h';
+import { newRun, type RunState } from '../../sim/run';
 import { navigate } from '../../ui/router';
 
-import {
-  explainOutcome,
-  consumptionSummary,
-  type ConsumptionSummary,
-  type Explanation,
-} from './model';
-
+import '../../styles/game.css';
 import './debrief.css';
 
-function require<T extends HTMLElement>(root: HTMLElement, selector: string): T {
-  const element = root.querySelector<T>(selector);
+import { consumptionSummary, explainOutcome, lowestPoints, reviewDecisions, timeline, usedApproximateData } from './model';
 
-  if (!element) {
-    throw new Error(`debrief: missing required element ${selector}`);
+const VERDICT_TEXT = { solved: 'Solved early', caught: 'Caught you out', mixed: 'A trade-off' } as const;
+const VERDICT_TONE = { solved: 'gx__tone-ok', caught: 'gx__tone-bad', mixed: 'gx__tone-warn' } as const;
+
+export function mountDebrief(
+  mount: HTMLElement,
+  run: RunState | null,
+  setRun: (next: RunState | null) => void,
+): () => void {
+  mount.classList.add('gx', 'debrief');
+
+  function again(): void {
+    setRun(newRun('', run?.astronautName ?? 'Astronaut'));
+    navigate('landing-site');
   }
 
-  return element;
-}
+  if (run === null || run.log.length === 0) {
+    const button = h('button', { class: 'gx__btn gx__btn--primary', type: 'button' }, 'Start a mission');
 
-/** The five stores, in panel order. */
-const STORE_ORDER: ReadonlyArray<{
-  key: keyof ResourceStores;
-  label: string;
-}> = [
-  { key: 'power', label: 'Power' },
-  { key: 'oxygen', label: 'Oxygen' },
-  { key: 'water', label: 'Water' },
-  { key: 'food', label: 'Food' },
-  { key: 'shielding', label: 'Shielding' },
-];
+    button.addEventListener('click', again);
+    mount.replaceChildren(h('header', { class: 'gx__top' }, h('h1', { class: 'gx__title', text: 'Nothing to debrief yet' })), h('p', { text: 'Play at least one sol first.' }), h('div', null, button));
 
-/**
- * Mount the screen into `root` and return a teardown.
- *
- * `run` is null when opened directly by hash; fall back to an empty run so the
- * screen still renders rather than throwing.
- */
-export function mountDebrief(
-  root: HTMLElement,
-  run: RunState | null,
-  _setRun: (_next: RunState | null) => void,
-): () => void {
-  const current = run ?? newEmptyRun();
+    return () => {
+      mount.classList.remove('gx', 'debrief');
+      mount.replaceChildren();
+    };
+  }
 
-  const outcomePanel = require<HTMLElement>(root, '[data-debrief-outcome]');
-  const timelinePanel = require<HTMLElement>(root, '[data-debrief-timeline]');
-  const summaryPanel = require<HTMLElement>(root, '[data-debrief-summary]');
-  const lessonPanel = require<HTMLElement>(root, '[data-debrief-lesson]');
-  const backButton = require<HTMLButtonElement>(root, '[data-debrief-back]');
+  const explanation = explainOutcome(run);
+  const totals = consumptionSummary(run);
+  const lows = lowestPoints(run);
+  const reviews = reviewDecisions(run);
 
-  const cleanups: Array<() => void> = [];
+  const banner = h(
+    'section',
+    { class: 'gx__panel debrief__banner', 'data-status': run.status, 'aria-live': 'polite' },
+    h('p', { class: 'gx__kicker', text: run.status === 'won' ? 'Mission complete' : 'Mission ended: debrief' }),
+    h('h1', { class: 'gx__title', text: explanation.headline }),
+    h('p', { text: explanation.detail }),
+    explanation.confident ? null : h('p', { class: 'gx__note', text: 'The game is not sure about this one. The timeline below shows every sol so you can work out the cause yourself.' }),
+  );
 
-  const explanation = explainOutcome(current, []);
-  const summary = consumptionSummary(current, []);
+  const stats = h('section', { class: 'gx__panel' }, h('h2', { class: 'gx__h', text: 'What you used, what you wasted' }));
+  const list = h('dl', { class: 'debrief__stats' });
+  const rows: readonly (readonly [string, string])[] = [
+    ['Sols played', String(totals.sols)],
+    ['Crew breathed', `${totals.crewOxygen} oxygen`],
+    ['Crew drank', `${totals.crewWater} water`],
+    ['Crew ate', `${totals.crewFood} food`],
+    ['Power made', `${totals.powerGenerated} kWh`],
+    ['Power wasted', `${totals.powerWasted} kWh (batteries were full)`],
+    ['Sols with a blackout', String(totals.blackoutSols)],
+    ['Thinnest margins', `air ${lows.oxygen}, water ${lows.water}, food ${lows.food}, shield ${lows.shielding}`],
+  ];
 
-  renderOutcome(outcomePanel, explanation, current);
-  renderTimeline(timelinePanel, current);
-  renderSummary(summaryPanel, summary);
-  renderLesson(lessonPanel, explanation, current);
+  for (const [label, value] of rows) list.append(h('dt', { text: label }), h('dd', { text: value }));
+  stats.append(list);
 
-  const onBack = (): void => {
-    // Replay from the landing-site choice. The run keeps the astronaut's name;
-    // `landAt` resets stores, sol, modules and ledger on the next landing.
-    navigate('landing-site');
-  };
+  const review = h('section', { class: 'gx__panel' }, h('h2', { class: 'gx__h', text: 'Your decisions' }));
 
-  backButton.addEventListener('click', onBack);
-  cleanups.push(() => backButton.removeEventListener('click', onBack));
+  if (reviews.length === 0) review.append(h('p', { text: 'No crisis came up before the run ended.' }));
+
+  for (const entry of reviews) {
+    review.append(
+      h(
+        'div',
+        { class: 'debrief__review' },
+        h('span', { class: `debrief__verdict ${VERDICT_TONE[entry.verdict]}`, text: VERDICT_TEXT[entry.verdict] }),
+        h('p', null, h('strong', { text: `Sol ${entry.sol}: ${entry.title}. ` }), `You chose: ${entry.chose}${entry.timedOut ? ' (the clock ran out)' : ''}.`),
+        h('p', { text: entry.why }),
+        h('p', { class: 'gx__note', text: `The real science: ${entry.science}` }),
+      ),
+    );
+  }
+
+  const table = h('table', { class: 'debrief__table' });
+
+  table.append(h('thead', null, h('tr', null, ...['Sol', 'Power', 'Air', 'Water', 'Food', 'Shield', 'What happened'].map((title) => h('th', { scope: 'col', text: title })))));
+
+  const body = h('tbody');
+
+  for (const row of timeline(run)) {
+    body.append(
+      h(
+        'tr',
+        null,
+        h('td', { text: String(row.sol) }),
+        h('td', { text: String(Math.round(row.stores.power)) }),
+        h('td', { text: String(Math.round(row.stores.oxygen)) }),
+        h('td', { text: String(Math.round(row.stores.water)) }),
+        h('td', { text: String(Math.round(row.stores.food)) }),
+        h('td', { text: String(Math.round(row.stores.shielding)) }),
+        h('td', { text: [row.headline, ...row.notes].join(' ') }),
+      ),
+    );
+  }
+
+  table.append(body);
+
+  const timelinePanel = h('section', { class: 'gx__panel' }, h('h2', { class: 'gx__h', text: 'Timeline' }), h('div', { class: 'debrief__table-wrap' }, table));
+
+  const honesty = h(
+    'section',
+    { class: 'gx__panel' },
+    h('h2', { class: 'gx__h', text: 'How real is this?' }),
+    h('p', { text: `Flare sizes: ${lastDetail()}${lastSource() === 'fallback' || usedApproximateData(run) ? ' They are marked approximate.' : ''}` }),
+    h('p', { class: 'gx__note', text: 'Everything else is a simplified model. The numbers are made up to teach the idea, not copied from a real mission. The real Earth-Mars radio delay is 3 to 22 minutes; the game uses a simple stand-in.' }),
+  );
+
+  const replay = h('button', { class: 'gx__btn gx__btn--primary', type: 'button' }, 'Try a different outpost');
+  const menu = h('button', { class: 'gx__btn', type: 'button' }, 'Main menu');
+
+  replay.addEventListener('click', again);
+  menu.addEventListener('click', () => navigate('naming'));
+
+  clear(mount);
+  mount.append(banner, h('div', { class: 'debrief__cols' }, stats, review), timelinePanel, honesty, h('div', { class: 'debrief__actions' }, replay, menu));
 
   return () => {
-    for (const cleanup of cleanups) {
-      cleanup();
-    }
-  };
-
-  // ---- rendering --------------------------------------------------------
-
-  function renderOutcome(
-    panel: HTMLElement,
-    explanation: Explanation,
-    state: RunState,
-  ): void {
-    const won = state.status === 'won';
-    panel.classList.toggle('debrief__outcome--won', won);
-    panel.classList.toggle('debrief__outcome--lost', !won);
-
-    panel.innerHTML = `
-      <h2 class="debrief__headline">${won ? 'Mission complete.' : 'The mission ended.'}</h2>
-      <p class="debrief__detail">${explanation.detail}</p>
-      <p class="debrief__confidence">
-        ${explanation.confident ? 'The game is confident about this cause.' : 'The game is not certain — read the timeline and decide for yourself.'}
-      </p>
-    `;
-  }
-
-  function renderTimeline(panel: HTMLElement, state: RunState): void {
-    const entries = state.ledger;
-
-    if (entries.length === 0) {
-      panel.innerHTML =
-        '<div class="debrief__timeline-empty">No sols were completed.</div>';
-      return;
-    }
-
-    panel.innerHTML = `
-      <h3 class="debrief__section-title">Sol by sol</h3>
-      <ul class="debrief__timeline">
-        ${entries.map((entry) => renderSol(entry.sol, entry.stores)).join('')}
-      </ul>
-      <p class="debrief__note">
-        Space-weather events are estimated from baked-in data, not a live NASA feed.
-      </p>
-    `;
-  }
-
-  function renderSol(sol: number, stores: ResourceStores): string {
-    const bars = STORE_ORDER.map(({ key, label }) => {
-      const value = Math.max(0, Math.min(100, stores[key]));
-      return `
-        <span class="debrief__bar debrief__bar--${key}" style="--value: ${value}" title="${label} ${value}%">
-          <span class="debrief__bar-fill"></span>
-        </span>
-      `;
-    }).join('');
-
-    return `
-      <li class="debrief__timeline-sol">
-        <span class="debrief__timeline-sol-label">Sol ${sol}</span>
-        <span class="debrief__bars" aria-label="Sol ${sol} stores">${bars}</span>
-        <span class="debrief__timeline-sol-values">
-          ${STORE_ORDER.map(({ key, label }) => `${label} ${stores[key]}%`).join(' · ')}
-        </span>
-      </li>
-    `;
-  }
-
-  function renderSummary(
-    panel: HTMLElement,
-    summary: ConsumptionSummary,
-  ): void {
-    panel.innerHTML = `
-      <h3 class="debrief__section-title">Resources</h3>
-      <div class="debrief__summary-row">
-        <span class="debrief__summary-label">Total used</span>
-        <span class="debrief__summary-value">${summary.used}</span>
-      </div>
-      <div class="debrief__summary-row">
-        <span class="debrief__summary-label">Lost to weather</span>
-        <span class="debrief__summary-value">${summary.wasted}</span>
-      </div>
-      <p class="debrief__note">
-        Weather damage is what a radiation shelter or more power would have absorbed.
-      </p>
-    `;
-  }
-
-  function renderLesson(
-    panel: HTMLElement,
-    explanation: Explanation,
-    state: RunState,
-  ): void {
-    const won = state.status === 'won';
-    const modules = state.modules.join(', ') || 'none';
-
-    panel.innerHTML = `
-      <h3 class="debrief__section-title">${won ? 'Self-sustaining outpost' : 'What to try next time'}</h3>
-      <p class="debrief__lesson-cause">${explanation.headline}</p>
-      <p class="debrief__lesson-detail">${explanation.detail}</p>
-      <p class="debrief__lesson-modules">
-        Modules on the outpost: ${modules}.
-      </p>
-    `;
-  }
-}
-
-function newEmptyRun(): RunState {
-  return {
-    sol: 0,
-    regionId: '',
-    astronautName: '',
-    stores: { power: 0, oxygen: 0, water: 0, food: 0, shielding: 0 },
-    status: 'active',
-    modules: [],
-    ledger: [],
+    mount.classList.remove('gx', 'debrief');
+    mount.replaceChildren();
   };
 }

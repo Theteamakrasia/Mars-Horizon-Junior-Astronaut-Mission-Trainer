@@ -1,203 +1,147 @@
 import { describe, expect, it } from 'vitest';
 
-import { explainOutcome, consumptionSummary } from './model';
-import { newRun } from '../../sim/run';
-import type { ModuleKind } from '../../sim/modules';
-import type { StoreChange } from '../../sim/resources';
-import type { ResourceStores } from '../../sim/resources';
+import { pendingCrisis } from '../../sim/crises';
+import { createForecast } from '../../sim/forecast';
+import { CORE_MODULES, type ModuleKind } from '../../sim/modules';
+import { newRun, startOutpost, withState, type RunState } from '../../sim/run';
+import { advanceSol, decide } from '../../sim/sol';
+import { blackoutSols, consumptionSummary, explainOutcome, lowestPoints, reviewDecisions, timeline, usedApproximateData } from './model';
 
-interface Change {
-  readonly sol: number;
-  readonly store: StoreChange['store'];
-  readonly cause: string;
-  readonly delta: number;
+const FLARES = [
+  { classType: 'X5.8', approximate: true, when: 'in a test' },
+  { classType: 'X5.8', approximate: true, when: 'in a test' },
+];
+
+function playOut(extras: readonly ModuleKind[], picks: Record<string, string>, flares = FLARES): RunState {
+  let run = startOutpost(withState(newRun('jezero', 'Test'), { forecast: createForecast(flares) }), [...CORE_MODULES, ...extras]);
+
+  while (run.status === 'active') {
+    const crisis = pendingCrisis(run);
+
+    if (crisis !== null) run = decide(run, crisis.id, picks[crisis.kind] ?? crisis.defaultOptionId);
+    run = advanceSol(run);
+  }
+
+  return run;
 }
 
-function runWith(
-  status: 'active' | 'lost' | 'won',
-  stores: ResourceStores,
-  modules: readonly ModuleKind[] = [],
-  changes: readonly Change[] = [],
-) {
-  const ledger = Array.from({ length: 3 }, (_, i) => {
-    const sol = i + 1;
-    const atSol = changes.filter((c) => c.sol === sol);
-    return {
-      sol,
-      stores,
-      changes: atSol.map<StoreChange>((c) => ({
-        store: c.store,
-        cause: c.cause,
-        delta: c.delta,
-      })),
-    };
-  });
-
-  return {
-    ...newRun('jezero', 'Riley'),
-    sol: 10,
-    status,
-    stores,
-    modules,
-    ledger,
-  };
-}
+const SMART = { flare: 'shelter', storm: 'retract-save', 'supply-pod': 'water' };
+const SOLAR: readonly ModuleKind[] = ['solar-array', 'solar-array', 'batteries', 'batteries', 'greenhouse', 'regolith-shield'];
 
 describe('explainOutcome', () => {
-  it('reports a win confidently', () => {
-    const run = runWith('won', {
-      power: 40,
-      oxygen: 90,
-      water: 80,
-      food: 70,
-      shielding: 30,
+  it('praises a win without claiming the outpost is self-sustaining when it is not', () => {
+    const run = playOut(SOLAR, SMART);
+
+    expect(run.status).toBe('won');
+    expect(explainOutcome(run).headline).toContain('all 12 sols');
+    expect(explainOutcome(run).detail).toContain('reserves');
+  });
+
+  it('blames the missing greenhouse for a food loss, and is confident because it is a logged fact', () => {
+    const run = playOut(['solar-array', 'solar-array', 'batteries', 'batteries', 'regolith-shield'], SMART);
+    const explanation = explainOutcome(run);
+
+    expect(run.status).toBe('lost');
+    expect(explanation.headline).toContain('food');
+    expect(explanation.detail).toContain('greenhouse');
+    expect(explanation.confident).toBe(true);
+  });
+
+  it('blames carrying on during a flare for a shielding loss, and says what was built', () => {
+    const run = playOut(['solar-array', 'batteries', 'greenhouse'], { ...SMART, flare: 'carry-on' });
+    const explanation = explainOutcome(run);
+
+    expect(explanation.headline).toContain('shielding');
+    expect(explanation.detail).toContain('carry on working');
+    expect(explanation.detail).toContain('no regolith shield');
+    expect(explanation.detail).toMatch(/shield that was at \d+ out of 100/);
+    expect(explanation.confident).toBe(true);
+  });
+
+  it('says when the clock ran out and the choice was made for the player', () => {
+    let run = startOutpost(withState(newRun('jezero', 'T'), { forecast: createForecast(FLARES) }), [...CORE_MODULES, 'greenhouse']);
+
+    while (run.status === 'active') {
+      const crisis = pendingCrisis(run);
+
+      if (crisis !== null) run = decide(run, crisis.id, crisis.defaultOptionId, true);
+      run = advanceSol(run);
+    }
+
+    expect(explainOutcome(run).detail).toContain('the clock ran out');
+  });
+
+  it('refuses to guess when no rule matches: not confident, and points at the timeline', () => {
+    const calm = playOut(SOLAR, SMART);
+    const odd = withState(calm, {
+      status: 'lost',
+      log: calm.log.map((record) => ({ ...record, blackout: 0 })),
+      stores: { power: 50, oxygen: 0, water: 50, food: 50, shielding: 50 },
     });
-    const out = explainOutcome(run, []);
-    expect(out.headline).toBe('Mission complete.');
-    expect(out.confident).toBe(true);
-    expect(out.detail).toContain('reached sol 10');
+    const explanation = explainOutcome(odd);
+
+    expect(explanation.confident).toBe(false);
+    expect(explanation.detail).toContain('timeline');
   });
 
-  it('attributes power loss to the storm when storm damage is in the ledger', () => {
-    const run = runWith(
-      'lost',
-      { power: 0, oxygen: 100, water: 100, food: 100, shielding: 100 },
-      [],
-      [{ sol: 3, store: 'power', cause: 'storm', delta: -20 }],
-    );
-    const out = explainOutcome(run, []);
-    expect(out.confident).toBe(true);
-    expect(out.detail).toContain('storm');
-  });
+  it('never tells a player they merely failed', () => {
+    for (const run of [playOut([], SMART), playOut(SOLAR, SMART)]) {
+      const text = `${explainOutcome(run).headline} ${explainOutcome(run).detail}`.toLowerCase();
 
-  it('attributes power loss to night drain when no storm hit', () => {
-    const run = runWith(
-      'lost',
-      { power: 0, oxygen: 100, water: 100, food: 100, shielding: 100 },
-      [],
-      [{ sol: 3, store: 'power', cause: 'night-drain', delta: -10 }],
-    );
-    const out = explainOutcome(run, []);
-    expect(out.confident).toBe(true);
-    expect(out.detail).toContain('Night');
-  });
-
-  it('attributes shielding loss to storms/flares', () => {
-    const run = runWith(
-      'lost',
-      { power: 50, oxygen: 100, water: 100, food: 100, shielding: 0 },
-      [],
-      [{ sol: 3, store: 'shielding', cause: 'storm', delta: -8 }],
-    );
-    const out = explainOutcome(run, []);
-    expect(out.confident).toBe(true);
-    expect(out.detail).toContain('radiation shelter');
-  });
-
-  it('attributes water loss to no extractor', () => {
-    const run = runWith(
-      'lost',
-      { power: 50, oxygen: 100, water: 0, food: 100, shielding: 100 },
-      [],
-      [{ sol: 3, store: 'water', cause: 'crew', delta: -12 }],
-    );
-    const out = explainOutcome(run, []);
-    expect(out.confident).toBe(true);
-    expect(out.detail).toContain('extractor');
-  });
-
-  it('attributes food loss to no greenhouse', () => {
-    const run = runWith('lost', {
-      power: 50,
-      oxygen: 100,
-      water: 100,
-      food: 0,
-      shielding: 100,
-    });
-    const out = explainOutcome(run, []);
-    expect(out.confident).toBe(true);
-    expect(out.detail).toContain('greenhouse');
-  });
-
-  it('attributes oxygen loss to no life support', () => {
-    const run = runWith('lost', {
-      power: 50,
-      oxygen: 0,
-      water: 100,
-      food: 100,
-      shielding: 100,
-    });
-    const out = explainOutcome(run, []);
-    expect(out.confident).toBe(true);
-    expect(out.detail).toContain('life support');
-  });
-
-  it('is not confident when no store reached zero', () => {
-    const run = runWith('lost', {
-      power: 1,
-      oxygen: 1,
-      water: 1,
-      food: 1,
-      shielding: 1,
-    });
-    const out = explainOutcome(run, []);
-    expect(out.confident).toBe(false);
-  });
-
-  it('is not confident when two causes split the loss evenly', () => {
-    const run = runWith(
-      'lost',
-      { power: 0, oxygen: 100, water: 100, food: 100, shielding: 100 },
-      [],
-      [
-        { sol: 3, store: 'power', cause: 'night-drain', delta: -10 },
-        { sol: 3, store: 'power', cause: 'storm', delta: -10 },
-      ],
-    );
-    const out = explainOutcome(run, []);
-    expect(out.confident).toBe(false);
-  });
-
-  it('is confident when one cause is more than half the loss', () => {
-    const run = runWith(
-      'lost',
-      { power: 0, oxygen: 100, water: 100, food: 100, shielding: 100 },
-      [],
-      [
-        { sol: 3, store: 'power', cause: 'night-drain', delta: -18 },
-        { sol: 3, store: 'power', cause: 'storm', delta: -4 },
-      ],
-    );
-    const out = explainOutcome(run, []);
-    expect(out.confident).toBe(true);
-    expect(out.detail).toContain('Night');
+      expect(text).not.toContain('you failed');
+      expect(text).not.toContain('game over');
+      expect(text).not.toContain('dead');
+      expect(text).not.toContain('die');
+    }
   });
 });
 
-describe('consumptionSummary', () => {
-  it('sums negative deltas from the ledger', () => {
-    const run = runWith(
-      'lost',
-      { power: 40, oxygen: 90, water: 80, food: 70, shielding: 30 },
-      [],
-      [
-        { sol: 1, store: 'power', cause: 'night-drain', delta: -10 },
-        { sol: 2, store: 'food', cause: 'crew', delta: -6 },
-      ],
-    );
-    const out = consumptionSummary(run, []);
-    expect(out.used).toBe(16);
+describe('the rest of the debrief', () => {
+  it('totals what was used and wasted over the whole log', () => {
+    const run = playOut(SOLAR, SMART);
+    const summary = consumptionSummary(run);
+
+    expect(summary.sols).toBe(12);
+    expect(summary.crewFood).toBe(Math.round(12 * 10));
+    expect(summary.powerGenerated).toBeGreaterThan(0);
   });
 
-  it('returns zero when nothing was drained', () => {
-    const run = runWith('lost', {
-      power: 50,
-      oxygen: 100,
-      water: 90,
-      food: 80,
-      shielding: 20,
-    });
-    const out = consumptionSummary(run, []);
-    expect(out.used).toBe(0);
+  it('lists the sols with a blackout', () => {
+    expect(blackoutSols(playOut([], SMART)).length).toBeGreaterThan(0);
+  });
+
+  it('reviews each decision, calling carrying on through a flare a catch and sheltering a solve', () => {
+    const caught = reviewDecisions(playOut(SOLAR, { ...SMART, flare: 'carry-on' }));
+    const solved = reviewDecisions(playOut(SOLAR, SMART));
+
+    expect(caught.find((review) => review.title.includes('flare'))?.verdict).toBe('caught');
+    expect(solved.find((review) => review.title.includes('flare'))?.verdict).toBe('solved');
+  });
+
+  it('gives a verdict from the choice, not from whether the run happened to be won', () => {
+    const run = playOut(SOLAR, { ...SMART, flare: 'carry-on' });
+    const verdicts = reviewDecisions(run).filter((review) => review.title.includes('flare')).map((review) => review.verdict);
+
+    expect(run.status === 'won' || run.status === 'lost').toBe(true);
+    expect(verdicts.every((verdict) => verdict === 'caught')).toBe(true);
+  });
+
+  it('writes one timeline row per sol played', () => {
+    const run = playOut(SOLAR, SMART);
+
+    expect(timeline(run)).toHaveLength(12);
+    expect(timeline(run)[0].sol).toBe(1);
+  });
+
+  it('finds the thinnest margin for each store', () => {
+    const low = lowestPoints(playOut(SOLAR, SMART));
+
+    expect(low.shielding).toBeLessThan(50);
+    expect(low.oxygen).toBeGreaterThan(0);
+  });
+
+  it('reports when flare sizes came from fallback data, so the screen can say so', () => {
+    expect(usedApproximateData(playOut(SOLAR, SMART))).toBe(true);
+    expect(usedApproximateData(playOut(SOLAR, SMART, [{ classType: 'M1.0', approximate: false, when: 'today' }]))).toBe(false);
   });
 });

@@ -1,130 +1,140 @@
 /**
- * RunState is the only thing shared between screens. main.ts owns it and
- * passes it down; features must never import each other to get it (R-5).
+ * RunState is the only thing shared between screens. `main.ts` owns it and passes
+ * it down; features must never import each other to get it (`npm run check`
+ * fails that as `cross-feature`).
  *
  * There is no persistence in this project, so a RunState lives only as long as
  * the page does. Supabase is deferred — see decision D-003.
  */
 
-import type { ResourceStores } from './resources';
-import type { ModuleKind } from './modules';
-import { adjustedBuildCost, canBuild, STARTING_MODULES } from './modules';
-import type { LedgerEntry } from './sol';
-import { clampStore, EXTRA_BATTERY_CHARGE, regionAdjustedStores } from './constants';
-import { REGIONS } from './regions';
+import type { ForecastEvent } from './forecast';
+import { type ModuleKind, systemsFor } from './modules';
+import { createInitialStores, type ResourceStores } from './resources';
 
 /** A run is active, or ended one way or the other. No third state. */
 export type RunStatus = 'active' | 'lost' | 'won';
 
 /**
- * Everything a screen needs, and nothing it does not.
+ * Something that happened on a sol, shown in the timeline.
  *
- * `regionId` is set by the `landing-site` screen via `landAt`. `astronautName`
- * is set by the `naming` menu — in memory only, so a refresh loses it (D-003,
- * no persistence).
- *
- * `modules` are the placed outpost modules; `ledger` is the per-sol history
- * the debrief reasons over.
+ * `approximate` is required rather than optional on purpose: the README promises
+ * the player is told when a number is an estimate. Making it impossible to omit
+ * is cheaper than remembering to.
  */
+export interface SolEvent {
+  readonly sol: number;
+  readonly kind: 'storm' | 'supply-pod' | 'mission' | 'anomaly' | 'flare';
+  readonly summary: string;
+  readonly approximate: boolean;
+}
+
+/** A choice the player made in a crisis. */
+export interface DecisionRecord {
+  readonly sol: number;
+  readonly crisisId: string;
+  readonly optionId: string;
+  /** True when the countdown ran out and the default was applied. */
+  readonly timedOut: boolean;
+}
+
+/** What one sol did, kept so the debrief can reason over the whole run. */
+export interface SolRecord {
+  readonly sol: number;
+  /** Stores at the end of the sol, after clamping. */
+  readonly stores: ResourceStores;
+  /** The unclamped change this sol: where each store was heading. */
+  readonly net: ResourceStores;
+  readonly powerGenerated: number;
+  readonly powerUsed: number;
+  /** Power the panels made that had nowhere to go because the batteries were full. */
+  readonly powerWasted: number;
+  /** 0-1: the share of the sol's power demand that could not be met. */
+  readonly blackout: number;
+  readonly greenhousePaused: boolean;
+  /** What the crew breathed, drank and ate this sol. */
+  readonly used: { readonly oxygen: number; readonly water: number; readonly food: number };
+  readonly events: readonly SolEvent[];
+  /** Plain-language things worth knowing about this sol. */
+  readonly notes: readonly string[];
+}
+
+/** Everything a screen needs, and nothing it does not. */
 export interface RunState {
   readonly sol: number;
+  /** Set by `landing-site`. Empty until then. */
   readonly regionId: string;
+  /** Set by `naming`. In memory only, so a refresh loses it (D-003). */
   readonly astronautName: string;
   readonly stores: ResourceStores;
   readonly status: RunStatus;
+  /** Set by `base`: every module on the surface, core ones included. */
   readonly modules: readonly ModuleKind[];
-  readonly ledger: readonly LedgerEntry[];
-}
-
-/** Scores for an unknown region — neutral defaults. */
-const UNKNOWN_REGION_SCORES = {
-  water: 3,
-  sun: 3,
-  terrain: 3,
-  dust: 3,
-  temp: 3,
-};
-
-function regionScores(regionId: string) {
-  const region = REGIONS.find((r) => r.id === regionId);
-  return region ? region.scores : UNKNOWN_REGION_SCORES;
+  /** 0-1: how much of the panels' output survives. Dust damage lowers it for good. */
+  readonly panelHealth: number;
+  readonly forecast: readonly ForecastEvent[];
+  readonly log: readonly SolRecord[];
+  readonly decisions: readonly DecisionRecord[];
 }
 
 /**
- * Begin a run in the chosen region. Called once, from main.ts or from
- * `landAt` when the player picks a site.
+ * Begin a run. Called once, from `naming`.
  *
- * Sol starts at 0, meaning "arrived, nothing done yet", so the first advance
- * is sol 1. Starting stores are adjusted by the region's water score.
+ * Sol starts at 0, meaning "arrived, nothing done yet", so the first advance is
+ * sol 1.
  */
 export function newRun(regionId: string, astronautName = ''): RunState {
   return {
     sol: 0,
     regionId,
     astronautName,
-    stores: regionAdjustedStores(regionScores(regionId)),
+    stores: createInitialStores(),
     status: 'active',
-    modules: [...STARTING_MODULES],
-    ledger: [],
+    modules: [],
+    panelHealth: 1,
+    forecast: [],
+    log: [],
+    decisions: [],
   };
 }
 
 /**
- * Commit a landing: set the region and apply region-adjusted starting stores,
- * then reset the run to sol 0 with the starting modules.
+ * Land at a chosen region: keep the astronaut's name, start the run fresh.
  *
- * Replaces `withState(run, { regionId })`, which set the region but never
- * adjusted the stores (ISS-040).
+ * Called by `landing-site` when the player presses LAND HERE. `base` then builds
+ * the modules and calls `startOutpost`; this only records where we came down.
  */
-export function landAt(run: RunState, regionId: string): RunState {
-  return {
-    ...run,
-    regionId,
-    sol: 0,
-    stores: regionAdjustedStores(regionScores(regionId)),
-    status: 'active',
-    modules: [...STARTING_MODULES],
-    ledger: [],
-  };
+export function landAt(state: RunState, regionId: string): RunState {
+  return newRun(regionId, state.astronautName);
 }
 
 /**
  * Replace some fields, returning new state.
  *
- * Shallow rather than a merge helper: stores and sol change one at a time, and
- * a general merge hides which field a caller thought it was changing.
+ * Shallow rather than a merge helper: stores and sol change one at a time, and a
+ * general merge hides which field a caller thought it was changing.
  */
 export function withState(state: RunState, change: Partial<RunState>): RunState {
   return { ...state, ...change };
 }
 
-/** Terrain score for the run's region, or the neutral 3 for an unknown id. */
-function terrainFor(regionId: string): number {
-  return REGIONS.find((r) => r.id === regionId)?.scores.terrain ?? 3;
-}
-
 /**
- * Build one module, paying its terrain-adjusted cost from power.
- *
- * Returns null when the build is not allowed (at cap, or unaffordable), so the
- * caller cannot silently spend power it does not have. Extra batteries arrive
- * charged, which is what makes them useful in the early game.
- *
- * Pure: returns new state, never mutates the argument.
+ * Land the outpost: set the modules and start with full batteries and the
+ * shielding those modules give. Resets anything a previous attempt left behind.
  */
-export function applyBuild(run: RunState, kind: ModuleKind): RunState | null {
-  const terrain = terrainFor(run.regionId);
-  if (!canBuild(kind, run.modules, run.stores, terrain)) return null;
-
-  const cost = adjustedBuildCost(kind, terrain);
-  const charge = kind === 'extra-batteries' ? EXTRA_BATTERY_CHARGE : 0;
+export function startOutpost(state: RunState, modules: readonly ModuleKind[]): RunState {
+  const systems = systemsFor(modules, state.regionId);
 
   return {
-    ...run,
-    modules: [...run.modules, kind],
-    stores: {
-      ...run.stores,
-      power: clampStore(run.stores.power - cost + charge),
-    },
+    ...state,
+    sol: 0,
+    status: 'active',
+    modules,
+    panelHealth: 1,
+    log: [],
+    decisions: [],
+    stores: createInitialStores({
+      power: systems.batteryKwh,
+      shielding: systems.shieldingStart,
+    }),
   };
 }
