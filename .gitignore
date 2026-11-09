@@ -4,6 +4,11 @@ dist/
 .DS_Store
 *.frontend-notes.md
 
+# Secrets. Never commit a key (ISS-006). `.env.example` documents the names only.
+.env
+.env.*
+!.env.example
+
 # Python: the render tools in tools/ leave these behind when imported.
 __pycache__/
 *.pyc
