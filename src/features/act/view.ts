@@ -23,9 +23,34 @@ import { navigate } from '../../ui/router';
 import '../../styles/game.css';
 import './act.css';
 
+import bgDayUrl from '../../../Assets/images/game-loop/bg-day.png';
+import batteryUrl from '../../../Assets/images/game-loop/battery-bank.png';
+import habitatUrl from '../../../Assets/images/game-loop/habitat.png';
+import solarUrl from '../../../Assets/images/game-loop/solar.png';
+import iceMinerUrl from '../../../Assets/images/game-loop/ice-miner.png';
+import greenhouseUrl from '../../../Assets/images/game-loop/green-house.png';
+import regolithUrl from '../../../Assets/images/game-loop/regolith-sheild.png';
+import lifeSupportUrl from '../../../Assets/images/game-loop/life-support.png';
+
 import { meterRows, missionHeadline, powerSentence, progressPercent, secondsLeft } from './model';
 
 const AXIS_NAMES: Readonly<Record<string, string>> = { water: 'Water', sun: 'Sun', terrain: 'Terrain', dust: 'Dust', temp: 'Warmth' };
+
+/** The artwork shown beside each resource meter. */
+const RESOURCE_IMAGE: Readonly<Record<string, string>> = {
+  power: batteryUrl,
+  oxygen: lifeSupportUrl,
+  water: iceMinerUrl,
+  food: greenhouseUrl,
+  shielding: regolithUrl,
+};
+
+/** The artwork shown at the top of a crisis dialog, by crisis kind. */
+const CRISIS_IMAGE: Readonly<Record<string, string>> = {
+  flare: solarUrl,
+  storm: regolithUrl,
+  'supply-pod': habitatUrl,
+};
 
 export function mountAct(
   mount: HTMLElement,
@@ -41,6 +66,7 @@ export function mountAct(
   const controller = new AbortController();
 
   mount.classList.add('gx', 'act');
+  mount.style.background = `linear-gradient(rgba(7, 14, 18, 0.86), rgba(7, 14, 18, 0.94)), url(${bgDayUrl}) center / cover no-repeat`;
 
   function stopTimer(): void {
     if (timer !== null) window.clearInterval(timer);
@@ -149,6 +175,7 @@ export function mountAct(
       h(
         'div',
         { class: 'act__dialog' },
+        h('img', { class: 'act__crisis-img', src: CRISIS_IMAGE[crisis.kind], alt: '' }),
         h('p', { class: 'gx__kicker', text: crisis.urgent ? `Sol ${sol}: decide now` : `Sol ${sol}: decide` }),
         h('h2', { class: 'gx__title', text: crisis.title }),
         h('p', { text: crisis.prompt }),
@@ -209,7 +236,7 @@ export function mountAct(
         h(
           'div',
           { class: 'gx__meter', 'data-tone': row.tone, role: 'meter', 'aria-label': row.label, 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(row.percent) },
-          h('span', { text: `${row.emoji} ${row.label}` }),
+          h('span', { class: 'gx__meter-label' }, h('img', { class: 'gx__meter-icon', src: RESOURCE_IMAGE[row.name], alt: '' }), row.label),
           h('span', { class: 'gx__meter-bar' }, h('span', { class: 'gx__meter-fill', style: `width:${row.percent}%` })),
           h('span', { class: 'gx__meter-val', text: `${row.percent}%` }),
         ),

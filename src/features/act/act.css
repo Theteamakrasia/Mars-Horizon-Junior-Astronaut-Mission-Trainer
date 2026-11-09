@@ -1,5 +1,35 @@
 /* ACT — the sol loop. Imported by ./view.ts only. */
 
+.gx__meter-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.act .gx__meter {
+  grid-template-columns: 9rem 1fr 3rem;
+}
+
+.gx__meter-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  object-fit: contain;
+  border-radius: 0.25rem;
+  background: rgba(255, 255, 255, 0.05);
+  flex: 0 0 auto;
+}
+
+.act__crisis-img {
+  display: block;
+  width: 100%;
+  height: clamp(5rem, 14vmin, 8rem);
+  object-fit: cover;
+  border-radius: 0.6rem;
+  margin-bottom: 0.8rem;
+  border: 1px solid var(--g-border);
+}
+
 .act__body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
