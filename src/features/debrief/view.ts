@@ -14,6 +14,13 @@ import { navigate } from '../../ui/router';
 import '../../styles/game.css';
 import './debrief.css';
 
+import bgDayUrl from '../../../Assets/images/game-loop/bg-day.png';
+import greenhouseUrl from '../../../Assets/images/game-loop/green-house.png';
+import solarUrl from '../../../Assets/images/game-loop/solar.png';
+import lifeSupportUrl from '../../../Assets/images/game-loop/life-support.png';
+import iceMinerUrl from '../../../Assets/images/game-loop/ice-miner.png';
+import batteryUrl from '../../../Assets/images/game-loop/battery-bank.png';
+
 import { consumptionSummary, explainOutcome, lowestPoints, reviewDecisions, timeline, usedApproximateData } from './model';
 
 const VERDICT_TEXT = { solved: 'Solved early', caught: 'Caught you out', mixed: 'A trade-off' } as const;
@@ -25,6 +32,7 @@ export function mountDebrief(
   setRun: (next: RunState | null) => void,
 ): () => void {
   mount.classList.add('gx', 'debrief');
+  mount.style.background = `linear-gradient(rgba(7, 14, 18, 0.86), rgba(7, 14, 18, 0.94)), url(${bgDayUrl}) center / cover no-repeat`;
 
   function again(): void {
     setRun(newRun('', run?.astronautName ?? 'Astronaut'));
@@ -51,6 +59,7 @@ export function mountDebrief(
   const banner = h(
     'section',
     { class: 'gx__panel debrief__banner', 'data-status': run.status, 'aria-live': 'polite' },
+    h('img', { class: 'debrief__banner-img', src: run.status === 'won' ? greenhouseUrl : solarUrl, alt: '' }),
     h('p', { class: 'gx__kicker', text: run.status === 'won' ? 'Mission complete' : 'Mission ended: debrief' }),
     h('h1', { class: 'gx__title', text: explanation.headline }),
     h('p', { text: explanation.detail }),
@@ -59,18 +68,23 @@ export function mountDebrief(
 
   const stats = h('section', { class: 'gx__panel' }, h('h2', { class: 'gx__h', text: 'What you used, what you wasted' }));
   const list = h('dl', { class: 'debrief__stats' });
-  const rows: readonly (readonly [string, string])[] = [
-    ['Sols played', String(totals.sols)],
-    ['Crew breathed', `${totals.crewOxygen} oxygen`],
-    ['Crew drank', `${totals.crewWater} water`],
-    ['Crew ate', `${totals.crewFood} food`],
-    ['Power made', `${totals.powerGenerated} kWh`],
-    ['Power wasted', `${totals.powerWasted} kWh (batteries were full)`],
-    ['Sols with a blackout', String(totals.blackoutSols)],
-    ['Thinnest margins', `air ${lows.oxygen}, water ${lows.water}, food ${lows.food}, shield ${lows.shielding}`],
+  const rows: readonly (readonly [string | null, string, string])[] = [
+    [null, 'Sols played', String(totals.sols)],
+    [lifeSupportUrl, 'Crew breathed', `${totals.crewOxygen} oxygen`],
+    [iceMinerUrl, 'Crew drank', `${totals.crewWater} water`],
+    [greenhouseUrl, 'Crew ate', `${totals.crewFood} food`],
+    [solarUrl, 'Power made', `${totals.powerGenerated} kWh`],
+    [batteryUrl, 'Power wasted', `${totals.powerWasted} kWh (batteries were full)`],
+    [batteryUrl, 'Sols with a blackout', String(totals.blackoutSols)],
+    [null, 'Thinnest margins', `air ${lows.oxygen}, water ${lows.water}, food ${lows.food}, shield ${lows.shielding}`],
   ];
 
-  for (const [label, value] of rows) list.append(h('dt', { text: label }), h('dd', { text: value }));
+  for (const [icon, label, value] of rows) {
+    list.append(
+      h('dt', null, icon === null ? null : h('img', { class: 'debrief__stat-icon', src: icon, alt: '' }), label),
+      h('dd', { text: value }),
+    );
+  }
   stats.append(list);
 
   const review = h('section', { class: 'gx__panel' }, h('h2', { class: 'gx__h', text: 'Your decisions' }));

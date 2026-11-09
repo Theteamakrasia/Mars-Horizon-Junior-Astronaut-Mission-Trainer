@@ -8,6 +8,16 @@
   border-left-color: var(--g-good);
 }
 
+.debrief__banner-img {
+  display: block;
+  width: 100%;
+  height: clamp(4rem, 10vmin, 6rem);
+  object-fit: cover;
+  border-radius: 0.6rem;
+  margin-bottom: 0.7rem;
+  border: 1px solid var(--g-border);
+}
+
 .debrief__cols {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
@@ -23,6 +33,18 @@
 
 .debrief__stats dt {
   color: var(--g-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.debrief__stat-icon {
+  width: 1.1rem;
+  height: 1.1rem;
+  object-fit: contain;
+  border-radius: 0.2rem;
+  background: rgba(255, 255, 255, 0.05);
+  flex: 0 0 auto;
 }
 
 .debrief__stats dd {
