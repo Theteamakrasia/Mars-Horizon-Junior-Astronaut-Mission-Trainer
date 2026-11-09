@@ -80,7 +80,7 @@ export function mountBase(
   const controller = new AbortController();
 
   mount.classList.add('gx', 'base');
-  mount.style.backgroundImage = `url(${bgDayUrl})`;
+  mount.style.background = `linear-gradient(rgba(7, 14, 18, 0.86), rgba(7, 14, 18, 0.94)), url(${bgDayUrl}) center / cover no-repeat`;
 
   const root = h('div', { class: 'base__body' });
 
