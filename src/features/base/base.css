@@ -39,7 +39,7 @@
   padding: 0.5rem 0.3rem;
   border-radius: 0.5rem;
   border: 1px solid var(--g-border);
-  background: rgba(7, 14, 18, 0.75);
+  background: rgba(7, 14, 18, 0.6);
   text-align: center;
   font-size: 0.75rem;
 }
@@ -48,8 +48,19 @@
   border-style: dashed;
 }
 
-.base__tile-emoji {
-  font-size: 1.6rem;
+.base__tile-img {
+  width: 2.6rem;
+  height: 2.6rem;
+  object-fit: contain;
+  border-radius: 0.3rem;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.base__tile small {
+  font-size: 0.65rem;
+  color: var(--g-muted);
+  display: block;
+  margin-top: 0.15rem;
 }
 
 .base__budget {
@@ -73,9 +84,12 @@
   border-top: 0;
 }
 
-.base__card-emoji {
-  font-size: 1.7rem;
-  text-align: center;
+.base__card-img {
+  width: 2.6rem;
+  height: 2.6rem;
+  object-fit: contain;
+  border-radius: 0.3rem;
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .base__card-name {

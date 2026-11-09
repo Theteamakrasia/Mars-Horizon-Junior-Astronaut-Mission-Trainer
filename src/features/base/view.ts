@@ -39,6 +39,33 @@ import {
   type ModuleKind,
 } from './model';
 
+import bgDayUrl from '../../../Assets/images/game-loop/bg-day.png';
+import habitatUrl from '../../../Assets/images/game-loop/habitat.png';
+import lifeSupportUrl from '../../../Assets/images/game-loop/life-support.png';
+import solarUrl from '../../../Assets/images/game-loop/solar.png';
+import batteryUrl from '../../../Assets/images/game-loop/battery-bank.png';
+import greenhouseUrl from '../../../Assets/images/game-loop/green-house.png';
+import iceMinerUrl from '../../../Assets/images/game-loop/ice-miner.png';
+import regolithUrl from '../../../Assets/images/game-loop/regolith-sheild.png';
+import nuclearUrl from '../../../Assets/images/game-loop/nuclear-power.png';
+
+/** Each buildable module kind to its artwork. The asset filename for regolith
+ *  shield keeps the repo's existing spelling ('sheild'). */
+const MODULE_IMAGE: Readonly<Record<ModuleKind, string>> = {
+  'habitat': habitatUrl,
+  'life-support': lifeSupportUrl,
+  'solar-array': solarUrl,
+  batteries: batteryUrl,
+  greenhouse: greenhouseUrl,
+  'ice-miner': iceMinerUrl,
+  'regolith-shield': regolithUrl,
+  'nuclear-unit': nuclearUrl,
+};
+
+function moduleImage(kind: ModuleKind): string {
+  return MODULE_IMAGE[kind];
+}
+
 export function mountBase(
   mount: HTMLElement,
   run: RunState | null,
@@ -53,6 +80,7 @@ export function mountBase(
   const controller = new AbortController();
 
   mount.classList.add('gx', 'base');
+  mount.style.backgroundImage = `url(${bgDayUrl})`;
 
   const root = h('div', { class: 'base__body' });
 
@@ -96,14 +124,14 @@ export function mountBase(
       const spec = specOf(kind);
 
       ground.append(
-        h('div', { class: 'base__tile base__tile--core', role: 'listitem' }, h('span', { class: 'base__tile-emoji', text: spec.emoji }), spec.name, h('small', { text: 'comes with the lander' })),
+        h('div', { class: 'base__tile base__tile--core', role: 'listitem' }, h('img', { class: 'base__tile-img', src: moduleImage(kind), alt: '' }), spec.name, h('small', { text: 'comes with the lander' })),
       );
     }
 
     for (const kind of extras) {
       const spec = specOf(kind);
 
-      ground.append(h('div', { class: 'base__tile', role: 'listitem' }, h('span', { class: 'base__tile-emoji', text: spec.emoji }), spec.name));
+      ground.append(h('div', { class: 'base__tile', role: 'listitem' }, h('img', { class: 'base__tile-img', src: moduleImage(kind), alt: '' }), spec.name));
     }
 
     const upkeep = upkeepFor(extras, regionId);
@@ -160,7 +188,7 @@ export function mountBase(
         h(
           'div',
           { class: 'base__card' },
-          h('span', { class: 'base__card-emoji', text: spec.emoji }),
+          h('img', { class: 'base__card-img', src: moduleImage(spec.kind), alt: '' }),
           h('div', null, h('p', { class: 'base__card-name', text: `${spec.name} · ${spec.cost} pts` }), h('p', { class: 'base__card-line', text: `Gives: ${spec.gives}` }), h('p', { class: 'base__card-line', text: `Costs: ${spec.needs}` })),
           h('div', { class: 'base__stepper' }, remove, h('span', { class: 'base__count', text: String(have) }), add),
           !placement.ok && have === 0 ? h('p', { class: 'base__card-why', text: placement.reason }) : null,
