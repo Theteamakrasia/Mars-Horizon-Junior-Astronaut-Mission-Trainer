@@ -8,6 +8,38 @@ than a documented one.
 
 ---
 
+## 2026-11-09 — Fix the launch parts tour clipping its controls (ISS-041)
+
+**Did**
+
+- Moved `.launch__parts-panel` out of `.launch__stage` so it is a direct child of
+  `.launch` and covers the whole viewport, instead of inheriting the 16:9 letterboxed
+  stage box.
+- Capped `.launch__parts-image` by viewport height (`max-height: 52vh`, tightened to
+  `44vh` under 560px) so the card fits short windows.
+- Verified in headless Chrome at 545x645 and 1000x720: the tour opens on its own, the
+  part name and description are visible, Continue is hit-testable, and clicking it
+  navigates to `#/interior`.
+
+**Files**
+
+- `index.html`, `src/features/launch/launch.css`
+- `docs/team/{issues,decisions,tasks,progress-log}.md`
+
+**Problems**
+
+- The first headless check forced the panel open, which bypassed `openPartsPanel` and
+  left the button without its click listener — the click did nothing. Re-tested against
+  the real media-driven flow, where the tour opens on its own and Continue navigates.
+- No DOM tests exist for the launch view (ISS-013), so this is verified in a browser
+  rather than the suite.
+
+**Next**
+
+- Human browser pass of the whole journey (TASK-049).
+
+---
+
 ## 2026-11-08 — Build the `base → act → debrief` game loop
 
 **Did**

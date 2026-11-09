@@ -12,6 +12,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
 | ISS-040 | `landing-site` commits the region but never sets region-dependent starting stores | medium | agent | fixed | this branch |
+| ISS-041 | Launch parts tour controls are clipped off-screen, so the journey cannot pass `launch` | high | agent | fixed | this branch |
 | ISS-039 | Landing-site axis scores render no dots, so the panel shows no scores | medium | agent | fixed | this branch |
 | ISS-038 | `check-markup` Rule 6 never resolves a view for most screens, so hook scoping is unenforced | medium | agent | fixed | this branch |
 | ISS-037 | `check-markup` skips quoted mount keys, so `landing-site` is never validated | medium | agent | fixed | this branch |
@@ -49,6 +50,29 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | ISS-012 | No CI; nothing runs checks on push | low | agent | fixed | adc5767 |
 | ISS-013 | Vitest runs node-env, no jsdom, so DOM is untestable | low | unassigned | open | — |
 | ISS-014 | `base.css` calls the page non-interactive while draggable | low | unassigned | open | — |
+
+---
+
+## ISS-041 — Launch parts tour controls are clipped off-screen, so the journey cannot pass `launch`
+
+- **Reported by:** the user, 2026-11-09: the launch screen's parts tour shows the
+  "Assembled craft" slide, but the Prev / Next / Continue controls are not on screen, so
+  the journey cannot continue past `launch`.
+- **Where:** `index.html` (`.launch__parts-panel` was a child of `.launch__stage`),
+  `src/features/launch/launch.css`.
+- **Problem:** the parts panel was inside `.launch__stage`, which is a 16:9 letterboxed
+  box (`width: min(100vw, 100vh*16/9); aspect-ratio: 16/9`). The panel inherited that
+  box, and its card — part name, 16:9 image, description, controls — is taller than the
+  stage on any viewport that is not 16:9 or larger. The panel's `overflow: hidden` then
+  clipped the card top and bottom, removing the part name and the three buttons.
+  Measured at 545x645: the panel was 307px tall, the card 590px, and hit-testing the
+  Continue button's centre returned `SECTION.launch`, not the button — it was
+  unclickable.
+- **Fix:** move the panel out of `.launch__stage` so it is a direct child of `.launch`
+  and covers the whole viewport, and cap the part image by viewport height
+  (`max-height: 52vh`, tightened to `44vh` under 560px) so the card fits short windows.
+- **Pre-existing:** no. Introduced with the interactive parts panel that replaced the
+  parts video (ISS-033).
 
 ---
 

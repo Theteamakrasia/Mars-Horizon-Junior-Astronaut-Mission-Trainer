@@ -33,6 +33,7 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 | TASK-048 | Registry, `index.html` sections, registry/routes tests | G-4 | agent | done | — | 9 routed screens; `check-markup` passes |
 | TASK-049 | Browser acceptance pass of the whole journey + `dist/` check | G-4 | unassigned | open | — | needs a human with a browser; `npm run build` passes |
 | TASK-050 | Docs matrix: architecture, AGENTS §1/§8, progress log | G-6 | agent | done | — | README status stays stale (ISS-001, D-011) |
+| TASK-051 | Stop the launch parts tour clipping its controls off-screen | G-7 | agent | done | — | ISS-041, D-036. Panel moved out of the 16:9 stage; image capped by viewport height |
 | TASK-001 | Documentation and workflow system (AGENTS.md, architecture, decisions, issues, goals, tasks, progress log) | G-6 | agent | done | — | first pass, same branch |
 | TASK-002 | `scripts/check-imports.mjs` + `npm run check` | G-2, G-6 | agent | done | — | rewritten for zones; verified by fixtures |
 | TASK-003 | Split `src/core/` into pure `core/` and `dom/` | G-2 | agent | done | — | ISS-010. Runtime unverified |

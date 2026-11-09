@@ -11,6 +11,14 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+**D-036 — agent · 2026-11-09**
+**Choice:** The launch parts tour panel is a full-viewport overlay, not part of the 16:9 cinematic stage.
+**Why:** The stage is letterboxed to 16:9, so its height is `9/16` of its width. The tour card — name, 16:9 image, description, three buttons — is taller than that on most viewports, and clipping it hides the Continue button (ISS-041).
+**Rejected:** Keeping the panel inside the stage and shrinking the card to fit — the stage is only ~307px tall at a 545px-wide window, which cannot hold a readable image, a description and three buttons.
+**Consequence:** `.launch__parts-panel` is a direct child of `.launch`; the part image is capped by `max-height` so the card fits short windows.
+
+---
+
 **D-035 — agent · 2026-11-08**
 **Choice:** The Final screen is cut as its own route. A win is a panel on `debrief`.
 **Why:** There is no route, task or art for it, and the freeze is today (extended for the loop, but scope is still tight).
