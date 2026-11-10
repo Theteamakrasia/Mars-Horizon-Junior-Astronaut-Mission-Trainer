@@ -1,140 +1,29 @@
-/* BASE — build the outpost before landing. Imported by ./view.ts only. */
+/* BASE — the build screen's own rules. Imported by ./view.ts only.
+   The shared frame (header, HUD, world, panel, cards) is in
+   styles/game-loop.css; only what is unique to building lives here. */
 
-.base__body {
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-  gap: clamp(0.6rem, 1.6vmin, 1.2rem);
-  flex: 1;
-  min-height: 0;
-}
-
-@media (max-width: 60rem) {
-  .base__body {
-    grid-template-columns: 1fr;
-  }
-}
-
-.base__col {
+.gl--base .gl__budget {
   display: flex;
-  flex-direction: column;
-  gap: clamp(0.6rem, 1.6vmin, 1.2rem);
-  min-width: 0;
-}
-
-.base__ground {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  min-height: 7rem;
-  padding: 0.6rem;
-  border-radius: 0.6rem;
-  background: linear-gradient(180deg, #2a1a14, #5a2c18);
-}
-
-.base__tile {
-  display: grid;
-  place-items: center;
-  gap: 0.1rem;
-  width: 5.6rem;
-  padding: 0.5rem 0.3rem;
-  border-radius: 0.5rem;
-  border: 1px solid var(--g-border);
-  background: rgba(7, 14, 18, 0.6);
-  text-align: center;
-  font-size: 0.75rem;
-}
-
-.base__tile--core {
-  border-style: dashed;
-}
-
-.base__tile-img {
-  width: 2.6rem;
-  height: 2.6rem;
-  object-fit: contain;
-  border-radius: 0.3rem;
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.base__tile small {
-  font-size: 0.65rem;
-  color: var(--g-muted);
-  display: block;
-  margin-top: 0.15rem;
-}
-
-.base__budget {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem 1.2rem;
-  margin: 0 0 0.6rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.base__card {
-  display: grid;
-  grid-template-columns: 2.4rem 1fr auto;
   align-items: center;
-  gap: 0.2rem 0.7rem;
-  padding: 0.6rem 0;
-  border-top: 1px solid var(--g-border);
+  justify-content: space-between;
+  gap: clamp(6px, 0.7vw, 12px);
+  padding: clamp(6px, 0.6vw, 12px) clamp(8px, 0.83vw, 16px);
+  border-radius: clamp(8px, 0.72vw, 14px);
+  background: var(--gl-card);
+  color: var(--gl-ink);
+  font-family: var(--gl-display);
+  font-weight: 800;
+  font-size: clamp(0.66rem, 0.83vw, 1rem);
 }
 
-.base__card:first-of-type {
-  border-top: 0;
-}
-
-.base__card-img {
-  width: 2.6rem;
-  height: 2.6rem;
-  object-fit: contain;
-  border-radius: 0.3rem;
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.base__card-name {
-  margin: 0;
+.gl--base .gl__budget > span:last-child {
+  color: var(--gl-muted);
+  font-family: var(--gl-body);
   font-weight: 700;
+  white-space: nowrap;
 }
 
-.base__card-line {
-  margin: 0;
-  font-size: 0.85em;
-  color: var(--g-muted);
-}
-
-.base__card-why {
-  grid-column: 2 / 4;
-  margin: 0;
-  font-size: 0.8em;
-  color: var(--g-warn);
-}
-
-.base__stepper {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.base__count {
-  min-width: 1.4rem;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-}
-
-.base__preview {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.base__preview li {
-  margin: 0.3rem 0;
-}
-
-.base__footer {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-  align-items: center;
+/* A disabled "+" keeps the reason under the card readable. */
+.gl--base .gl__card-why {
+  margin-top: 0.15em;
 }

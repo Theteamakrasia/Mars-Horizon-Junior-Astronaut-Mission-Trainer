@@ -128,6 +128,41 @@ export function upkeepFor(extras: readonly ModuleKind[], regionId: string): Upke
   };
 }
 
+/** Sols a store lasts at a steady change, or Infinity when it is holding or rising. */
+function daysUntilEmpty(store: number, change: number): number {
+  return change < 0 ? Math.floor(store / -change) : Number.POSITIVE_INFINITY;
+}
+
+/** The four numbers the resource cards show on the build screen. */
+export interface PreviewSummary {
+  /** Hours of night the batteries cover, out of 12. */
+  readonly nightHours: number;
+  /** Sols until food runs out; Infinity when a greenhouse keeps up. */
+  readonly foodDays: number;
+  /** Sols until water runs out; Infinity when something refills it. */
+  readonly waterDays: number;
+  /** Shielding the build starts with, out of 100. */
+  readonly shielding: number;
+}
+
+/**
+ * The headline figures for a build, from the same calm sol the preview runs.
+ *
+ * The resource cards at the top of the screen need one number each, and they
+ * must agree with the sentences underneath, so both come from one projection.
+ */
+export function previewSummary(extras: readonly ModuleKind[], regionId: string): PreviewSummary {
+  const run = startOutpost(newRun(regionId, ''), allModules(extras));
+  const calm = projectSol(run);
+
+  return {
+    nightHours: upkeepFor(extras, regionId).nightHoursCovered,
+    foodDays: daysUntilEmpty(run.stores.food, calm.net.food),
+    waterDays: daysUntilEmpty(run.stores.water, calm.net.water),
+    shielding: Math.round(run.stores.shielding),
+  };
+}
+
 /** A line of the preview: what a calm sol will do. */
 export interface PreviewLine {
   readonly label: string;
@@ -162,8 +197,6 @@ export function previewFor(extras: readonly ModuleKind[], regionId: string): rea
   } else {
     lines.push({ label: 'Power', text: 'The panels and batteries carry you through a whole night.', tone: 'ok' });
   }
-
-  const daysUntilEmpty = (store: number, change: number): number => (change < 0 ? Math.floor(store / -change) : Number.POSITIVE_INFINITY);
 
   const foodDays = daysUntilEmpty(run.stores.food, calm.net.food);
   const waterDays = daysUntilEmpty(run.stores.water, calm.net.water);
