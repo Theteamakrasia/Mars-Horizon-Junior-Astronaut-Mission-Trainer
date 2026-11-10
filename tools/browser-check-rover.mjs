@@ -1,7 +1,7 @@
 /*
  * A headless pass over the rover: drive the real game in Chrome, walk the
  * journey to the outpost, deploy the rover, and check that the NASA picture
- * actually loads.
+ * actually loads and the rover's animation actually moves.
  *
  *   npm run build && npm run preview
  *   node tools/browser-check-rover.mjs
@@ -12,6 +12,7 @@
 
 import { spawn } from 'node:child_process';
 import { setTimeout as sleep } from 'node:timers/promises';
+import { createHash } from 'node:crypto';
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:4173';
 const CHROME = process.env.CHROME_PATH ?? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
@@ -80,6 +81,34 @@ async function waitFor(expression, tries = 40) {
     await sleep(250);
   }
   return false;
+}
+
+/**
+ * A fingerprint of what is on screen at one spot, right now.
+ *
+ * Two of these, taken a moment apart, are different when something is moving
+ * there. This is done by screenshotting the region rather than by drawing the
+ * image into a canvas: headless Chrome draws the *first* frame of an animated
+ * image into a canvas every time, so a canvas check reports a moving picture
+ * as still. A screenshot forces a paint, and the animation advances.
+ */
+async function regionHash(selector) {
+  const box = await evaluate(`(() => {
+    const el = document.querySelector(${JSON.stringify(selector)});
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    if (r.width < 1 || r.height < 1) return null;
+    return { x: r.x, y: r.y, width: r.width, height: r.height };
+  })()`);
+
+  if (box === null) return null;
+
+  const shot = await send('Page.captureScreenshot', {
+    format: 'png',
+    clip: { x: box.x, y: box.y, width: box.width, height: box.height, scale: 1 },
+  });
+
+  return createHash('sha1').update(Buffer.from(shot.data, 'base64')).digest('hex').slice(0, 12);
 }
 
 const results = [];
@@ -170,13 +199,42 @@ try {
     (await evaluate(`document.querySelector('.rover__status')?.textContent ?? ''`)) === 'Exploring',
   );
 
-  // 4. Wait for the first find (15-25 s) and open it.
+  // 4. The status window, and the animation inside it. The notice that
+  //    follows a deploy closes itself after a few seconds; until then the
+  //    rover button only toggles the notice away.
+  await sleep(4000);
+  await evaluate(`document.querySelector('.rover__fab').click()`);
+  note('the status window opens', await waitFor(`!!document.querySelector('.rover__gif')`));
+
+  // The picture is 810 KB, so the element exists a moment before it has
+  // decoded - and until it has, it has no size to fingerprint.
+  const pictureLoaded = await waitFor(`(() => {
+    const img = document.querySelector('.rover__gif');
+    return !!img && img.complete && img.naturalWidth > 0;
+  })()`, 60);
+  note('the rover picture loads', pictureLoaded);
+
+  // Two fingerprints of the same spot, a moment apart. Different means the
+  // rover is moving.
+  const first = await regionHash('.rover__gif');
+  await sleep(450);
+  const second = await regionHash('.rover__gif');
+  note(
+    "the rover's animation moves",
+    first !== null && second !== null && first !== second,
+    first === null || second === null ? 'the rover picture was not on screen' : `${first} then ${second}`,
+  );
+
+  await evaluate(`(() => { const b = document.querySelector('.rover__close'); if (b) b.click(); })()`);
+  await sleep(400);
+
+  // 5. Wait for the first find (15-25 s) and open it.
   note('the rover finds something', await waitFor(`document.querySelector('.rover')?.dataset.waiting === 'true'`, 160));
   await evaluate(`document.querySelector('.rover__fab').click()`);
   await sleep(900);
   note('the find window opens', await waitFor(`!!document.querySelector('.rover__window--large')`));
 
-  // 5. The picture is a real NASA picture, not the placeholder.
+  // 6. The picture is a real NASA picture, not the placeholder.
   await waitFor(`(() => {
     const img = document.querySelector('.rover__photo');
     return !img || (img.complete && img.naturalWidth > 0);
@@ -198,12 +256,23 @@ try {
     picture.found ? `${picture.width}x${picture.height} ${picture.src.split('?')[0].split('/').pop()}` : 'no picture element',
   );
 
-  // 6. Answer the find.
-  await clickAny('Got it, save to my log');
+  // 7. Answer the find. A site is logged and a rock is collected, so the
+  //    button is picked by its kind rather than by its words: which one
+  //    comes up depends on what the rover found.
+  const findKind = await evaluate(`(() => {
+    const kicker = document.querySelector('.rover__kicker--find');
+    if (!kicker) return 'none';
+    return kicker.textContent.includes('site') ? 'a site' : 'a rock';
+  })()`);
+  await evaluate(`(() => {
+    const b = document.querySelector('.rover__window--large .rover__btn--primary');
+    if (b) b.click();
+  })()`);
   await sleep(700);
   note(
     'the find is answered',
     (await evaluate(`document.querySelector('.rover__status')?.textContent ?? ''`)) !== 'Found something!',
+    findKind === 'none' ? 'no find was open' : `it was ${findKind}`,
   );
 
   note('no console errors', consoleErrors.length === 0, consoleErrors.slice(0, 3).join(' | '));

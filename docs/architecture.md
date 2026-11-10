@@ -133,7 +133,8 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
 │   └── browser-check-rover.mjs         complete   ~230 lines. Node only. Drives the real game in
 │                                                 headless Chrome over the DevTools Protocol: names the
 │                                                 astronaut, walks to the outpost, deploys the rover
-│                                                 and checks that the NASA picture really loads. A check,
+│                                                 and checks that the NASA picture really loads and
+│                                                 that the rover's animation really moves. A check,
 │                                                 not a test - `npm test` stays free of a browser.
 │                                                 Needs `npm run build && npm run preview`.
 │
