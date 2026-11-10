@@ -14,6 +14,7 @@
  * whole screen.
  */
 
+import { cardForSol } from '../../data/nasaGallery';
 import { loadForecast } from '../../dom/forecastLoader';
 import { h } from '../../dom/h';
 import { earthAdvice, earthIsInTime, optionOf, pendingCrisis, type Crisis } from '../../sim/crises';
@@ -22,6 +23,7 @@ import { withState, type RunState } from '../../sim/run';
 import { siteScore, regionById, SITE_AXES } from '../../sim/regions';
 import { advanceSol, decide, powerPicture, WIN_SOL } from '../../sim/sol';
 import { gamePanel, gameScreen, gameSection, gameWorld, moduleArt, moduleFigures, type HudStat } from '../../ui/gameLoop';
+import { nasaCard } from '../../ui/nasaCard';
 import { nextStop } from '../../ui/registry';
 import { navigate } from '../../ui/router';
 
@@ -211,6 +213,12 @@ export function mountAct(
       for (const item of items.length > 0 ? items : ['A quiet sol. Everything ran as expected.']) list.append(h('li', { text: item }));
 
       body.push(gameSection(`What happened on sol ${last.sol}`, list));
+
+      /* One real NASA image per sol, after the recap: something to look at and
+         learn from before the next decision. Out-of-range sols simply get none. */
+      const learning = cardForSol(last.sol);
+
+      if (learning !== null) body.push(nasaCard(learning));
     }
 
     body.push(h('p', { class: 'gl__note', text: 'Sol = one Mars day. You control when it runs.' }));
