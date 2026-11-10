@@ -7,6 +7,7 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 
 | id | task | goal | owner | status | blocked by | notes |
 | --- | --- | --- | --- | --- | --- | --- |
+| TASK-053 | Map every player decision and the event extension points in Mermaid | G-4 | agent | done | — | `docs/game-flow.md`; 9 diagrams rendered; no gameplay change |
 | TASK-042 | Record D-030 to D-035, log ISS-040, fix task id hygiene | G-4 | agent | done | — | decisions, issues, task ids |
 | TASK-041 | Give no directional hint on the first wrong answer on the ration check | G-7 | agent | done | — | D-028, ISS-035. The bubble keeps the question on the first wrong pick; the hint appears from the second on. Browser check outstanding |
 | TASK-040 | Make the player try again on the ration check instead of reverting on a timer | G-7 | agent | done | — | D-028, ISS-034. TRY AGAIN button; the working hides the answer until it is earned. Browser check outstanding |

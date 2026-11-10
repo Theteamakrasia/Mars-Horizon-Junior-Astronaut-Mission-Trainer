@@ -209,6 +209,7 @@ opening its folder — that is the whole point of the layout.
 | **Any NASA-API call** | `src/data/spaceweather.ts` — live; NASA DONKI → NOAA SWPC → baked |
 | A game screen | `src/features/<name>/` — every journey screen is built |
 | What a screen is meant to contain | the `README.md` in that screen's folder |
+| **Every decision, the sol loop, what is built, where a new event plugs in** | `docs/game-flow.md` |
 | Per-screen pure logic / DOM / styles | `model.ts` / `view.ts` / `<name>.css` |
 
 ## 9. Commands

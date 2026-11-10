@@ -102,6 +102,9 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
 ├── docs/
 │   ├── architecture.md                 this file
 │   ├── CHANGELOG.md                    unreleased and deployed project changes
+│   ├── game-flow.md                    complete   Mermaid map of every player decision, the
+│   │                                             sol loop, what is built, and where a new
+│   │                                             event plugs in
 │   ├── pull-requests/                   detailed PR descriptions
 │   │   ├── 001-ci-deployment-gates.md
 │   │   ├── 002-readme-polish.md

@@ -8,6 +8,42 @@ than a documented one.
 
 ---
 
+## 2026-11-10 — Map the decisions so new events have somewhere to land
+
+**Did**
+
+- Read the decision logic out of `sim/crises.ts`, `sim/sol.ts`, `sim/forecast.ts`,
+  `sim/modules.ts` and `sim/regions.ts` rather than from the docs, then wrote
+  `docs/game-flow.md`: the journey, the sol loop, the three crisis trees with their exact
+  numbers, the resource cause-and-effect chain, the run-status machine, a status table, and
+  a checklist for adding a new event.
+- Marked what is built and what is not: every journey screen is built; save, login, a plan
+  phase and any new event kind are not. Planned event ideas are sketches only.
+- Validated all nine Mermaid blocks by rendering each through `mermaid.ink` and checking for
+  a syntax error and for expected node text.
+
+**Files**
+
+- `docs/game-flow.md` (new)
+- `docs/architecture.md` (docs tree)
+- `docs/team/tasks.md`, `docs/team/progress-log.md`
+
+**Problems**
+
+- No Mermaid parser is installed and adding one would be a runtime dependency, so the
+  diagrams were rendered through an external service instead. The repo still has zero
+  dependencies. If that service is unavailable, the diagrams are unverified, not broken.
+- The existing docs still name `sim/events.ts`, `sim/constants.ts` and `sim/balance.test.ts`,
+  which do not exist; the real files are `sim/forecast.ts` and `sim/modules.ts`. The new
+  map points at the real ones and does not repeat the stale names.
+
+**Next**
+
+- Pick an event from §10.4, log it as a task, and record the design choice in
+  `docs/team/decisions.md` before writing code.
+
+---
+
 ## 2026-11-10 — Rebuild base, act and debrief from the Figma game-loop frames (D-038, D-039, D-040)
 
 **Did**
