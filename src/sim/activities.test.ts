@@ -54,12 +54,20 @@ describe('activities', () => {
     }
   });
 
-  it('never takes a store away, so an activity cannot quietly empty a tank', () => {
+  it('may cost a store, but never takes more than half of it', () => {
     for (const spec of ACTIVITY_CATALOGUE) {
       for (const value of Object.values(spec.storeDelta)) {
-        expect(value).toBeGreaterThan(0);
+        expect(value).toBeGreaterThanOrEqual(-50);
+        expect(value).toBeLessThanOrEqual(50);
       }
     }
+  });
+
+  it('costs water to grow food, because that is the trade-off', () => {
+    const grow = activityById('grow-extra');
+
+    expect(grow?.storeDelta.water).toBeLessThan(0);
+    expect(grow?.storeDelta.food).toBeGreaterThan(0);
   });
 
   it('never spends power out of the power store, because power is load and not a delta', () => {
