@@ -73,7 +73,7 @@ body {
   background: var(--space-void);
   color: var(--text-primary);
   font-family: var(--font-display);
-  /* The page is intentionally non-interactive; block stray selections. */
+  /* Block stray text selection; the astronaut is the only draggable element. */
   user-select: none;
   -webkit-user-select: none;
 }
