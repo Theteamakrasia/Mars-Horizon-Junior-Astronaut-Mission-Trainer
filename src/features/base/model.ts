@@ -23,7 +23,7 @@ import {
   type ModuleKind,
   type ModuleSpec,
 } from '../../sim/modules';
-import { createForecast, type ForecastEvent } from '../../sim/forecast';
+import { visibleForecast, type ForecastEvent } from '../../sim/forecast';
 import { newRun, startOutpost } from '../../sim/run';
 import { projectSol } from '../../sim/sol';
 import { siteScore } from '../../sim/regions';
@@ -222,11 +222,13 @@ export function previewFor(extras: readonly ModuleKind[], regionId: string): rea
   return lines;
 }
 
-/** The earliest forecast events, for the "read ahead" warning the README asks for. */
-export function upcomingWarnings(forecast: readonly ForecastEvent[], count = 3): readonly ForecastEvent[] {
-  const source = forecast.length > 0 ? forecast : createForecast([]);
-
-  return [...source].sort((a, b) => a.sol - b.sol).slice(0, count);
+/**
+ * What the crew can already see coming at landing, for the "read ahead" warning
+ * the README asks for. Flares and distant storms are not on it: they give little
+ * warning, which is exactly why the outpost needs a reserve.
+ */
+export function upcomingWarnings(forecast: readonly ForecastEvent[]): readonly ForecastEvent[] {
+  return visibleForecast(forecast, 0);
 }
 
 /** The extras a build has, grouped for the placed-modules display. */

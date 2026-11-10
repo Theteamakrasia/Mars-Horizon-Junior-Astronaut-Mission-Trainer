@@ -4,13 +4,11 @@ import {
   FALLBACK_FLARES,
   describeWhen,
   fetchSpaceWeather,
-  flareRank,
   lastDetail,
   lastSource,
   parseFlares,
   parseNoaaFlares,
   resetSpaceWeather,
-  strongest,
 } from './spaceweather';
 
 /*
@@ -137,25 +135,17 @@ describe('parseNoaaFlares (real wire format)', () => {
   });
 });
 
-describe('ranking', () => {
-  it('ranks X above M above C, and a bigger number above a smaller one', () => {
-    expect(flareRank('X1.0')).toBeGreaterThan(flareRank('M9.9'));
-    expect(flareRank('M9.9')).toBeGreaterThan(flareRank('C9.9'));
-    expect(flareRank('M5.0')).toBeGreaterThan(flareRank('M4.2'));
-  });
-
-  it('picks the strongest two, strongest first', () => {
-    expect(strongest(parseFlares(SAMPLE), 2).map((event) => event.classType)).toEqual(['X1.1', 'M4.2']);
-  });
-});
-
 describe('fetchSpaceWeather (no network: fetch is injected)', () => {
-  it('returns the strongest live flares and says the source was DONKI', async () => {
+  it('returns every live flare, not just the strongest, and says the source was DONKI', async () => {
     const events = await fetchSpaceWeather({ fetchFn: respond(200, SAMPLE), now: NOW });
 
-    expect(events.map((event) => event.classType)).toEqual(['X1.1', 'M4.2']);
+    expect(events.map((event) => event.classType)).toEqual(['C3.0', 'M4.2', 'X1.1']);
     expect(lastSource()).toBe('donki');
-    expect(events[0].approximate).toBe(false);
+    expect(events.every((event) => event.approximate === false)).toBe(true);
+  });
+
+  it('falls back to an empty list, so the forecast draws from the long-run record instead', () => {
+    expect(FALLBACK_FLARES).toEqual([]);
   });
 
   it('asks for the 30 days before now, with the key in the URL', async () => {
@@ -172,17 +162,16 @@ describe('fetchSpaceWeather (no network: fetch is injected)', () => {
     expect(seen).toContain('api_key=TESTKEY');
   });
 
-  it('falls back, marked approximate, when throttled', async () => {
+  it('falls back when throttled', async () => {
     const events = await fetchSpaceWeather({ fetchFn: respond(429, {}), now: NOW });
 
-    expect(events).toEqual(FALLBACK_FLARES);
-    expect(events.every((event) => event.approximate)).toBe(true);
+    expect(events).toEqual([]);
     expect(lastSource()).toBe('fallback');
     expect(lastDetail()).toContain('busy');
   });
 
   it('falls back on a server error', async () => {
-    expect(await fetchSpaceWeather({ fetchFn: respond(500, {}), now: NOW })).toEqual(FALLBACK_FLARES);
+    expect(await fetchSpaceWeather({ fetchFn: respond(500, {}), now: NOW })).toEqual([]);
   });
 
   it('falls back when offline', async () => {
@@ -190,16 +179,16 @@ describe('fetchSpaceWeather (no network: fetch is injected)', () => {
       throw new TypeError('Failed to fetch');
     }) as unknown as typeof fetch;
 
-    expect(await fetchSpaceWeather({ fetchFn: offline, now: NOW })).toEqual(FALLBACK_FLARES);
+    expect(await fetchSpaceWeather({ fetchFn: offline, now: NOW })).toEqual([]);
     expect(lastDetail()).toContain('could not be reached');
   });
 
   it('falls back when the response is garbage', async () => {
-    expect(await fetchSpaceWeather({ fetchFn: respond(200, 'garbage'), now: NOW })).toEqual(FALLBACK_FLARES);
+    expect(await fetchSpaceWeather({ fetchFn: respond(200, 'garbage'), now: NOW })).toEqual([]);
   });
 
   it('falls back, and says why, in a quiet month with no flares', async () => {
-    expect(await fetchSpaceWeather({ fetchFn: respond(200, []), now: NOW })).toEqual(FALLBACK_FLARES);
+    expect(await fetchSpaceWeather({ fetchFn: respond(200, []), now: NOW })).toEqual([]);
     expect(lastDetail()).toContain('No flares');
   });
 
@@ -209,7 +198,7 @@ describe('fetchSpaceWeather (no network: fetch is injected)', () => {
         init?.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
       })) as unknown as typeof fetch;
 
-    expect(await fetchSpaceWeather({ fetchFn: hang, now: NOW, timeoutMs: 5 })).toEqual(FALLBACK_FLARES);
+    expect(await fetchSpaceWeather({ fetchFn: hang, now: NOW, timeoutMs: 5 })).toEqual([]);
   });
 
   it('remembers its answer so two screens cost one request', async () => {
@@ -238,7 +227,7 @@ describe('fetchSpaceWeather (no network: fetch is injected)', () => {
 
     const events = await fetchSpaceWeather({ fetchFn: spy, now: NOW });
 
-    expect(events.map((event) => event.classType)).toEqual(['X1.1', 'M4.2']);
+    expect(events.map((event) => event.classType)).toEqual(['C3.0', 'M4.2', 'X1.1']);
     expect(lastSource()).toBe('donki');
     expect(lastDetail()).toContain('DONKI');
     expect(seen).toHaveLength(1);
@@ -252,7 +241,7 @@ describe('fetchSpaceWeather (no network: fetch is injected)', () => {
 
     const events = await fetchSpaceWeather({ fetchFn: spy, now: NOW });
 
-    expect(events.map((event) => event.classType)).toEqual(['M1.4', 'C5.1']);
+    expect(events.map((event) => event.classType)).toEqual(['B5.6', 'M1.4', 'C5.1']);
     expect(events.every((event) => event.approximate === false)).toBe(true);
     expect(lastSource()).toBe('noaa');
     expect(lastDetail()).toContain('NOAA');
@@ -271,7 +260,7 @@ describe('fetchSpaceWeather (no network: fetch is injected)', () => {
 
     const events = await fetchSpaceWeather({ fetchFn: slowNasa, now: NOW, timeoutMs: 5 });
 
-    expect(events.map((event) => event.classType)).toEqual(['M1.4', 'C5.1']);
+    expect(events.map((event) => event.classType)).toEqual(['B5.6', 'M1.4', 'C5.1']);
     expect(lastSource()).toBe('noaa');
   });
 

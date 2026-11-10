@@ -11,6 +11,14 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+**D-048 — agent — 2026-11-10**
+**Choice:** Every mission's hazards are rolled from a seed: whether a dust storm happens, how many flares (1–4), whether a supply pod is scheduled, and which sols (2–10, one event at a time). Flare sizes are drawn from the real M and X flares the live feed returned; with no live data they are drawn from the NOAA long-run record (3,791 M to 345 X flares, 1975–2012), marked `approximate`. A dustier landing site gets more storms. The crew sees a pod for the whole run, a storm three sols ahead and a flare only one sol ahead.
+**Why:** The fixed schedule (D-033) meant every replay was the same four decisions in the same order, which undercuts "a living simulation". Real hazards vary: flare activity changes month to month, dust storms are common but not certain, and flares give almost no warning. Seeding rather than `Math.random` keeps a run repeatable in a demo and assertable in a test.
+**Rejected:** (a) `Math.random` in `sim/` — it breaks determinism and is how ISS-015 happened. (b) Inventing flare sizes with no source — sizes come only from real flares or the NOAA mix. (c) Using C-class flares — the Sun makes thousands and they cannot hurt a shielded crew. (d) A Mars dust-season variable on `RunState` — more state for little gain. (e) Longer or variable storms — balance risk for no extra lesson. (f) A fully empty mission — every mission has at least one flare and two decisions, because otherwise there is nothing to play.
+**Consequence:** `sim/forecast.ts` exports `createSeededRandom`, `planEvents`, `randomSolBetween`, `stormChance`, `visibleForecast`, `WARNING_SOLS` and `createForecast(flares, seed?, dustScore?)`; `DEFAULT_SEED` is 6. `dom/forecastLoader.loadForecast(signal?, seed?, dustScore?)` passes `Date.now()` and the site's dust score, so every new mission differs. `data/spaceweather.ts` returns every flare it parsed and `FALLBACK_FLARES` is empty, so an offline run draws typical sizes from the long-run record instead of the same two baked flares. `features/base`'s "read ahead" card and `features/act`'s "Coming up" panel show `visibleForecast`, not the whole timetable.
+
+---
+
 **D-046 — agent — 2026-11-10**
 **Choice:** The briefing artwork is shown whole, locked to its own aspect ratio as the backdrop (the supply screen's stage approach), with one spoken line at a time over it, each line replacing the one before it; NEXT or Enter advances, and Enter confirms on the last line.
 **Why:** The stacked beat cards filled the screen with a growing wall of text and left the artwork out entirely. One spoken line under the picture keeps the scene and reads as something being said to you; a child who looks away misses one line rather than five.

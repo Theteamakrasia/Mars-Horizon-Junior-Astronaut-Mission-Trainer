@@ -170,7 +170,12 @@ describe('nextSteps', () => {
   });
 
   it('points at the supply pod that carried water, when the crew unpacked something else', () => {
-    const run = withState(endedByWater(), { decisions: [{ crisisId: 'supply-5', sol: 5, optionId: 'spares', timedOut: false }] });
+    const ended = endedByWater();
+    const pod = ended.forecast.find((event) => event.kind === 'supply-pod');
+
+    if (pod === undefined) throw new Error('No supply pod in this forecast');
+
+    const run = withState(ended, { decisions: [{ crisisId: pod.id, sol: pod.sol, optionId: 'spares', timedOut: false }] });
     const steps = nextSteps(run);
 
     expect(steps.map((step) => step.title)).toContain('Choose water from the pod');
