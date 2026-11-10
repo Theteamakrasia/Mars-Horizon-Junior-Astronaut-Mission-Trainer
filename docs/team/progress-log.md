@@ -319,8 +319,7 @@ than a documented one.
 **Files**
 
 - New: `src/sim/activities.ts`, `src/sim/science.ts`, `src/sim/topics.ts`,
-  `src/data/nasaDaily.ts`, `src/dom/dailyFactLoader.ts`, `src/ui/nasaFeedCard.ts`,
-  `docs/game-plan-update.md`
+  `src/data/nasaDaily.ts`, `src/dom/dailyFactLoader.ts`, `src/ui/nasaFeedCard.ts`
 - Changed: `src/sim/{run,sol}.ts`, `src/features/act/{model,view}.ts`,
   `src/features/act/act.css`, `src/features/debrief/{model,view}.ts`,
   `src/data/nasaGallery.ts`, `src/data/README.md`, `docs/architecture.md`,

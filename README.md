@@ -641,8 +641,7 @@ The rules are in `AGENTS.md`; the reasoning is in `docs/`. Start with these:
 | --- | --- |
 | [`AGENTS.md`](AGENTS.md) | Working rules, the enforced checks, the doc-update matrix, what is out of scope |
 | [`docs/architecture.md`](docs/architecture.md) | Annotated file tree, layering, module contracts, known simplifications |
-| [`docs/game-flow.md`](docs/game-flow.md) | Every player decision, the sol loop, what is built, how to add an event or an activity |
-| [`docs/game-plan-update.md`](docs/game-plan-update.md) | The plan behind the daily activity, the science score and the live NASA picture — and what actually shipped |
+| [`docs/game-flow.md`](docs/game-flow.md) | Every player decision, the sol loop, the day's activity, the five science goals, what is built, how to add an event |
 | [`docs/team/decisions.md`](docs/team/decisions.md) | Why things are the way they are, including what was rejected |
 | [`docs/team/issues.md`](docs/team/issues.md) | Every known problem, its severity and status |
 | [`docs/team/goals.md`](docs/team/goals.md) | What "done" means for this project |

@@ -189,7 +189,7 @@ on a rover survey with a flat battery and the sol runs in a blackout.
 The best possible run — the best activity on each of the eight calm sols, plus the day
 logs — scores 52.
 
-### 3b. The science score
+### 3c. The science score
 
 `RunState.science` totals the points; `src/sim/science.ts` turns the total into a rank.
 
@@ -343,6 +343,30 @@ no perfect landing spot.
 | Planning phase | **Not built** | — | D-029: do not add unasked |
 | New forecast events | **Not built** | — | this file, §10 |
 
+### The NASA layer
+
+Two things in this game come from NASA, and they behave differently on purpose.
+
+**Space weather.** The forecast's timetable is rolled per run (D-048) and the *size* of
+each flare comes from live data: NASA DONKI first, then NOAA SWPC, then the long-run
+record of real M and X flares when neither answers. `data/spaceweather.ts` is the only
+place allowed to make that request.
+
+**The daily picture.** Every sol also carries a real NASA picture and its written
+explanation, read live from the Astronomy Picture of the Day, filtered to Mars
+(D-053). `data/nasaDaily.ts` is the only place allowed to make *that* request.
+
+The daily picture is an **enrichment layer on top of** a saved gallery of twelve checked
+NASA cards, never a replacement. When NASA is busy, slow or offline, the saved card stays
+on screen and the game says why. That is the same rule the space-weather chain follows,
+and for the same reason: **the game is complete without a network**, and the player is
+never shown a number or a picture whose source cannot be named.
+
+Beside them, forty short NASA facts are filed under six topics — power, dust, water,
+food, radiation and missions — and one topic per science goal. That is what lets the
+act screen put the fact about water next to the activity that touches water, and the
+fact about radiation next to the one that piles soil on the habitat.
+
 ---
 
 ## 10. Adding a new event
@@ -407,7 +431,7 @@ sol makes the other one pointless — that is how `ice-store` was removed in fav
 
 ---
 
-## 11. What is deliberately absent
+## 12. What is deliberately absent
 
 | Thing | Why | Where it is recorded |
 | --- | --- | --- |
@@ -422,7 +446,7 @@ If a new event needs any of these, stop and get the decision recorded first.
 
 ---
 
-## 12. Where to look next
+## 13. Where to look next
 
 | Question | File |
 | --- | --- |

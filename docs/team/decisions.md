@@ -60,7 +60,7 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 **Choice:** The activity loop (D-051), the science score (D-052) and the NASA daily feed (D-053) are taken as an explicit **post-freeze scope exception**. The Nov 8 feature freeze (D-007, G-7) allowed only bug fixes; this is new gameplay, and it is recorded here rather than added quietly.
 **Why:** The demo is Nov 14-15, and a freeze that is broken without saying so is not a freeze. Writing the exception down keeps the one thing the freeze exists for — a stable, known artefact — while letting the demo show a game instead of a simulation. The exception is dated and bounded: three features, one branch, no new routes, no new runtime dependencies.
 **Rejected:** Waiting until after the demo (the change is the demo); skipping the freeze without recording it (that is how a freeze dies, and it would leave the history wrong); cutting the work back to bug fixes only (that is the status quo, which is the problem).
-**Consequence:** `docs/team/tasks.md` carries the work as TASK-066 … TASK-074 on branch `feat/daily-activities`. `docs/game-plan-update.md` is the plan of record for this pass. The freeze itself (D-007) is unchanged and still stands for everything else.
+**Consequence:** `docs/team/tasks.md` carries the work as TASK-066 … TASK-074 on branch `feat/daily-activities`. `docs/game-flow.md` is the document of record for how the game works. The freeze itself (D-007) is unchanged and still stands for everything else.
 
 ---
 

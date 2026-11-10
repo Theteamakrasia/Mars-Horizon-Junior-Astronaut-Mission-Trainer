@@ -16,7 +16,7 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 | TASK-071 | Show NASA's live daily picture and fact in `act` | G-5 | agent | done | — | D-053. One APOD per sol, with the curated card and an honest note as the fallback |
 | TASK-070 | Add `data/nasaDaily.ts`, tag the static facts, and add `dom/dailyFactLoader.ts` | G-5 | agent | done | — | D-053, ISS-049. The `data/README.md` contract: injected fetch, never throws, always reports its source |
 | TASK-069 | Offer the daily activity in `act` and show the science score | G-4 | agent | done | — | D-051, D-052. Three activity cards, a chosen one, the score in the world panel |
-| TASK-068 | Record D-051 to D-055, the post-freeze scope exception, ISS-049 to ISS-050 and this task list | G-6 | agent | done | — | D-055. `docs/game-plan-update.md` is the plan of record |
+| TASK-068 | Record D-051 to D-055, the post-freeze scope exception, ISS-049 to ISS-050 and this task list | G-6 | agent | done | — | D-055. `docs/game-flow.md` is the document of record |
 | TASK-067 | Score science points, rank the run, and apply the chosen activity in `advanceSol` | G-4 | agent | done | — | D-051, D-052. New `sim/science.ts`; `RunState.science` and `RunState.chosenActivity` |
 | TASK-066 | Add the activity catalogue and the twelve sol plans to `sim/` | G-4 | agent | done | — | D-051, D-054. New `sim/activities.ts` and `sim/topics.ts`; replaces the cosmetic `MISSIONS` array |
 | TASK-065 | Make Enter advance the supply screen like NEXT does | G-4 | agent | done | - | ISS-047, D-050; `isPlainEnter` and `focusHandlesEnter` in the model, one keydown listener in the view, and the screen resets its state on mount |
@@ -116,7 +116,7 @@ ISS-043). A personal key (TASK-008) remains optional.
 
 **TASK-066 to TASK-074 are one post-freeze exception (D-055).** The Nov 8 freeze allowed
 only bug fixes. This pass adds a main activity to every sol, a science score with a rank,
-and a live NASA daily-fact layer. `docs/game-plan-update.md` is the plan of record, the
+and a live NASA daily-fact layer. `docs/game-flow.md` is the document of record, the
 work is on branch `feat/daily-activities`, and the exception is recorded in
 `docs/team/decisions.md` rather than taken quietly.
 
