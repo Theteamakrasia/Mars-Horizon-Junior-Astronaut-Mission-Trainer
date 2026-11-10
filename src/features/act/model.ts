@@ -6,7 +6,7 @@
  * worded and which meters look worrying.
  */
 
-import { RESOURCE_NAMES, percentOf, type ResourceName } from '../../sim/resources';
+import { RESOURCE_NAMES, percentOf, type ResourceName, type ResourceStores } from '../../sim/resources';
 import type { RunState } from '../../sim/run';
 import { systemsFor } from '../../sim/modules';
 import { WIN_SOL } from '../../sim/sol';
@@ -78,6 +78,38 @@ export function meterRows(run: RunState): readonly MeterRow[] {
     const percent = percentOf(name, run.stores, capacity);
 
     return { name, ...RESOURCE_LABELS[name], percent, tone: toneFor(percent) };
+  });
+}
+
+/** One line of the "what this sol changed" strip. */
+export interface ChangeRow {
+  readonly name: ResourceName;
+  readonly label: string;
+  readonly emoji: string;
+  /** Signed and unit-bearing, e.g. `+14 kWh` or `−3%`. */
+  readonly text: string;
+  readonly tone: 'gain' | 'cost' | 'flat';
+}
+
+/**
+ * Turn a sol's net change into five readable rows.
+ *
+ * Power is kWh in the batteries; the other four are percentage points of a
+ * tank. A rounded zero says "no change" rather than `−0`, which a child would
+ * read as a loss that did not happen.
+ */
+export function changeRows(net: ResourceStores): readonly ChangeRow[] {
+  return RESOURCE_NAMES.map((name) => {
+    const value = Math.round(net[name]);
+    const unit = name === 'power' ? ' kWh' : '%';
+    const text = value === 0 ? 'no change' : `${value > 0 ? '+' : '−'}${Math.abs(value)}${unit}`;
+
+    return {
+      name,
+      ...RESOURCE_LABELS[name],
+      text,
+      tone: value > 0 ? 'gain' : value < 0 ? 'cost' : 'flat',
+    };
   });
 }
 

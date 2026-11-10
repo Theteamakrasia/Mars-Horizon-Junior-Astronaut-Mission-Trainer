@@ -27,7 +27,7 @@ import { nasaCard } from '../../ui/nasaCard';
 import { nextStop } from '../../ui/registry';
 import { navigate } from '../../ui/router';
 
-import { meterRows, missionHeadline, powerSentence, secondsLeft } from './model';
+import { changeRows, meterRows, missionHeadline, powerSentence, secondsLeft } from './model';
 
 import '../../styles/game-loop.css';
 import './act.css';
@@ -213,6 +213,33 @@ export function mountAct(
       for (const item of items.length > 0 ? items : ['A quiet sol. Everything ran as expected.']) list.append(h('li', { text: item }));
 
       body.push(gameSection(`What happened on sol ${last.sol}`, list));
+
+      /* The numbers behind the story: what the sol added and what it cost. */
+      const changes = h('div', { class: 'act-changes' });
+
+      for (const row of changeRows(last.net)) {
+        changes.append(
+          h(
+            'div',
+            { class: 'act-change', 'data-tone': row.tone },
+            h(
+              'span',
+              { class: 'act-change__label' },
+              h('span', { 'aria-hidden': 'true', text: `${row.emoji} ` }),
+              row.label,
+            ),
+            h('strong', { class: 'act-change__value', text: row.text }),
+          ),
+        );
+      }
+
+      body.push(
+        gameSection(
+          'What this sol changed',
+          changes,
+          h('p', { class: 'gl__note', text: 'Power is stored energy. The other four are percent of a tank. A plus means you made more than you used.' }),
+        ),
+      );
 
       /* One real NASA image per sol, after the recap: something to look at and
          learn from before the next decision. Out-of-range sols simply get none. */

@@ -17,3 +17,46 @@
 .gl--act .gl__calm[aria-pressed='true'] {
   opacity: 0.75;
 }
+
+/* What the sol added and what it cost, in five small cards. */
+.act-changes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(4.4rem, 1fr));
+  gap: 0.35rem;
+}
+
+.act-change {
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--gl-line);
+  border-radius: 0.6rem;
+  background: var(--gl-card);
+}
+
+.act-change__label {
+  display: block;
+  color: var(--gl-muted);
+  font-size: clamp(0.52rem, 0.65vw, 0.75rem);
+  font-weight: 700;
+}
+
+.act-change__value {
+  display: block;
+  color: var(--gl-ink);
+  font-family: var(--gl-display);
+  font-size: clamp(0.68rem, 0.82vw, 0.95rem);
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.act-change[data-tone='gain'] .act-change__value {
+  color: var(--gl-green);
+}
+
+.act-change[data-tone='cost'] .act-change__value {
+  color: var(--gl-orange-deep);
+}
+
+.act-change[data-tone='flat'] .act-change__value {
+  color: var(--gl-muted);
+  font-weight: 800;
+}
