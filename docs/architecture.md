@@ -310,9 +310,14 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │   ├── view.ts                  complete   mountNaming(root, run, setRun) -> teardown.
     │   │   │                                     Validates on every keystroke; START MISSION
     │   │   │                                     disabled until the name is usable.
-    │   │   └── naming.css               complete   measured palette + naming-mars-turn (150s) and
-    │   │                                         naming-astronaut-float (9s), both removed under
-    │   │                                         prefers-reduced-motion
+    │   │   └── naming.css               complete   the full-bleed scene: the stage is the
+    │   │                                         backdrop for the whole window, the
+    │   │                                         astronaut stands left, Mars fills the right
+    │   │                                         and the menu column sits over it. Outfit
+    │   │                                         type, translucent panels, a radial scrim
+    │   │                                         for legibility. naming-mars-turn (150s) and
+    │   │                                         naming-astronaut-float (9s), both removed
+    │   │                                         under prefers-reduced-motion. D-048
     │   ├── briefing/                   COMPLETE   The mission briefing.
     │   │   ├── README.md                           the contract
     │   │   ├── model.ts                 complete   BEATS, beatsThrough, greetingFor. Pure.
@@ -485,6 +490,11 @@ The rotation behind the menu is **CSS keyframes**, not JavaScript: `naming-mars-
 (150s) and `naming-astronaut-float` (9s), both removed under
 `prefers-reduced-motion`. No `requestAnimationFrame` is involved, so there is no loop
 to leak on navigation and the menu needs no teardown for them.
+
+The stage is the backdrop for the whole screen, not a panel inside the menu: it is the
+first child of the `naming` section and covers the window, so the planet runs off the
+top and right edges and the header sits on top of it. The menu column sits on the right
+over the planet (D-048).
 
 The planet rotates **in the image plane** (`rotate()`), not on a 3D axis. This is
 forced by the asset: a sphere spun about its own axis looks identical, so a `rotateY`

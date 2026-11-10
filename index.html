@@ -56,11 +56,32 @@
     </div>
     <!-- The main menu. The stage images get their src from
          features/naming/view.ts so Vite fingerprints them; data-naming-img only
-         says which file goes in which slot. -->
+         says which file goes in which slot.
+
+         The stage is the first child of the section, not of the body, because it
+         is the backdrop for the WHOLE screen: the planet runs off the top and
+         right edges and the header sits on top of it. -->
     <section id="naming" class="naming" aria-labelledby="naming-title">
+      <div class="naming__stage" aria-hidden="true">
+        <img
+          class="naming__mars"
+          data-naming-img="mars"
+          alt=""
+          aria-hidden="true"
+          decoding="async"
+        />
+        <img
+          class="naming__astronaut"
+          data-naming-img="astronaut"
+          alt=""
+          aria-hidden="true"
+          decoding="async"
+        />
+      </div>
+
       <header class="naming__header">
         <div class="naming__brand">
-          <span class="naming__brand-mark" aria-hidden="true">&#128640;</span>
+          <span class="naming__brand-mark" aria-hidden="true"></span>
           <span class="naming__brand-text">
             <span class="naming__brand-name">MARS HORIZON</span>
             <span class="naming__brand-sub">TRAINER MODE</span>
@@ -71,35 +92,44 @@
 
       <div class="naming__body">
         <div class="naming__panel">
-          <h1 class="naming__title" id="naming-title">Welcome<br />Astronaut</h1>
-          <p class="naming__greeting" data-naming-greeting role="status" aria-live="polite"></p>
+          <!-- The title, the greeting and the form travel together: they are one
+               block, and the trainer card below them is pinned to the bottom of
+               the panel. -->
+          <div class="naming__content">
+            <h1 class="naming__title" id="naming-title">Welcome<br />Astronaut</h1>
+            <p class="naming__greeting" data-naming-greeting role="status" aria-live="polite"></p>
 
-          <form class="naming__form" data-naming-form novalidate>
-            <label class="naming__visually-hidden" for="naming-input">Your astronaut's name</label>
-            <input
-              class="naming__input"
-              id="naming-input"
-              type="text"
-              autocomplete="off"
-              spellcheck="false"
-              placeholder="[ Enter name ]"
-              data-naming-input
-            />
-            <p class="naming__hint" data-naming-hint aria-live="polite"></p>
-            <div class="naming__actions">
-              <button class="naming__button" type="submit" data-naming-submit disabled>
-                Start Mission
-              </button>
-              <button class="naming__button" type="button" data-naming-back>
-                Start over
-              </button>
-            </div>
-          </form>
+            <form class="naming__form" data-naming-form novalidate>
+              <label class="naming__visually-hidden" for="naming-input">Your astronaut's name</label>
+              <input
+                class="naming__input"
+                id="naming-input"
+                type="text"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="[ Enter name ]"
+                data-naming-input
+              />
+              <p class="naming__hint" data-naming-hint aria-live="polite"></p>
+              <div class="naming__actions">
+                <button class="naming__button" type="submit" data-naming-submit disabled>
+                  Start Mission
+                </button>
+                <button
+                  class="naming__button naming__button--outline"
+                  type="button"
+                  data-naming-back
+                >
+                  Start over
+                </button>
+              </div>
+            </form>
+          </div>
 
           <aside class="naming__trainer">
             <p class="naming__trainer-head">
               <span class="naming__trainer-flag">
-                <span aria-hidden="true">&#9673;</span> Trainer Mode
+                <span class="naming__trainer-dot" aria-hidden="true"></span> Trainer Mode
               </span>
               <span class="naming__trainer-state">Active</span>
             </p>
@@ -108,24 +138,6 @@
               safe bot at all times.
             </p>
           </aside>
-        </div>
-
-        <div class="naming__stage">
-          <div class="naming__card">
-            <img
-              class="naming__mars"
-              data-naming-img="mars"
-              alt=""
-              aria-hidden="true"
-              decoding="async"
-            />
-            <img
-              class="naming__astronaut"
-              data-naming-img="astronaut"
-              alt="A cartoon astronaut in a white spacesuit, floating in front of Mars"
-              decoding="async"
-            />
-          </div>
         </div>
       </div>
     </section>

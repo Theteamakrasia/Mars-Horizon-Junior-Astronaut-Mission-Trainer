@@ -11,6 +11,14 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+**D-048 — agent · 2026-11-10**
+**Choice:** The naming screen becomes a full-bleed scene: the stage is the backdrop for the whole window, the astronaut stands on the left, Mars fills the right and runs off the edges, and the menu (title, name field, buttons, trainer card) sits on the right over the planet. The card frame is gone, the typography is the geometric sans already loaded for the site (Outfit), the panels are translucent so the planet shows through, and a radial scrim keeps the menu legible on top of it. The Mars rotation is untouched: `naming-mars-turn` is still 150s, linear, infinite, and `naming-astronaut-float` is still 9s.
+**Why:** The screen was built to an earlier mockup that put the artwork in a bordered card on the right and the menu in a column on the left. The new reference is the opposite: one picture, edge to edge, with the menu on the planet. It is also a better screen for a child — the astronaut is the first thing on it rather than a small picture in a box.
+**Rejected:** Keeping the 1060x677 card and restyling it (the frame is the thing the reference removes); moving the planet or the astronaut with JavaScript (the CSS keyframes already do it, and a JS loop is a leak to clean up on every navigation); rebuilding the scene as one flattened bitmap (it would stop rotating and could not respond to the viewport); a JS-driven starfield (the landing page already owns that, and the scene does not need a second one).
+**Consequence:** `index.html` moves the stage out of `.naming__body` to be the first child of the section, and wraps the title, greeting and form in `.naming__content` so the block can be centred above the trainer card. `naming.css` is rewritten around the new composition; the keyframes are copied over unchanged. `view.ts` and `model.ts` are untouched, so the name rules and their 21 tests stand, and the screen still behaves exactly as before: START MISSION stays disabled until the name is usable. Below 720px wide or 480px tall the backdrop is dropped and the panel goes full width, as it did before.
+
+---
+
 **D-046 — agent — 2026-11-10**
 **Choice:** The briefing artwork is shown whole, locked to its own aspect ratio as the backdrop (the supply screen's stage approach), with one spoken line at a time over it, each line replacing the one before it; NEXT or Enter advances, and Enter confirms on the last line.
 **Why:** The stacked beat cards filled the screen with a growing wall of text and left the artwork out entirely. One spoken line under the picture keeps the scene and reads as something being said to you; a child who looks away misses one line rather than five.

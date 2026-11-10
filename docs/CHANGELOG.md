@@ -9,6 +9,10 @@ Versions will be assigned when the project begins publishing releases.
 
 ## [Unreleased]
 
+### Changed
+
+- Redraw the start screen as a full-bleed scene: the astronaut stands on the left, Mars fills the right and runs off the edges of the window, and the menu — title, name field, buttons and trainer card — sits on the right over the planet. The menu now uses the site's geometric sans, its panels are translucent so the planet shows through, and a soft scrim keeps the text readable. The rotating planet is unchanged.
+
 ### Added
 
 - Deploy the validated default-branch build to Vercel from GitHub Actions using pinned Vercel CLI and repository secrets.

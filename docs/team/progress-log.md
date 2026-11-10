@@ -8,6 +8,55 @@ than a documented one.
 
 ---
 
+## 2026-11-10 — Redesign the start screen as a full-bleed scene
+
+**Did**
+
+- The naming screen is now one picture edge to edge: the astronaut stands on the left,
+  Mars fills the right and runs off the top and right of the window, and the menu (title,
+  name field, buttons, trainer card) sits on the right over the planet.
+- The stage moved out of `.naming__body` and became the first child of the section, so it
+  is the backdrop for the whole window and the header sits on top of it. The card frame
+  (`naming__card`) is gone.
+- The title, greeting and form moved into a `.naming__content` wrapper, so the block can
+  be centred in the space above the trainer card, and the panel sits on the right at 44%
+  of the width.
+- Typography now uses Outfit, the geometric sans the site already loads for the rest of
+  its screens. Panels are translucent and a radial scrim over the planet keeps the menu
+  legible on top of it.
+- The Mars rotation is unchanged: `naming-mars-turn` is still 150s, linear, infinite, and
+  `naming-astronaut-float` is still 9s. Only the geometry around them moved.
+- `view.ts` and `model.ts` are untouched, so the name rules, the 21 model tests and the
+  whole form behaviour are exactly as they were.
+
+**Files**
+
+- `index.html`, `src/features/naming/naming.css`,
+  `docs/team/{decisions,tasks,progress-log}.md`, `docs/architecture.md`,
+  `docs/CHANGELOG.md`
+
+**Problems**
+
+- None blocking. `npm run check` clean, `npm test` still 424 in 19 files, `npm run build`
+  warning-free. The composition was verified by rendering the real app in headless Chrome
+  at 946x538 (the reference's own size), 1366x768, 1920x1080 and 390x844, and by driving
+  the form: typing enables START MISSION, submitting reaches the briefing, and Start over
+  clears the field again.
+- One thing that bit twice: `--window-size` in headless Chrome subtracts the window
+  chrome, so the viewport came out 928x442 and the short-screen media query hid the
+  backdrop. The screenshots were taken through the DevTools Protocol with an explicit
+  viewport override instead.
+- The title is capped at 4rem because "ASTRONAUT" is one line: uncapped, it ran off the
+  right edge of the screen at 1366px wide.
+
+**Next**
+
+- The owner checks the screen on their own device; the planet in the reference mockup is
+  darker than the game's own asset, so if they want the mood of the mockup rather than
+  the real planet, a filter on `.naming__mars` is the one-line change.
+
+---
+
 ## 2026-11-10 — Rotate NASA facts onto the supply and launch screens
 
 **Did**
