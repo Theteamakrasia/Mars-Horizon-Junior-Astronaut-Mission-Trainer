@@ -58,6 +58,16 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
 │   ├── images/docking/                 complete   3 WebP stills, ~150 KB each: the separated
 │   │                                             spacecraft, the docked craft and the assembled
 │   │                                             station. Read by tools/render-docking.py.
+│   ├── images/naming/                  complete   mars.webp (358 KB, 1818x1860) and
+│   │                                             astronaut.webp (130 KB, 1240x1236): the
+│   │                                             planet and the astronaut of the start
+│   │                                             screen. Both are drawn full-screen, so both
+│   │                                             are enlarged from the originals by
+│   │                                             tools/upscale-naming-assets.py.
+│   │   └── source/                     complete   the untouched originals (606x620 and
+│   │                                             620x618), kept so the enlargement can be
+│   │                                             re-run at any size. Read by
+│   │                                             tools/upscale-naming-assets.py.
 │   ├── images/parts/                   complete   5 WebP stills: the all-parts overview and one
 │   │                                             per part (propulsion, habitat, logistics,
 │   │                                             Orion), each with a different part outlined and a
@@ -91,11 +101,17 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
 │   │                                             of the separated frame, rebuilds the black space
 │   │                                             behind it, and moves the sprite across a headless
 │   │                                             background while the camera pushes in.
-│   └── render-parts.py                 complete   300+ lines. PIL + numpy + OpenCV + PyAV. Cross-dissolves the
-│                                                 four part stills under a push-in, with staggered
-│                                                 description bars and fade-through-black bookends.
+│   ├── render-parts.py                 complete   300+ lines. PIL + numpy + OpenCV + PyAV. Cross-dissolves the
+│   │                                                 four part stills under a push-in, with staggered
+│   │                                                 description bars and fade-through-black bookends.
+│   └── upscale-naming-assets.py        complete   ~85 lines. PIL. Enlarges the start screen's planet and
+│   │                                             astronaut with a Lanczos resample and a light
+│   │                                             unsharp mask, from the untouched originals in
+│   │                                             Assets/images/naming/source/. They are drawn
+│   │                                             full-screen, so the 606px originals turned to
+│   │                                             mush at 1920px wide.
 │
-│   All three are dev tools: not scanned by `npm run check`, and they add no runtime dependency.
+│   All four are dev tools: not scanned by `npm run check`, and they add no runtime dependency.
 │
 ├── scripts/
 │   └── check-imports.mjs               complete   Zone + banned-API checker, 9 rule ids.

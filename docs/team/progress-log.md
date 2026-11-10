@@ -57,6 +57,42 @@ than a documented one.
 
 ---
 
+## 2026-11-10 — Enlarge the start screen's planet and astronaut
+
+**Did**
+
+- The planet and the astronaut on the start screen are now enlarged: Mars went from 606x620
+  to 1818x1860 and the astronaut from 620x618 to 1240x1236, both as WebP.
+- They are drawn full-screen — the planet is the width of the window — so the 606px
+  originals were being stretched about three times over on a 1920px screen, which turned the
+  craters to mush and made the planet read as a broken image rather than a planet.
+- The originals are kept untouched in `Assets/images/naming/source/`, and
+  `tools/upscale-naming-assets.py` rebuilds the shipped files from them: a Lanczos resample
+  followed by a light unsharp mask, because Lanczos alone leaves the enlarged crater rims
+  soft. The planet is enlarged 3x (it carries the fine texture); the astronaut 2x (it is a
+  smooth illustration, and 2x is indistinguishable at the size it is drawn).
+- The entry screen's image weight goes from 125 KB to 488 KB, downloaded once on the first
+  screen.
+
+**Files**
+
+- `Assets/images/naming/{mars,astronaut}.webp`, `Assets/images/naming/source/`,
+  `tools/upscale-naming-assets.py`, `docs/architecture.md`, `docs/CHANGELOG.md`
+
+**Problems**
+
+- None blocking. `npm run check` clean, `npm test` still 424 in 19 files. The difference was
+  verified by rendering the real app at 1920x1080 and 946x538 in headless Chrome and
+  comparing 1:1 crops of the planet before and after.
+- Pillow is not installed by default here; `py -3 -m pip install Pillow` puts it there. It
+  is a dev-only tool dependency and adds nothing to the shipped bundle.
+
+**Next**
+
+- The owner checks the screen on their own device.
+
+---
+
 ## 2026-11-10 — Rotate NASA facts onto the supply and launch screens
 
 **Did**
