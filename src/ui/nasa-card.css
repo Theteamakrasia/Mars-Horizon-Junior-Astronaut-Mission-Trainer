@@ -1,0 +1,120 @@
+/* ==========================================================================
+   NASA CARD — one real image, its story and its credit.
+   Imported by ./nasaCard.ts. Colours come from the game-loop tokens on `.gl`,
+   so the card follows the same palette as the HUD and the panel around it.
+   ========================================================================== */
+
+.nasa-card {
+  margin: 0.15rem 0 0.85rem;
+  border: 1px solid var(--gl-line);
+  border-radius: clamp(10px, 0.83vw, 16px);
+  background: var(--gl-panel);
+  box-shadow: 0 2px 0 rgba(34, 50, 74, 0.05);
+  overflow: hidden;
+}
+
+.nasa-card__img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: var(--gl-card-strong);
+}
+
+.nasa-card__body {
+  padding: clamp(0.6rem, 0.9vw, 0.9rem) clamp(0.7rem, 1vw, 1rem);
+}
+
+.nasa-card__kicker {
+  margin: 0 0 0.2rem;
+  color: var(--gl-orange);
+  font-family: var(--gl-body);
+  font-size: clamp(0.55rem, 0.7vw, 0.8rem);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.nasa-card__title {
+  margin: 0 0 0.35rem;
+  color: var(--gl-ink);
+  font-family: var(--gl-display);
+  font-size: clamp(0.9rem, 1.15vw, 1.3rem);
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.nasa-card__caption {
+  margin: 0 0 0.45rem;
+  color: var(--gl-ink);
+  font-size: clamp(0.66rem, 0.8vw, 0.92rem);
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.nasa-card__fact {
+  margin: 0 0 0.45rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 0.6rem;
+  background: var(--gl-green-soft);
+  color: var(--gl-green);
+  font-size: clamp(0.62rem, 0.75vw, 0.85rem);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.nasa-card__fact strong {
+  font-weight: 900;
+}
+
+.nasa-card__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.nasa-card__credit {
+  margin: 0;
+  color: var(--gl-muted);
+  font-size: clamp(0.52rem, 0.65vw, 0.72rem);
+  font-weight: 700;
+}
+
+.nasa-card__read {
+  padding: 0.3rem 0.55rem;
+  border: 1px solid var(--gl-line);
+  border-radius: 999px;
+  background: var(--gl-card);
+  color: var(--gl-ink);
+  font-family: var(--gl-body);
+  font-size: clamp(0.55rem, 0.7vw, 0.78rem);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.nasa-card__read:hover {
+  background: var(--gl-card-strong);
+}
+
+.nasa-card__read[aria-pressed='true'] {
+  background: var(--gl-peach);
+  color: var(--gl-orange-deep);
+}
+
+.nasa-card__source {
+  color: var(--gl-blue);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.nasa-card__source:hover {
+  color: var(--gl-orange-deep);
+}
+
+/* A blocked or broken image leaves the card looking intentional: the words are
+   the lesson, and the picture is the illustration. */
+.nasa-card--no-image .nasa-card__body {
+  border-top: 3px solid var(--gl-orange);
+}

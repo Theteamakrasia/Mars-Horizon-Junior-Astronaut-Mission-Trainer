@@ -11,10 +11,13 @@
  * its own.
  */
 
+import { NEXT_HORIZON_CARD, factFor } from '../../data/nasaGallery';
 import { lastDetail, lastSource } from '../../data/spaceweather';
 import { h } from '../../dom/h';
 import { newRun, type RunState } from '../../sim/run';
 import { gamePanel, gameScreen, gameSection, gameWorld, moduleArt, moduleFigures, type HudStat, type SignalCard } from '../../ui/gameLoop';
+import { nasaCard } from '../../ui/nasaCard';
+import { stopReading } from '../../ui/readAloud';
 import { navigate } from '../../ui/router';
 
 import '../../styles/game-loop.css';
@@ -132,7 +135,7 @@ export function mountDebrief(
       footer: [button],
     });
 
-    mount.replaceChildren(gameScreen({ hud: [], world, panel, variant: 'gl--debrief', headerSub: 'MISSION DEBRIEF' }));
+    mount.replaceChildren(gameScreen({ hud: [], world, panel, variant: 'gl--debrief', headerSub: 'MISSION DEBRIEF', onLeave: () => navigate('naming') }));
   }
 
   /** The world's one hero card: how long the crew lasted, or the science behind it. */
@@ -217,7 +220,13 @@ export function mountDebrief(
     const panel = gamePanel({
       kicker: 'Mission debrief',
       title: `${consumptionSummary(state).sols} sols. So much learned!`,
-      body: [outcome, whatHappened, gameSection('Next time, try…', tips(steps))],
+      body: [
+        outcome,
+        whatHappened,
+        gameSection('Next time, try…', tips(steps)),
+        gameSection('NASA fact', h('p', { class: 'gl__note', text: `${factFor(consumptionSummary(state).sols).text} (${factFor(consumptionSummary(state).sols).credit})` })),
+        nasaCard(NEXT_HORIZON_CARD, 'A real NASA idea · Where this could lead'),
+      ],
       footer: [replay, h('div', { class: 'debrief__links' }, journalLink, menuLink)],
     });
 
@@ -340,6 +349,8 @@ export function mountDebrief(
   }
 
   function render(focus?: string): void {
+    stopReading();
+
     if (run === null || run.log.length === 0) {
       renderEmpty();
 
@@ -348,7 +359,7 @@ export function mountDebrief(
 
     const panel = mode === 'debrief' ? debriefPanel(run) : journalPanel(run);
 
-    mount.replaceChildren(gameScreen({ hud: hudFor(run), world: worldFor(run), panel, variant: 'gl--debrief', headerSub: 'MISSION DEBRIEF' }));
+    mount.replaceChildren(gameScreen({ hud: hudFor(run), world: worldFor(run), panel, variant: 'gl--debrief', headerSub: 'MISSION DEBRIEF', onLeave: () => navigate('naming') }));
 
     if (focus !== undefined) mount.querySelector<HTMLElement>(`[data-focus="${focus}"]`)?.focus();
   }

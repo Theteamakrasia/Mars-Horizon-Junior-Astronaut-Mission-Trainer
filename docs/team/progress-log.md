@@ -13,7 +13,7 @@ than a documented one.
 **Did**
 
 - Replaced the briefing's stacked beat cards with the astronaut-between-Earth-and-Mars artwork
-  (`Assets/images/briefing/astronaut.webp`, converted from a 2.2 MB PNG to a 203 KB WebP) and a
+  (`Assets/images/briefing/astronaut.webp`, converted from a 2.2 MB PNG to a 208 KB WebP) and a
   single message that swaps one line at a time. The artwork is locked to its own aspect ratio
   as the backdrop — the supply screen's stage approach — so it is never cropped; an earlier
   attempt used `object-fit: cover` over the whole viewport, which zoomed the picture and cut
@@ -21,7 +21,7 @@ than a documented one.
 - NEXT and the Enter key both advance; Enter confirms on the last line. Enter is ignored while
   a button or link has focus, so one press cannot advance twice.
 - The YES!! button and the ~2.6 s auto-advance are unchanged, as are `model.ts` and its tests.
-- Updated `docs/architecture.md`, `README.md` §2, `docs/team/decisions.md` (D-042) and this log
+- Updated `docs/architecture.md`, `README.md` §2, `docs/team/decisions.md` (D-046) and this log
   in the same change.
 
 **Files**
@@ -32,16 +32,100 @@ than a documented one.
 
 **Problems**
 
-- None blocking. `npm run check`, `npm test` (401 tests) and `npm run build` all pass; the new
-  WebP bundles at 208 KB. The source PNG is 2.2 MB, so the conversion is what keeps the bundle
-  honest — the other screens' assets are WebP for the same reason.
+- None blocking. `npm run check`, `npm test` (401 tests on that branch) and `npm run build` all
+  pass; the new WebP bundles at 208 KB. The source PNG is 2.2 MB, so the conversion is what
+  keeps the bundle honest — the other screens' assets are WebP for the same reason.
 - Not yet verified in a real browser; that is the next step before any commit.
+- The branch was 13 commits behind `main`; merging `main` in moved the briefing decision from
+  D-042 to D-046 because D-042 was already the NASA gallery decision. The read-aloud control
+  was re-wired to read the single on-screen message instead of a stack of beats.
 
 **Next**
 
 - Human browser pass on `#/briefing`: artwork visible, messages swap on NEXT and Enter, Enter
   does not double-advance from a focused button, YES!! and the auto-advance still fire.
-- Then commit on `mission-briefing`; push only when the owner says so.
+
+---
+
+## 2026-11-10 — Put a real NASA photo on every landing region, and rotate facts
+
+**Did**
+
+- Added five real NASA photos to the landing-site panel: one per region, each
+  verified against NASA's image API and credited. Selecting a pin now shows the
+  place itself, not just a dot on the map. Recorded as D-045.
+- Added a rotating list of fifteen short NASA facts, with `factFor(seed)` so a
+  screen can pick one deterministically. Base shows a fact beside the build
+  panel; the debrief shows one beside the closing card.
+- Reused `nasaCard` for the region photo, so the credit line, source link and
+  read-aloud control came with it. Ten new tests cover region ids, image URLs,
+  credits, length caps and fact wrapping.
+
+**Files**
+
+- `src/data/nasaGallery.ts` + test, `src/ui/nasaCard.ts`,
+  `src/features/landing-site/{view.ts,landing-site.css}`,
+  `src/features/base/view.ts`, `src/features/debrief/view.ts`, `index.html`,
+  `docs/architecture.md`, `docs/team/{decisions,tasks,progress-log}.md`,
+  `README.md`, `AGENTS.md`
+
+**Problems**
+
+- The region photos are fetched from `images-assets.nasa.gov` at runtime. A card
+  whose image fails keeps its caption, fact and credit, but there is no bundled
+  fallback image.
+- Jezero's picture is an artist's idea of the ancient lake, not a photograph;
+  the caption says so, because it is the one region image a child could mistake
+  for a real photo.
+
+**Next**
+
+- Human browser pass (`TASK-049`); then decide whether to extend the fact list
+  to the supply and launch screens.
+
+---
+
+## 2026-11-10 — Add the NASA learning layer, read-aloud, and a real way out of a run
+
+**Did**
+
+- Curated gallery: twelve real NASA images, one per sol, plus a closing artist concept on the
+  debrief. Every card has a NASA id, alt text, caption, fact, credit and source link, and ten
+  tests enforce those fields. Recorded as D-042.
+- Read-aloud on the NASA cards, the briefing and the crisis prompt, using the browser's own
+  `speechSynthesis`. Shared toggle in `ui/readButton.ts`, engine in `ui/readAloud.ts`, and the
+  router stops the voice on every navigation. Recorded as D-043.
+- "What this sol changed" strip on `act`: all five stores, signed deltas, `+15 kWh` / `−14%` /
+  `no change`, with a note that power is stored energy and the rest are tank percentages.
+- A safe leave dialog on base, act and debrief (Menu → Keep playing / Leave mission), and
+  naming's dead "Back to Main Menu" relabelled "Start over", which resets the form and the run.
+  Recorded as D-044.
+- Fixed the briefing's crew count (`CREW_SIZE = 4`), the page title/description, and updated the
+  docs to match: architecture tree and contracts, test counts, issues, decisions and tasks.
+
+**Files**
+
+- `src/data/nasaGallery.ts` + test, `src/ui/nasaCard.ts`, `src/ui/nasa-card.css`,
+  `src/ui/readAloud.ts`, `src/ui/readButton.ts`, `src/ui/gameLoop.ts`,
+  `src/styles/game-loop.css`, `src/ui/router.ts`, `src/features/{act,briefing,debrief,base,naming}`,
+  `index.html`, `docs/architecture.md`, `docs/team/{decisions,issues,tasks,progress-log}.md`,
+  `README.md`, `AGENTS.md`
+
+**Problems**
+
+- The briefing's closing hand-off would have cut off a reading mid-sentence, so the read button
+  pauses that timer and restarts it only when the passage finishes naturally.
+- `speechSynthesis` is unavailable in the Vitest node environment, so read-aloud has no automated
+  test; the control is hidden where the API is missing and the rest is code-reading plus the
+  browser pass.
+- NASA image URLs point at `images-assets.nasa.gov`. A card whose image fails to load still shows
+  the caption, fact and credit, but no offline fallback image is bundled.
+
+**Next**
+
+- Human browser acceptance pass (`TASK-049`) and a `npm run preview` check of `dist/`.
+- Optional: self-host the fonts (TASK-012) and remove the unused 12 MB of cinematic PNGs
+  (ISS-018).
 
 ---
 

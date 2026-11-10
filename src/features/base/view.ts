@@ -16,6 +16,7 @@
 
 import { loadForecast, type LoadedForecast } from '../../dom/forecastLoader';
 import { h } from '../../dom/h';
+import { factFor } from '../../data/nasaGallery';
 import { createForecast, type ForecastEvent } from '../../sim/forecast';
 import { newRun, startOutpost, withState, type RunState } from '../../sim/run';
 import { regionById } from '../../sim/regions';
@@ -190,11 +191,15 @@ export function mountBase(
       kicker: 'Build your outpost',
       title: 'What will you bring?',
       sub: 'Choose extras to keep your crew safe.',
-      body: [budget, cards],
+      body: [
+        budget,
+        cards,
+        h('p', { class: 'gl__note', text: `NASA fact · ${factFor(start.sol + regionId.length).text} (${factFor(start.sol + regionId.length).credit})` }),
+      ],
       footer: [launch, h('p', { class: 'gl__note', text: BUDGET_NONE })],
     });
 
-    mount.replaceChildren(gameScreen({ hud, world, panel, variant: 'gl--base', headerSub: 'BUILD YOUR OUTPOST' }));
+    mount.replaceChildren(gameScreen({ hud, world, panel, variant: 'gl--base', headerSub: 'BUILD YOUR OUTPOST', onLeave: () => navigate('naming') }));
 
     if (focusKey !== undefined) focusable.get(focusKey)?.focus();
   }

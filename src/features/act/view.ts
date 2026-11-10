@@ -14,6 +14,7 @@
  * whole screen.
  */
 
+import { cardForSol } from '../../data/nasaGallery';
 import { loadForecast } from '../../dom/forecastLoader';
 import { h } from '../../dom/h';
 import { earthAdvice, earthIsInTime, optionOf, pendingCrisis, type Crisis } from '../../sim/crises';
@@ -22,10 +23,13 @@ import { withState, type RunState } from '../../sim/run';
 import { siteScore, regionById, SITE_AXES } from '../../sim/regions';
 import { advanceSol, decide, powerPicture, WIN_SOL } from '../../sim/sol';
 import { gamePanel, gameScreen, gameSection, gameWorld, moduleArt, moduleFigures, type HudStat } from '../../ui/gameLoop';
+import { nasaCard } from '../../ui/nasaCard';
+import { readButton } from '../../ui/readButton';
+import { stopReading } from '../../ui/readAloud';
 import { nextStop } from '../../ui/registry';
 import { navigate } from '../../ui/router';
 
-import { meterRows, missionHeadline, powerSentence, secondsLeft } from './model';
+import { changeRows, meterRows, missionHeadline, powerSentence, secondsLeft } from './model';
 
 import '../../styles/game-loop.css';
 import './act.css';
@@ -211,6 +215,39 @@ export function mountAct(
       for (const item of items.length > 0 ? items : ['A quiet sol. Everything ran as expected.']) list.append(h('li', { text: item }));
 
       body.push(gameSection(`What happened on sol ${last.sol}`, list));
+
+      /* The numbers behind the story: what the sol added and what it cost. */
+      const changes = h('div', { class: 'act-changes' });
+
+      for (const row of changeRows(last.net)) {
+        changes.append(
+          h(
+            'div',
+            { class: 'act-change', 'data-tone': row.tone },
+            h(
+              'span',
+              { class: 'act-change__label' },
+              h('span', { 'aria-hidden': 'true', text: `${row.emoji} ` }),
+              row.label,
+            ),
+            h('strong', { class: 'act-change__value', text: row.text }),
+          ),
+        );
+      }
+
+      body.push(
+        gameSection(
+          'What this sol changed',
+          changes,
+          h('p', { class: 'gl__note', text: 'Power is stored energy. The other four are percent of a tank. A plus means you made more than you used.' }),
+        ),
+      );
+
+      /* One real NASA image per sol, after the recap: something to look at and
+         learn from before the next decision. Out-of-range sols simply get none. */
+      const learning = cardForSol(last.sol);
+
+      if (learning !== null) body.push(nasaCard(learning));
     }
 
     body.push(h('p', { class: 'gl__note', text: 'Sol = one Mars day. You control when it runs.' }));
@@ -309,12 +346,23 @@ export function mountAct(
       earthBox,
     ];
 
+    /* The alert is the one screen where a struggling reader loses the most:
+       the clock is running and the choices matter. Reading it does not pause
+       anything, but "take your time" is right below. */
+    const read = readButton(
+      () =>
+        [crisis.title, crisis.prompt, ...crisis.options.map((option) => `${option.label}. ${option.detail}`)].join(
+          ' ',
+        ),
+      { ariaLabel: 'Read this alert and the choices aloud' },
+    );
+
     const panel = gamePanel({
       kicker: `Sol ${sol} · ${EVENT_NAME[crisis.kind]}`,
       title: crisis.title,
       sub: crisis.prompt,
       body,
-      footer: [ask, crisis.urgent ? calm : false],
+      footer: [ask, crisis.urgent ? calm : false, read ?? false],
     });
 
     // The clock nodes belong to this render; a new one replaces them.
@@ -329,6 +377,10 @@ export function mountAct(
   }
 
   function render(): void {
+    /* The panel is about to be replaced. Any card being read aloud belongs to
+       the old panel, so stop it before its DOM disappears. */
+    stopReading();
+
     if (run === null || run.regionId === '') {
       notice('Pick a landing site first.', 'Choose a landing site', 'landing-site');
 
@@ -368,7 +420,7 @@ export function mountAct(
 
     const panel = crisis === null ? missionPanel(state) : crisisPanel(state, crisis);
 
-    mount.replaceChildren(gameScreen({ hud: hudFor(state), world, panel, variant: 'gl--act', headerSub: 'RUNNING THE DAY' }));
+    mount.replaceChildren(gameScreen({ hud: hudFor(state), world, panel, variant: 'gl--act', headerSub: 'RUNNING THE DAY', onLeave: () => navigate('naming') }));
 
     if (pendingFocus !== null) {
       pendingFocus.focus();
@@ -388,6 +440,7 @@ export function mountAct(
         panel: gamePanel({ kicker: 'Not ready yet', title: label, sub: text, footer: [button] }),
         variant: 'gl--act',
         headerSub: 'RUNNING THE DAY',
+        onLeave: () => navigate('naming'),
       }),
     );
   }

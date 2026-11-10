@@ -1,3 +1,4 @@
+import { stopReading } from './readAloud';
 import {
   DEFAULT_ROUTE,
   parseRoute,
@@ -56,6 +57,10 @@ export function startRouter(options: RouterOptions): () => void {
   };
 
   const onHashChange = (): void => {
+    /* A voice reading the old screen must not follow the player into the new
+       one. Cancelling here covers every route, including screens that do not
+       know read-aloud exists. */
+    stopReading();
     options.onRoute(resolve());
   };
 

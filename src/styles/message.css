@@ -97,8 +97,8 @@
 /* ==========================================================================
    REDUCED MOTION
    A full-viewport blink is a genuine accessibility trigger, so the cursor is
-   made static rather than merely slowed down. The astronaut's drift is paused
-   by JavaScript (see floatAstronaut.ts), which recentres the sprite.
+   made static rather than merely slowed down. The astronaut still drifts, slowly
+   and without deformation; see floatAstronaut.ts.
    ========================================================================== */
 @media (prefers-reduced-motion: reduce) {
   .star,

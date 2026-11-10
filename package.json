@@ -1,8 +1,9 @@
 {
   "name": "mars-horizon-trainer",
   "version": "0.1.0",
-  "description": "Mars Horizon — Junior Astronaut Mission Trainer. Placeholder landing page.",
+  "description": "Mars Horizon — Junior Astronaut Mission Trainer. A 12-sol Mars outpost survival game.",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",

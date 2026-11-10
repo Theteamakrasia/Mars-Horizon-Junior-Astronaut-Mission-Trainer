@@ -161,18 +161,26 @@ export interface ScreenOptions {
   readonly headerSub?: string;
   /** A screen-specific modifier on the root, for that feature's own CSS. */
   readonly variant?: string;
+  /**
+   * When present, the header gets a real Menu button that can leave the run.
+   * Screens without a run omit it, and the header keeps the plain label.
+   */
+  readonly onLeave?: () => void;
 }
 
-/** 
+/**
  * The header.
  *
  * Drawn as the standard page header: a rocket mark, the MARS HORIZON brand,
- * the screen name, and a muted Mission Control / Main Menu line on the right.
+ * the screen name, and a control on the right. With `onLeave` that control is a
+ * real Menu button that asks before abandoning an unsaved run. Without it, the
+ * header keeps the old non-interactive label, because a screen with nothing to
+ * leave should not offer a control that does nothing.
  */
-export function gameHeader(sub?: string): HTMLElement {
+export function gameHeader(sub?: string, onLeave?: () => void): HTMLElement {
   const subtitle = sub ?? 'GAME LOOP';
 
-  return h(
+  const header = h(
     'header',
     { class: 'gl__header' },
     h(
@@ -186,8 +194,80 @@ export function gameHeader(sub?: string): HTMLElement {
         h('span', { class: 'gl__brand-sub', text: subtitle }),
       ),
     ),
-    h('nav', { class: 'gl__nav', 'aria-label': 'Primary', text: 'Mission Control / Main Menu' }),
   );
+
+  if (onLeave === undefined) {
+    header.append(h('nav', { class: 'gl__nav', 'aria-label': 'Primary', text: 'Mission Control / Main Menu' }));
+
+    return header;
+  }
+
+  const keep = h('button', { class: 'gl__btn gl__btn--primary', type: 'button' }, 'Keep playing');
+  const leave = h('button', { class: 'gl__btn gl__btn--navy', type: 'button' }, 'Leave mission');
+  const button = h(
+    'button',
+    { class: 'gl__menu-button', type: 'button', 'aria-haspopup': 'dialog', 'aria-expanded': 'false' },
+    '☰ Menu',
+  );
+
+  const card = h(
+    'div',
+    { class: 'gl__menu-card', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'gl-menu-title' },
+    h('p', { class: 'gl__kicker', text: 'Mission Control' }),
+    h('h2', { class: 'gl__menu-title', id: 'gl-menu-title', text: 'Leave the mission?' }),
+    h('p', {
+      class: 'gl__menu-text',
+      text: 'Your run is not saved. Leaving now returns to the main menu, and the next mission starts again from sol 1.',
+    }),
+    h('div', { class: 'gl__menu-actions' }, keep, leave),
+  );
+
+  const backdrop = h('div', { class: 'gl__menu-backdrop', hidden: true }, card);
+
+  const close = (): void => {
+    backdrop.hidden = true;
+    button.setAttribute('aria-expanded', 'false');
+    button.focus();
+  };
+
+  const open = (): void => {
+    backdrop.hidden = false;
+    button.setAttribute('aria-expanded', 'true');
+    keep.focus();
+  };
+
+  button.addEventListener('click', open);
+  keep.addEventListener('click', close);
+  leave.addEventListener('click', () => {
+    close();
+    onLeave();
+  });
+  backdrop.addEventListener('click', (event) => {
+    if (event.target === backdrop) close();
+  });
+  backdrop.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      close();
+
+      return;
+    }
+
+    if (event.key !== 'Tab') return;
+
+    /* Two controls, so the trap is one wrap in each direction. */
+    if (event.shiftKey && document.activeElement === keep) {
+      event.preventDefault();
+      leave.focus();
+    } else if (!event.shiftKey && document.activeElement === leave) {
+      event.preventDefault();
+      keep.focus();
+    }
+  });
+
+  header.append(button, backdrop);
+
+  return header;
 }
 
 /** The five resource cards across the top. */
@@ -307,7 +387,7 @@ export function gameScreen(options: ScreenOptions): HTMLElement {
   return h(
     'div',
     { class: options.variant === undefined ? 'gl' : `gl ${options.variant}` },
-    gameHeader(options.headerSub),
+    gameHeader(options.headerSub, options.onLeave),
     gameHud(options.hud),
     h('div', { class: 'gl__main' }, options.world, options.panel),
   );

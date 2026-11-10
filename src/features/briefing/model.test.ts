@@ -51,11 +51,13 @@ describe('BEATS', () => {
     expect(last.text).toContain('?');
   });
 
-  it('states that the crew has more than one member', () => {
-    // "Along with other experienced team members" is the premise of the scene, so
-    // a rewrite that dropped it would silently change the game's framing.
+  it('names the other three crewmates, so the crew is four', () => {
+    // `CREW_SIZE` in sim/modules.ts is 4 and the ration maths uses it. An earlier
+    // briefing said "two others" and "the three of you", contradicting the sim;
+    // this pins the copy to the number the game actually feeds.
     const all = BEATS.map((beat) => beat.text).join(' ');
-    expect(all).toContain('Two others');
+    expect(all).toContain('Three others');
+    expect(all).toContain('The four of you');
   });
 
   it('says the job is to build an outpost on Mars', () => {

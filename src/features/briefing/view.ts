@@ -27,6 +27,8 @@
  * random jump.
  */
 
+import { readButton } from '../../ui/readButton';
+import { stopReading } from '../../ui/readAloud';
 import { nextStop } from '../../ui/registry';
 import { navigate } from '../../ui/router';
 import type { RunState } from '../../sim/run';
@@ -68,6 +70,7 @@ export function mountBriefing(
   const advance = require<HTMLButtonElement>(root, '[data-briefing-next]');
   const yes = require<HTMLButtonElement>(root, '[data-briefing-yes]');
   const hint = require<HTMLParagraphElement>(root, '[data-briefing-hint]');
+  const actions = require<HTMLDivElement>(root, '[data-briefing-actions]');
 
   greeting.textContent = greetingFor(run?.astronautName ?? '');
   art.src = astronautUrl;
@@ -79,6 +82,31 @@ export function mountBriefing(
   /** The next stop, or null at the end of the journey. Resolved once, on mount. */
   const destination = nextStop('briefing');
 
+  /*
+   * Read the line that is on screen, not the whole script: with one message at
+   * a time, reading ahead would spoil the ending before the player has seen it.
+   */
+  const read = readButton(
+    () => [greeting.textContent ?? '', message.textContent ?? ''].join(' ').trim(),
+    {
+      className: 'briefing__button briefing__button--read',
+      ariaLabel: 'Read the briefing aloud',
+      onStart: () => {
+        /* The closing line is spoken, so the hand-off must not cut it off
+           mid-sentence. It comes back on natural completion below. */
+        for (const timer of timers) window.clearTimeout(timer);
+        timers = [];
+      },
+      onStop: (completed) => {
+        /* Resume only after a finished reading. A deliberate stop means the
+           player is back in control, and YES is still on screen. */
+        if (completed && index >= BEATS.length - 1) handOff();
+      },
+    },
+  );
+
+  if (read !== null) actions.append(read);
+
   /**
    * Go on to the next scene.
    *
@@ -88,6 +116,7 @@ export function mountBriefing(
    * its own a moment after you told it where to go.
    */
   const goOn = (): void => {
+    stopReading();
     for (const timer of timers) window.clearTimeout(timer);
     timers = [];
 
@@ -189,6 +218,7 @@ export function mountBriefing(
     advance.removeEventListener('click', revealNext);
     yes.removeEventListener('click', goOn);
     window.removeEventListener('keydown', onKeyDown);
+    stopReading();
 
     for (const timer of timers) window.clearTimeout(timer);
     timers = [];

@@ -12,6 +12,9 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
 | ISS-043 | Space weather had one live source, so a DONKI outage silently replaced every run's flares with baked history | high | agent | fixed | this branch |
+| ISS-046 | The header advertised "Mission Control / Main Menu" as text, and naming's Back to Main Menu navigated to itself | medium | agent | fixed | d90e838 |
+| ISS-045 | The page title said "Under Construction" and the description called the built game a placeholder | low | agent | fixed | 559c0d6 |
+| ISS-044 | The briefing said three crewmates while `CREW_SIZE` is 4, so the ration maths contradicted the story | low | agent | fixed | 02403e7 |
 | ISS-042 | `AGENTS.md`, `src/data/README.md` and `architecture.md` describe `data/` as a stub and `sim/events.ts` as real | medium | agent | fixed | this branch |
 | ISS-040 | `landing-site` commits the region but never sets region-dependent starting stores | medium | agent | fixed | this branch |
 | ISS-041 | Launch parts tour controls are clipped off-screen, so the journey cannot pass `launch` | high | agent | fixed | this branch |
@@ -21,7 +24,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | ISS-036 | Landing-site thumbnail layers escape the panel and cover the whole screen | high | agent | fixed | this branch |
 | ISS-035 | The wrong answer gives a direction on the first attempt, which ends the thinking | low | agent | fixed | 969d1c9 |
 | ISS-034 | Wrong answer reverts on a timer before the player can read the feedback | low | agent | fixed | 0f22185, 86756ae |
-| ISS-033 | Parts tour video too fast to read, no way to look back | low | agent | open | — |
+| ISS-033 | Parts tour video too fast to read, no way to look back | low | agent | fixed | this branch |
 | ISS-032 | Launch film stutters like a slideshow on a slow connection | high | agent | fixed | 1f4c709 |
 | ISS-031 | Live production served the pre-interior bundle after the merge | high | agent | fixed | 6774e22 |
 | ISS-030 | Launch reel shows black and cuts or skips on a slow connection | high | agent | fixed | this branch |
@@ -31,10 +34,10 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | ISS-026 | Parts renderer put two description bars on screen at once during a dissolve | low | agent | fixed | this branch |
 | ISS-025 | Parts renderer mapped the four source filenames to the wrong parts | low | agent | fixed | this branch |
 | ISS-023 | Docking renderer first pass showed a hard black rectangle | low | agent | fixed | this branch |
-| ISS-024 | `architecture.md` file tree omits launch, briefing and supply features and their images | low | unassigned | open | — |
+| ISS-024 | `architecture.md` file tree omits launch, briefing and supply features and their images | low | agent | fixed | this branch |
 | ISS-015 | `frame.test.ts:81` fails ~40% of runs (flaky) | high | agent | fixed | adc5767 |
 | ISS-017 | `START MISSION` has no destination; next scene is a stub | medium | agent | fixed | this branch |
-| ISS-018 | Seven cinematic PNGs committed, 12 MB, never referenced | medium | unassigned | open | — |
+| ISS-018 | Seven cinematic PNGs committed, 12 MB, never referenced | medium | agent | fixed | this branch |
 | ISS-019 | Cinematics mix three visual styles | low | unassigned | open | — |
 | ISS-020 | NASA insignia appears on children's suits and props | low | unassigned | open | — |
 | ISS-001 | README claims no installable build exists | high | agent | fixed | this branch |
@@ -45,13 +48,13 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | ISS-007 | Google Fonts CDN defeats the offline `dist/` goal | medium | unassigned | open | — |
 | ISS-009 | `DEMO_KEY` is shared and rate-limited | medium | unassigned | open | — |
 | ISS-011 | All three DOM modules have zero test coverage | medium | unassigned | open | — |
-| ISS-003 | `message.css` comment contradicts itself | low | unassigned | open | — |
-| ISS-004 | `package.json` has no `license` field | low | unassigned | open | — |
+| ISS-003 | `message.css` comment contradicts itself | low | agent | fixed | this branch |
+| ISS-004 | `package.json` has no `license` field | low | agent | fixed | this branch |
 | ISS-010 | `src/core/` held DOM modules - name did not match | low | unassigned | fixed | this branch |
 | ISS-016 | Feature-role classifier produced false positives | low | agent | fixed | this branch |
 | ISS-012 | No CI; nothing runs checks on push | low | agent | fixed | adc5767 |
 | ISS-013 | Vitest runs node-env, no jsdom, so DOM is untestable | low | unassigned | open | — |
-| ISS-014 | `base.css` calls the page non-interactive while draggable | low | unassigned | open | — |
+| ISS-014 | `base.css` calls the page non-interactive while draggable | low | agent | fixed | this branch |
 
 ---
 
@@ -233,6 +236,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 - **Where:** `src/features/launch/view.ts`, `src/features/launch/model.ts`, `index.html` (`<video data-launch-parts>`), `Assets/video/parts.mp4`
 - **Problem:** the spacecraft tour is a single 12-second video with the four part names burned into the picture. It plays too fast to read, and there is no way to look back without restarting the whole reel.
 - **Fix:** replace the `parts.mp4` beat with an interactive parts panel. Five slides — overview first, then one named part at a time — each showing the part image (from `Assets/images/parts/*.webp`, each with one part outlined in colour), the part name as text, and the part description as text. Prev / Next buttons move between slides, disabled at the boundaries; a Continue button hands off to the next screen. No auto-advance, no timed beat.
+- **Status:** fixed. The panel is built and the five slides render the named parts; the old video beat is gone. Recorded as D-036 and TASK-051.
 - **Files to change:** `src/features/launch/model.ts`, `src/features/launch/view.ts`, `src/features/launch/launch.css`, `index.html`, `src/features/launch/model.test.ts`, `docs/architecture.md`, this file.
 
 ## ISS-032 — The launch film stutters like a slideshow on a slow connection
@@ -404,6 +408,9 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 - **Cause:** the tree predates those features; the doc matrix was not followed as they landed.
 - **Status:** open. Only the new docking entries were added here; the rest of the tree is left
   as-is rather than half-fixed.
+- **Resolution (2026-11-10):** the tree now lists every built feature — `naming`, `briefing`,
+  `supply`, `launch`, `interior`, `landing-site`, `base`, `act`, `debrief` — and the asset
+  folders each one actually imports. Status: fixed.
 
 ## ISS-015 — `frame.test.ts:81` fails about 40% of runs
 
@@ -531,6 +538,11 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
   visible loss. Do not delete them until the scenes exist — they are the design
   reference. Shown not to be in the build: `dist/` after the naming work contained
   no PNG over 200 KB.
+- **Resolution (2026-11-10):** the scenes exist and none of the seven files is referenced by
+  `src/` or `index.html` (verified with a filename search across the source tree). Every
+  screen that needed art uses its own WebP or the rendered MP4s. All seven were removed with
+  `git rm`; the 12 MB is still in history, so this saves future clones rather than rewriting
+  the past. Status: fixed.
 
 ## ISS-019 — Cinematics mix three visual styles
 
@@ -756,7 +768,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 - **Risk:** low, but this is the accessibility file. Someone fixing reduced motion will
   read the stale line, believe the behaviour is a parked sprite, and reintroduce the bug
   that was already fixed. Documented behaviour is being contradicted by documentation.
-- **Fix:** delete lines 100-101. **Not done in this pass** (D-009).
+- **Fix:** delete lines 100-101. **Fixed in this branch (2026-11-10).**
 
 ## ISS-004 — `package.json` has no `license` field
 
@@ -770,7 +782,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 - **Risk:** cosmetic and near-harmless while `private: true`. It matters only if the
   project is ever forked or published, and the NASA attribution requirements make the
   licence worth stating unambiguously.
-- **Fix:** add `"license": "MIT"`. **Not done in this pass** (D-009).
+- **Fix:** add `"license": "MIT"`. **Fixed in this branch (2026-11-10).**
 
 ## ISS-010 — `src/core/` held DOM modules; the name did not match
 
@@ -830,8 +842,8 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 - **Cause:** the comment described the page as it was before the grab feature shipped.
 - **Risk:** cosmetic, but it invites someone to disable pointer events or add an inert
   overlay over a region that is meant to be draggable.
-- **Fix:** reword to "block stray text selection; the only interactive element is the
-  astronaut." **Not done in this pass** (D-009).
+- **Fix:** reword to "block stray text selection; the astronaut is the only draggable element."
+  **Fixed in this branch (2026-11-10).**
 
 ---
 
@@ -886,4 +898,57 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-**Next free id: ISS-041.**
+---
+
+## ISS-046 — The header advertised a menu that did not exist, and naming's back button navigated to itself
+
+- **Reported by:** agent, 2026-11-10, while auditing the game-loop chrome.
+- **Where:** `src/ui/gameLoop.ts` (`gameHeader`), `src/features/naming/view.ts` (`onBack`), `index.html`
+  (`data-naming-back`).
+- **Problem:** every run screen drew `Mission Control / Main Menu` as a right-hand `<nav>` label. It was
+  plain text, not a control, so a child who wanted to leave mid-run had no way out except the browser
+  Back button, which loses the in-memory run with no warning. And naming's back button called
+  `navigate('naming')` while already mounted on naming: the first press re-set the same hash, and every
+  press after that did nothing at all.
+- **Cause:** D-038 drew the header from the Figma frames, where the label is a link. The chrome was
+  deliberately kept decorative, but nobody noticed the affordance it implied. `onBack` predates the
+  decision that naming *is* the main menu (D-021).
+- **Fix:** `gameHeader(sub?, onLeave?)` renders a Menu button when a screen has an `onLeave`; clicking it
+  opens an in-screen dialog (Keep playing / Leave mission) with focus and Escape handling, never a native
+  `confirm()` (R-9). Screens without a run keep the old plain label. Naming's control is relabelled "Start
+  over" and clears the form, the greeting and the run. Recorded as D-044.
+- **Pre-existing:** yes; both were dead controls since D-038 and D-021 respectively.
+- **Status:** fixed in d90e838.
+
+---
+
+## ISS-045 — The page title called the built game "Under Construction"
+
+- **Reported by:** agent, 2026-11-10, while checking the shell metadata.
+- **Where:** `index.html`, `<title>` and `<meta name="description">`.
+- **Problem:** the browser tab read "Mars Horizon — Under Construction" and the description ended with
+  "Placeholder while the mission trainer is under construction", even though the nine-screen journey is
+  built and runnable.
+- **Cause:** the landing-page copy was written before the game loop existed and never updated alongside
+  the README pass.
+- **Fix:** title becomes "Mars Horizon — Junior Astronaut Mission Trainer"; the description names the
+  actual challenge — 12 sols balancing power, air, water, food and shielding. Fixed in 559c0d6.
+- **Pre-existing:** yes; the strings were written for the placeholder page.
+
+---
+
+## ISS-044 — The briefing said three crewmates while `CREW_SIZE` is 4
+
+- **Reported by:** agent, 2026-11-10, cross-checking story copy against `sim/`.
+- **Where:** `src/features/briefing/model.ts`, `model.test.ts`.
+- **Problem:** the briefing read "Two others have flown to space" and "The three of you are going to Mars",
+  but `CREW_SIZE = 4` in `sim/modules.ts` and the ration check divides supplies by four. A child who
+  does the arithmetic notices the story and the numbers disagree.
+- **Cause:** the copy was written before the crew size was fixed at four.
+- **Fix:** the beats now say "Three others" and "The four of you", and a test pins both phrases to
+  `CREW_SIZE`. Fixed in 02403e7.
+- **Pre-existing:** yes; the contradiction was shipped in the first briefing.
+
+---
+
+**Next free id: ISS-047.**

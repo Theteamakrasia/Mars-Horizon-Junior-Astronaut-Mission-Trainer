@@ -6,9 +6,9 @@
     <meta name="color-scheme" content="dark" />
     <meta
       name="description"
-      content="Mars Horizon — Junior Astronaut Mission Trainer. Placeholder while the mission trainer is under construction."
+      content="Mars Horizon — Junior Astronaut Mission Trainer. Run a Mars outpost for 12 sols and keep power, air, water, food and radiation shielding in balance."
     />
-    <title>Mars Horizon — Under Construction</title>
+    <title>Mars Horizon — Junior Astronaut Mission Trainer</title>
     <!-- Inline SVG favicon: avoids a 404 on /favicon.ico with no extra request. -->
     <link
       rel="icon"
@@ -91,7 +91,7 @@
                 Start Mission
               </button>
               <button class="naming__button" type="button" data-naming-back>
-                Back to Main Menu
+                Start over
               </button>
             </div>
           </form>
@@ -185,7 +185,7 @@
              The closing beat asks "Are you ready?", so YES appears with it. The
              screen still moves on by itself if nobody presses it - YES is the fast
              path, not the only one. -->
-        <div class="briefing__actions">
+        <div class="briefing__actions" data-briefing-actions>
           <button class="briefing__button" type="button" data-briefing-next>
             Next
           </button>
@@ -758,6 +758,11 @@
             </li>
           </ul>
           <p class="landing-site__summary" data-landing-summary></p>
+
+          <!-- The real NASA picture of the selected region, filled by
+               landing-site/view.ts. Hidden until a pin is chosen. -->
+          <div class="landing-site__nasa" data-landing-nasa hidden></div>
+
           <div class="landing-site__actions">
             <button
               class="landing-site__button landing-site__button--land"

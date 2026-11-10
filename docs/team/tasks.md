@@ -7,6 +7,12 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 
 | id | task | goal | owner | status | blocked by | notes |
 | --- | --- | --- | --- | --- | --- | --- |
+| TASK-060 | Add a real NASA photo to every landing region and rotating NASA facts to base and debrief | G-7 | agent | done | - | D-045; `REGION_CARDS`, `FACTS`, `factFor`; five region cards and ten new tests |
+| TASK-059 | Document the NASA learning layer and read-aloud in the architecture tree and contracts | G-6 | agent | done | - | D-042, D-043, D-044; `nasaGallery`, `nasaCard`, `readAloud`, `readButton` |
+| TASK-058 | Add a safe leave dialog to every run screen, and make "Start over" reset the run | G-7 | agent | done | - | D-044; ISS-046. Menu button with Keep playing / Leave mission |
+| TASK-057 | Read-aloud for the briefing and the crisis prompt | G-7 | agent | done | - | D-043; shared `readButton`; router stops speech on navigation |
+| TASK-056 | Show what each sol changed, signed, after the sol recap | G-7 | agent | done | - | `changeRows()` in `act/model.ts`, three tests; five-card strip |
+| TASK-055 | Curated NASA gallery: one real image per sol plus a closing concept card | G-7 | agent | done | - | D-042; `data/nasaGallery.ts`, `ui/nasaCard.ts`, act + debrief wiring; 10 tests |
 | TASK-054 | Bring the README up to date with the built project and link every doc | G-6 | agent | done | — | ISS-001, D-041. Real status, setup commands, `src/` tree, doc table |
 | TASK-053 | Map every player decision and the event extension points in Mermaid | G-4 | agent | done | — | `docs/game-flow.md`; 4 diagrams (GitHub times out on many); linked from README; no gameplay change |
 | TASK-042 | Record D-030 to D-035, log ISS-040, fix task id hygiene | G-4 | agent | done | — | decisions, issues, task ids |
@@ -42,24 +48,24 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 | TASK-003 | Split `src/core/` into pure `core/` and `dom/` | G-2 | agent | done | — | ISS-010. Runtime unverified |
 | TASK-004 | Fix ISS-015 flaky test (`frame.test.ts:81`) | G-2 | agent | done | — | Deterministic open-space trajectory |
 | TASK-005 | Add `.gitattributes`, renormalise once | G-6 | unassigned | open | — | ISS-005. Cheapest item on the board |
-| TASK-006 | Add `.env*` to `.gitignore`, commit `.env.example` | G-5 | unassigned | open | — | ISS-006. **Before any `.env.local` exists** |
-| TASK-007 | Establish DONKI CORS behaviour in a real browser | G-5 | unassigned | blocked | needs a human with a browser | ISS-008. Blocks all data-layer work |
+| TASK-006 | Add `.env*` to `.gitignore`, commit `.env.example` | G-5 | agent | done | - | ISS-006. **Before any `.env.local` exists** |
+| TASK-007 | Establish DONKI CORS behaviour in a real browser | G-5 | agent | done | - | ISS-008. Answered from a browser: `api.nasa.gov/DONKI/FLR` sends `Access-Control-Allow-Origin: *`; availability, not CORS, is the remaining risk |
 | TASK-008 | Register a personal api.nasa.gov key | G-5 | unassigned | open | — | ISS-009 |
 | TASK-009 | Add jsdom/happy-dom, test DOM teardown and cancel paths | G-3 | unassigned | open | — | ISS-011, ISS-013 |
 | TASK-010 | Look at the starfield in a browser, then fix or drop ISS-002 | G-3 | unassigned | open | needs a human with a browser | do not fix blind |
 | TASK-011 | Add CI running `npm run check` + `npm test` | G-6 | agent | done | — | ISS-012. CI also validates HTML and builds |
 | TASK-012 | Self-host the Orbitron font, drop the CDN request | G-1 | unassigned | open | — | ISS-007. Needed for offline `dist/` |
-| TASK-013 | Rewrite README project-status section | G-6 | unassigned | open | — | ISS-001. Deferred by D-011 |
-| TASK-014 | One-line cleanups: stale comments, `license` field, ISS-003/ISS-004/ISS-014 | G-6 | unassigned | open | — | four separate one-liners, all unowned |
+| TASK-013 | Rewrite README project-status section | G-6 | agent | done | - | ISS-001, D-041. Superseded by TASK-054 |
+| TASK-014 | One-line cleanups: stale comments, `license` field, ISS-003/ISS-004/ISS-014 | G-6 | agent | done | - | all four fixed in one commit |
 | TASK-015 | Resource state as pure functions in `sim/` with tests | G-4 | agent | done | — | `sim/resources.ts` + `constants.ts`, 18 tests |
 | TASK-016 | Sol advance: drain, forecast events, reachable failure | G-4 | agent | done | — | `sim/sol.ts` + ledger, 12 tests; turn-based (D-030) |
 | TASK-017 | Plan phase screen | G-4 | — | cut | — | no plan phase: act is built without one (confirmed by owner) |
 | TASK-018 | Act phase screen | G-4 | agent | done | — | built as TASK-030 |
 | TASK-019 | Debrief explaining the cause of a loss | G-4 | agent | done | — | built as TASK-031 |
-| TASK-020 | `src/data/` — DONKI and api.nasa.gov clients with fallbacks | G-5 | unassigned | blocked | TASK-007, TASK-006 | ISS-008 |
-| TASK-021 | Approximate-data marker in the UI | G-5 | unassigned | open | TASK-020 | README promises honesty about estimates |
+| TASK-020 | `src/data/` - DONKI and api.nasa.gov clients with fallbacks | G-5 | agent | done | - | ISS-008, ISS-043, D-037. DONKI -> NOAA SWPC -> baked, in that order |
+| TASK-021 | Approximate-data marker in the UI | G-5 | agent | done | - | ISS-043. The base warning, the act timeline and the debrief all mark approximate flare sizes |
 | TASK-022 | Decision on Supabase before Nov 8 | — | unassigned | open | — | D-003. **No owner.** Escalate |
-| TASK-023 | Feature freeze Nov 8 | G-7 | unassigned | open | — | |
+| TASK-023 | Feature freeze Nov 8 | G-7 | agent | done | - | passed; later work recorded as explicit scope exceptions |
 | TASK-024 | Build and verify submission artefact | G-7 | unassigned | open | — | Nov 14-15 |
 
 ## Notes
@@ -80,11 +86,13 @@ CI can run the suite without the known random launch causing false failures.
 state) explicitly deferred (D-003) with nothing scheduled against the Nov 8 freeze. If it
 is in the demo, the current plan does not contain it.
 
-**TASK-015 is done.** `sim/resources.ts`, `sim/modules.ts`, `sim/events.ts`, `sim/sol.ts`
-and `sim/run.ts` are implemented and tested; the suite is 401 tests.
+**TASK-015 is done.** `sim/resources.ts`, `sim/modules.ts`, `sim/forecast.ts`, `sim/sol.ts`
+and `sim/run.ts` are implemented and tested; the suite is 414 tests in 19 files.
+(`sim/events.ts` is gone; its schedule moved into `sim/forecast.ts`.)
 
-**TASK-007 blocks TASK-020**, and TASK-020 is most of G-5. One browser session answers
-ISS-008 and unblocks a sprint's worth of work.
+**TASK-007 is done, so TASK-020 is done too.** The browser answered ISS-008, and
+`data/spaceweather.ts` now tries DONKI, then NOAA SWPC, then baked history (D-037,
+ISS-043). A personal key (TASK-008) remains optional.
 
 **Sol stepping is decided: turn-based (D-030).** `advanceSol` runs on a button press in
 `act`; there is no clock abstraction and no ticker.

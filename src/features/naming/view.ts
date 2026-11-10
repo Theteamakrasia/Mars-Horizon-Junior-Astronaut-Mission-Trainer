@@ -110,11 +110,18 @@ export function mountNaming(
   };
 
   const onBack = (): void => {
-    // The naming menu *is* the main menu now (D-021), so going back means going
-    // to the entry route. This is deliberately not `landing`: forward and back
-    // must not be the same destination, which is how this screen used to be
-    // wired.
-    navigate('naming');
+    // The naming screen *is* the main menu (D-021), so "back" has nowhere else
+    // to go. It used to call `navigate('naming')` while already there, which is
+    // a no-op after the first press. Clearing the form is the honest meaning:
+    // start again with a fresh name and no run.
+    setRun(null);
+    input.value = '';
+    input.readOnly = false;
+    submit.disabled = true;
+    greeting.textContent = '';
+    root.dataset.namingStarted = 'false';
+    setHint('');
+    input.focus();
   };
 
   form.addEventListener('submit', onSubmit);
