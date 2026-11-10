@@ -1030,10 +1030,11 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
   (it has 32), and it attributes 19 tests to `sim/run.ts`, which has none.
 - **Cause:** the modules were written and wired together faster than they were covered, and the document
   counts were filled in from memory rather than counted.
-- **Fix:** partly fixed. `src/sim/run.test.ts` is added, because the activity loop changes the run state and
-  the run state is what it changes, and AGENTS.md's test counts are corrected to the real numbers.
-  `sim/forecast.ts`, `sim/crises.ts` and `sim/comms.ts` still have no test files, so the issue stays
-  open: those three are untouched by this work, and adding coverage for them is its own job.
+- **Fix:** partly fixed. `src/sim/run.test.ts` and `src/sim/balance.test.ts` are added, because the
+  activity loop changes the run state and the balance it depends on, and AGENTS.md's test counts are
+  corrected to the real numbers. `sim/forecast.ts`, `sim/crises.ts` and `sim/comms.ts` still have no test
+  files, so the issue stays open: those three are untouched by this work, and adding coverage for them is
+  its own job.
 - **Pre-existing:** yes; the gap dates from the game loop build (2026-11-08).
 
 ---

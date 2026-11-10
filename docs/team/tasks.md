@@ -46,7 +46,7 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 | TASK-029 | `features/base/` — place modules | G-4 | agent | done | — | build panel, stores, storm warning, Start sols |
 | TASK-030 | `features/act/` — advance a sol, resolve the mission | G-4 | agent | done | — | turn-based (D-030); Power Surplus picture; hands to debrief |
 | TASK-031 | `features/debrief/` — explain why a run was won or lost | G-4 | agent | done | — | timeline bars, ledger attribution, confidence note, replay |
-| TASK-046 | Balance acceptance tests and tuning | G-4 | agent | done | — | `sim/balance.test.ts`, 9 tests; numbers in `sim/constants.ts` |
+| TASK-046 | Balance acceptance tests and tuning | G-4 | agent | done | — | `sim/balance.test.ts`, 7 acceptance tests, added with the activity work; the tuning numbers live in `sim/modules.ts` |
 | TASK-047 | Module sprites, cutscenes, storm haze | G-4 | unassigned | cut | — | cut list §11: the loop works without them; reduced-motion CSS kept |
 | TASK-048 | Registry, `index.html` sections, registry/routes tests | G-4 | agent | done | — | 9 routed screens; `check-markup` passes |
 | TASK-049 | Browser acceptance pass of the whole journey + `dist/` check | G-4 | unassigned | open | — | needs a human with a browser; `npm run build` passes |

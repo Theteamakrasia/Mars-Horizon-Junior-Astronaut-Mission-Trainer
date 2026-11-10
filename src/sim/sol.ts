@@ -160,7 +160,12 @@ export function advanceSol(run: RunState): RunState {
   let greenhousePaused = false;
   let stormFactor = 1;
 
-  for (const event of eventsStartingOn(run.forecast, sol)) {
+  /* The forecast events starting on this sol. A crisis is that sol's main
+     activity: the event replaces the activity panel (D-040), so an activity
+     chosen for a crisis sol is put aside rather than run alongside it. */
+  const starting = eventsStartingOn(run.forecast, sol);
+
+  for (const event of starting) {
     const choice = chosen(run, event.id);
 
     events.push({ sol, kind: event.kind, summary: event.summary, approximate: event.approximate });
@@ -212,7 +217,11 @@ export function advanceSol(run: RunState): RunState {
   // spend 25 kWh on a rover survey with a flat battery and the sol runs in a
   // blackout. That is the trade-off the whole game is built around, and it
   // comes free from the model that was already here.
-  const activity = chosenActivity(run);
+  //
+  // A sol with a forecast event has no activity: the crisis is the day's work
+  // (D-040), and running an experiment while sheltering from a flare would
+  // be a story nobody could follow.
+  const activity = starting.length > 0 ? null : chosenActivity(run);
   let scienceEarned = SOL_LOG_POINTS;
 
   if (activity !== null) {

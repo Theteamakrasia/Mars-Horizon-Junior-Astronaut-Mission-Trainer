@@ -228,6 +228,23 @@ describe('the main activity', () => {
 
     expect(() => advanceSol(run)).toThrow(RangeError);
   });
+
+  it('puts the activity aside on a crisis sol, because the crisis is that day', () => {
+    /* Sol 3 carries the flare. The activity is not run alongside it. */
+    const run = withState(outpost('jezero', SOLAR_FIRST), { chosenActivity: 'experiment' });
+
+    let state = run;
+
+    for (let sol = 0; sol < 3; sol += 1) {
+      const crisis = pendingCrisis(state);
+
+      if (crisis !== null) state = decide(state, crisis.id, 'shelter');
+      state = advanceSol(state);
+    }
+
+    expect(state.log[2].activity).toBeNull();
+    expect(state.log[2].events.some((event) => event.kind === 'flare')).toBe(true);
+  });
 });
 
 describe('crisis decisions', () => {

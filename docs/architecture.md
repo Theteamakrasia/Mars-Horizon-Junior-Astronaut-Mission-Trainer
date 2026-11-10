@@ -19,7 +19,7 @@ than eyeballed, and it is what `npm run check` protects.
 
 ## The invariant, and why it is enforced
 
-509 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
+517 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
 reference it would still work, and the cost would surface later as an untestable bug.
 Enforced as `no-dom-in-pure-zone`.
 
@@ -189,6 +189,10 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         isScienceTopic. The vocabulary the activities and
     │   │                                         the NASA facts share.
     │   ├── run.test.ts                  complete   11 tests
+    │   ├── balance.test.ts              complete   7 acceptance tests: a good build wins, a
+    │   │                                         careless one does not, the activity loop does
+    │   │                                         not make the game unwinnable, and more than one
+    │   │                                         region can be played.
     │   ├── activities.test.ts          complete   17 tests
     │   ├── science.test.ts             complete   9 tests
     │   ├── modules.ts                  complete   ModuleKind, ModuleSpec, MODULE_CATALOGUE,
