@@ -222,6 +222,12 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         pointsSpent, extraSlots, extraModuleCount. Catalogue
     │   │                                         in `sim/` because `act` needs it and cannot import
     │   │                                         `base` (D-032). 14 tests.
+    │   ├── rover.ts                    complete   RoverFind, RoverState, newRover, deployRover,
+    │   │                                         recallRover, discover, logSite, collectMaterial,
+    │   │                                         leaveMaterial, nextFindDelayMs. Pure rover rules;
+    │   │                                         the pick is passed in, never Math.random (D-059).
+    │   │                                         A rover with a find waiting cannot be recalled.
+    │   │                                         `rover.test.ts`: 19 tests.
     │   ├── forecast.ts                 complete   ForecastEvent, FlareInput, ForecastKind,
     │   │                                         flareIntensity, createForecast(flares, seed?,
     │   │                                         dustScore?), createSeededRandom, planEvents,
@@ -289,6 +295,11 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         same card as the curated one. The picture is
     │   │                                         optional: a video day keeps its words.
     │   ├── nasa-card.css              complete   card frame, caption type scale, action row.
+    │   ├── roverWidget.ts             complete   roverWidget() -> the rover button and its windows;
+    │   │                                         resetRover(). Holds the rover, its find timer and
+    │   │                                         the open window outside the DOM so it survives
+    │   │                                         screen redraws (D-059). Imports `data/roverFinds`.
+    │   ├── rover.css                  complete   the left-edge button, red dot, small and large windows.
     │   ├── registry.ts                 complete   the one composition seam. Exports ScreenFactory,
     │   │                                         screenMount, resolveScreen, nextStop,
     │   │                                         allScreenMounts. Maps all nine built routes onto
@@ -339,22 +350,30 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         describeWhen. NASA DONKI -> NOAA SWPC ->
     │   │                                         an empty fallback, in that order; every
     │   │                                         flare is kept, not just the strongest.
-    │   └── spaceweather.test.ts        complete   25 tests; every fetch is injected
+    │   ├── spaceweather.test.ts        complete   25 tests; every fetch is injected
     │   ├── nasaGallery.ts             complete   Twelve sol cards plus a closing card,
     │   │                                         five real region photos and forty tagged
     │   │                                         facts. Static by choice (D-042): no
     │   │                                         runtime image API, and the words are
     │   │                                         unit tested here. `factForTopic`
     │   │                                         picks the fact about one system.
+    │   ├── roverFinds.ts              complete   ROVER_FINDS: three historic sites and three
+    │   │                                         rare rocks, each with a NASA picture, credit
+    │   │                                         and source link. Static (D-059). Pictures
+    │   │                                         come from NASA's picture CDN at a size that
+    │   │                                         fits the screen; Photojournal's old /jpeg/
+    │   │                                         address now serves a web page, not a picture.
+    │   ├── roverFinds.test.ts         complete   9 tests; the picture host, the size, the
+    │   │                                         crop, the credit and the source link are held.
     │   ├── nasaDaily.ts                complete   DailyFact, DailyFactSource, parseApod,
     │   │                                         cleanExplanation, fetchDailyFacts, lastDailySource,
     │   │                                         lastDailyDetail, resetDailyFacts, savedFactFor.
     │   │                                         NASA's Astronomy Picture of the Day, filtered to
     │   │                                         Mars. An enrichment layer on top of the saved
     │   │                                         gallery, never a replacement (D-053). 17 tests.
-    │   ├── nasaGallery.test.ts         complete   25 tests; ids resolve, credits and links
-    │   │                                         present, length caps enforced, facts wrap
-    │   │                                         deterministically, every topic has facts.
+    │   └── nasaGallery.test.ts         complete   25 tests; ids resolve, credits and links
+    │                                             present, length caps enforced, facts wrap
+    │                                             deterministically, every topic has facts.
     │
     ├── features/                       one folder per screen. Every journey screen is built.
     │   │                               There are no feature stubs left.
@@ -638,10 +657,12 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `fetchDailyFacts` | `(options?) => Promise<DailyFact[]>`; never rejects, one request per session, and an empty list when NASA is busy. The enrichment layer on top of the saved gallery (D-053) |
 | | `lastDailySource`, `lastDailyDetail`, `resetDailyFacts` | what the UI reports, and the reset for tests |
 | | `savedFactFor` | `(sol) -> DailyFact`; the saved fact to fall back on |
+| `data/roverFinds` | `ROVER_FINDS` | fixed finds with a NASA picture, credit and source link; static, no runtime fetch. Pictures are addressed on NASA's picture CDN, sized to the screen and never cropped |
 | `ui/readAloud` | `canReadAloud`, `readAloud`, `stopReading` | `(text, onDone?) -> boolean`; false when unsupported or the text is empty. Starts cancel any current passage first, and `stopReading()` is safe when nothing plays. Browser speech only (D-043) |
 | `ui/readButton` | `readButton` | `(getText, options?) -> HTMLButtonElement \| null`; a toggle whose label, `aria-pressed` and pause hooks (`onStart`, `onStop`) are shared by every screen that reads aloud. Returns null where speech is unavailable |
 | `ui/nasaCard` | `nasaCard` | `(card: NasaFigure, kicker?) -> figure`; picture, alt, caption, "Did you know?", credit and source link, plus the shared read-aloud control only when `canReadAloud()` is true. The kicker defaults to the sol for a `NasaCard` and to a plain NASA label otherwise |
 | `ui/nasaFeedCard` | `nasaFeedCard` | `(fact: DailyFact, kicker?) -> figure`; the live NASA picture in the same card as the curated one. The picture is optional — a video day keeps its words |
+| `ui/roverWidget` | `roverWidget`, `resetRover` | `() -> HTMLElement`; the round rover button for the left edge, appended by `gameScreen({ rover: true })` on `base` and `act`. `resetRover()` puts the rover back at base and is called by `naming` when a run begins. Deploy asks first (no `confirm`, R-9); a find shows a red dot until answered. The draws are seeded, so a mission is repeatable (D-059) |
 | `sim/drift` | `stepDrift` | `(state, dt, size, viewport) -> DriftResult`; reflects off walls, returns the fastest `Impact` or null |
 | | `createInitialDrift` | `(size, viewport, speed) -> DriftState`; random 30-45 degree diagonal. **5 `Math.random()` calls** |
 | | `driftSpeedForViewport` | `(width) -> number`, clamped 96..176 px/s |
@@ -680,6 +701,11 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `systemsFor` | `(modules, regionId) -> Systems`; the whole outpost as one object: solar, battery, load, what the crew gets and what it costs |
 | | `extrasOf`, `pointsSpent`, `extraSlots`, `extraModuleCount` | what the player built beyond the core, what it cost, and how many more would fit |
 | | `CREW_SIZE`, `SUN_HOURS`, `NIGHT_HOURS`, `OXYGEN_PER_CREW`, `WATER_PER_CREW`, `FOOD_PER_CREW` | the crew and the day; **every tuning number the sol maths uses** |
+| `sim/rover` | `RoverFind`, `RoverState`, `RoverPhase` | what the rover can find and what it has done; a find waits as `pending` until the player answers it, and nothing is found twice |
+| | `newRover`, `deployRover`, `recallRover` | `(state) -> state`; deploying when out, or recalling when home, returns the same object. A rover with a find waiting cannot be recalled: it is still driving towards it |
+| | `discover`, `canDiscover`, `remainingFinds` | `(state, catalogue, pick 0-1) -> state`; a no-op at base, with a find already waiting, or when everything is found |
+| | `logSite`, `collectMaterial`, `leaveMaterial` | answer the pending find; each is a no-op for the wrong kind or when nothing waits |
+| | `nextFindDelayMs` | `(foundSoFar, pick) -> ms`; 15-25 s for the first find, 35-65 s after |
 | `sim/forecast` | `ForecastEvent`, `FlareInput`, `ForecastKind` | the run's forecast events; `intensity` is 1-3 for a flare and 0 for the pod and storm |
 | | `flareIntensity` | `(classType) -> 1 \| 2 \| 3`; X = 3, M = 2, C and below = 1 |
 | | `createForecast` | `(flares, seed = DEFAULT_SEED, dustScore = NEUTRAL_SCORE.dust) -> ForecastEvent[]`; the timetable is seeded, sols 2-10, one event at a time, at least one flare and two events. Flare sizes come from the M/X pool, or from the long-run NOAA mix when it is empty |
@@ -751,6 +777,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `moduleFigures`, `moduleArt`, `MODULE_ART`, `WORLD_BACKGROUND`, `ASTRONAUT_SPRITE` | the artwork the world panel draws, owned here so `base`, `act` and `debrief` do not copy the imports |
 | | `gameHeader`, `gameHud`, `gameDock` | `gameHeader(sub?, onLeave?)`: without `onLeave` the right-hand label is plain decorative text; with it, it is a Menu button opening an in-screen leave dialog with Keep playing / Leave mission (D-044). `gameHud` draws the five resource cards (`HudStat`) and `gameDock` the three-tab dock. The pause/settings/BUILD pills and the dock are `aria-hidden` spans, not buttons (D-038) |
 | | `gameSection` | `(label, ...content) -> section`; an uppercase label and its body |
+| | `gameScreen` | `(options) -> section`; takes `rover?: boolean` and appends the rover button when it is true. Only `base` and `act` ask for it (D-059) |
 | | `moduleFigures`, `moduleArt`, `MODULE_ART`, `WORLD_BACKGROUND`, `ASTRONAUT_SPRITE` | artwork placement and the bundled asset URLs; the only import site for the figures base, act and debrief share |
 | `features/base/model` | `BUILDABLE`, `canPlace`, `addModule`, `removeModule`, `pointsLeft` | build rules over the `sim/modules.ts` catalogue (D-032) |
 | | `previewFor`, `previewSummary`, `upkeepFor`, `upcomingWarnings` | the calm-sol projection. `previewSummary` gives the five resource cards one number each, from the same projection as the sentences |

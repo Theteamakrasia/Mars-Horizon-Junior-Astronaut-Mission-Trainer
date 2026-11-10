@@ -626,7 +626,7 @@ export function mountAct(
 
     const panel = crisis === null ? missionPanel(state) : crisisPanel(state, crisis);
 
-    mount.replaceChildren(gameScreen({ hud: hudFor(state), world, panel, variant: 'gl--act', headerSub: 'RUNNING THE DAY', onLeave: () => navigate('naming') }));
+    mount.replaceChildren(gameScreen({ hud: hudFor(state), world, panel, variant: 'gl--act', headerSub: 'RUNNING THE DAY', rover: true, onLeave: () => navigate('naming') }));
 
     if (pendingFocus !== null) {
       pendingFocus.focus();

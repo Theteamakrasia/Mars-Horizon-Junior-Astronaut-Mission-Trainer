@@ -14,6 +14,7 @@
 
 import { h } from '../dom/h';
 import type { ModuleKind } from '../sim/modules';
+import { roverWidget } from './roverWidget';
 
 /* The artwork is bundled by Vite, never fetched: the Figma asset URLs expire. */
 import astronautUrl from '../../Assets/images/interior/sprite/interact-alt.webp';
@@ -166,6 +167,8 @@ export interface ScreenOptions {
    * Screens without a run omit it, and the header keeps the plain label.
    */
   readonly onLeave?: () => void;
+  /** Draws the rover button on the left edge. Only the screens where the player is playing set it. */
+  readonly rover?: boolean;
 }
 
 /**
@@ -390,6 +393,7 @@ export function gameScreen(options: ScreenOptions): HTMLElement {
     gameHeader(options.headerSub, options.onLeave),
     gameHud(options.hud),
     h('div', { class: 'gl__main' }, options.world, options.panel),
+    options.rover === true ? roverWidget() : null,
   );
 }
 
