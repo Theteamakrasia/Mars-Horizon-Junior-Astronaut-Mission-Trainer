@@ -24,6 +24,7 @@ import { siteScore, regionById, SITE_AXES } from '../../sim/regions';
 import { advanceSol, decide, powerPicture, WIN_SOL } from '../../sim/sol';
 import { gamePanel, gameScreen, gameSection, gameWorld, moduleArt, moduleFigures, type HudStat } from '../../ui/gameLoop';
 import { nasaCard } from '../../ui/nasaCard';
+import { readButton } from '../../ui/readButton';
 import { stopReading } from '../../ui/readAloud';
 import { nextStop } from '../../ui/registry';
 import { navigate } from '../../ui/router';
@@ -345,12 +346,23 @@ export function mountAct(
       earthBox,
     ];
 
+    /* The alert is the one screen where a struggling reader loses the most:
+       the clock is running and the choices matter. Reading it does not pause
+       anything, but "take your time" is right below. */
+    const read = readButton(
+      () =>
+        [crisis.title, crisis.prompt, ...crisis.options.map((option) => `${option.label}. ${option.detail}`)].join(
+          ' ',
+        ),
+      { ariaLabel: 'Read this alert and the choices aloud' },
+    );
+
     const panel = gamePanel({
       kicker: `Sol ${sol} · ${EVENT_NAME[crisis.kind]}`,
       title: crisis.title,
       sub: crisis.prompt,
       body,
-      footer: [ask, crisis.urgent ? calm : false],
+      footer: [ask, crisis.urgent ? calm : false, read ?? false],
     });
 
     // The clock nodes belong to this render; a new one replaces them.
@@ -408,7 +420,7 @@ export function mountAct(
 
     const panel = crisis === null ? missionPanel(state) : crisisPanel(state, crisis);
 
-    mount.replaceChildren(gameScreen({ hud: hudFor(state), world, panel, variant: 'gl--act', headerSub: 'RUNNING THE DAY' }));
+    mount.replaceChildren(gameScreen({ hud: hudFor(state), world, panel, variant: 'gl--act', headerSub: 'RUNNING THE DAY', onLeave: () => navigate('naming') }));
 
     if (pendingFocus !== null) {
       pendingFocus.focus();
@@ -428,6 +440,7 @@ export function mountAct(
         panel: gamePanel({ kicker: 'Not ready yet', title: label, sub: text, footer: [button] }),
         variant: 'gl--act',
         headerSub: 'RUNNING THE DAY',
+        onLeave: () => navigate('naming'),
       }),
     );
   }

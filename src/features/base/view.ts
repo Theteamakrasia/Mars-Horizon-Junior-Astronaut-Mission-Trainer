@@ -194,7 +194,7 @@ export function mountBase(
       footer: [launch, h('p', { class: 'gl__note', text: BUDGET_NONE })],
     });
 
-    mount.replaceChildren(gameScreen({ hud, world, panel, variant: 'gl--base', headerSub: 'BUILD YOUR OUTPOST' }));
+    mount.replaceChildren(gameScreen({ hud, world, panel, variant: 'gl--base', headerSub: 'BUILD YOUR OUTPOST', onLeave: () => navigate('naming') }));
 
     if (focusKey !== undefined) focusable.get(focusKey)?.focus();
   }

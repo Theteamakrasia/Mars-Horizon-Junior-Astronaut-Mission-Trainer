@@ -131,6 +131,76 @@
   white-space: nowrap;
 }
 
+/* The real Menu control. Everything below is the leave-the-run dialog. */
+.gl__menu-button {
+  padding: 0.45rem 0.75rem;
+  border: 1px solid rgba(236, 241, 248, 0.28);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(236, 241, 248, 0.88);
+  font-family: var(--gl-body);
+  font-size: clamp(0.55rem, 0.7vw, 0.9rem);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.gl__menu-button:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+.gl__menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 1.2rem;
+  background: rgba(10, 18, 30, 0.62);
+}
+
+.gl__menu-backdrop[hidden] {
+  display: none;
+}
+
+.gl__menu-card {
+  width: min(26rem, 92vw);
+  padding: clamp(1rem, 1.6vw, 1.5rem);
+  border: 1px solid var(--gl-line);
+  border-radius: clamp(12px, 1vw, 18px);
+  background: var(--gl-panel);
+  color: var(--gl-ink);
+  box-shadow: 0 24px 60px rgba(5, 12, 22, 0.45);
+}
+
+.gl__menu-title {
+  margin: 0 0 0.4rem;
+  font-family: var(--gl-display);
+  font-size: clamp(1.1rem, 1.5vw, 1.6rem);
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.gl__menu-text {
+  margin: 0 0 0.9rem;
+  font-size: clamp(0.7rem, 0.85vw, 0.95rem);
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.gl__menu-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.gl__menu-actions .gl__btn {
+  flex: 1 1 8rem;
+}
+
 /* ------------------------------------------------------------------- HUD -- */
 
 .gl__hud {

@@ -135,7 +135,7 @@ export function mountDebrief(
       footer: [button],
     });
 
-    mount.replaceChildren(gameScreen({ hud: [], world, panel, variant: 'gl--debrief', headerSub: 'MISSION DEBRIEF' }));
+    mount.replaceChildren(gameScreen({ hud: [], world, panel, variant: 'gl--debrief', headerSub: 'MISSION DEBRIEF', onLeave: () => navigate('naming') }));
   }
 
   /** The world's one hero card: how long the crew lasted, or the science behind it. */
@@ -358,7 +358,7 @@ export function mountDebrief(
 
     const panel = mode === 'debrief' ? debriefPanel(run) : journalPanel(run);
 
-    mount.replaceChildren(gameScreen({ hud: hudFor(run), world: worldFor(run), panel, variant: 'gl--debrief', headerSub: 'MISSION DEBRIEF' }));
+    mount.replaceChildren(gameScreen({ hud: hudFor(run), world: worldFor(run), panel, variant: 'gl--debrief', headerSub: 'MISSION DEBRIEF', onLeave: () => navigate('naming') }));
 
     if (focus !== undefined) mount.querySelector<HTMLElement>(`[data-focus="${focus}"]`)?.focus();
   }
