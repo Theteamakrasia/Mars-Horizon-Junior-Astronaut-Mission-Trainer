@@ -78,6 +78,23 @@ export function clampSpot(spot: ModuleSpot): ModuleSpot {
   };
 }
 
+/**
+ * A spot with every number rounded to one decimal.
+ *
+ * A dragged position is never more precise than that, and rounding in one
+ * place is what keeps the toolbar, the readout and the exported file telling
+ * the same story. Without it the toolbar reads 45.58845757471659 while the
+ * file reads 45.6.
+ */
+export function roundSpot(spot: ModuleSpot): ModuleSpot {
+  return {
+    left: Math.round(spot.left * 10) / 10,
+    bottom: Math.round(spot.bottom * 10) / 10,
+    width: Math.round(spot.width * 10) / 10,
+    z: Math.round(spot.z),
+  };
+}
+
 /** Is this a plain object rather than an array or null? */
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -192,13 +209,13 @@ export function buildLayoutJson(spots: Readonly<Record<string, ModuleSpot>>): st
   const ordered: Record<string, { left: number; bottom: number; width: number; z: number }> = {};
 
   for (const spec of MODULE_CATALOGUE) {
-    const spot = spots[spec.kind] ?? DEFAULT_SPOTS[spec.kind];
+    const spot = roundSpot(spots[spec.kind] ?? DEFAULT_SPOTS[spec.kind]);
 
     ordered[spec.kind] = {
-      left: Math.round(spot.left * 10) / 10,
-      bottom: Math.round(spot.bottom * 10) / 10,
-      width: Math.round(spot.width * 10) / 10,
-      z: Math.round(spot.z),
+      left: spot.left,
+      bottom: spot.bottom,
+      width: spot.width,
+      z: spot.z,
     };
   }
 

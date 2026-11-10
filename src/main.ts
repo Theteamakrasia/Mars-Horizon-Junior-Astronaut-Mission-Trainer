@@ -58,6 +58,33 @@ let routedScreens: readonly HTMLElement[] = [];
 let activeScreen: (() => void) | null = null;
 
 /**
+ * The placement editor, when the developer has switched it on.
+ *
+ * A developer tool, not a game screen: it has no route, no mount point and no
+ * registry entry, and it is compiled out of a production build entirely, so
+ * no player can reach it.
+ *
+ * The module is loaded on demand with a dynamic import, which is what keeps
+ * it out of the production bundle: `import.meta.env.DEV` is false there, the
+ * branch below never runs, and the module is never even fetched.
+ */
+let layoutEditorReady: Promise<((root: HTMLElement) => () => void) | null> = Promise.resolve(null);
+
+/** Teardown for the placement editor on the screen currently mounted. */
+let layoutTeardown: (() => void) | null = null;
+
+/**
+ * Counts screen mounts, so a late-arriving editor knows whether the screen
+ * it was meant for is still the one on show.
+ */
+let layoutToken = 0;
+
+/** Has the developer asked for the placement editor? */
+function layoutRequested(): boolean {
+  return import.meta.env.DEV && new URLSearchParams(window.location.search).has('editlayout');
+}
+
+/**
  * The current run, owned here.
  *
  * The shell holds it rather than any screen, which is what lets naming create the
@@ -154,6 +181,17 @@ function bootstrap(): void {
 
   for (const screen of routedScreens) screen.hidden = true;
 
+  /*
+   * The placement editor, if the developer asked for it with `?editlayout=1`.
+   *
+   * The dynamic import is inside the `import.meta.env.DEV` branch on purpose:
+   * in a production build that branch is false, so the module is never
+   * fetched and never reaches the bundle.
+   */
+  if (layoutRequested()) {
+    layoutEditorReady = import('./ui/baseLayoutEditor').then((mod) => mod.startLayoutEditor);
+  }
+
   startScreenRouter();
 }
 
@@ -171,6 +209,12 @@ function mountScreen(route: Route): void {
   if (teardown !== null) {
     teardown();
   }
+
+  layoutTeardown?.();
+  layoutTeardown = null;
+  layoutToken += 1;
+
+  const token = layoutToken;
 
   const selector = screenMount(route);
   const factory = resolveScreen(route);
@@ -202,6 +246,23 @@ function mountScreen(route: Route): void {
   hideLanding();
   root.hidden = false;
   activeScreen = factory(root, run, setRun);
+
+  /*
+   * The placement editor, once its module has loaded.
+   *
+   * The editor may not be wanted at all — the developer may have pressed
+   * Done, which takes the flag out of the address bar — and it must not
+   * attach to a screen that has already been replaced.
+   */
+  void layoutEditorReady.then((start) => {
+    if (start === null) return;
+    if (!layoutRequested()) return;
+    if (token !== layoutToken) return;
+    if (root.hidden) return;
+
+    layoutTeardown?.();
+    layoutTeardown = start(root);
+  });
 }
 
 /**
@@ -217,6 +278,8 @@ function startScreenRouter(): void {
   // Unmount on unload so nothing is left attached to a document going away.
   window.addEventListener('pagehide', () => {
     stopRouter();
+    layoutTeardown?.();
+    layoutTeardown = null;
     activeScreen?.();
     activeScreen = null;
   }, { once: true });

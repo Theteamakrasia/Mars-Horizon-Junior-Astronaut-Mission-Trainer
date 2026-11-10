@@ -12,6 +12,7 @@ import {
   describeLayoutProblems,
   pointToPercent,
   resolveSpots,
+  roundSpot,
 } from './baseLayout';
 
 describe('SPOT_BAND', () => {
@@ -162,6 +163,20 @@ describe('describeLayoutProblems', () => {
 
   it('reports a source that is not an object', () => {
     expect(describeLayoutProblems('nonsense')).toHaveLength(1);
+  });
+});
+
+describe('roundSpot', () => {
+  it('rounds every number to one decimal', () => {
+    const spot = roundSpot({ left: 45.58845757471659, bottom: 20.244645987348527, width: 20.04, z: 4.6 });
+
+    expect(spot).toEqual({ left: 45.6, bottom: 20.2, width: 20, z: 5 });
+  });
+
+  it('leaves an already-round spot alone', () => {
+    const spot = { left: 28, bottom: 30, width: 20, z: 4 };
+
+    expect(roundSpot(spot)).toEqual(spot);
   });
 });
 

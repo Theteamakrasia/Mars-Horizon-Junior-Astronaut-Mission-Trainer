@@ -1,0 +1,214 @@
+/* BASE-LAYOUT-EDITOR — the developer's placement tool.
+ *
+ * Imported by ./baseLayoutEditor.ts only. It lives in ui/ rather than in a
+ * feature folder because it is not part of the journey: no route, no mount
+ * point, no registry entry, and it is compiled out of a production build.
+ *
+ * The overlay sits on document.body, outside the .gl screen, so the colours
+ * below are declared here rather than borrowed from the game-loop theme.
+ */
+
+/*
+ * The screen's own module pictures are hidden while the editor is on. The
+ * handles show the same artwork in the same place, so leaving both would
+ * draw every module twice.
+ *
+ * The rule is written with two classes on purpose: it must beat `.gl__figure`
+ * from game-loop.css whatever order the two stylesheets load in.
+ */
+.gl__world--editing .gl__figure {
+  visibility: hidden;
+}
+
+.ble__box {
+  position: fixed;
+  overflow: hidden;
+  z-index: 9990;
+  /* The panel behind still takes clicks; only the handles take them. */
+  pointer-events: none;
+  border: 1px dashed rgba(223, 84, 43, 0.5);
+}
+
+/* The band a module may be placed in, so the limits are visible. */
+.ble__guide {
+  position: absolute;
+  left: var(--ble-band-left, 2%);
+  right: var(--ble-band-right, 8%);
+  bottom: var(--ble-band-bottom, 2%);
+  top: var(--ble-band-top, 68%);
+  border: 1px dashed rgba(36, 110, 91, 0.55);
+  background: rgba(36, 110, 91, 0.07);
+}
+
+.ble__handle {
+  position: absolute;
+  left: var(--ble-left, 50%);
+  bottom: var(--ble-bottom, 0%);
+  width: var(--ble-width, 20%);
+  height: auto;
+  z-index: var(--ble-z, 2);
+  cursor: grab;
+  /* The browser must not pan the page instead of dragging the module. */
+  touch-action: none;
+  pointer-events: auto;
+  outline: none;
+}
+
+.ble__handle:active {
+  cursor: grabbing;
+}
+
+.ble__handle img {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 6px 10px rgba(120, 60, 20, 0.18));
+}
+
+.ble__handle--selected img {
+  outline: 2px solid #df542b;
+  outline-offset: 2px;
+}
+
+.ble__handle:focus-visible img {
+  outline: 2px solid #f5f0e3;
+  outline-offset: 2px;
+}
+
+.ble__tag {
+  position: absolute;
+  left: 50%;
+  bottom: -20px;
+  transform: translateX(-50%);
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(11, 16, 21, 0.88);
+  color: #f5f0e3;
+  font: 700 11px/1.4 'Nunito', 'Segoe UI', system-ui, sans-serif;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------- toolbar -- */
+
+.ble__toolbar {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 9999;
+  width: 330px;
+  max-height: calc(100vh - 24px);
+  overflow: auto;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(29, 45, 70, 0.96);
+  color: #f5f0e3;
+  font: 600 13px/1.45 'Nunito', 'Segoe UI', system-ui, sans-serif;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+}
+
+.ble__title {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.ble__hint {
+  margin: 0 0 8px;
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.ble__readout {
+  margin: 0 0 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.28);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ble__fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 10px;
+  margin-bottom: 10px;
+}
+
+.ble__field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.ble__field-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.7;
+}
+
+.ble__num {
+  width: 74px;
+  padding: 4px 6px;
+  border: 1px solid rgba(245, 240, 227, 0.25);
+  border-radius: 6px;
+  background: #0b1015;
+  color: #f5f0e3;
+  font: 12px/1.3 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+}
+
+.ble__label {
+  margin: 0 0 4px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.7;
+}
+
+.ble__json {
+  display: block;
+  width: 100%;
+  height: 170px;
+  box-sizing: border-box;
+  padding: 8px;
+  resize: vertical;
+  border: 1px solid rgba(245, 240, 227, 0.2);
+  border-radius: 8px;
+  background: #0b1015;
+  color: #9fe6a4;
+  font: 12px/1.45 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+}
+
+.ble__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.ble__btn {
+  padding: 6px 10px;
+  border: 1px solid rgba(245, 240, 227, 0.25);
+  border-radius: 8px;
+  background: rgba(245, 240, 227, 0.08);
+  color: #f5f0e3;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ble__btn:hover {
+  background: rgba(245, 240, 227, 0.18);
+}
+
+.ble__btn--primary {
+  background: #df542b;
+  border-color: #df542b;
+}
+
+.ble__btn--primary:hover {
+  background: #cf4726;
+}
