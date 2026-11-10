@@ -19,7 +19,7 @@ than eyeballed, and it is what `npm run check` protects.
 
 ## The invariant, and why it is enforced
 
-424 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
+498 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
 reference it would still work, and the cost would surface later as an untestable bug.
 Enforced as `no-dom-in-pure-zone`.
 
@@ -162,50 +162,59 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   ├── drift.test.ts               complete   30 tests
     │   ├── deform.test.ts              complete   30 tests
     │   ├── frame.test.ts               complete   19 tests; open-space trajectory is deterministic
-    │   ├── resources.ts                complete   ResourceName, ResourceStores, StoreChange,
-    │   │                                         DrainResult, drainForSol, depletedStores,
-    │   │                                         createInitialStores. Pure arithmetic, never
-    │   │                                         mutates its argument. 18 tests.
-    │   ├── sol.ts                      complete   LedgerEntry, SolResult, advanceSol, isRunOver.
-    │   │                                         Solar generation, module draw + night drain,
-    │   │                                         crew use offset by modules, events,
-    │   │                                         clamp/cap, ledger, status. Turn-based (D-030).
-    │   │                                         12 tests.
-    │   ├── run.ts                      complete   RunStatus, RunState, newRun, landAt, withState,
-    │   │                                         applyBuild. RunState is the only thing shared
-    │   │                                         between screens; it carries `modules` and the
-    │   │                                         per-sol `ledger`. 19 tests.
-    │   ├── constants.ts                complete   every tuning number: starting stores, crew use,
-    │   │                                         solar per sun score, night drain, storm severity,
-    │   │                                         build costs, target sol (20), power cap,
-    │   │                                         battery charge. Edit here to retune.
+    │   ├── resources.ts                complete   ResourceName, ResourceStores, clampStores, drainForSol,
+    │   │                                         depletedStores, createInitialStores, percentOf,
+    │   │                                         LIFE_STORES. Pure arithmetic, never mutates its
+    │   │                                         argument. 7 tests.
+    │   ├── sol.ts                      complete   advanceSol, decide, projectSol, powerPicture,
+    │   │                                         isRunOver, lostStores, isSelfSustaining,
+    │   │                                         endedBy, WIN_SOL. Solar generation, module draw +
+    │   │                                         night drain, crew use offset by modules, forecast
+    │   │                                         events, the chosen activity, science points,
+    │   │                                         clamp/cap, status. Turn-based (D-030). 40 tests.
+    │   ├── run.ts                      complete   RunStatus, RunState, SolEvent, DecisionRecord,
+    │   │                                         SolRecord, SolActivity, newRun, landAt, withState,
+    │   │                                         startOutpost. RunState is the only thing shared
+    │   │                                         between screens; it carries `modules`, `science`
+    │   │                                         and `chosenActivity`.
+    │   ├── activities.ts               complete   ActivitySpec, ActivityOffer, ActivityStores,
+    │   │                                         ActivityRequirement, SolPlan, ACTIVITY_CATALOGUE,
+    │   │                                         SOL_PLANS, activityById, planForSol, lockedReason,
+    │   │                                         offerFor, offerForSpec. The twelve activities and
+    │   │                                         the twelve sol plans (D-048, D-051). 17 tests.
+    │   ├── science.ts                  complete   ScienceRank, SCIENCE_RANKS, SOL_LOG_POINTS,
+    │   │                                         rankFor, rankProgress. The score and the rank
+    │   │                                         ladder (D-049). 9 tests.
+    │   ├── topics.ts                   complete   ScienceTopic, SCIENCE_TOPICS, TOPIC_LABEL,
+    │   │                                         isScienceTopic. The vocabulary the activities and
+    │   │                                         the NASA facts share.
+    │   ├── activities.test.ts          complete   17 tests
+    │   ├── science.test.ts             complete   9 tests
     │   ├── modules.ts                  complete   ModuleKind, ModuleSpec, MODULE_CATALOGUE,
-    │   │                                         STARTING_MODULES, canBuild, adjustedBuildCost,
-    │   │                                         buildPreview, upkeepFor, extraBatteryCount.
-    │   │                                         Catalogue in `sim/` because `act` needs it and
-    │   │                                         cannot import `base` (D-032). 25 tests.
+    │   │                                         CORE_MODULES, specOf, countOf, systemsFor, extrasOf,
+    │   │                                         pointsSpent, extraSlots, extraModuleCount. Catalogue
+    │   │                                         in `sim/` because `act` needs it and cannot import
+    │   │                                         `base` (D-032). 14 tests.
     │   ├── forecast.ts                 complete   ForecastEvent, FlareInput, DEFAULT_FLARE,
     │   │                                         flareIntensity, createForecast, eventsStartingOn,
     │   │                                         stormOn, stormOpacity. The schedule is baked
     │   │                                         (flare 3, pod 5, storm 7, flare 10); only the
     │   │                                         flare size comes from data/.
-    │   ├── crises.ts                   complete   Crisis, CrisisOption, crisisForEvent,
-    │   │                                         pendingCrisis, optionOf, decide, earthIsInTime,
-    │   │                                         earthAdvice. Three forecast events stop the
-    │   │                                         clock and ask for a choice (D-029).
+    │   ├── crises.ts                   complete   Crisis, CrisisOption, COUNTDOWN_SECONDS,
+    │   │                                         crisisForEvent, pendingCrisis, optionOf,
+    │   │                                         earthIsInTime, earthAdvice. Three forecast events
+    │   │                                         stop the clock and ask for a choice (D-029).
     │   ├── comms.ts                    complete   REAL_MIN/MAX_ONE_WAY_MINUTES, oneWayMinutes,
     │   │                                         roundTripMinutes, earthCanAnswerInTime. A
     │   │                                         simplified rising delay over the real range.
-    │   ├── balance.test.ts             complete   9 acceptance tests: default survives the storm,
-    │   │                                         default cannot win, a thoughtful build wins
-    │   │                                         three of five regions, over-building loses,
-    │   │                                         sun-vs-water failures differ.
+
     │   └── regions.ts                  complete   The five landing regions: id, name,
     │                                             blurb, pin {x, y} as stage %, and five
     │                                             axis scores (0-5). Pure authored data,
     │                                             no randomness. Exports SiteAxis,
     │                                             SITE_AXES, SiteScore, Region, REGIONS,
-    │                                             totalScore. Read by landing-site, base
+    │                                             NEUTRAL_SCORE, totalScore, regionById,
+    │                                             siteScore. Read by landing-site, base
     │                                             and act without cross-feature imports.
     │
     ├── ui/                             CROSS-SCREEN BROWSER GLUE. No framework, so no components.
@@ -243,6 +252,10 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         caption, fact, credit and source link, plus
     │   │                                         the shared read-aloud control when the browser
     │   │                                         has speech. Static data only: no runtime fetch.
+    │   ├── nasaFeedCard.ts             complete   nasaFeedCard(fact, kicker?) -> figure. One live
+    │   │                                         NASA picture with its story, credit and date, in the
+    │   │                                         same card as the curated one. The picture is
+    │   │                                         optional: a video day keeps its words.
     │   ├── nasa-card.css              complete   card frame, caption type scale, action row.
     │   ├── registry.ts                 complete   the one composition seam. Exports ScreenFactory,
     │   │                                         screenMount, resolveScreen, nextStop,
@@ -252,9 +265,11 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         teardown. Returns null for routes with nothing
     │   │                                         built, so the router can fall through.
     │   └── gameLoop.ts                 complete   the shared game-loop chrome from the Figma
-    │                                             frames (D-038): gameHeader, gameHud, gameDock,
-    │                                             gameWorld, gamePanel, gameScreen, gameSection,
-    │                                             moduleFigures. Presentation only — every word
+    │                                             frames (D-038): gameHeader, gameHud,
+    │                                             gameWorld, gamePanel, gameScreen,
+    │                                             gameSection, moduleFigures, moduleArt,
+    │                                             MODULE_ART, WORLD_BACKGROUND,
+    │                                             ASTRONAUT_SPRITE. Presentation only — every word
     │                                             and number arrives as an argument, and it owns
     │                                             the shared artwork imports so base, act and
     │                                             debrief do not copy them. `gameHeader` takes an
@@ -272,6 +287,10 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         flares and runs createForecast. The join between
     │   │                                         data/ and sim/, shared by base and act without a
     │   │                                         cross-feature import. Never rejects.
+    │   ├── dailyFactLoader.ts          complete   LoadedDailyFacts; loadDailyFacts(signal) fetches
+    │   │                                         the NASA daily pictures. The join between data/ and
+    │   │                                         sim/, shared by act and debrief without a
+    │   │                                         cross-feature import. Never rejects.
     │   ├── pointerGrab.ts              complete   207 lines. Exports attachGrab -> teardown.
     │   │                                         Velocity is a 100ms windowed average, EMA smoothed.
     │   └── starfield.ts                complete   63 lines. 140 stars across three depth layers.
@@ -288,13 +307,20 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         NOAA SWPC -> baked, in that order.
     │   └── spaceweather.test.ts        complete   26 tests; every fetch is injected
     │   ├── nasaGallery.ts             complete   Twelve sol cards plus a closing card,
-    │   │                                         five real region photos and a rotating
-    │   │                                         fact list. Static by choice (D-042):
-    │   │                                         no runtime image API, and the words
-    │   │                                         are unit tested here.
-    │   └── nasaGallery.test.ts        complete   20 tests; ids resolve, credits and links
-    │                                             present, length caps enforced, facts
-    │                                             wrap deterministically.
+    │   │                                         five real region photos and forty tagged
+    │   │                                         facts. Static by choice (D-042): no
+    │   │                                         runtime image API, and the words are
+    │   │                                         unit tested here. `factForTopic`
+    │   │                                         picks the fact about one system.
+    │   ├── nasaDaily.ts                complete   DailyFact, DailyFactSource, parseApod,
+    │   │                                         cleanExplanation, fetchDailyFacts, lastDailySource,
+    │   │                                         lastDailyDetail, resetDailyFacts, savedFactFor.
+    │   │                                         NASA's Astronomy Picture of the Day, filtered to
+    │   │                                         Mars. An enrichment layer on top of the saved
+    │   │                                         gallery, never a replacement (D-050). 17 tests.
+    │   ├── nasaGallery.test.ts         complete   25 tests; ids resolve, credits and links
+    │   │                                         present, length caps enforced, facts wrap
+    │   │                                         deterministically, every topic has facts.
     │
     ├── features/                       one folder per screen. Every journey screen is built.
     │   │                               There are no feature stubs left.
@@ -365,24 +391,31 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │   └── base.css                 complete   the budget line and card reasons only
     │   ├── act/                        COMPLETE   TASK-030. Turn-based sol control (D-030).
     │   │   ├── README.md                           the contract
-    │   │   ├── model.ts                 complete   MISSIONS, missionHeadline, meterRows,
-    │   │   │                                     toneFor, progressPercent, secondsLeft,
-    │   │   │                                     powerSentence. Pure, 8 tests.
-    │   │   ├── model.test.ts            complete   8 literal-input tests
+    │   │   ├── model.ts                 complete   missionHeadline, meterRows, toneFor,
+    │   │   │                                     changeRows, progressPercent, secondsLeft,
+    │   │   │                                     powerSentence, activityCosts,
+    │   │   │                                     activityRows, scienceSummary,
+    │   │   │                                     scienceSentence. Pure, 20 tests.
+    │   │   ├── model.test.ts            complete   20 literal-input tests
     │   │   ├── view.ts                  complete   mountAct(root, run, setRun) -> teardown.
-    │   │   │                                     Advance sol -> advanceSol; on a finished run,
-    │   │   │                                     setRun then navigate to `debrief`. A crisis
-    │   │   │                                     replaces the mission panel (D-040).
-    │   │   └── act.css                  complete   crisis option artwork only; the frame is shared
+    │   │   │                                     Three activity cards per calm sol (D-048),
+    │   │   │                                     a science card in the world panel, and
+    │   │   │                                     the live NASA daily picture. Run sol ->
+    │   │   │                                     advanceSol; on a finished run, setRun then
+    │   │   │                                     navigate to `debrief`. A crisis replaces the
+    │   │   │                                     mission panel (D-040).
+    │   │   └── act.css                  complete   crisis option artwork and the activity cards
     │   └── debrief/                    COMPLETE   TASK-031. Why the run was won or lost.
     │       ├── README.md                           the contract
     │       ├── model.ts                 complete   Explanation, ConsumptionSummary, NextStep,
-    │       │                                     explainOutcome, consumptionSummary,
-    │       │                                     blackoutSols, reviewDecisions, timeline,
-    │       │                                     lowestPoints, usedApproximateData,
-    │       │                                     nextSteps, wentEmpty. Conservative ledger
-    │       │                                     attribution. 18 tests.
-    │       ├── model.test.ts            complete   18 literal-input tests
+    │       │                                     ScienceReport, ScienceRow, explainOutcome,
+    │       │                                     consumptionSummary, blackoutSols,
+    │       │                                     reviewDecisions, timeline, lowestPoints,
+    │       │                                     usedApproximateData, nextSteps,
+    │       │                                     wentEmpty, scienceReport, scienceHeadline,
+    │       │                                     scienceDetail, scienceSentence.
+    │       │                                     Conservative ledger attribution. 25 tests.
+    │       ├── model.test.ts            complete   25 literal-input tests
     │       ├── view.ts                  complete   mountDebrief(root, run, setRun) -> teardown.
     │       │                                     Results panel, plus the journal as a mode
     │       │                                     (D-039): decisions, sol table, honesty note.
@@ -494,10 +527,17 @@ Zero storage and no backend. The only state is the in-memory `RunState` that
 `main.ts` owns and passes to each screen as `(root, run, setRun)`; a refresh loses it,
 because persistence is deferred (D-003).
 
-The one network path outside the landing page is space weather. `base` and `act` call
-`dom/forecastLoader` → `data/spaceweather`, which tries NASA DONKI, then NOAA SWPC, then
-baked history. The event *schedule* is still baked in `sim/forecast.ts` (D-033); only the
-flare *size* is live.
+There are two network paths outside the landing page, both in `data/`.
+
+**Space weather.** `base` and `act` call `dom/forecastLoader` → `data/spaceweather`, which
+tries NASA DONKI, then NOAA SWPC, then baked history. The event *schedule* is still baked
+in `sim/forecast.ts` (D-033); only the flare *size* is live.
+
+**NASA's daily pictures.** `act` calls `dom/dailyFactLoader` → `data/nasaDaily`, which asks
+NASA's Astronomy Picture of the Day for Mars pictures and falls back to the saved gallery
+when NASA is busy (D-050). This is an **enrichment layer on top of** the saved gallery,
+never a replacement: the game is complete without a network, and the screen always says
+which of the two it is showing.
 
 ## Boot order
 
@@ -529,16 +569,27 @@ returns to `landing`, which keeps running behind the mounted screen.
 | --- | --- | --- |
 | `main.ts` | none (side effects) | composition root; throws on a missing element id |
 | `dom/forecastLoader` | `LoadedForecast`, `loadForecast` | `(signal?) -> Promise<LoadedForecast>`; never rejects. Fetches flares through `data/spaceweather`, then runs `sim/forecast.createForecast`. Sits in `dom/` because it joins `data/` and `sim/`, and both `base` and `act` need it without importing each other (R-5) |
+| `dom/dailyFactLoader` | `LoadedDailyFacts`, `loadDailyFacts` | `(signal?) -> Promise<LoadedDailyFacts>`; never rejects. Fetches NASA's daily pictures through `data/nasaDaily` and reports the source. In `dom/` for the same reason as the forecast loader: `act` and `debrief` both want it and R-5 stops them importing each other |
 | `data/spaceweather` | `SpaceWeatherEvent`, `SpaceWeatherSource` | a flare as the game uses it; source is `'donki' \| 'noaa' \| 'fallback'` |
 | | `fetchSpaceWeather` | `(options?) -> Promise<SpaceWeatherEvent[]>`; never rejects. Tries NASA DONKI, then NOAA SWPC, then `FALLBACK_FLARES`. Remembers one answer so two screens cost one request; an answer abandoned by its caller is not remembered |
 | | `parseFlares`, `parseNoaaFlares` | `(json) -> SpaceWeatherEvent[]`; validate every field and drop anything malformed rather than trusting the wire |
 | | `flareRank`, `strongest` | class ranking (X > M > C, bigger number first) and the strongest N |
 | | `lastSource`, `lastDetail`, `resetSpaceWeather` | what the UI reports; reset is for tests |
 | | `describeWhen` | `(peakTime) -> string`, e.g. `11 May 2024`; `'recently'` on a bad date |
-| `data/nasaGallery` | `NasaFigure`, `NasaCard`, `RegionCard`, `NASA_CARDS`, `NEXT_HORIZON_CARD`, `REGION_CARDS`, `NasaFact`, `FACTS`, `cardForSol`, `regionCard`, `factFor` | twelve curated sol cards plus one closing artist concept; five region photos; a rotating fact list. Every card carries an id, alt text, caption, fact, credit and source link. `cardForSol(sol)` and `regionCard(id)` return the card or `null`; `factFor(seed)` wraps deterministically so a screen can rotate facts without `Math.random` |
+| `data/nasaGallery` | `NasaFigure`, `NasaCard`, `RegionCard`, `NASA_CARDS`, `NEXT_HORIZON_CARD`, `REGION_CARDS`, `NasaFact`, `FACTS` | twelve curated sol cards plus one closing artist concept; five region photos; forty tagged facts. Every card carries an id, alt text, caption, fact, credit and source link |
+| | `cardForSol`, `regionCard` | the card for a sol or a region, or `null` for one outside the run |
+| | `factFor` | `(seed) -> NasaFact`; wraps deterministically so a screen can rotate facts without `Math.random` |
+| | `factForTopic` | `(topic, seed) -> NasaFact`; the fact about one system, so an activity can show the fact about its own subject (D-050) |
+| `data/nasaDaily` | `DailyFact`, `DailyFactSource` | one live NASA picture and its story; source is `'apod' \| 'saved'` |
+| | `parseApod` | `(json) -> DailyFact[]`; every field validated, a malformed entry dropped rather than trusted |
+| | `cleanExplanation` | `(text) -> string`; flattens the whitespace, drops tomorrow's teaser, and cuts on a sentence or a word — never mid-word |
+| | `fetchDailyFacts` | `(options?) => Promise<DailyFact[]>`; never rejects, one request per session, and an empty list when NASA is busy. The enrichment layer on top of the saved gallery (D-050) |
+| | `lastDailySource`, `lastDailyDetail`, `resetDailyFacts` | what the UI reports, and the reset for tests |
+| | `savedFactFor` | `(sol) -> DailyFact`; the saved fact to fall back on |
 | `ui/readAloud` | `canReadAloud`, `readAloud`, `stopReading` | `(text, onDone?) -> boolean`; false when unsupported or the text is empty. Starts cancel any current passage first, and `stopReading()` is safe when nothing plays. Browser speech only (D-043) |
 | `ui/readButton` | `readButton` | `(getText, options?) -> HTMLButtonElement \| null`; a toggle whose label, `aria-pressed` and pause hooks (`onStart`, `onStop`) are shared by every screen that reads aloud. Returns null where speech is unavailable |
 | `ui/nasaCard` | `nasaCard` | `(card: NasaFigure, kicker?) -> figure`; picture, alt, caption, "Did you know?", credit and source link, plus the shared read-aloud control only when `canReadAloud()` is true. The kicker defaults to the sol for a `NasaCard` and to a plain NASA label otherwise |
+| `ui/nasaFeedCard` | `nasaFeedCard` | `(fact: DailyFact, kicker?) -> figure`; the live NASA picture in the same card as the curated one. The picture is optional — a video day keeps its words |
 | `sim/drift` | `stepDrift` | `(state, dt, size, viewport) -> DriftResult`; reflects off walls, returns the fastest `Impact` or null |
 | | `createInitialDrift` | `(size, viewport, speed) -> DriftState`; random 30-45 degree diagonal. **5 `Math.random()` calls** |
 | | `driftSpeedForViewport` | `(width) -> number`, clamped 96..176 px/s |
@@ -562,34 +613,52 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `Region` | `id, name, blurb, pin {x, y}, scores` — the five authored regions |
 | | `REGIONS` | `readonly Region[]` — Arcadia, Jezero, Olympus, Valles, Argyre |
 | | `totalScore` | `(score) -> number`, sum of the five axes, 0-25 |
-| `sim/constants` | tuning constants | `CREW`, `TARGET_SOL` 20, `BASE_STORES`, per-sol crew use, solar per sun score, night drain, storm severity, build costs, power cap, battery charge. **Every number lives here** — edit here to retune, then re-run the balance tests |
-| `sim/resources` | `ResourceName`, `ResourceStores` | the five stores as 0-100 percentages; `readonly` |
-| | `StoreChange` | `{ store, cause, delta }` — one line of the ledger |
-| | `drainForSol` | `(stores, sol, powerDraw, solarArrays, modules, region) -> DrainResult`; pure, never mutates its argument. Takes pre-computed draw/arrays so `resources` never imports `modules` |
+| `sim/resources` | `ResourceName`, `ResourceStores` | the five stores; `power` is kWh in the batteries and the other four are 0-100 percentages. `readonly` |
+| | `STORE_CAPACITY`, `LIFE_STORES` | 100 for the four tanks; power is capped by the batteries built. `LIFE_STORES` is the four that end a run — power deliberately is not one of them |
+| | `drainForSol` | `(stores, net, powerCapacity) -> ResourceStores`; pure, never mutates its argument. `net` is the change, positive or negative, so the same function covers a drain and a refill |
+| | `clampStores` | `(stores, powerCapacity) -> ResourceStores`; keeps every store inside its tank |
 | | `depletedStores` | `(stores) -> ResourceName[]`; the stores at or below zero |
-| | `createInitialStores` | `() -> ResourceStores` |
-| `sim/modules` | `ModuleKind` | the nine catalogue kinds |
-| | `MODULE_CATALOGUE`, `STARTING_MODULES` | every spec, and the modules a run begins with |
-| | `canBuild` | `(kind, modules, stores, terrain) -> boolean` |
-| | `adjustedBuildCost` | `(kind, terrain) -> number` |
-| | `buildPreview` | `(kind, modules, stores, terrain) -> preview \| null`; null for an unknown kind |
-| | `upkeepFor` | `(modules) -> {powerDraw, solarArrays}` |
-| | `extraBatteryCount` | `(modules) -> number` |
+| | `createInitialStores` | `(overrides?) -> ResourceStores` |
+| | `percentOf` | `(name, stores, powerCapacity) -> number`; how full a store is, for the HUD |
+| `sim/modules` | `ModuleKind` | the eight catalogue kinds |
+| | `ModuleSpec`, `MODULE_CATALOGUE` | every spec: name, cost, max count, what it gives, what it needs, and any build gate |
+| | `CORE_MODULES` | the four the lander brings: habitat, life-support, solar-array, batteries |
+| | `specOf` | `(kind) -> ModuleSpec`; throws a `RangeError` on an unknown kind |
+| | `countOf` | `(modules, kind) -> number` |
+| | `systemsFor` | `(modules, regionId) -> Systems`; the whole outpost as one object: solar, battery, load, what the crew gets and what it costs |
+| | `extrasOf`, `pointsSpent`, `extraSlots`, `extraModuleCount` | what the player built beyond the core, what it cost, and how many more would fit |
+| | `CREW_SIZE`, `SUN_HOURS`, `NIGHT_HOURS`, `OXYGEN_PER_CREW`, `WATER_PER_CREW`, `FOOD_PER_CREW` | the crew and the day; **every tuning number the sol maths uses** |
 | `sim/forecast` | `ForecastEvent`, `FlareInput`, `ForecastKind` | the four forecast events; `intensity` is 1-3 for a flare and 0 for the pod and storm |
 | | `flareIntensity` | `(classType) -> 1 \| 2 \| 3`; X = 3, M = 2, C and below = 1 |
 | | `createForecast` | `(flares) -> ForecastEvent[]`; schedule is fixed at sols 3 / 5 / 7 / 10. A missing flare uses `DEFAULT_FLARE`, marked approximate. Only the size is live |
 | | `eventsStartingOn`, `stormOn`, `stormOpacity` | lookups over the forecast; opacity is a calm-site curve, 0.2-0.95 |
-| `sim/crises` | `Crisis`, `CrisisOption`, `crisisForEvent`, `pendingCrisis` | the moment a forecast event stops the clock and what is asked |
-| | `optionOf`, `decide`, `earthIsInTime`, `earthAdvice` | option lookup, the recorded choice, and the "Earth cannot answer in time" copy |
+| `sim/crises` | `Crisis`, `CrisisOption`, `COUNTDOWN_SECONDS` | the moment a forecast event stops the clock and what is asked |
+| | `crisisForEvent`, `pendingCrisis` | the crisis for a forecast event, and the one waiting before the next sol |
+| | `optionOf` | `(crisis, optionId) -> CrisisOption \| null` |
+| | `earthIsInTime`, `earthAdvice` | the "Earth cannot answer in time" copy, and what Mission Control would suggest |
+| `sim/activities` | `ActivitySpec`, `ActivityOffer`, `ActivityStores`, `ActivityRequirement`, `SolPlan` | one activity the crew can spend a sol on, and the shape of a sol plan |
+| | `ACTIVITY_CATALOGUE` | the twelve activities: cost, gain, science points, topic, and the build gate that can lock one |
+| | `SOL_PLANS` | the twelve sol plans: headline, subtitle, and the three activity ids offered. The schedule is fixed, so a demo repeats |
+| | `activityById`, `planForSol` | lookups; both return `null` for something unknown |
+| | `lockedReason`, `offerForSpec`, `offerFor` | whether the outpost is ready for an activity today, and the three offered on a sol (D-048) |
+| `sim/science` | `ScienceRank`, `SCIENCE_RANKS`, `SOL_LOG_POINTS` | the rank ladder and the point for a sol log |
+| | `rankFor` | `(points) -> ScienceRank`; never throws, a broken score is the bottom rank |
+| | `rankProgress` | `(points) -> { current, next, percent, toNext }`; the road to the next rank, with no NaN at the top (D-049) |
+| `sim/topics` | `ScienceTopic`, `SCIENCE_TOPICS`, `TOPIC_LABEL`, `isScienceTopic` | the vocabulary the activities and the NASA facts share, so a screen can show the fact about the system it is teaching |
 | `sim/comms` | `REAL_MIN_ONE_WAY_MINUTES`, `REAL_MAX_ONE_WAY_MINUTES` | the real 3-22 minute range, for the approximation note |
 | | `oneWayMinutes`, `roundTripMinutes`, `earthCanAnswerInTime` | a simplified rising delay over the run; labelled approximate in the UI |
-| `sim/sol` | `advanceSol` | `(run) -> SolResult`; solar generation, module draw + night drain, crew use, events, clamp/cap, ledger entry, status. **Turn-based: one sol per call** (D-030) |
-| | `LedgerEntry`, `SolResult` | one sol's stores and `changes`; the new stores, status, events and ledger |
-| | `isRunOver` | `(run) -> boolean` |
-| `sim/run` | `RunState` | `sol, regionId, astronautName, stores, status, modules, ledger` — the only thing shared between screens |
+| `sim/sol` | `advanceSol` | `(run) -> RunState`; solar generation, module draw + night drain, crew use, forecast events, the chosen activity, science points, clamp/cap, status. **Turn-based: one sol per call** (D-030) |
+| | `decide` | `(run, crisisId, optionId, timedOut?) -> RunState`; records the player's crisis choice. Throws on an unknown crisis or option |
+| | `projectSol` | `(run) -> SolRecord`; what a calm sol would do, for the trade-off preview and Mission Control's advice |
+| | `powerPicture` | `(run) -> { generatedKw, storedKwh, nightDrainKw, capacityKwh }`; the README's power picture |
+| | `isRunOver`, `lostStores`, `endedBy` | whether the run has ended, and which life store ended it. Power is not a life store |
+| | `isSelfSustaining` | `(run) -> boolean`; a calm sol leaves air, water and food level or better |
+| | `WIN_SOL` | 12 — the run is won by living through this many sols |
+| `sim/run` | `RunState` | `sol, regionId, astronautName, stores, status, modules, panelHealth, science, chosenActivity, forecast, log, decisions` — the only thing shared between screens |
+| | `RunStatus`, `SolEvent`, `DecisionRecord`, `SolRecord`, `SolActivity` | what a sol did: the stores, the net, the blackout, the activity, the events and the notes |
 | | `newRun` | `(regionId, astronautName?) -> RunState` |
-| | `landAt` | `(run, regionId) -> RunState`; sets the region and its region-adjusted starting stores |
-| | `applyBuild` | `(run, kind) -> RunState \| null`; null when the build is blocked |
+| | `landAt` | `(run, regionId) -> RunState`; sets the region, keeping the astronaut's name |
+| | `startOutpost` | `(run, modules) -> RunState`; lands the outpost with full batteries and the shielding those modules give, and resets the score |
 | | `withState` | `(run, patch) -> RunState` |
 | `ui/routes` | `Route` | `'naming' \| 'briefing' \| 'supply' \| 'launch' \| 'interior' \| 'landing' \| 'landing-site' \| 'base' \| 'act' \| 'debrief'` |
 | | `ROUTE_ORDER` | the routes in play order, `naming` first |
@@ -615,19 +684,23 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `totalScore` | `(score) -> number`, 0-25 |
 | | `strengthAndWeakness` | `(score) -> {strength, weakness}` axes |
 | `features/landing-site/view` | `mountLandingSite` | `(root, run, setRun) -> teardown`; map + five pins + Site Analysis panel, LAND HERE calls `landAt` then navigates to `nextStop('landing-site')`. Selecting a pin also shows that region's real NASA photo and fact (`regionCard`) |
-| `ui/gameLoop` | `gameScreen`, `gameWorld`, `gamePanel` | the shared frame from the Figma frames (D-038): one `.gl` root, the illustrated world panel, and the scrolling right-hand panel. Every word, number and variant arrives in an options object; no `sim/` rule is applied here |
+| `ui/gameLoop` | `gameScreen`, `gameWorld`, `gamePanel`, `gameSection`, `gameHeader`, `gameHud` | the shared frame from the Figma frames (D-038): one `.gl` root, the illustrated world panel, and the scrolling right-hand panel. Every word, number and variant arrives in an options object; no `sim/` rule is applied here |
+| | `moduleFigures`, `moduleArt`, `MODULE_ART`, `WORLD_BACKGROUND`, `ASTRONAUT_SPRITE` | the artwork the world panel draws, owned here so `base`, `act` and `debrief` do not copy the imports |
 | | `gameHeader`, `gameHud`, `gameDock` | `gameHeader(sub?, onLeave?)`: without `onLeave` the right-hand label is plain decorative text; with it, it is a Menu button opening an in-screen leave dialog with Keep playing / Leave mission (D-044). `gameHud` draws the five resource cards (`HudStat`) and `gameDock` the three-tab dock. The pause/settings/BUILD pills and the dock are `aria-hidden` spans, not buttons (D-038) |
 | | `gameSection` | `(label, ...content) -> section`; an uppercase label and its body |
 | | `moduleFigures`, `moduleArt`, `MODULE_ART`, `WORLD_BACKGROUND`, `ASTRONAUT_SPRITE` | artwork placement and the bundled asset URLs; the only import site for the figures base, act and debrief share |
 | `features/base/model` | `BUILDABLE`, `canPlace`, `addModule`, `removeModule`, `pointsLeft` | build rules over the `sim/modules.ts` catalogue (D-032) |
 | | `previewFor`, `previewSummary`, `upkeepFor`, `upcomingWarnings` | the calm-sol projection. `previewSummary` gives the five resource cards one number each, from the same projection as the sentences |
 | `features/base/view` | `mountBase` | `(root, run, setRun) -> teardown`; the outpost on Mars, the catalogue steppers, and Land & start sol 1 → `startOutpost` then `act`. Holds a mutable local `extras` so a second build is not applied to stale data; it also shows a rotating NASA fact beside the build panel from `factFor` |
-| `features/act/model` | `missionHeadline`, `meterRows`, `secondsLeft`, `powerSentence` | presentation helpers over `sim/sol`; `meterRows` carries `percent`, `tone` and `emoji` for the HUD |
-| `features/act/view` | `mountAct` | `(root, run, setRun) -> teardown`; Advance sol calls `advanceSol`, then `setRun`; a finished run navigates to `debrief`. A crisis replaces the mission panel in place, with its countdown and "take your time" switch (D-040) |
+| `features/act/model` | `missionHeadline`, `meterRows`, `changeRows`, `toneFor`, `secondsLeft`, `powerSentence` | presentation helpers over `sim/sol`; `meterRows` carries `percent`, `tone` and `emoji` for the HUD |
+| | `activityRows`, `activityCosts` | the three activities offered on a sol, and what each costs and gives |
+| | `scienceSummary`, `scienceSentence` | the score, the rank, and the road to the next one |
+| `features/act/view` | `mountAct` | `(root, run, setRun) -> teardown`; three activity cards per calm sol (D-048), a science card in the world panel, and the live NASA daily picture. Run sol calls `advanceSol`, then `setRun`; a finished run navigates to `debrief`. A crisis replaces the mission panel in place, with its countdown and "take your time" switch (D-040) |
 | `features/debrief/model` | `explainOutcome` | `(run) -> {headline, detail, confident}`; conservative ledger attribution — only claims a cause when a logged fact establishes it, otherwise `confident: false` and the screen points at the timeline |
+| | `scienceReport`, `scienceHeadline`, `scienceDetail`, `scienceSentence` | what science the run did, the rank it earned, and every activity the crew chose. Measures the science, not the outcome (D-049) |
 | | `consumptionSummary`, `lowestPoints`, `blackoutSols`, `reviewDecisions`, `timeline` | arithmetic over the log; per-decision verdicts from fixed option rules; one row per sol |
 | | `nextSteps`, `wentEmpty`, `usedApproximateData` | what to try next, each step tied to a fact from this run and carrying an `art` hint; the store that ended the run; whether any flare size was approximate |
-| `features/debrief/view` | `mountDebrief` | `(root, run, setRun) -> teardown`; the results panel, and the journal as a mode reached from "View my Mars story" (D-039). "Try a new outpost" calls `newRun` then `landing-site`; it shows a rotating NASA fact next to the closing card from `factFor` |
+| `features/debrief/view` | `mountDebrief` | `(root, run, setRun) -> teardown`; the results panel with the Mars Science Score, and the journal as a mode reached from "View my Mars story" (D-039). "Try a new outpost" calls `newRun` then `landing-site`; it shows a rotating NASA fact next to the closing card from `factFor` |
 | `features/launch/model` | `TITLE` | `'THE MISSION BEGINS'` — the card that holds before the first still |
 | | `TITLE_DURATION_MS` | 900 — the card alone; 200ms in and out leaves 500ms of readability |
 | | `FADE_MS` | 350 — every dissolve: the title lift, each shot, the film's arrival |
@@ -666,6 +739,17 @@ A failure at any step falls through rather than showing an empty screen. `lastDe
 returns a sentence naming what happened, and `lastSource()` drives the approximate label.
 `.env*` is git-ignored (ISS-006) and `.env.example` documents the key name without storing
 a value.
+
+`fetchDailyFacts()` is the same shape, one source shorter (D-050):
+
+1. **NASA's Astronomy Picture of the Day**, `api.nasa.gov/planetary/apod?search=Mars` — a
+   real NASA picture and story, dated, with NASA's own credit line.
+2. **The saved gallery**, `data/nasaGallery.ts` — twelve checked NASA cards that are always
+   there, whatever the network does.
+
+The shared `DEMO_KEY` rate-limits this endpoint too (ISS-049), so the saved gallery is the
+guaranteed layer and the live feed is the enrichment on top. `lastDailySource()` reports
+which of the two answered, so the screen can say so rather than pretending.
 
 ## Known simplifications
 

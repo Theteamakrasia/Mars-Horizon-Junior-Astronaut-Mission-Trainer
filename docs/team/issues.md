@@ -13,7 +13,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | --- | --- | --- | --- | --- | --- |
 | ISS-050 | `architecture.md`'s module-contract table lists exports that do not exist | medium | agent | open | — |
 | ISS-049 | NASA's Astronomy Picture of the Day rejects the shared `DEMO_KEY` with a 429 | medium | agent | fixed | this branch |
-| ISS-048 | The cosmetic sol headlines did not match the forecast schedule | low | agent | fixed | this branch |
+| ISS-048 | The cosmetic sol headlines did not match the forecast schedule | low | agent | fixed | 816e1fb, b471ecb |
 | ISS-047 | Four `sim/` modules have no test files, and AGENTS.md's test counts are wrong | medium | agent | open | — |
 | ISS-043 | Space weather had one live source, so a DONKI outage silently replaced every run's flares with baked history | high | agent | fixed | this branch |
 | ISS-046 | The header advertised "Mission Control / Main Menu" as text, and naming's Back to Main Menu navigated to itself | medium | agent | fixed | d90e838 |
@@ -971,9 +971,13 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
   anywhere in the repository. A caller reading the table would write code that does not compile.
 - **Cause:** the table was written once and never reconciled against the code, because nothing enforces it.
   The checker proves what a file *may* import; it says nothing about what a file exports.
-- **Fix:** not fixed in this pass beyond the rows this work touches. `sim/run`, `sim/sol`, `sim/activities`,
-  `sim/science` and `data/nasaDaily` are rewritten to match the code in the documentation commit; the
-  remaining stale rows stay open rather than being quietly corrected in a commit about something else.
+- **Fix:** partly fixed in the documentation commit of the activity work. The rows for `sim/run`,
+  `sim/sol`, `sim/resources`, `sim/modules`, `sim/crises`, `sim/regions`, `ui/gameLoop`,
+  `data/nasaGallery` and the `act` and `debrief` features are rewritten to match the code, and the
+  new `sim/activities`, `sim/science`, `sim/topics`, `data/nasaDaily`, `dom/dailyFactLoader` and
+  `ui/nasaFeedCard` rows are added. The tree entries for `sim/constants.ts` and `sim/balance.test.ts`,
+  which name files that do not exist, are removed. The remaining stale rows stay open rather than
+  being quietly corrected in a commit about something else.
 - **Pre-existing:** yes; the table has drifted since the game loop was built (2026-11-08).
 
 ---
@@ -1010,7 +1014,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 - **Cause:** the headlines were written as flavour before the forecast schedule existed, and nothing tied
   them to it.
 - **Fix:** replaced by `SOL_PLANS` in `src/sim/activities.ts` — twelve real headlines, each carrying the
-  three activities offered on that sol, aligned with the baked crisis sols (D-051). Fixed in this branch.
+  three activities offered on that sol, aligned with the baked crisis sols (D-051). Fixed in 816e1fb.
 - **Pre-existing:** yes; the mismatch shipped with the game loop (2026-11-08).
 
 ---

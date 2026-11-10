@@ -8,6 +8,73 @@ than a documented one.
 
 ---
 
+## 2026-11-10 — Give every sol a main activity, a science score and a live NASA picture
+
+**Did**
+
+- **Every sol now has a main activity** (D-048). On the eight calm sols `act` offers three
+  activities and the player picks one; on a crisis sol the crisis replaces the activity
+  panel, so the crisis *is* that day's activity. Twelve activities, each with a real cost,
+  in the new pure module `src/sim/activities.ts` alongside the twelve sol plans.
+- The activity's kWh joins the same `extraPowerCost` path a flare's shielding digger uses,
+  so **an activity competes with life support for the same energy**: spend 25 kWh on a
+  rover survey with a flat battery and that sol runs in a blackout. No new machinery was
+  needed for this — it fell out of the model that was already there.
+- **Science points and a rank** (D-049). `RunState.science` totals the points, and the new
+  `src/sim/science.ts` turns the total into a rank: Explorer, Field Scientist, Research
+  Lead, Senior Scientist, Chief Martian Scientist. The bands are set by what a run can
+  actually earn, so a player who chose nothing is still an Explorer and the top rank is one
+  good run away. The debrief reports the score, the rank and every activity the crew chose.
+- **A live NASA picture per sol** (D-050). The new `src/data/nasaDaily.ts` reads NASA's
+  Astronomy Picture of the Day, filtered to Mars, and falls back to the saved gallery when
+  NASA is busy — an enrichment layer on top of the curated gallery, never a replacement,
+  exactly as D-037 established for space weather. The static facts grew from 15 to 40 and
+  every one is tagged with a topic, so the day's activity is paired with a fact about its
+  own system.
+- The cosmetic `MISSIONS` array is gone. It claimed a headline that disagreed with the
+  forecast — sol 8 read "Mission 7: First Harvest" while the storm was on sol 7 — and it
+  had no effect on the simulation at all. It is now `SOL_PLANS`, twelve real headlines each
+  carrying its three activities.
+- The suite went from 424 tests in 19 files to **498 tests in 22 files**.
+
+**Files**
+
+- New: `src/sim/activities.ts`, `src/sim/science.ts`, `src/sim/topics.ts`,
+  `src/data/nasaDaily.ts`, `src/dom/dailyFactLoader.ts`, `src/ui/nasaFeedCard.ts`,
+  `docs/game-plan-update.md`
+- Changed: `src/sim/{run,sol}.ts`, `src/features/act/{model,view}.ts`,
+  `src/features/act/act.css`, `src/features/debrief/{model,view}.ts`,
+  `src/data/nasaGallery.ts`, `src/data/README.md`, `docs/architecture.md`,
+  `docs/game-flow.md`, `AGENTS.md`, `README.md`, `docs/team/{decisions,issues,tasks}.md`
+
+**Problems**
+
+- `ice-store` gave more water for less power than `dig-ice` and earned fewer points, so on
+  sol 5 it made `dig-ice` pointless. It became `sample-rock`, a distinct science activity.
+  The fix is its own commit rather than a quiet rewrite.
+- The first set of rank bands put a run that chose nothing at "Field Scientist", because
+  twelve day-log points were enough. The bands were recalibrated against what a run can
+  actually earn.
+- The debrief's `crisisSols` list was wrong at first: a sol with no activity is not
+  necessarily a crisis sol. It now separates crisis sols from sols where nothing was
+  chosen, using the logged events as the evidence.
+- **NASA's APOD endpoint rate-limits the shared `DEMO_KEY`.** It answered `429` on every
+  attempt while this was written (ISS-049). The saved gallery is the guaranteed layer, so
+  the demo is safe either way, but a personal key (TASK-008) is the fix.
+- The NASA Mars Rover Photos API returned `404` for every rover and sol tried from this
+  machine, so it was left out rather than shipped unverified. It is the most striking
+  possible feature and is worth retrying after the demo.
+- Not yet verified in a real browser. `npm run check` and `npm test` are clean and
+  `npm run build` succeeds, but nobody has watched a player pick an activity yet.
+
+**Next**
+
+- A human browser pass of the whole journey, especially the activity cards on a touch
+  screen and the crisis countdown with the new panel (TASK-049).
+- Register a personal `api.nasa.gov` key before the demo (TASK-008, ISS-009).
+
+---
+
 ## 2026-11-10 — Rotate NASA facts onto the supply and launch screens
 
 **Did**

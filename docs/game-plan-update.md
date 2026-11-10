@@ -1,7 +1,10 @@
 # Game plan update — activities, science score and NASA facts
 
-**Written:** 2026-11-10 · **Branch:** `feat/daily-activities` · **Status:** in progress
+**Written:** 2026-11-10 · **Branch:** `feat/daily-activities` · **Status:** shipped
 **Decisions:** D-048 … D-052 · **Issues:** ISS-047 … ISS-050 · **Tasks:** TASK-062 … TASK-070
+
+> **What actually shipped** is in §8 at the bottom. The plan below is the plan as it was
+> written, so the difference between the two is visible rather than buried.
 
 ---
 
@@ -203,3 +206,38 @@ Branch `feat/daily-activities`. One commit per step, `type(scope): message`,
    and is worth retrying with a personal key after the demo.
 5. **Cut for now:** badges/milestones, research levels, crew morale. All three
    are cheap to add on top of the score once it exists.
+
+---
+
+## 8. What shipped
+
+Everything in the plan landed, with three changes made along the way.
+
+| # | Commit | What |
+| --- | --- | --- |
+| 1 | `docs(team): record the activity loop, science score and NASA fact layer` | D-048 … D-052, ISS-047 … ISS-050, TASK-062 … TASK-070 |
+| 2 | `feat(sim): add the activity catalogue and the twelve sol plans` | `sim/activities.ts`, `sim/topics.ts` |
+| 3 | `feat(sim): score science points and apply the chosen activity` | `sim/science.ts`, `RunState.science` and `chosenActivity`, `advanceSol` |
+| 4 | `fix(sim): replace the weak ice activity and let growing food cost water` | `ice-store` → `sample-rock`; `grow-extra` now costs water |
+| 5 | `feat(act): offer the daily activity and show the science score` | the three activity cards, the science card, `MISSIONS` retired |
+| 6 | `feat(nasa): fetch the live NASA daily facts and tag the static ones` | `data/nasaDaily.ts`, `dom/dailyFactLoader.ts`, forty tagged facts |
+| 7 | `feat(act): show NASA's daily picture and fact` | `ui/nasaFeedCard.ts`, the live picture on every sol |
+| 8 | `feat(debrief): add the science report and the rank` | the score, the rank and every activity the crew chose |
+| 9 | `docs(architecture): update the tree, the contracts and the game flow` | architecture, game flow, AGENTS, README, the team records |
+
+**The three changes from the plan as written:**
+
+1. **`ice-store` became `sample-rock`.** It gave more water for less power than
+   `dig-ice` and earned fewer points, so on sol 5 it made `dig-ice` pointless. It
+   is its own commit, not a quiet rewrite.
+2. **`grow-extra` now costs 5% water** as well as power. The plan said it would;
+   the first version of the catalogue had it as a gain only, and the trade-off
+   was the point.
+3. **The rank bands moved.** The plan's bands put a run that chose nothing at
+   "Field Scientist", because twelve day-log points were enough to clear the
+   first rung. The bands are now set by what a run can actually earn: 0-13
+   Explorer, 14-27 Field Scientist, 28-40 Research Lead, 41-49 Senior Scientist,
+   50+ Chief Martian Scientist.
+
+**Still to do:** a human browser pass (TASK-049), a personal NASA key before the
+demo (TASK-008, ISS-009), and `src/sim/run.test.ts` (TASK-070, ISS-047).

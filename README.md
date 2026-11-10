@@ -287,6 +287,17 @@ timer: the game waits for you. Each sol resolves in the same order — cargo arr
 comes up, the night drains the batteries, and whatever power cannot be found slows life
 support and the greenhouse.
 
+**Every sol has a main activity.** Before the day runs you pick one of three: send the
+rover out to survey, run a science experiment, clean the solar panels, dig for water ice,
+pile soil on the habitat for shielding, or simply let the crew rest and watch the sunset.
+Every activity costs something — mostly power — and the cost comes out of the same
+batteries that life support needs. Spend 25 kWh on a rover survey with a flat battery and
+that sol runs in a blackout, exactly as a dark night would.
+
+Each activity earns **science points**, so the run has a score and a rank: Explorer, Field
+Scientist, Research Lead, Senior Scientist, Chief Martian Scientist. The debrief reports both,
+and keeps them apart: the rank measures the science you did, not whether you got home.
+
 When an event is due, the crisis panel replaces the mission panel inside the same screen shell
 (D-040). A flare or a storm gives you ten seconds and one of three choices; the supply pod
 does not. If the countdown runs out, the default option is applied and recorded as timed out,
@@ -433,6 +444,7 @@ resources. These are the ones we build on:
 | **[ECLSS](https://www.nasa.gov/reference/environmental-control-and-life-support-systems-eclss/)** | How real life support works: water recovery (~90% reuse), air revitalization, oxygen generation |
 | **[Life Support BVAD](https://ntrs.nasa.gov/citations/20210024855)** *(Baseline Values and Assumptions Document)* | Standard reference values for human life-support needs — the basis for our resource numbers |
 | **[DONKI](https://ccmc.gsfc.nasa.gov/tools/DONKI/)** | The Space Weather database tracking solar flares and coronal mass ejections — our in-game storms |
+| **[Astronomy Picture of the Day](https://apod.nasa.gov/apod/astropix.html)** | NASA's daily picture and its written explanation — one real NASA lesson per sol, filtered to Mars |
 | **[Planetary Data System (PDS)](https://pds.nasa.gov/)** | NASA's long-term archive of planetary mission data, including Mars observations |
 | **[NASA Open Data Portal](https://data.nasa.gov/)** | NASA's public catalog of open datasets across science and exploration |
 | **[NASA API Portal](https://api.nasa.gov/)** | Direct access to NASA APIs for live data, including imagery and space weather |
@@ -446,6 +458,12 @@ Live flare strength is read from DONKI through the NASA API portal. When NASA is
 unavailable, the game falls through to NOAA's Space Weather Prediction Center, and if
 neither answers it uses famous past flares — always labelled approximate. The forecast's
 timing is part of the game design and is not taken from either feed.
+
+Each sol also carries a real NASA picture and story, read live from the Astronomy Picture
+of the Day. That one is an **enrichment layer on top of** a checked gallery of twelve saved
+NASA cards, never a replacement: when NASA is busy the saved card stays on screen and the
+game says why. The game is complete without a network, and the player is never shown a
+number or a picture we cannot name the source of.
 
 ---
 
@@ -484,9 +502,12 @@ player decision, the sol loop, what is built and where a new event plugs in are 
 | --- | --- |
 | The nine-screen journey | **Built** and routed |
 | Resource simulation and sol loop | **Built** — 12 sols, four scheduled events |
+| A main activity every sol | **Built** — three offered, one chosen, each with a real cost |
+| Science score and rank | **Built** — points from activities, five ranks |
 | Crisis decisions and debrief verdicts | **Built** — flare, storm and supply pod |
 | Live flare strength | **Built** — NASA DONKI → NOAA SWPC → baked fallback |
-| Tests | **424 tests in 19 files** (`npm test`, 2026-11-10) |
+| Live NASA daily pictures | **Built** — Astronomy Picture of the Day → the saved gallery |
+| Tests | **498 tests in 22 files** (`npm test`, 2026-11-10) |
 | Checks | **Clean** — import layers, banned APIs, markup, strict typecheck |
 | Save / resume | **Not built** — in-memory only (D-003) |
 | Login before `naming` | **Not built** — Supabase deferred (D-003, TASK-022) |
@@ -505,7 +526,7 @@ player decision, the sol loop, what is built and where a new event plugs in are 
 ### The one invariant
 
 `sim/` and each feature's `model.ts` are pure: no `document`, no `window`, no network. That
-is what lets 424 tests run in a few seconds with no browser and no mocks. It is enforced by
+is what lets 498 tests run in a few seconds with no browser and no mocks. It is enforced by
 `npm run check` (`scripts/check-imports.mjs`), not left to good intentions.
 
 ---
@@ -517,7 +538,7 @@ is what lets 424 tests run in a few seconds with no browser and no mocks. It is 
 npm install       # dev dependencies only — the game ships no runtime dependencies
 npm run dev       # Vite dev server, http://localhost:5173
 npm run check     # import-layer + banned-API + markup checks, then tsc --noEmit
-npm test          # Vitest, 424 tests in 19 files
+npm test          # Vitest, 498 tests in 22 files
 npm run build     # production bundle in dist/
 npm run preview   # serve the built bundle locally
 ```
@@ -560,21 +581,28 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   ├── resources.ts         ← drain and stores
     │   ├── sol.ts               ← advance one sol, win/lose
     │   ├── run.ts               ← RunState and progression
+    │   ├── activities.ts        ← the day's activity, its cost and its gain
+    │   ├── science.ts           ← the science score and the rank ladder
+    │   ├── topics.ts            ← what a lesson is about
     │   ├── modules.ts           ← catalogue, costs, upkeep, every tuning number
     │   ├── regions.ts           ← the five landing regions
     │   ├── forecast.ts          ← the fixed event schedule
     │   ├── crises.ts            ← crisis copy, options, defaults
     │   └── comms.ts             ← Earth–Mars delay
     ├── data/
-    │   └── spaceweather.ts      ← NASA DONKI → NOAA SWPC → baked fallback
+    │   ├── spaceweather.ts      ← NASA DONKI → NOAA SWPC → baked fallback
+    │   ├── nasaDaily.ts         ← NASA's daily picture → the saved gallery
+    │   └── nasaGallery.ts       ← the saved cards, region photos and facts
     ├── dom/                     ← landing page and browser glue
     │   ├── floatAstronaut.ts · pointerGrab.ts · starfield.ts
     │   ├── forecastLoader.ts    ← joins live flares to the forecast
+    │   ├── dailyFactLoader.ts   ← joins NASA's daily pictures to the screen
     │   └── h.ts                 ← element helper
     ├── ui/
     │   ├── routes.ts · router.ts ← hash routing and the journey order
     │   ├── registry.ts          ← route → screen; the only file importing a view
     │   ├── gameLoop.ts          ← shared outpost screen shell
+    │   ├── nasaCard.ts · nasaFeedCard.ts ← the curated and the live NASA cards
     │   └── button-strip.ts · button-strip.css
     ├── features/                ← one folder per screen
     │   ├── naming/ · briefing/ · supply/
@@ -599,7 +627,8 @@ The rules are in `AGENTS.md`; the reasoning is in `docs/`. Start with these:
 | --- | --- |
 | [`AGENTS.md`](AGENTS.md) | Working rules, the enforced checks, the doc-update matrix, what is out of scope |
 | [`docs/architecture.md`](docs/architecture.md) | Annotated file tree, layering, module contracts, known simplifications |
-| [`docs/game-flow.md`](docs/game-flow.md) | Every player decision, the sol loop, what is built, how to add an event |
+| [`docs/game-flow.md`](docs/game-flow.md) | Every player decision, the sol loop, what is built, how to add an event or an activity |
+| [`docs/game-plan-update.md`](docs/game-plan-update.md) | The plan behind the daily activity, the science score and the live NASA picture — and what actually shipped |
 | [`docs/team/decisions.md`](docs/team/decisions.md) | Why things are the way they are, including what was rejected |
 | [`docs/team/issues.md`](docs/team/issues.md) | Every known problem, its severity and status |
 | [`docs/team/goals.md`](docs/team/goals.md) | What "done" means for this project |

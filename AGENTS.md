@@ -13,7 +13,7 @@ demo **Nov 14-15**.
 **The one invariant: `sim/` and each feature's `model.ts` are pure — no `document`, no
 `window`, no network.**
 
-That is what lets 424 tests run in a few seconds with no browser and no mocks, so the game
+That is what lets 498 tests run in a few seconds with no browser and no mocks, so the game
 can be asserted on rather than eyeballed. Everything else here exists to protect it. If
 you are unsure where code goes: if it touches the DOM it is not pure.
 
@@ -24,11 +24,19 @@ the outpost (build modules, read the storm warning), `act` advances one sol per 
 `debrief` explains a win or loss from the per-sol ledger. The polished landing page still
 works behind it and is what BACK TO MAIN MENU returns to.
 
+**Every sol now has a main activity** (D-048). On the eight calm sols `act` offers three
+and the player picks one; on a crisis sol the crisis replaces the activity panel, so the
+crisis *is* that day's activity. The rules are in `sim/activities.ts`, the cost and gain
+are applied by `sim/sol.ts`, and the science points they earn give the run a score and a
+rank (D-049) that the debrief reports.
+
 What is still a **stub**: nothing in the journey. `data/spaceweather.ts` is implemented and
 live: it reads solar flares from NASA DONKI, falls through to NOAA SWPC when DONKI is
-unreachable or throttled, and finally to famous past flares marked `approximate`. There is
-**no save** — the run lives in memory only — and the forecast's *timing* is baked
-(`sim/forecast.ts`), so only the flare *size* comes from the network (D-033, D-037).
+unreachable or throttled, and finally to famous past flares marked `approximate`.
+`data/nasaDaily.ts` is live too: it reads NASA's Astronomy Picture of the Day and falls
+back to the saved gallery. There is **no save** — the run lives in memory only — and the
+forecast's *timing* is baked (`sim/forecast.ts`), so only the flare *size* comes from the
+network (D-033, D-037, D-050).
 
 **A stub is not an implementation.** If a file says STUB, calling it throws. That is
 deliberate: it fails loudly instead of silently returning `undefined`.
@@ -53,7 +61,7 @@ human upholds it and nothing catches you.
 | R-10 | No `on*="..."` inline handlers in markup | **enforced** | `no-inline-handler` |
 | R-11 | A relative import that resolves to nothing is an error | **enforced** | `unresolved-import` |
 | R-12 | Typecheck clean; `strict`, `noUnusedLocals` | **enforced** | `npm run check` |
-| R-13 | Tests pass (424 today) | **enforced** | `npm test`, watch ISS-015 |
+| R-13 | Tests pass (498 today) | **enforced** | `npm test`, watch ISS-015 |
 | R-14 | No `index.ts` barrel files — import concrete paths | convention | nothing |
 | R-15 | Feature CSS is imported by its own `view.ts`, never added to `style.css` | convention | nothing |
 | R-16 | Files are UTF-8, LF, no BOM. Preserve a file's existing endings | convention | **nothing** — ISS-005 |
@@ -88,12 +96,20 @@ startRouter → location.hash → parseRoute (pure) → onRoute
 The menu's rotation is **CSS keyframes**, not JS — no `requestAnimationFrame`, so no
 loop to leak when you navigate away.
 
-**No save, and one live network path.** The whole run — name, region, stores, modules and
-the per-sol ledger — lives in `main.ts` memory only and is lost on refresh. The only
-request outside the landing page is space weather: `base` and `act` call
-`dom/forecastLoader` → `data/spaceweather.ts`, which tries NASA DONKI, then NOAA SWPC,
-then famous past flares marked approximate. The event *schedule* is still baked in
-`sim/forecast.ts` (D-033); only the flare size is live.
+**No save, and two live network paths.** The whole run — name, region, stores, modules,
+the science score and the per-sol ledger — lives in `main.ts` memory only and is lost on
+refresh.
+
+The two requests outside the landing page are both in `data/`:
+
+- **Space weather.** `base` and `act` call `dom/forecastLoader` → `data/spaceweather.ts`,
+  which tries NASA DONKI, then NOAA SWPC, then famous past flares marked approximate. The
+  event *schedule* is still baked in `sim/forecast.ts` (D-033); only the flare size is live.
+- **NASA's daily pictures.** `act` calls `dom/dailyFactLoader` → `data/nasaDaily.ts`, which
+  asks NASA's Astronomy Picture of the Day for Mars pictures and falls back to the saved
+  gallery in `data/nasaGallery.ts` (D-050). This is an **enrichment layer on top of** the
+  saved gallery, never a replacement — the game is complete without a network, and the
+  screen says which of the two it is showing.
 
 ## 4. Boot order
 
@@ -174,12 +190,15 @@ opening its folder — that is the whole point of the layout.
 | Drift, bounce, throw, speed | `src/sim/drift.ts` |
 | Squash-and-stretch feel, spring constants | `src/sim/deform.ts` |
 | How drift and deformation combine per frame | `src/sim/frame.ts` |
-| Resource drain, power/O2/water/food/shielding | `src/sim/resources.ts` — complete, 18 tests |
-| Advancing a sol, resolving events, detecting loss | `src/sim/sol.ts` — complete, 12 tests |
-| Run state shape and progression | `src/sim/run.ts` — complete, 19 tests |
-| Module catalogue, build costs, upkeep | `src/sim/modules.ts` — complete, 25 tests |
+| Resource drain, power/O2/water/food/shielding | `src/sim/resources.ts` — complete, 7 tests |
+| Advancing a sol, resolving events, detecting loss | `src/sim/sol.ts` — complete, 40 tests |
+| Run state shape and progression | `src/sim/run.ts` — complete, no test file yet (ISS-047) |
+| Module catalogue, build costs, upkeep | `src/sim/modules.ts` — complete, 14 tests |
 | The forecast, its fixed sols, flare intensity | `src/sim/forecast.ts` |
 | Crisis choices and what each one costs | `src/sim/crises.ts` |
+| **The day's activity, its cost and its gain** | `src/sim/activities.ts` — complete, 17 tests |
+| **The science score and the rank ladder** | `src/sim/science.ts` — complete, 9 tests |
+| **What a lesson is about** (power, water, food, radiation, missions) | `src/sim/topics.ts` |
 | Earth-Mars delay, "can Earth answer in time" | `src/sim/comms.ts` |
 | Every tuning number | `src/sim/modules.ts` — edit here to retune |
 | The rAF loop, transforms, resize, reduced motion | `src/dom/floatAstronaut.ts` |
@@ -192,8 +211,8 @@ opening its folder — that is the whole point of the layout.
 | The rotating Mars-behind-astronaut stage | `src/features/naming/naming.css` |
 | **Choosing where to land on Mars** | `src/features/landing-site/` — **built** (TASK-028 done) |
 | **Building the outpost between sols** | `src/features/base/` — **built**, 11 tests |
-| **Advancing a sol** | `src/features/act/` — **built**, 7 tests |
-| **Why the run was won or lost** | `src/features/debrief/` — **built**, 12 tests |
+| **Advancing a sol, and picking the day's activity** | `src/features/act/` — **built**, 20 tests |
+| **Why the run was won or lost, and the science score** | `src/features/debrief/` — **built**, 25 tests |
 | Where START MISSION goes | `onSubmit` in `src/features/naming/view.ts` — flows to `briefing` |
 | Boot, element lookup, `?motion=`, mounting screens | `src/main.ts` |
 | Page structure, element ids, font link | `index.html` |
@@ -206,7 +225,10 @@ opening its folder — that is the whole point of the layout.
 | Strictness, module resolution, compiled files | `tsconfig.json` |
 | Layer rules, banned APIs, the `KNOWN` set | `scripts/check-imports.mjs` |
 | Joining live flares to the forecast | `src/dom/forecastLoader.ts` |
+| Joining live NASA pictures to the screen | `src/dom/dailyFactLoader.ts` |
 | **Any NASA-API call** | `src/data/spaceweather.ts` — live; NASA DONKI → NOAA SWPC → baked |
+| **NASA's daily picture of the day** | `src/data/nasaDaily.ts` — live; APOD → the saved gallery |
+| **The saved NASA cards and facts** | `src/data/nasaGallery.ts` — twelve cards, five region photos, forty tagged facts |
 | A game screen | `src/features/<name>/` — every journey screen is built |
 | What a screen is meant to contain | the `README.md` in that screen's folder |
 | **Every decision, the sol loop, what is built, where a new event plugs in** | `docs/game-flow.md` |
@@ -218,7 +240,7 @@ opening its folder — that is the whole point of the layout.
 npm install
 npm run dev        # Vite dev server
 npm run check      # layer + banned-API check, then tsc --noEmit   <- run this
-npm test           # vitest, 424 tests                            <- 40% flaky, ISS-015
+npm test           # vitest, 498 tests                            <- 40% flaky, ISS-015
 npm run build      # to dist/
 npm run preview    # serve the build
 npm run typecheck  # tsc alone

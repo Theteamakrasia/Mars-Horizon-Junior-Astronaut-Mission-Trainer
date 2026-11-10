@@ -86,12 +86,14 @@ are recorded and replayed by the debrief.
 
 ```mermaid
 flowchart TD
-    A["Press Run sol N"] --> B{"pendingCrisis<br/>(run)?"}
+    A["Press Run sol N"] --> P["Pick the day's activity<br/>(three offered, one chosen)"]
+    P --> B{"pendingCrisis<br/>(run)?"}
     B -->|"yes"| C["Open the crisis panel<br/>nothing advances yet"]
     C --> D["decide() records the choice"]
     D --> E["advanceSol()"]
     B -->|"no"| E
-    E --> F["Power by day:<br/>solar + nuclear - load"]
+    E --> E2["Apply the activity:<br/>power draw, store deltas,<br/>panel repair, science points"]
+    E2 --> F["Power by day:<br/>solar + nuclear - load"]
     F --> G{"battery below 0?"}
     G -->|"yes"| H["unmet kWh; life support<br/>and greenhouse slow down"]
     G -->|"no"| I["full power"]
@@ -107,7 +109,7 @@ flowchart TD
 
     classDef impl fill:#d7f5dd,stroke:#2f7d4f,color:#12351f
     classDef gate fill:#fff2c7,stroke:#a97a00,color:#3a2b00
-    class A,C,D,E,F,H,I,J,L,N,O impl
+    class A,P,C,D,E,E2,F,H,I,J,L,N,O impl
     class B,G,K,M gate
 ```
 
@@ -115,6 +117,59 @@ Order matters and is the model: **cargo arrives, the Sun comes up, the night dra
 batteries, and whatever power could not be found slows life support.** Power is deliberately
 **not** a life store: a flat battery causes a blackout, and the blackout is what runs oxygen,
 water and food down.
+
+### 3a. The day's activity
+
+Every sol has a main activity (D-048). On the eight calm sols `act` offers three and the
+player picks one; on a crisis sol the crisis replaces the activity panel, so the crisis *is*
+that day's activity. The catalogue and the twelve sol plans live in `src/sim/activities.ts`.
+
+| Step | What happens |
+| --- | --- |
+| Offer | `offerFor(run, sol)` returns the three activities for that sol, each marked available or locked with the reason |
+| Pick | the choice is kept on `RunState.chosenActivity`; the picked card is ticked and bordered |
+| Apply | `advanceSol` adds the activity's kWh to `extraPowerCost`, its store deltas to the sol's net, and its repair to `panelHealth` |
+| Score | the activity's science points are added to `RunState.science`, and the sol is recorded on `SolRecord.activity` |
+
+The activity's power draw goes through the **same** `extraPowerCost` path as a flare's
+shielding digger, so an activity competes with life support for the same kWh. Spend 25 kWh
+on a rover survey with a flat battery and the sol runs in a blackout.
+
+| Activity | Costs | Gives | Science | Locked when |
+| --- | --- | --- | --- | --- |
+| `rest` | — | — | 3 | never |
+| `survey` | 25 kWh | — | 4 | never |
+| `experiment` | 15 kWh | — | 6 | never |
+| `map-site` | 14 kWh | — | 4 | never |
+| `sample-rock` | 10 kWh | — | 4 | never |
+| `sweep-panels` | 10 kWh | panel +0.25 | 2 | the panels are already clean |
+| `grow-extra` | 8 kWh, 5% water | +6% food | 2 | no greenhouse |
+| `dig-ice` | 20 kWh | +6% water | 3 | no ice miner |
+| `recycle-tune` | 10 kWh | +3% water | 2 | never |
+| `stack-shielding` | 18 kWh | +8% shielding | 3 | never |
+| `mend-suits` | 8 kWh | +6% shielding | 2 | never |
+| `air-check` | 12 kWh | +6% oxygen | 2 | never |
+
+The best possible run — the best activity on each of the eight calm sols, plus the day
+logs — scores 52.
+
+### 3b. The science score
+
+`RunState.science` totals the points; `src/sim/science.ts` turns the total into a rank.
+
+| Points | Rank |
+| --- | --- |
+| 0-13 | Explorer |
+| 14-27 | Field Scientist |
+| 28-40 | Research Lead |
+| 41-49 | Senior Scientist |
+| 50+ | Chief Martian Scientist |
+
+The bands are set by what a run can actually earn, so a player who chose nothing is still
+an Explorer and the top rank is one good run away. **The rank measures the science, not the
+outcome:** a run that did a great deal of science and then ran out of water still did the
+science. The debrief keeps the two apart — the outcome section explains whether the crew
+got home, the score section is about the work.
 
 ---
 
@@ -239,10 +294,13 @@ no perfect landing spot.
 | Ration gate | Built | `features/supply/model.ts` | view only; no run state |
 | Region choice | Built | `sim/regions.ts` | `sim/run.ts` (`landAt`) |
 | Module build | Built | `sim/modules.ts`, `features/base/model.ts` | `sim/run.ts` (`startOutpost`) |
+| Daily activity | Built | `sim/activities.ts` | `sim/sol.ts` (`advanceSol`), `sim/run.ts` (`chosenActivity`) |
+| Science score and rank | Built | `sim/science.ts` | `sim/run.ts` (`science`), `features/debrief/model.ts` |
 | Flare crisis | Built | `sim/crises.ts` | `sim/sol.ts` (`FLARE_DRAIN`, factors) |
 | Storm crisis | Built | `sim/crises.ts`, `sim/forecast.ts` | `sim/sol.ts` (`stormFactor`, panel damage) |
 | Supply pod | Built | `sim/crises.ts`, `sim/forecast.ts` | `sim/sol.ts` (`SUPPLY_AMOUNT`, spares) |
 | Earth advice | Built | `sim/crises.ts`, `sim/comms.ts` | view only |
+| Live NASA daily pictures | Built | `data/nasaDaily.ts` | `features/act/view.ts`, `ui/nasaFeedCard.ts` |
 | Debrief verdicts | Built | `features/debrief/model.ts` | read only |
 | Save / resume | **Not built** | — | D-003: run is memory only |
 | Login before `naming` | **Not built** | — | D-003, TASK-022 |
@@ -288,6 +346,28 @@ Planned ideas, none of them built:
 
 Before any of these: log it in `docs/team/tasks.md`, and record the design choice in
 `docs/team/decisions.md`. A new event changes the balance, so update the acceptance tests too.
+
+---
+
+## 11. Adding a new activity
+
+An activity is a choice inside a sol, not a forecast event (D-048). Adding one touches
+four places, in this order.
+
+| Step | File | What to add |
+| --- | --- | --- |
+| 1 | `src/sim/activities.ts` | An `ActivitySpec` in `ACTIVITY_CATALOGUE`: the cost, the gain, the science points, the topic, and any `requires` gate with its reason |
+| 2 | `src/sim/activities.ts` | The activity's id in one sol plan's `activityIds`, if it should be offered that day |
+| 3 | tests | Pin the catalogue's integrity: unique ids, a known topic, at least one available option on every sol, and the exact store deltas |
+| 4 | docs | The activity in `docs/game-flow.md` §3a and in `docs/architecture.md`; record the choice in `docs/team/decisions.md` if it changes the rules |
+
+The sim applies the activity already: `advanceSol` reads `RunState.chosenActivity` and
+applies `powerCostKwh`, `storeDelta` and `panelRepair`. A new kind of effect needs a new
+field on `ActivitySpec` and one more line in `sim/sol.ts`.
+
+Keep the costs honest. An activity that gives more for less than another one on the same
+sol makes the other one pointless — that is how `ice-store` was removed in favour of
+`sample-rock`.
 
 ---
 
