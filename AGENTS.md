@@ -13,7 +13,7 @@ demo **Nov 14-15**.
 **The one invariant: `sim/` and each feature's `model.ts` are pure — no `document`, no
 `window`, no network.**
 
-That is what lets 568 tests run in a few seconds with no browser and no mocks, so the game
+That is what lets 621 tests run in a few seconds with no browser and no mocks, so the game
 can be asserted on rather than eyeballed. Everything else here exists to protect it. If
 you are unsure where code goes: if it touches the DOM it is not pure.
 
@@ -29,6 +29,13 @@ and the player picks one; on a crisis sol the crisis replaces the activity panel
 crisis *is* that day's activity. The rules are in `sim/activities.ts`, the cost and gain
 are applied by `sim/sol.ts`, and the science points they earn give the run a score and a
 rank (D-052) that the debrief reports.
+
+**`base` and `act` carry a rover button** (D-059). It deploys a rover that finds real
+NASA places and rare rocks on a timer and opens a picture-and-story window. Its rules
+are pure (`sim/rover.ts`), what it finds is a fixed list of real NASA pictures
+(`data/roverFinds.ts`), and its state lives outside the DOM (`ui/roverWidget.ts`)
+because `act` rebuilds its whole screen on every press. It touches no resource, so it
+cannot change how a run is won or lost.
 
 What is still a **stub**: nothing in the journey. `data/spaceweather.ts` is implemented and
 live: it reads solar flares from NASA DONKI, falls through to NOAA SWPC when DONKI is
@@ -62,7 +69,7 @@ human upholds it and nothing catches you.
 | R-10 | No `on*="..."` inline handlers in markup | **enforced** | `no-inline-handler` |
 | R-11 | A relative import that resolves to nothing is an error | **enforced** | `unresolved-import` |
 | R-12 | Typecheck clean; `strict`, `noUnusedLocals` | **enforced** | `npm run check` |
-| R-13 | Tests pass (568 today) | **enforced** | `npm test`, watch ISS-015 |
+| R-13 | Tests pass (621 today) | **enforced** | `npm test`, watch ISS-015 |
 | R-14 | No `index.ts` barrel files — import concrete paths | convention | nothing |
 | R-15 | Feature CSS is imported by its own `view.ts`, never added to `style.css` | convention | nothing |
 | R-16 | Files are UTF-8, LF, no BOM. Preserve a file's existing endings | convention | **nothing** — ISS-005 |
@@ -217,6 +224,9 @@ opening its folder — that is the whole point of the layout.
 | **Building the outpost between sols** | `src/features/base/` — **built**, 11 tests |
 | **Advancing a sol, and picking the day's activity** | `src/features/act/` — **built**, 20 tests |
 | **Why the run was won or lost, and the science score** | `src/features/debrief/` — **built**, 25 tests |
+| **The rover button, its windows, and what it finds** | `src/ui/roverWidget.ts`, `src/sim/rover.ts`, `src/data/roverFinds.ts` — **built**, 28 tests |
+| **Shrinking the rover's art** | `tools/compress-rover-assets.py` — PNG and GIF to WebP, originals kept in `source/` |
+| **Checking the rover in a real browser** | `tools/browser-check-rover.mjs` — headless Chrome over the DevTools Protocol |
 | Where START MISSION goes | `onSubmit` in `src/features/naming/view.ts` — flows to `briefing` |
 | Boot, element lookup, `?motion=`, mounting screens | `src/main.ts` |
 | Page structure, element ids, font link | `index.html` |
@@ -244,7 +254,7 @@ opening its folder — that is the whole point of the layout.
 npm install
 npm run dev        # Vite dev server
 npm run check      # layer + banned-API check, then tsc --noEmit   <- run this
-npm test           # vitest, 568 tests                            <- 40% flaky, ISS-015
+npm test           # vitest, 621 tests                            <- 40% flaky, ISS-015
 npm run build      # to dist/
 npm run preview    # serve the build
 npm run typecheck  # tsc alone

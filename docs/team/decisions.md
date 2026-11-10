@@ -11,6 +11,14 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+**D-059 — agent · 2026-11-11**
+**Choice:** The rover is a button on the left edge of `base` and `act`. Its rules are pure (`sim/rover.ts`); what it finds is a fixed list of real NASA pictures (`data/roverFinds.ts`); its state, find timer and open window live in a module in `ui/roverWidget.ts`, not in `RunState`. `naming` calls `resetRover()` so each mission starts with the rover at base. Finds arrive on a real-time timer (15-25 s, then 35-65 s), one at a time, never repeated. The draws are seeded from the clock, as the forecast's are.
+**Why:** `act` rebuilds its whole screen on every press and the player moves from `base` to `act`, so anything held in the DOM would be lost mid-find. Keeping it out of `RunState` means no change to `sim/run.ts`, `main.ts` or the sol rules, and the rover cannot affect winning or losing (R-20). A fixed list matches `nasaGallery`: a slow connection must not delay the lesson. Seeding rather than `Math.random` keeps a mission repeatable and assertable, for the same reason the forecast is seeded (D-048).
+**Rejected:** (a) A live NASA image-search call per find — slow, and an outage would leave the rover with nothing to find. (b) Putting the rover on `RunState` — a wider change for a feature that touches no resource. (c) Advancing finds per sol — a demo player would wait many presses to see anything. (d) `window.confirm` for the deploy question — banned (R-9). (e) `Math.random` for the picks — the same reason it was rejected in `sim/`.
+**Consequence:** `gameScreen` takes `rover?: boolean`; only `base` and `act` set it. A new mission resets the rover; leaving mid-run does not save it (there is no save, D-003). Pictures load from NASA's picture CDN at a size that fits the screen and are never cropped, and a failed load drops the picture and keeps the words. A rover with a find waiting cannot be recalled: it is still driving towards it.
+
+---
+
 **D-050 — agent · 2026-11-10**
 **Choice:** The supply screen answers Enter exactly as NEXT does. The two rules that decide it — "is this a plain Enter?" and "does the focused element deal with Enter itself?" — live in `features/supply/model.ts`, where they are pure and can be tested; the view holds one `window` keydown listener. The screen also resets itself when it mounts, because its markup is static and everything it shows survives a visit.
 **Why:** The screen had no keyboard handler at all: Enter did nothing until NEXT had been clicked with a mouse, and even then it worked only because the click left the focus on the button and the browser activates a focused button on Enter. A key that works only after a click reads as broken (ISS-053). The reset is the same defect's other half: a second visit came back with NEXT hidden, the answers still on screen and eight answer options instead of four, so Enter would have gone quiet again on every revisit.

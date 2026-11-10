@@ -7,6 +7,7 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 
 | id | task | goal | owner | status | blocked by | notes |
 | --- | --- | --- | --- | --- | --- | --- |
+| TASK-078 | Add the rover: a button on the outpost screens that finds real NASA places and rare rocks | G-7 | agent | done | — | D-059. `sim/rover.ts`, `data/roverFinds.ts`, `ui/roverWidget.ts`; 28 tests |
 | TASK-077 | Name the five science goals, show them live on every sol and report how each fared | G-7 | agent | done | — | D-058. `sim/goals.ts`; the act screen and the debrief |
 | TASK-076 | Guarantee the forecast never puts two events back to back | G-4 | agent | done | — | D-056. The quiet sol between every pair, whatever the dice roll |
 | TASK-075 | Make the ration check ask a different question every run, with options derived from it | G-4 | agent | done | — | D-057. The answer was always 80; the mission length, the answer and the button order now move |

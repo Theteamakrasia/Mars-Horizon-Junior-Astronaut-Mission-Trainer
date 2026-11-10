@@ -8,6 +8,35 @@ than a documented one.
 
 ---
 
+## 2026-11-11 — Add the rover
+
+**Did**
+
+- A round rover button on the left edge of `base` and `act`. At base it asks before deploying, then says "Rover deployed!". While exploring, pressing it opens a small window with the rover animation and a "Bring rover back" button.
+- Out exploring, the rover finds real NASA items on a timer: historic sites (Viking 1, Pathfinder and Sojourner, Beagle 2, Schiaparelli) open a large picture-and-story window; rare rocks (Heat Shield Rock, Block Island, the leopard-spot rock) can be collected or left. A red dot sits on the button's top-left until the find is answered.
+- The rules are pure and tested: `sim/rover.ts` takes the pick as a number, so nothing is random inside `sim/`. The draws themselves are seeded from the clock, the same way the forecast is.
+- `naming` resets the rover at the start of every run.
+
+**Files**
+
+- New: `src/sim/rover.ts`, `src/sim/rover.test.ts`, `src/data/roverFinds.ts`, `src/data/roverFinds.test.ts`, `src/ui/roverWidget.ts`, `src/ui/rover.css`, `tools/compress-rover-assets.py`, `tools/browser-check-rover.mjs`, `Assets/images/rover/`.
+- Edited: `src/ui/gameLoop.ts`, `src/features/base/view.ts`, `src/features/act/view.ts`, `src/features/naming/view.ts`, `README.md`, `AGENTS.md`, `docs/architecture.md`, `docs/game-flow.md`, `docs/team/{decisions,progress-log,tasks}.md`.
+
+**Problems**
+
+- **The picture addresses were dead.** `photojournal.jpl.nasa.gov/jpeg/<PIA>.jpg` now redirects to a web page and returns HTML, not a JPEG, so every rover find would have dropped its picture and shown the placeholder instead. The pictures live on NASA's asset CDN now, under a folder built from the PIA number, and all seven were checked against the live server. `data/roverFinds.test.ts` holds the host, the size and the link so this cannot go quiet again.
+- **Three of the seven descriptions did not match NASA's own captions.** The Beagle 2 date was "found 2014" when NASA's own library dates the announcement 16 January 2015, and the leopard-spot rock was said to hold olivine, which no NASA source mentions — its spots hold vivianite and greigite, which is a better lesson anyway. The Viking alt text was left as it was after looking at the picture itself: it does show a plain with the lander in the corner.
+- **The rover's art was heavy.** The button was a 1.4 MB PNG for a button drawn at 56-84 px, and the animation a 790 KB GIF. Both are now WebP (58 KB and 21 KB), with the originals kept in `Assets/images/rover/source/` and a script in `tools/` so the conversion can be re-run.
+- Focus was dropped to the top of the document when a notice closed itself; it now goes back to the rover button. A rover with a find waiting can no longer be recalled, because that left a find the player could never open.
+- `npm run check` clean; `npm test` 621 passed in 28 files; production build succeeds. `tools/browser-check-rover.mjs` drove the real game in headless Chrome and passed all ten checks, including that the NASA picture loads: the leopard-spot rock came up, at 714x768, out of `assets.science.nasa.gov`. No console errors.
+- Looking at the pictures changed two of the descriptions. The Viking alt text had been "corrected" to NASA's caption, but the picture itself shows a plain with the lander in the corner, which is what the original said — so the original was kept. The Beagle 2 and leopard-spot rock dates came from NASA's own library, which dates the Beagle 2 announcement to 16 January 2015.
+
+**Next**
+
+- Human browser pass: read the wording aloud to a child, and decide whether the collection should feed the sim or the debrief.
+
+---
+
 ## 2026-11-10 — Make Enter work on the supply screen
 
 **Did**

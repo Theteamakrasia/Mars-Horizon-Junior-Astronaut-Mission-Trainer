@@ -337,6 +337,7 @@ no perfect landing spot.
 | Supply pod | Built | `sim/crises.ts`, `sim/forecast.ts` | `sim/sol.ts` (`SUPPLY_AMOUNT`, spares) |
 | Earth advice | Built | `sim/crises.ts`, `sim/comms.ts` | view only |
 | Live NASA daily pictures | Built | `data/nasaDaily.ts` | `features/act/view.ts`, `ui/nasaFeedCard.ts` |
+| The rover | Built | `sim/rover.ts`, `data/roverFinds.ts` | `ui/roverWidget.ts`; view only, no run state |
 | Debrief verdicts | Built | `features/debrief/model.ts` | read only |
 | Save / resume | **Not built** | — | D-003: run is memory only |
 | Login before `naming` | **Not built** | — | D-003, TASK-022 |
@@ -345,7 +346,7 @@ no perfect landing spot.
 
 ### The NASA layer
 
-Two things in this game come from NASA, and they behave differently on purpose.
+Three things in this game come from NASA, and they behave differently on purpose.
 
 **Space weather.** The forecast's timetable is rolled per run (D-048) and the *size* of
 each flare comes from live data: NASA DONKI first, then NOAA SWPC, then the long-run
@@ -355,6 +356,13 @@ place allowed to make that request.
 **The daily picture.** Every sol also carries a real NASA picture and its written
 explanation, read live from the Astronomy Picture of the Day, filtered to Mars
 (D-053). `data/nasaDaily.ts` is the only place allowed to make *that* request.
+
+**The rover's finds.** The seven places and rocks the rover turns up are a fixed,
+checked list of real NASA pictures in `data/roverFinds.ts` — Viking 1, Sojourner,
+Beagle 2, Schiaparelli, Heat Shield Rock, Block Island and the leopard-spot rock. The
+browser fetches the picture itself; there is no search and no API call, so a slow
+connection or an outage cannot cost the player a lesson. A picture that fails to load
+is dropped and the words stay.
 
 The daily picture is an **enrichment layer on top of** a saved gallery of twelve checked
 NASA cards, never a replacement. When NASA is busy, slow or offline, the saved card stays

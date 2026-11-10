@@ -521,7 +521,8 @@ player decision, the sol loop, what is built and where a new event plugs in are 
 | Crisis decisions and debrief verdicts | **Built** — flare, storm and supply pod |
 | Live flare strength | **Built** — NASA DONKI → NOAA SWPC → baked fallback |
 | Live NASA daily pictures | **Built** — Astronomy Picture of the Day → the saved gallery |
-| Tests | **568 tests in 26 files** (`npm test`, 2026-11-11) |
+| The rover | **Built** — a button that finds real NASA places and rare rocks |
+| Tests | **621 tests in 28 files** (`npm test`, 2026-11-11) |
 | Checks | **Clean** — import layers, banned APIs, markup, strict typecheck |
 | Save / resume | **Not built** — in-memory only (D-003) |
 | Login before `naming` | **Not built** — Supabase deferred (D-003, TASK-022) |
@@ -540,7 +541,7 @@ player decision, the sol loop, what is built and where a new event plugs in are 
 ### The one invariant
 
 `sim/` and each feature's `model.ts` are pure: no `document`, no `window`, no network. That
-is what lets 568 tests run in a few seconds with no browser and no mocks. It is enforced by
+is what lets 621 tests run in a few seconds with no browser, no mocks, and no jsdom. It is enforced by
 `npm run check` (`scripts/check-imports.mjs`), not left to good intentions.
 
 ---
@@ -552,7 +553,7 @@ is what lets 568 tests run in a few seconds with no browser and no mocks. It is 
 npm install       # dev dependencies only — the game ships no runtime dependencies
 npm run dev       # Vite dev server, http://localhost:5173
 npm run check     # import-layer + banned-API + markup checks, then tsc --noEmit
-npm test          # Vitest, 568 tests in 26 files
+npm test          # Vitest, 621 tests in 28 files
 npm run build     # production bundle in dist/
 npm run preview   # serve the built bundle locally
 ```
