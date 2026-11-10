@@ -11,10 +11,13 @@
  * its own.
  */
 
+import { NEXT_HORIZON_CARD } from '../../data/nasaGallery';
 import { lastDetail, lastSource } from '../../data/spaceweather';
 import { h } from '../../dom/h';
 import { newRun, type RunState } from '../../sim/run';
 import { gamePanel, gameScreen, gameSection, gameWorld, moduleArt, moduleFigures, type HudStat, type SignalCard } from '../../ui/gameLoop';
+import { nasaCard } from '../../ui/nasaCard';
+import { stopReading } from '../../ui/readAloud';
 import { navigate } from '../../ui/router';
 
 import '../../styles/game-loop.css';
@@ -217,7 +220,12 @@ export function mountDebrief(
     const panel = gamePanel({
       kicker: 'Mission debrief',
       title: `${consumptionSummary(state).sols} sols. So much learned!`,
-      body: [outcome, whatHappened, gameSection('Next time, try…', tips(steps))],
+      body: [
+        outcome,
+        whatHappened,
+        gameSection('Next time, try…', tips(steps)),
+        nasaCard(NEXT_HORIZON_CARD, 'A real NASA idea · Where this could lead'),
+      ],
       footer: [replay, h('div', { class: 'debrief__links' }, journalLink, menuLink)],
     });
 
@@ -340,6 +348,8 @@ export function mountDebrief(
   }
 
   function render(focus?: string): void {
+    stopReading();
+
     if (run === null || run.log.length === 0) {
       renderEmpty();
 

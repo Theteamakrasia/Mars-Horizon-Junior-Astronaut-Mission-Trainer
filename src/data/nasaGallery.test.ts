@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { NASA_CARDS, cardForSol } from './nasaGallery';
+import { NASA_CARDS, NEXT_HORIZON_CARD, cardForSol } from './nasaGallery';
 
 /**
  * The gallery is data, so every input here is fixed. No clock, no network and no
@@ -45,12 +45,20 @@ describe('NASA_CARDS', () => {
   });
 
   it('keeps each line short enough to read on one card', () => {
-    for (const card of NASA_CARDS) {
+    for (const card of [...NASA_CARDS, NEXT_HORIZON_CARD]) {
       expect(card.title.length).toBeLessThanOrEqual(45);
       expect(card.alt.length).toBeLessThanOrEqual(140);
       expect(card.caption.length).toBeLessThanOrEqual(200);
       expect(card.fact.length).toBeLessThanOrEqual(130);
     }
+  });
+
+  it('ends on a card that says the picture is an artist idea, not a photo', () => {
+    // The closing card is the one place a child could mistake a drawing for a
+    // real mission photo, so the caption has to say so.
+    expect(NEXT_HORIZON_CARD.caption.toLowerCase()).toContain('artist');
+    expect(NEXT_HORIZON_CARD.caption.toLowerCase()).toContain('not a photograph');
+    expect(NEXT_HORIZON_CARD.nasaId).toBe('PIA23302');
   });
 });
 

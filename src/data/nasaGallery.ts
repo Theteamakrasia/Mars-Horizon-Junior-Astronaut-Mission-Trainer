@@ -191,6 +191,24 @@ export const NASA_CARDS: readonly NasaCard[] = [
 ];
 
 /**
+ * The closing card: not tied to a sol, and honest that it is a drawing.
+ *
+ * A run can end in a win or a loss, so this does not promise success. It points
+ * at the same five systems the player has just spent twelve sols balancing.
+ */
+export const NEXT_HORIZON_CARD: NasaCard = {
+  sol: 12,
+  nasaId: 'PIA23302',
+  title: 'What a Mars outpost could look like',
+  alt: "An artist's concept of astronauts and habitats on the surface of Mars.",
+  caption: "This is an artist's picture of a future Mars outpost, not a photograph. Every run is about the same trade-offs: power, air, water, food and shielding.",
+  fact: 'No people have visited Mars yet. NASA is testing the tools that could take a crew there.',
+  credit: 'NASA',
+  imageUrl: assetUrl('PIA23302'),
+  sourceUrl: sourceUrl('PIA23302'),
+};
+
+/**
  * The card to show after a sol, or `null` when the sol is outside the run.
  *
  * The run is 12 sols, so `1` through `12` always answer. A fractional or
