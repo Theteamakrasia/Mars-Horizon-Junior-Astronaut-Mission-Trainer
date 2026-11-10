@@ -4,151 +4,361 @@
  *
  * Owns the DOM only. The reasoning is in ./model and refuses to sound sure when it
  * is not. A run never ends on a bare failure message: it ends here, with a reason.
+ *
+ * Two screens in one, following the Figma frames `66:44` and `66:50`: the debrief
+ * itself, and the journal it opens into. The journal is a mode of this screen
+ * rather than a route, because it reads the same finished run and has no state of
+ * its own.
  */
 
 import { lastDetail, lastSource } from '../../data/spaceweather';
-import { clear, h } from '../../dom/h';
+import { h } from '../../dom/h';
 import { newRun, type RunState } from '../../sim/run';
+import { gamePanel, gameScreen, gameSection, gameWorld, moduleArt, moduleFigures, type HudStat, type SignalCard } from '../../ui/gameLoop';
 import { navigate } from '../../ui/router';
 
-import '../../styles/game.css';
+import '../../styles/game-loop.css';
 import './debrief.css';
 
-import bgDayUrl from '../../../Assets/images/game-loop/bg-day.png';
-import greenhouseUrl from '../../../Assets/images/game-loop/green-house.png';
-import solarUrl from '../../../Assets/images/game-loop/solar.png';
-import lifeSupportUrl from '../../../Assets/images/game-loop/life-support.png';
-import iceMinerUrl from '../../../Assets/images/game-loop/ice-miner.png';
 import batteryUrl from '../../../Assets/images/game-loop/battery-bank.png';
+import greenhouseUrl from '../../../Assets/images/game-loop/green-house.png';
+import iceMinerUrl from '../../../Assets/images/game-loop/ice-miner.png';
+import lifeSupportUrl from '../../../Assets/images/game-loop/life-support.png';
+import solarUrl from '../../../Assets/images/game-loop/solar.png';
 
-import { consumptionSummary, explainOutcome, lowestPoints, reviewDecisions, timeline, usedApproximateData } from './model';
+import { consumptionSummary, explainOutcome, lowestPoints, nextSteps, reviewDecisions, timeline, usedApproximateData, wentEmpty, type NextStep } from './model';
 
 const VERDICT_TEXT = { solved: 'Solved early', caught: 'Caught you out', mixed: 'A trade-off' } as const;
-const VERDICT_TONE = { solved: 'gx__tone-ok', caught: 'gx__tone-bad', mixed: 'gx__tone-warn' } as const;
+const VERDICT_ICON = { solved: '✅', caught: '⚠️', mixed: '🤔' } as const;
+
+/** What a store is called when a sentence has to name it. */
+const STORE_WORD = { power: 'power', oxygen: 'air', water: 'water', food: 'food', shielding: 'radiation shield' } as const;
+
+/** What the crew asks for next, per store. */
+const STORE_ASK = {
+  power: 'make more power',
+  oxygen: 'protect the air',
+  water: 'make more water',
+  food: 'grow more food',
+  shielding: 'block more radiation',
+} as const;
+
+const STORE_ICON = { power: '⚡', oxygen: '🫧', water: '💧', food: '🍞', shielding: '🛡️' } as const;
+
+/** The picture beside a "next time" tip. */
+function tipArt(step: NextStep): HTMLElement {
+  if (step.art === 'choice') return h('span', { class: 'debrief__tip-glyph', 'aria-hidden': 'true', text: '📦' });
+  if (step.art === 'site') return h('span', { class: 'debrief__tip-glyph', 'aria-hidden': 'true', text: '🏔' });
+
+  return h('img', { class: 'debrief__tip-img', src: moduleArt(step.art), alt: '' });
+}
+
+function tips(steps: readonly NextStep[]): HTMLElement {
+  const list = h('div', { class: 'debrief__tips' });
+
+  for (const step of steps) {
+    list.append(
+      h(
+        'div',
+        { class: 'debrief__tip' },
+        tipArt(step),
+        h('div', null, h('p', { class: 'debrief__tip-title', text: step.title }), h('p', { class: 'debrief__tip-detail', text: step.detail })),
+      ),
+    );
+  }
+
+  return list;
+}
 
 export function mountDebrief(
   mount: HTMLElement,
   run: RunState | null,
   setRun: (next: RunState | null) => void,
 ): () => void {
-  mount.classList.add('gx', 'debrief');
-  mount.style.background = `linear-gradient(rgba(7, 14, 18, 0.86), rgba(7, 14, 18, 0.94)), url(${bgDayUrl}) center / cover no-repeat`;
+  let mode: 'debrief' | 'journal' = 'debrief';
 
   function again(): void {
     setRun(newRun('', run?.astronautName ?? 'Astronaut'));
     navigate('landing-site');
   }
 
-  if (run === null || run.log.length === 0) {
-    const button = h('button', { class: 'gx__btn gx__btn--primary', type: 'button' }, 'Start a mission');
+  function showDebrief(): void {
+    mode = 'debrief';
+    render('journal-link');
+  }
+
+  function showJournal(): void {
+    mode = 'journal';
+    render('back-link');
+  }
+
+  function hudFor(state: RunState): readonly HudStat[] {
+    const totals = consumptionSummary(state);
+    const lows = lowestPoints(state);
+    const toneFor = (value: number): HudStat['tone'] => (value < 15 ? 'bad' : value < 40 ? 'warn' : 'ok');
+    const blackouts = totals.blackoutSols;
+
+    return [
+      {
+        icon: '⚡',
+        label: 'Power',
+        value: blackouts === 0 ? 'No blackouts' : `${blackouts} blackout${blackouts === 1 ? '' : 's'}`,
+        tone: blackouts === 0 ? 'ok' : 'bad',
+      },
+      { icon: STORE_ICON.oxygen, label: 'Air · lowest', value: String(lows.oxygen), tone: toneFor(lows.oxygen) },
+      { icon: STORE_ICON.water, label: 'Water · lowest', value: String(lows.water), tone: toneFor(lows.water) },
+      { icon: STORE_ICON.food, label: 'Food · lowest', value: String(lows.food), tone: toneFor(lows.food) },
+      { icon: STORE_ICON.shielding, label: 'Shield · lowest', value: String(lows.shielding), tone: toneFor(lows.shielding) },
+    ];
+  }
+
+  function renderEmpty(): void {
+    const button = h('button', { class: 'gl__btn gl__btn--primary gl__btn--start', type: 'button' }, 'Start a mission', h('span', { class: 'gl__btn-arrow', 'aria-hidden': 'true', text: '→' }));
 
     button.addEventListener('click', again);
-    mount.replaceChildren(h('header', { class: 'gx__top' }, h('h1', { class: 'gx__title', text: 'Nothing to debrief yet' })), h('p', { text: 'Play at least one sol first.' }), h('div', null, button));
 
-    return () => {
-      mount.classList.remove('gx', 'debrief');
-      mount.replaceChildren();
-    };
+    const world = gameWorld({
+      label: 'Mission paused',
+      weather: 'No sols flown',
+      crew: "We haven't flown yet. Shall we?",
+      figures: [],
+      dock: 'outpost',
+    });
+
+    const panel = gamePanel({
+      kicker: 'Mission debrief',
+      title: 'Nothing to debrief yet',
+      sub: 'Play at least one sol first.',
+      body: [h('p', { class: 'gl__body', text: 'A debrief explains a run from what actually happened. There is no run to explain, so here is a fresh start instead.' })],
+      footer: [button],
+    });
+
+    mount.replaceChildren(gameScreen({ hud: [], world, panel, variant: 'gl--debrief' }));
   }
 
-  const explanation = explainOutcome(run);
-  const totals = consumptionSummary(run);
-  const lows = lowestPoints(run);
-  const reviews = reviewDecisions(run);
+  /** The world's one hero card: how long the crew lasted, or the science behind it. */
+  function heroCard(state: RunState): SignalCard {
+    if (mode === 'debrief') {
+      const sols = consumptionSummary(state).sols;
 
-  const banner = h(
-    'section',
-    { class: 'gx__panel debrief__banner', 'data-status': run.status, 'aria-live': 'polite' },
-    h('img', { class: 'debrief__banner-img', src: run.status === 'won' ? greenhouseUrl : solarUrl, alt: '' }),
-    h('p', { class: 'gx__kicker', text: run.status === 'won' ? 'Mission complete' : 'Mission ended: debrief' }),
-    h('h1', { class: 'gx__title', text: explanation.headline }),
-    h('p', { text: explanation.detail }),
-    explanation.confident ? null : h('p', { class: 'gx__note', text: 'The game is not sure about this one. The timeline below shows every sol so you can work out the cause yourself.' }),
-  );
+      return { icon: '✦', hero: true, kicker: 'You explored for', text: `${sols} Mars day${sols === 1 ? '' : 's'}`, detail: 'Every try teaches you something new.' };
+    }
 
-  const stats = h('section', { class: 'gx__panel' }, h('h2', { class: 'gx__h', text: 'What you used, what you wasted' }));
-  const list = h('dl', { class: 'debrief__stats' });
-  const rows: readonly (readonly [string | null, string, string])[] = [
-    [null, 'Sols played', String(totals.sols)],
-    [lifeSupportUrl, 'Crew breathed', `${totals.crewOxygen} oxygen`],
-    [iceMinerUrl, 'Crew drank', `${totals.crewWater} water`],
-    [greenhouseUrl, 'Crew ate', `${totals.crewFood} food`],
-    [solarUrl, 'Power made', `${totals.powerGenerated} kWh`],
-    [batteryUrl, 'Power wasted', `${totals.powerWasted} kWh (batteries were full)`],
-    [batteryUrl, 'Sols with a blackout', String(totals.blackoutSols)],
-    [null, 'Thinnest margins', `air ${lows.oxygen}, water ${lows.water}, food ${lows.food}, shield ${lows.shielding}`],
-  ];
+    const reviews = reviewDecisions(state);
+    const lesson = reviews.find((review) => review.verdict === 'caught') ?? reviews[reviews.length - 1];
 
-  for (const [icon, label, value] of rows) {
-    list.append(
-      h('dt', null, icon === null ? null : h('img', { class: 'debrief__stat-icon', src: icon, alt: '' }), label),
-      h('dd', { text: value }),
-    );
+    return lesson === undefined
+      ? { icon: '🛰', hero: true, kicker: 'A little real Mars science', text: 'Mars has no global magnetic shield.', detail: 'So the crew has to shelter from solar flares with soil and walls.' }
+      : { icon: '🛰', hero: true, kicker: 'A little real Mars science', text: lesson.science };
   }
-  stats.append(list);
 
-  const review = h('section', { class: 'gx__panel' }, h('h2', { class: 'gx__h', text: 'Your decisions' }));
+  function worldFor(state: RunState): HTMLElement {
+    const empty = wentEmpty(state);
+    const won = state.status === 'won';
 
-  if (reviews.length === 0) review.append(h('p', { text: 'No crisis came up before the run ended.' }));
+    if (mode === 'journal') {
+      return gameWorld({
+        label: 'Mission memories',
+        weather: 'Adventure journal',
+        weatherIcon: '📖',
+        crew: "Every choice changed our adventure. Here's our story!",
+        crewLabel: 'Your crewmate',
+        signals: [heroCard(state)],
+        figures: moduleFigures(state.modules),
+        hint: 'Your full sol log and the space-weather notes are below.',
+        dock: 'journal',
+      });
+    }
 
-  for (const entry of reviews) {
-    review.append(
+    return gameWorld({
+      label: won ? 'Mission complete' : 'Mission paused',
+      weather: empty === null ? 'All systems held' : `${STORE_WORD[empty]} needs a refill`,
+      weatherIcon: empty === null ? '✅' : STORE_ICON[empty],
+      crew: won ? "We made it! Let's try somewhere harder next time." : `We learned a lot! Next time, let's ${STORE_ASK[empty ?? 'water']}.`,
+      signals: [heroCard(state)],
+      figures: moduleFigures(state.modules),
+      dock: 'outpost',
+    });
+  }
+
+  function debriefPanel(state: RunState): HTMLElement {
+    const explanation = explainOutcome(state);
+    const steps = nextSteps(state);
+    const won = state.status === 'won';
+
+    const outcome = h(
+      'div',
+      { class: 'gl__callout', 'data-tone': won ? 'plain' : 'peach' },
+      h('span', { class: 'gl__callout-icon', 'aria-hidden': 'true', text: won ? '🏆' : STORE_ICON[wentEmpty(state) ?? 'water'] }),
       h(
         'div',
-        { class: 'debrief__review' },
-        h('span', { class: `debrief__verdict ${VERDICT_TONE[entry.verdict]}`, text: VERDICT_TEXT[entry.verdict] }),
-        h('p', null, h('strong', { text: `Sol ${entry.sol}: ${entry.title}. ` }), `You chose: ${entry.chose}${entry.timedOut ? ' (the clock ran out)' : ''}.`),
-        h('p', { text: entry.why }),
-        h('p', { class: 'gx__note', text: `The real science: ${entry.science}` }),
-      ),
-    );
-  }
-
-  const table = h('table', { class: 'debrief__table' });
-
-  table.append(h('thead', null, h('tr', null, ...['Sol', 'Power', 'Air', 'Water', 'Food', 'Shield', 'What happened'].map((title) => h('th', { scope: 'col', text: title })))));
-
-  const body = h('tbody');
-
-  for (const row of timeline(run)) {
-    body.append(
-      h(
-        'tr',
         null,
-        h('td', { text: String(row.sol) }),
-        h('td', { text: String(Math.round(row.stores.power)) }),
-        h('td', { text: String(Math.round(row.stores.oxygen)) }),
-        h('td', { text: String(Math.round(row.stores.water)) }),
-        h('td', { text: String(Math.round(row.stores.food)) }),
-        h('td', { text: String(Math.round(row.stores.shielding)) }),
-        h('td', { text: [row.headline, ...row.notes].join(' ') }),
+        h('p', { class: 'gl__callout-title', text: explanation.headline }),
+        h('p', { class: 'gl__callout-detail', text: won ? 'The crew got through. Try a new site or a tighter budget.' : 'The adventure ends here — but you can try again.' }),
       ),
     );
+
+    const whatHappened = gameSection(
+      'What happened?',
+      h('p', { class: 'gl__body', text: explanation.detail }),
+      explanation.confident ? null : h('p', { class: 'gl__note', text: 'The game is not sure about this one. The journal lists every sol so you can work out the cause yourself.' }),
+    );
+
+    const replay = h(
+      'button',
+      { class: 'gl__btn gl__btn--primary gl__btn--start', type: 'button' },
+      'Try a new outpost',
+      h('span', { class: 'gl__btn-arrow', 'aria-hidden': 'true', text: '→' }),
+    );
+    const journalLink = h('button', { class: 'gl__link', type: 'button', 'data-focus': 'journal-link' }, 'View my Mars story', h('span', { 'aria-hidden': 'true', text: '›' }));
+    const menuLink = h('button', { class: 'gl__link', type: 'button' }, 'Main menu');
+
+    replay.addEventListener('click', again);
+    journalLink.addEventListener('click', showJournal);
+    menuLink.addEventListener('click', () => navigate('naming'));
+
+    const panel = gamePanel({
+      kicker: 'Mission debrief',
+      title: `${consumptionSummary(state).sols} sols. So much learned!`,
+      body: [outcome, whatHappened, gameSection('Next time, try…', tips(steps))],
+      footer: [replay, h('div', { class: 'debrief__links' }, journalLink, menuLink)],
+    });
+
+    return panel;
   }
 
-  table.append(body);
+  function journalPanel(state: RunState): HTMLElement {
+    const explanation = explainOutcome(state);
+    const reviews = reviewDecisions(state);
+    const totals = consumptionSummary(state);
+    const lows = lowestPoints(state);
+    const step = nextSteps(state, 1)[0];
+    const won = state.status === 'won';
 
-  const timelinePanel = h('section', { class: 'gx__panel' }, h('h2', { class: 'gx__h', text: 'Timeline' }), h('div', { class: 'debrief__table-wrap' }, table));
+    const entries = h('div', { class: 'debrief__entries' });
 
-  const honesty = h(
-    'section',
-    { class: 'gx__panel' },
-    h('h2', { class: 'gx__h', text: 'How real is this?' }),
-    h('p', { text: `Flare sizes: ${lastDetail()}${lastSource() === 'fallback' || usedApproximateData(run) ? ' They are marked approximate.' : ''}` }),
-    h('p', { class: 'gx__note', text: 'Everything else is a simplified model. The numbers are made up to teach the idea, not copied from a real mission. The real Earth-Mars radio delay is 3 to 22 minutes; the game uses a simple stand-in.' }),
-  );
+    if (reviews.length === 0) {
+      entries.append(h('p', { class: 'gl__note', text: 'No crisis came up before the run ended, so the crew never had to choose.' }));
+    }
 
-  const replay = h('button', { class: 'gx__btn gx__btn--primary', type: 'button' }, 'Try a different outpost');
-  const menu = h('button', { class: 'gx__btn', type: 'button' }, 'Main menu');
+    for (const review of reviews) {
+      entries.append(
+        h(
+          'div',
+          { class: 'gl__entry', 'data-tone': review.verdict === 'caught' ? 'peach' : 'plain' },
+          h('span', { class: 'gl__entry-icon', 'aria-hidden': 'true', text: VERDICT_ICON[review.verdict] }),
+          h(
+            'div',
+            null,
+            h('span', { class: 'gl__entry-sol', text: `Sol ${review.sol} · ${VERDICT_TEXT[review.verdict]}` }),
+            h('p', { class: 'gl__entry-title', text: `${review.chose}${review.timedOut ? ' (the clock ran out)' : ''}` }),
+            h('p', { class: 'gl__entry-detail', text: review.why }),
+          ),
+        ),
+      );
+    }
 
-  replay.addEventListener('click', again);
-  menu.addEventListener('click', () => navigate('naming'));
+    entries.append(
+      h(
+        'div',
+        { class: 'gl__entry', 'data-tone': won ? 'plain' : 'peach' },
+        h('span', { class: 'gl__entry-icon', 'aria-hidden': 'true', text: won ? '🏆' : STORE_ICON[wentEmpty(state) ?? 'water'] }),
+        h(
+          'div',
+          null,
+          h('span', { class: 'gl__entry-sol', text: `Sol ${totals.sols} · ${won ? 'Mission complete' : 'Mission ended'}` }),
+          h('p', { class: 'gl__entry-title', text: explanation.headline }),
+          h('p', { class: 'gl__entry-detail', text: `Next adventure: ${step.title.toLowerCase()}.` }),
+        ),
+      ),
+    );
 
-  clear(mount);
-  mount.append(banner, h('div', { class: 'debrief__cols' }, stats, review), timelinePanel, honesty, h('div', { class: 'debrief__actions' }, replay, menu));
+    const stats = h('dl', { class: 'gl__stats' });
+    const rows: readonly (readonly [string | null, string, string])[] = [
+      [null, 'Sols played', String(totals.sols)],
+      [lifeSupportUrl, 'Crew breathed', `${totals.crewOxygen} oxygen`],
+      [iceMinerUrl, 'Crew drank', `${totals.crewWater} water`],
+      [greenhouseUrl, 'Crew ate', `${totals.crewFood} food`],
+      [solarUrl, 'Power made', `${totals.powerGenerated} kWh`],
+      [batteryUrl, 'Power wasted', `${totals.powerWasted} kWh (batteries were full)`],
+      [batteryUrl, 'Sols with a blackout', String(totals.blackoutSols)],
+      [null, 'Thinnest margins', `air ${lows.oxygen}, water ${lows.water}, food ${lows.food}, shield ${lows.shielding}`],
+    ];
+
+    for (const [icon, label, value] of rows) {
+      stats.append(
+        h('dt', null, icon === null ? null : h('img', { class: 'gl__stat-icon-img', src: icon, alt: '' }), label),
+        h('dd', { text: value }),
+      );
+    }
+
+    const table = h('table', { class: 'gl__table' });
+
+    table.append(h('thead', null, h('tr', null, ...['Sol', 'Power', 'Air', 'Water', 'Food', 'Shield', 'What happened'].map((title) => h('th', { scope: 'col', text: title })))));
+
+    const body = h('tbody');
+
+    for (const row of timeline(state)) {
+      body.append(
+        h(
+          'tr',
+          null,
+          h('td', { text: String(row.sol) }),
+          h('td', { text: String(Math.round(row.stores.power)) }),
+          h('td', { text: String(Math.round(row.stores.oxygen)) }),
+          h('td', { text: String(Math.round(row.stores.water)) }),
+          h('td', { text: String(Math.round(row.stores.food)) }),
+          h('td', { text: String(Math.round(row.stores.shielding)) }),
+          h('td', { text: [row.headline, ...row.notes].join(' ') }),
+        ),
+      );
+    }
+
+    table.append(body);
+
+    const honesty = gameSection(
+      'How real is this?',
+      h('p', { class: 'gl__body', text: `Flare sizes: ${lastDetail()}${lastSource() === 'fallback' || usedApproximateData(state) ? ' They are marked approximate.' : ''}` }),
+      h('p', { class: 'gl__note', text: 'Everything else is a simplified model. The numbers are made up to teach the idea, not copied from a real mission. The real Earth-Mars radio delay is 3 to 22 minutes; the game uses a simple stand-in.' }),
+    );
+
+    const replay = h(
+      'button',
+      { class: 'gl__btn gl__btn--primary gl__btn--start', type: 'button' },
+      'Try a different outpost',
+      h('span', { class: 'gl__btn-arrow', 'aria-hidden': 'true', text: '→' }),
+    );
+    const back = h('button', { class: 'gl__link', type: 'button', 'data-focus': 'back-link' }, h('span', { 'aria-hidden': 'true', text: '‹' }), 'Back to the debrief');
+
+    replay.addEventListener('click', again);
+    back.addEventListener('click', showDebrief);
+
+    return gamePanel({
+      kicker: 'Your adventure journal',
+      title: 'Small choices. Big changes.',
+      sub: 'The moments that shaped your outpost.',
+      body: [entries, gameSection('What the outpost used', stats), gameSection('Every sol, as it happened', h('div', { class: 'gl__table-wrap' }, table)), honesty],
+      footer: [replay, back],
+    });
+  }
+
+  function render(focus?: string): void {
+    if (run === null || run.log.length === 0) {
+      renderEmpty();
+
+      return;
+    }
+
+    const panel = mode === 'debrief' ? debriefPanel(run) : journalPanel(run);
+
+    mount.replaceChildren(gameScreen({ hud: hudFor(run), world: worldFor(run), panel, variant: 'gl--debrief' }));
+
+    if (focus !== undefined) mount.querySelector<HTMLElement>(`[data-focus="${focus}"]`)?.focus();
+  }
+
+  render();
 
   return () => {
-    mount.classList.remove('gx', 'debrief');
     mount.replaceChildren();
   };
 }

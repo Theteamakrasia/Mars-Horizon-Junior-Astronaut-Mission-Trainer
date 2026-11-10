@@ -11,7 +11,7 @@
  */
 
 import { crisisForEvent, optionOf } from '../../sim/crises';
-import { systemsFor, countOf, NIGHT_HOURS } from '../../sim/modules';
+import { systemsFor, countOf, NIGHT_HOURS, type ModuleKind } from '../../sim/modules';
 import { RESOURCE_NAMES, type ResourceName } from '../../sim/resources';
 import type { RunState, SolRecord } from '../../sim/run';
 import { endedBy, isSelfSustaining, WIN_SOL } from '../../sim/sol';
@@ -299,4 +299,73 @@ export function lowestPoints(run: RunState): Readonly<Record<ResourceName, numbe
 /** True when any flare event in the run was sized from fallback data. */
 export function usedApproximateData(run: RunState): boolean {
   return run.forecast.some((event) => event.approximate);
+}
+
+/** The store that ended the run, or null when the crew got through. */
+export function wentEmpty(run: RunState): ResourceName | null {
+  return run.status === 'lost' ? (endedBy(run)[0] ?? null) : null;
+}
+
+/** One thing worth trying on the next run. */
+export interface NextStep {
+  readonly title: string;
+  readonly detail: string;
+  /**
+   * Which picture to draw beside it: a module to build, a choice at a crisis,
+   * or a different site. A hint for the view, not a rule.
+   */
+  readonly art: ModuleKind | 'choice' | 'site';
+}
+
+/**
+ * What to try next, each step tied to a fact from this run.
+ *
+ * No generic advice: a tip only appears when the log or the module list proves
+ * it would have changed something here. The first two are all the debrief panel
+ * has room for, so the most specific facts are pushed first.
+ */
+export function nextSteps(run: RunState, limit = 2): readonly NextStep[] {
+  const steps: NextStep[] = [];
+  const systems = systemsFor(run.modules, run.regionId);
+  const nightNeed = Math.max(0, systems.loadKw - systems.nuclearKw) * NIGHT_HOURS;
+  const ended = endedBy(run)[0];
+
+  if (ended === 'water' && countOf(run.modules, 'ice-miner') === 0) {
+    steps.push({ title: 'Add an ice miner', detail: 'Make water from nearby ice, instead of waiting for a supply pod.', art: 'ice-miner' });
+  }
+
+  const pod = run.decisions.find((decision) => decision.crisisId.startsWith('supply-') && decision.optionId !== 'water');
+  const podSol = pod === undefined ? undefined : run.forecast.find((event) => event.id === pod.crisisId)?.sol;
+
+  if (ended === 'water' && podSol !== undefined) {
+    steps.push({ title: 'Choose water from the pod', detail: `The pod on sol ${podSol} could have topped the tank up by 30.`, art: 'choice' });
+  }
+
+  if (ended === 'food' && countOf(run.modules, 'greenhouse') === 0) {
+    steps.push({ title: 'Add a greenhouse', detail: 'Grow food every sol so the stores stop falling.', art: 'greenhouse' });
+  }
+
+  if (ended === 'shielding' && countOf(run.modules, 'regolith-shield') < 2) {
+    steps.push({ title: 'Pile on more soil', detail: 'A regolith shield starts you with more radiation protection.', art: 'regolith-shield' });
+  }
+
+  if (systems.batteryKwh < nightNeed) {
+    steps.push({ title: 'Add a battery bank', detail: `One night needs about ${Math.round(nightNeed)} kWh. You had ${systems.batteryKwh}.`, art: 'batteries' });
+  }
+
+  const caught = reviewDecisions(run).find((review) => review.verdict === 'caught');
+
+  if (caught !== undefined) {
+    steps.push({ title: `Rethink sol ${caught.sol}`, detail: `${caught.chose}. ${caught.why}`, art: 'choice' });
+  }
+
+  if (run.status === 'won' && !isSelfSustaining(run)) {
+    steps.push({ title: 'Make what you use', detail: 'The crew survived on reserves. Add the module that refills whatever is still falling.', art: 'choice' });
+  }
+
+  if (steps.length === 0) {
+    steps.push({ title: 'Try a harsher site', detail: 'This build held. A site with less sun or ice would test it harder.', art: 'site' });
+  }
+
+  return steps.slice(0, limit);
 }
