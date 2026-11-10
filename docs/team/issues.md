@@ -11,7 +11,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
-| ISS-047 | The `drag-editor` placement WIP was unreachable, failed `tsc` and failed `check-markup`, and copies of it sat at the repo root | high | agent | fixed | this branch |
+| ISS-047 | The `drag-editor` placement WIP was unreachable, failed `tsc` and failed `check-markup`, and copies of it sat at the repo root | high | agent | fixed | c9b8904 |
 | ISS-043 | Space weather had one live source, so a DONKI outage silently replaced every run's flares with baked history | high | agent | fixed | this branch |
 | ISS-046 | The header advertised "Mission Control / Main Menu" as text, and naming's Back to Main Menu navigated to itself | medium | agent | fixed | d90e838 |
 | ISS-045 | The page title said "Under Construction" and the description called the built game a placeholder | low | agent | fixed | 559c0d6 |
@@ -75,10 +75,11 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 - **Cause:** the feature was started and abandoned without ever being wired to a route, so
   nothing exercised it. `npm run check` was the only thing that would have caught it, and
   it had not been run since the folder was added.
-- **Fix:** deleted the folder, the three stray files and the dead `'drag-editor'` route.
-  The placement editor was rebuilt as a developer tool rather than a game screen — it
-  lives in `src/ui/` and needs no route, no mount point and no registry entry, so it
-  cannot half-exist the way this one did. `npm run check` passes again.
+- **Fix:** deleted the folder, the three stray files and the dead `'drag-editor'` route
+  (`c9b8904`). The placement editor was rebuilt as a developer tool rather than a game
+  screen — it lives in `src/ui/`, needs no route, no mount point and no registry entry,
+  and is compiled out of a production build, so it cannot half-exist the way this one
+  did (`1cdba9f`, `ecd9d27`). `npm run check` passes again.
 - **Pre-existing:** no; introduced by uncommitted work on `game-loop-ui`.
 
 ---

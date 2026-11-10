@@ -1,6 +1,6 @@
 # Architecture
 
-The annotated truth about this repository as of 2026-11-08. Everything here was read
+The annotated truth about this repository as of 2026-11-11. Everything here was read
 from the files, not inferred from intent. Where a file is empty or does not exist, it
 says so — **an empty file is a promise, not an implementation.**
 
@@ -19,7 +19,7 @@ than eyeballed, and it is what `npm run check` protects.
 
 ## The invariant, and why it is enforced
 
-424 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
+471 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
 reference it would still work, and the cost would surface later as an untestable bug.
 Enforced as `no-dom-in-pure-zone`.
 
@@ -248,11 +248,33 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   ├── nasa-card.css              complete   card frame, caption type scale, action row.
     │   ├── registry.ts                 complete   the one composition seam. Exports ScreenFactory,
     │   │                                         screenMount, resolveScreen, nextStop,
-    │   │                                         allScreenMounts. Maps all nine built routes onto
+    │   │                                         allScreenMounts. Maps all ten built routes onto
     │   │                                         feature views; the only file permitted to import
     │   │                                         them. `ScreenFactory` is (root, run, setRun) ->
     │   │                                         teardown. Returns null for routes with nothing
     │   │                                         built, so the router can fall through.
+    │   ├── baseLayout.json             complete   where every module stands on the outpost
+    │   │                                         panel: {left, bottom, width, z} per kind, in
+    │   │                                         percent. The file a developer produces with the
+    │   │                                         placement editor (D-049).
+    │   ├── baseLayout.ts               complete   loads and validates baseLayout.json. Exports
+    │   │                                         ModuleSpot, ModuleSpots, SPOT_BAND, DEFAULT_SPOTS,
+    │   │                                         MODULE_SPOT, LAYOUT_PROBLEMS, clamp, clampSpot,
+    │   │                                         roundSpot, resolveSpots, describeLayoutProblems,
+    │   │                                         buildLayoutJson, pointToPercent. A kind that is
+    │   │                                         missing or malformed falls back to DEFAULT_SPOTS;
+    │   │                                         an out-of-range number is clamped, not discarded.
+    │   ├── baseLayout.test.ts          complete   31 tests. Every input literal.
+    │   ├── baseLayoutEditor.ts         complete   the placement editor (D-049). Exports
+    │   │                                         isLayoutEditing(), startLayoutEditor(root) ->
+    │   │                                         teardown. Dev-only: a developer drags the modules
+    │   │                                         on the real outpost panel with ?editlayout=1 and
+    │   │                                         downloads baseLayout.json. Loaded by a dynamic
+    │   │                                         import in main.ts, so it is compiled out of a
+    │   │                                         production build entirely.
+    │   ├── base-layout-editor.css      complete   the editor's overlay: the drag handles, the
+    │   │                                         guide band and the toolbar. Imported by
+    │   │                                         baseLayoutEditor.ts only.
     │   └── gameLoop.ts                 complete   the shared game-loop chrome from the Figma
     │                                             frames (D-038): gameHeader, gameHud, gameDock,
     │                                             gameWorld, gamePanel, gameScreen, gameSection,
@@ -263,7 +285,8 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │                                             optional `onLeave`: with it the right-hand label
     │                                             becomes a Menu button opening an in-screen
     │                                             leave dialog (D-044); without it the old plain
-    │                                             label stays.
+    │                                             label stays. The module layout comes from
+    │                                             `baseLayout.ts`, not from a literal here.
     │
     ├── dom/                            landing-page side effects only. Untested (ISS-011).
     │   ├── floatAstronaut.ts           complete   218 lines. The rAF loop, the two transforms, the
@@ -391,6 +414,15 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │       │                                     Results panel, plus the journal as a mode
     │       │                                     (D-039): decisions, sol table, honesty note.
     │       └── debrief.css              complete   tip cards, journal entries, two-link footer
+    │   ├── encyclopedia/             COMPLETE   Equipment reference: one line per item,
+    │   │   │                           expand to full detail with a real NASA fact.
+    │   │   ├── README.md                           the contract
+    │   │   ├── model.ts                 complete   entries(), entryFor(), one line per
+    │   │   │                                     module kind plus a NASA fact index.
+    │   │   ├── model.test.ts            complete   6 literal-input tests
+    │   │   ├── view.ts                  complete   mountEncyclopedia(root, run, setRun)
+    │   │   │                                     inside the game-loop shell
+    │   │   └── encyclopedia.css         complete   list and expandable cards
     │
     └── styles/                         shared CSS: the landing page, the game-loop frame
         ├── base.css                    complete   94 lines. Tokens, reset, backdrop, nebulae.
@@ -483,6 +515,7 @@ startFloatingAstronaut → rAF tick → stepAstronaut (pure) → render transfor
 
 ui/router.ts → location.hash → parseRoute (pure) → onRoute(route) → main.ts
              → registry.resolveScreen → features/*/view.ts → teardown on navigate away
+             → (dev build, ?editlayout=1) ui/baseLayoutEditor overlays the outpost panel
 ```
 
 The rotation behind the menu is **CSS keyframes**, not JavaScript: `naming-mars-turn`
@@ -502,6 +535,13 @@ The one network path outside the landing page is space weather. `base` and `act`
 `dom/forecastLoader` → `data/spaceweather`, which tries NASA DONKI, then NOAA SWPC, then
 an empty fallback. The event *schedule* is seeded per run in `sim/forecast.ts` (D-048);
 the flare *size* is the part that comes from the network.
+
+Where the modules stand on the outpost panel is **data, not code**. `ui/baseLayout.json`
+holds it; `ui/baseLayout.ts` validates it; `ui/gameLoop.ts` places the modules with it.
+A developer produces that file by dragging the modules on the real screen with
+`?editlayout=1` (D-049). The editor is a developer tool, not a screen: it has no route,
+no mount point and no registry entry, and `main.ts` loads it with a dynamic import
+behind `import.meta.env.DEV`, so it is compiled out of a production build entirely.
 
 ## Boot order
 
@@ -523,6 +563,9 @@ the flare *size* is the part that comes from the network.
 13. `main.ts` collects the landing page's own layers into `landingLayers`, then
     `startScreenRouter()` calls `startRouter`, which resolves the hash — defaulting to
     `naming` — and mounts that screen, hiding the landing layers behind it.
+14. In a dev build with `?editlayout=1`, `main.ts` loads `ui/baseLayoutEditor` with a
+    dynamic import. The editor is attached to whichever screen is mounted, and to
+    nothing in a production build (D-049).
 
 Routing is last so every screen it can mount is already defined. `BACK TO MAIN MENU`
 returns to `landing`, which keeps running behind the mounted screen.
@@ -531,7 +574,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 
 | module | exports | contract |
 | --- | --- | --- |
-| `main.ts` | none (side effects) | composition root; throws on a missing element id |
+| `main.ts` | none (side effects) | composition root; throws on a missing element id. Also the one place that starts the placement editor, and only in a dev build with `?editlayout=1` (D-049) |
 | `dom/forecastLoader` | `LoadedForecast`, `loadForecast` | `(signal?, seed = Date.now(), dustScore = NEUTRAL_SCORE.dust) -> Promise<LoadedForecast>`; never rejects. Fetches flares through `data/spaceweather`, then runs `sim/forecast.createForecast`. Sits in `dom/` because it joins `data/` and `sim/`, and both `base` and `act` need it without importing each other (R-5) |
 | `data/spaceweather` | `SpaceWeatherEvent`, `SpaceWeatherSource` | a flare as the game uses it; source is `'donki' \| 'noaa' \| 'fallback'` |
 | | `fetchSpaceWeather` | `(options?) -> Promise<SpaceWeatherEvent[]>`; never rejects. Tries NASA DONKI, then NOAA SWPC, then the empty `FALLBACK_FLARES`. Every flare is kept, not just the strongest. Remembers one answer so two screens cost one request; an answer abandoned by its caller is not remembered |
@@ -596,7 +639,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `landAt` | `(run, regionId) -> RunState`; sets the region and its region-adjusted starting stores |
 | | `applyBuild` | `(run, kind) -> RunState \| null`; null when the build is blocked |
 | | `withState` | `(run, patch) -> RunState` |
-| `ui/routes` | `Route` | `'naming' \| 'briefing' \| 'supply' \| 'launch' \| 'interior' \| 'landing' \| 'landing-site' \| 'base' \| 'act' \| 'debrief'` |
+| `ui/routes` | `Route` | `'naming' \| 'briefing' \| 'supply' \| 'launch' \| 'interior' \| 'landing' \| 'landing-site' \| 'base' \| 'act' \| 'debrief' \| 'encyclopedia'` |
 | | `ROUTE_ORDER` | the routes in play order, `naming` first |
 | | `DEFAULT_ROUTE` | `'naming'` — the entry screen (D-021) |
 | | `parseRoute` | `(hash) -> Route \| null`; tolerant of missing/duplicated `/`, whitespace, case, query string. Returns null rather than throwing |
@@ -623,7 +666,18 @@ returns to `landing`, which keeps running behind the mounted screen.
 | `ui/gameLoop` | `gameScreen`, `gameWorld`, `gamePanel` | the shared frame from the Figma frames (D-038): one `.gl` root, the illustrated world panel, and the scrolling right-hand panel. Every word, number and variant arrives in an options object; no `sim/` rule is applied here |
 | | `gameHeader`, `gameHud`, `gameDock` | `gameHeader(sub?, onLeave?)`: without `onLeave` the right-hand label is plain decorative text; with it, it is a Menu button opening an in-screen leave dialog with Keep playing / Leave mission (D-044). `gameHud` draws the five resource cards (`HudStat`) and `gameDock` the three-tab dock. The pause/settings/BUILD pills and the dock are `aria-hidden` spans, not buttons (D-038) |
 | | `gameSection` | `(label, ...content) -> section`; an uppercase label and its body |
-| | `moduleFigures`, `moduleArt`, `MODULE_ART`, `WORLD_BACKGROUND`, `ASTRONAUT_SPRITE` | artwork placement and the bundled asset URLs; the only import site for the figures base, act and debrief share |
+| | `moduleFigures`, `moduleArt`, `MODULE_ART`, `WORLD_BACKGROUND`, `ASTRONAUT_SPRITE` | artwork placement and the bundled asset URLs; the only import site for the figures base, act and debrief share. The module layout comes from `ui/baseLayout` (D-049) |
+| `ui/baseLayout` | `ModuleSpot`, `ModuleSpots` | `{left, bottom, width, z}` for one module kind, in percent of the outpost panel |
+| | `SPOT_BAND` | how far a module may be placed: left 2-92, bottom 2-32, width 6-24. The single source of truth; `styles/game-loop.css` clamps with the same numbers and `check-markup` Rule 11 fails the build if the two ever disagree |
+| | `DEFAULT_SPOTS` | the authored layout, used when `baseLayout.json` cannot supply one |
+| | `MODULE_SPOT` | the validated layout the game places modules with; every kind is present and inside the band |
+| | `LAYOUT_PROBLEMS` | what is wrong with the layout file, in words; empty when the file is good |
+| | `resolveSpots`, `describeLayoutProblems` | `(source) -> ModuleSpots` and `(source) -> string[]`; a missing or malformed kind falls back to the default, an out-of-range number is clamped |
+| | `clamp`, `clampSpot`, `roundSpot` | pull a number or a whole spot into the band, and round to one decimal so the toolbar and the file quote the same numbers |
+| | `buildLayoutJson` | `(spots) -> string`; the layout file, in catalogue order, two-space indented |
+| | `pointToPercent` | `(point, panelRect) -> {left, bottom}`; where a pointer is inside the outpost panel |
+| `ui/baseLayoutEditor` | `isLayoutEditing` | `() -> boolean`; true in a dev build with `?editlayout=1` in the address bar |
+| | `startLayoutEditor` | `(root) -> teardown`; the placement editor (D-049). Draggable handles for all eight kinds on the real outpost panel, a toolbar with the numbers and the JSON, and Download / Copy / Reset / Done. Dev-only: `main.ts` loads it with a dynamic import behind `import.meta.env.DEV`, so it never reaches a production bundle |
 | `features/base/model` | `BUILDABLE`, `canPlace`, `addModule`, `removeModule`, `pointsLeft` | build rules over the `sim/modules.ts` catalogue (D-032) |
 | | `previewFor`, `previewSummary`, `upkeepFor`, `upcomingWarnings` | the calm-sol projection. `previewSummary` gives the five resource cards one number each, from the same projection as the sentences |
 | `features/base/view` | `mountBase` | `(root, run, setRun) -> teardown`; the outpost on Mars, the catalogue steppers, and Land & start sol 1 → `startOutpost` then `act`. Holds a mutable local `extras` so a second build is not applied to stale data; it also shows a rotating NASA fact beside the build panel from `factFor` |

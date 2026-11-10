@@ -8,6 +8,105 @@ than a documented one.
 
 ---
 
+## 2026-11-11 — Move the outpost layout into a file, and add the placement editor
+
+**Did**
+
+- Took the module layout out of `ui/gameLoop.ts` and into `src/ui/baseLayout.json` —
+  `{left, bottom, width, z}` per kind, in percent. `src/ui/baseLayout.ts` loads it,
+  validates every number and falls back to an authored default for a kind it cannot
+  supply, so a hand-edited file can never white-screen the game.
+- Built the placement editor: open the game with `?editlayout=1`, drag the eight modules
+  on the **real** outpost panel, and download `baseLayout.json`. A toolbar shows the
+  selected module's numbers, the JSON it would write, and Download / Copy / Reset / Done.
+  Arrow keys nudge; the number fields take exact values.
+- Made the editor a developer tool rather than a screen: no route, no mount point, no
+  registry entry, and `main.ts` loads it with a dynamic import behind `import.meta.env.DEV`,
+  so it is compiled out of a production build entirely.
+- Declared the band a module may be placed in once, in `SPOT_BAND`, and added
+  `check-markup` Rule 11 to fail the build if the CSS clamp and the band ever disagree.
+- Deleted the abandoned `drag-editor` feature and the stray copies of it at the repo root
+  (ISS-047). It had eight TypeScript errors, failed the markup check on `pointer-events:
+  none`, and was unreachable — no route, no mount, no registry entry.
+
+**Files**
+
+- `src/ui/baseLayout.json`, `src/ui/baseLayout.ts`, `src/ui/baseLayout.test.ts` (new)
+- `src/ui/baseLayoutEditor.ts`, `src/ui/base-layout-editor.css` (new)
+- `src/ui/gameLoop.ts`, `src/main.ts`, `src/ui/routes.ts`, `tsconfig.json`, `scripts/check-markup.mjs`
+- `docs/architecture.md`, `docs/team/decisions.md`, `docs/team/issues.md`, `docs/team/tasks.md`, `AGENTS.md`, `README.md`
+
+**Problems**
+
+- The abandoned `drag-editor` was never wired to a route, so nothing exercised it and
+  `npm run check` was the only thing that would have caught it. It had been left in the
+  tree long enough to break the build.
+- The CSS clamp on `.gl__figure` is a *silent* transform: author 40% and the screen shows
+  32%, with nothing reporting it. The band now lives in TS, the editor clamps to it, and
+  Rule 11 keeps the CSS in step — so a position in the file is the position on the screen.
+- `moduleFigures` was producing duplicate modules at `bottom: 34`, which the CSS clamp
+  quietly pulled back to 32. It now clamps into the band itself, which renders exactly the
+  same as before and stops the two rules disagreeing.
+- The editor's overlay sits on `document.body`, not inside the screen: `features/base`
+  replaces every child of its mount when the live forecast arrives, which would have
+  destroyed a drag in progress. A `MutationObserver` on the mount finds the new panel.
+- Verified in headless Chrome over the DevTools Protocol, since the project has no DOM
+  test environment: 19 checks on the editor, 10 across the other screens, and 5 on the
+  round trip (drag → JSON → save the file → reload → the module is where the file says).
+  `npm run check` clean; `npm test` 471 passed in 21 files (was 447; +31 layout tests,
+  -7 from the deleted feature).
+
+**Next**
+
+- The layout file is still one arrangement for every site. If the outpost should look
+  different in different regions, that is a second file and a rule for choosing between
+  them — worth deciding before the demo rather than after.
+
+---
+
+## 2026-11-10 — Tidy the build screen: grid the modules, one-line cards, add an encyclopedia
+
+**Did**
+
+- Grouped the outpost equipment on a fixed, non-overlapping grid in `ui/gameLoop.ts`: each
+  `ModuleKind` now has its own slot (4 columns × 2 rows, back row behind / front row in front).
+  Duplicates of a kind step right within their row and shrink, clamped to the panel edge, so
+  the build screen no longer scatters or overlaps modules.
+- Cut the build catalogue card to one line — the `gives` summary only. The `needs` detail no
+  longer crowds the card; it moved into the new encyclopedia.
+- Added a `features/encyclopedia/` screen: one line per piece of equipment, tap to expand the
+  full `gives` / `needs` plus a real NASA fact and credit. Reached from the ☰ Mission Control
+  menu. Registered as a route in `ALL_ROUTES` (not `ROUTE_ORDER` — a reference, not a journey
+  step), with a `#encyclopedia` mount point and a menu button.
+- Also clamped `.gl__figure` in `styles/game-loop.css` as a belt-and-braces guard so a figure
+  can never paint outside the world panel.
+
+**Files**
+
+- `src/ui/gameLoop.ts`, `src/styles/game-loop.css`, `src/features/base/view.ts`
+- `src/features/encyclopedia/{model.ts,view.ts,encyclopedia.css,model.test.ts,README.md}` (new)
+- `src/ui/routes.ts`, `src/ui/registry.ts`, `index.html`
+- `docs/architecture.md`, `docs/team/progress-log.md`, `docs/team/tasks.md`, `src/features/README.md`, `AGENTS.md`, `README.md`
+
+**Problems**
+
+- The layer checker forbids a `data/` import from a `feature-model`, so the NASA fact index
+  stays pure in `model.ts` and the view resolves it through `data/nasaGallery.factFor` at render
+  time. The first pass imported `data/nasaGallery` straight into the model and failed
+  `check-imports`; fixed by moving the lookup into the view.
+- `h()` takes children as separate arguments, not an array — passing an array of spans was a
+  type error until each became its own argument.
+- `npm run check` clean; `npm test` 440 passed in 20 files (was 424; +6 encyclopedia tests plus
+  the new route/registry coverage). Not verified in a real browser.
+
+**Next**
+
+- Human browser pass of the build screen and encyclopedia (`TASK-049`, which was already
+  open for the whole journey), then confirm the module grid reads cleanly at laptop and
+  phone widths. Nothing is committed yet — TASK-063 needs a branch and a commit.
+
+---
+
 ## 2026-11-10 — Roll each mission's hazards from a seed
 
 **Did**
