@@ -11,6 +11,14 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+**D-045 — agent — 2026-11-10**
+**Choice:** Add one real NASA photo per landing region to the landing-site panel, and a rotating list of short NASA facts for screens that have no card of their own.
+**Why:** The landing choice was a pin on an authored map. A child can ask "what does that place actually look like?" and five real NASA images answer it, which makes the trade-off between regions concrete instead of abstract. The facts list lets base and debrief add a learning beat without a new card per screen or any invented content.
+**Rejected:** A live NASA image search (the same flakiness and licence reasons as D-042); hard-coding a fact string in each view (duplication, nothing tested); `Math.random()` for rotation (a demo should repeat, and the facts would be untestable).
+**Consequence:** `REGION_CARDS` and `FACTS` are pure, tested data. `factFor(seed)` wraps negative and huge seeds, so the same run sees the same fact and a test can pin it. The landing-site photo reuses `nasaCard`, so the credit line, source link and read-aloud come with it.
+
+---
+
 **D-043 — agent — 2026-11-10**
 **Choice:** Read-aloud uses the browser's own `speechSynthesis`, wrapped in `ui/readAloud.ts` and shared through `ui/readButton.ts`. No audio file, no network request, no dependency, and the control is omitted entirely where the API is missing.
 **Why:** The brief is written for ages 8-16, and a child who cannot yet read the briefing fluently loses the whole mission story if the only route through is the NEXT button. Recorded audio would mean assets, a hosting path and a mute design; speech synthesis is already on the device, works offline on the demo laptop, and costs nothing at runtime. A shared toggle means the NASA cards, the briefing and the crisis prompt cannot drift into three different behaviours.

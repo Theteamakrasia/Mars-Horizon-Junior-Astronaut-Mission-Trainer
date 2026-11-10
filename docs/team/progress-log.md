@@ -8,6 +8,44 @@ than a documented one.
 
 ---
 
+## 2026-11-10 — Put a real NASA photo on every landing region, and rotate facts
+
+**Did**
+
+- Added five real NASA photos to the landing-site panel: one per region, each
+  verified against NASA's image API and credited. Selecting a pin now shows the
+  place itself, not just a dot on the map. Recorded as D-045.
+- Added a rotating list of fifteen short NASA facts, with `factFor(seed)` so a
+  screen can pick one deterministically. Base shows a fact beside the build
+  panel; the debrief shows one beside the closing card.
+- Reused `nasaCard` for the region photo, so the credit line, source link and
+  read-aloud control came with it. Ten new tests cover region ids, image URLs,
+  credits, length caps and fact wrapping.
+
+**Files**
+
+- `src/data/nasaGallery.ts` + test, `src/ui/nasaCard.ts`,
+  `src/features/landing-site/{view.ts,landing-site.css}`,
+  `src/features/base/view.ts`, `src/features/debrief/view.ts`, `index.html`,
+  `docs/architecture.md`, `docs/team/{decisions,tasks,progress-log}.md`,
+  `README.md`, `AGENTS.md`
+
+**Problems**
+
+- The region photos are fetched from `images-assets.nasa.gov` at runtime. A card
+  whose image fails keeps its caption, fact and credit, but there is no bundled
+  fallback image.
+- Jezero's picture is an artist's idea of the ancient lake, not a photograph;
+  the caption says so, because it is the one region image a child could mistake
+  for a real photo.
+
+**Next**
+
+- Human browser pass (`TASK-049`); then decide whether to extend the fact list
+  to the supply and launch screens.
+
+---
+
 ## 2026-11-10 — Add the NASA learning layer, read-aloud, and a real way out of a run
 
 **Did**

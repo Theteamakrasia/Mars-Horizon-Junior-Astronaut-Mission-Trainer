@@ -19,7 +19,7 @@ than eyeballed, and it is what `npm run check` protects.
 
 ## The invariant, and why it is enforced
 
-414 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
+424 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
 reference it would still work, and the cost would surface later as an untestable bug.
 Enforced as `no-dom-in-pure-zone`.
 
@@ -284,14 +284,14 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         lastDetail, describeWhen. NASA DONKI ->
     │   │                                         NOAA SWPC -> baked, in that order.
     │   └── spaceweather.test.ts        complete   26 tests; every fetch is injected
-    │   ├── nasaGallery.ts             complete   Twelve curated NASA images with id,
-    │   │                                         alt, caption, fact, credit and source
-    │   │                                         link, plus `NEXT_HORIZON_CARD` for the
-    │   │                                         debrief's closing card. Static by choice
-    │   │                                         (D-042): no runtime image API, and the
-    │   │                                         words are unit tested here.
-    │   └── nasaGallery.test.ts        complete   10 tests; ids resolve, credits and links
-    │                                             present, length caps enforced.
+    │   ├── nasaGallery.ts             complete   Twelve sol cards plus a closing card,
+    │   │                                         five real region photos and a rotating
+    │   │                                         fact list. Static by choice (D-042):
+    │   │                                         no runtime image API, and the words
+    │   │                                         are unit tested here.
+    │   └── nasaGallery.test.ts        complete   20 tests; ids resolve, credits and links
+    │                                             present, length caps enforced, facts
+    │                                             wrap deterministically.
     │
     ├── features/                       one folder per screen. Every journey screen is built.
     │   │                               There are no feature stubs left.
@@ -530,10 +530,10 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `flareRank`, `strongest` | class ranking (X > M > C, bigger number first) and the strongest N |
 | | `lastSource`, `lastDetail`, `resetSpaceWeather` | what the UI reports; reset is for tests |
 | | `describeWhen` | `(peakTime) -> string`, e.g. `11 May 2024`; `'recently'` on a bad date |
-| `data/nasaGallery` | `NasaCard`, `NASA_CARDS`, `NEXT_HORIZON_CARD`, `cardForSol` | twelve curated cards keyed by sol 1-12, plus one closing artist concept. Every card carries an id, alt text, caption, fact, credit and source link. `cardForSol(sol)` returns the matching card or `null` outside the run |
+| `data/nasaGallery` | `NasaFigure`, `NasaCard`, `RegionCard`, `NASA_CARDS`, `NEXT_HORIZON_CARD`, `REGION_CARDS`, `NasaFact`, `FACTS`, `cardForSol`, `regionCard`, `factFor` | twelve curated sol cards plus one closing artist concept; five region photos; a rotating fact list. Every card carries an id, alt text, caption, fact, credit and source link. `cardForSol(sol)` and `regionCard(id)` return the card or `null`; `factFor(seed)` wraps deterministically so a screen can rotate facts without `Math.random` |
 | `ui/readAloud` | `canReadAloud`, `readAloud`, `stopReading` | `(text, onDone?) -> boolean`; false when unsupported or the text is empty. Starts cancel any current passage first, and `stopReading()` is safe when nothing plays. Browser speech only (D-043) |
 | `ui/readButton` | `readButton` | `(getText, options?) -> HTMLButtonElement \| null`; a toggle whose label, `aria-pressed` and pause hooks (`onStart`, `onStop`) are shared by every screen that reads aloud. Returns null where speech is unavailable |
-| `ui/nasaCard` | `nasaCard` | `(card, kicker?) -> figure`; picture, alt, caption, "Did you know?", credit and source link, plus the shared read-aloud control only when `canReadAloud()` is true |
+| `ui/nasaCard` | `nasaCard` | `(card: NasaFigure, kicker?) -> figure`; picture, alt, caption, "Did you know?", credit and source link, plus the shared read-aloud control only when `canReadAloud()` is true. The kicker defaults to the sol for a `NasaCard` and to a plain NASA label otherwise |
 | `sim/drift` | `stepDrift` | `(state, dt, size, viewport) -> DriftResult`; reflects off walls, returns the fastest `Impact` or null |
 | | `createInitialDrift` | `(size, viewport, speed) -> DriftState`; random 30-45 degree diagonal. **5 `Math.random()` calls** |
 | | `driftSpeedForViewport` | `(width) -> number`, clamped 96..176 px/s |
@@ -609,7 +609,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `tradeoffSummary` | `(score) -> string`; names strongest and weakest axis, never "recommended" |
 | | `totalScore` | `(score) -> number`, 0-25 |
 | | `strengthAndWeakness` | `(score) -> {strength, weakness}` axes |
-| `features/landing-site/view` | `mountLandingSite` | `(root, run, setRun) -> teardown`; map + five pins + Site Analysis panel, LAND HERE calls `landAt` then navigates to `nextStop('landing-site')` |
+| `features/landing-site/view` | `mountLandingSite` | `(root, run, setRun) -> teardown`; map + five pins + Site Analysis panel, LAND HERE calls `landAt` then navigates to `nextStop('landing-site')`. Selecting a pin also shows that region's real NASA photo and fact (`regionCard`) |
 | `ui/gameLoop` | `gameScreen`, `gameWorld`, `gamePanel` | the shared frame from the Figma frames (D-038): one `.gl` root, the illustrated world panel, and the scrolling right-hand panel. Every word, number and variant arrives in an options object; no `sim/` rule is applied here |
 | | `gameHeader`, `gameHud`, `gameDock` | `gameHeader(sub?, onLeave?)`: without `onLeave` the right-hand label is plain decorative text; with it, it is a Menu button opening an in-screen leave dialog with Keep playing / Leave mission (D-044). `gameHud` draws the five resource cards (`HudStat`) and `gameDock` the three-tab dock. The pause/settings/BUILD pills and the dock are `aria-hidden` spans, not buttons (D-038) |
 | | `gameSection` | `(label, ...content) -> section`; an uppercase label and its body |
