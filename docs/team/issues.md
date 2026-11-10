@@ -11,6 +11,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
+| ISS-047 | The supply screen ignored the Enter key until NEXT had been clicked with a mouse | medium | agent | open | - |
 | ISS-043 | Space weather had one live source, so a DONKI outage silently replaced every run's flares with baked history | high | agent | fixed | this branch |
 | ISS-046 | The header advertised "Mission Control / Main Menu" as text, and naming's Back to Main Menu navigated to itself | medium | agent | fixed | d90e838 |
 | ISS-045 | The page title said "Under Construction" and the description called the built game a placeholder | low | agent | fixed | 559c0d6 |
@@ -951,4 +952,25 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-**Next free id: ISS-047.**
+## ISS-047 — The supply screen ignored the Enter key until NEXT had been clicked
+
+- **Reported by:** the owner, 2026-11-10, from the deployed build: on `#/supply` the Enter key did
+  nothing on the first beat, and clicking NEXT with the mouse first made Enter work.
+- **Where:** `src/features/supply/view.ts` (`mountSupply`).
+- **Problem:** the screen had no keyboard handler at all. The only way to advance a beat was
+  `advance.addEventListener('click', revealNext)`, so a keyboard player could not move past the first
+  fact. Enter appeared to work after clicking NEXT only because the mouse click left the focus on the
+  button and the browser activates a focused button on Enter - so the key worked by accident, and only
+  once the screen had been clicked.
+- **Cause:** the briefing got an Enter handler with D-046 ("NEXT (or the Enter key) swaps in the next
+  line"); the supply screen, which has the same NEXT-button shape, never got the same treatment.
+- **Fix:** `isPlainEnter` and `focusHandlesEnter` in `features/supply/model.ts` (pure, tested) and one
+  `window` keydown listener in the view, mirroring the briefing's. Enter advances while NEXT is visible
+  and does nothing once the question is up, so a stray press cannot answer the question. The listener is
+  removed in the teardown. Recorded as D-050.
+- **Pre-existing:** yes; the supply screen has had no keyboard handler since it was built.
+- **Status:** open.
+
+---
+
+**Next free id: ISS-048.**
