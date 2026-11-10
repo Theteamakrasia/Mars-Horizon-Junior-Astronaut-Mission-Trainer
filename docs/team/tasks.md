@@ -7,6 +7,7 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 
 | id | task | goal | owner | status | blocked by | notes |
 | --- | --- | --- | --- | --- | --- | --- |
+| TASK-061 | Add rotating NASA facts to the supply and launch screens | G-7 | agent | done | - | D-045 follow-up; `factFor`, `[data-supply-fact]`, `[data-launch-parts-fact]` |
 | TASK-060 | Add a real NASA photo to every landing region and rotating NASA facts to base and debrief | G-7 | agent | done | - | D-045; `REGION_CARDS`, `FACTS`, `factFor`; five region cards and ten new tests |
 | TASK-059 | Document the NASA learning layer and read-aloud in the architecture tree and contracts | G-6 | agent | done | - | D-042, D-043, D-044; `nasaGallery`, `nasaCard`, `readAloud`, `readButton` |
 | TASK-058 | Add a safe leave dialog to every run screen, and make "Start over" reset the run | G-7 | agent | done | - | D-044; ISS-046. Menu button with Keep playing / Leave mission |

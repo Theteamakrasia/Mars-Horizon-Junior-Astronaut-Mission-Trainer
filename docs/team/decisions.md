@@ -19,6 +19,14 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+**D-047 — agent — 2026-11-10**
+**Choice:** The rotating NASA fact list (`FACTS` / `factFor`) now appears on every screen that has no NASA card of its own: base, debrief, the supply ration-check, and the launch parts tour.
+**Why:** One real NASA beat per screen was the goal (D-045); base and debrief got theirs, and the two screens that naturally held a learning gap next — packing supplies, touring a part — are the same child-facing moment.
+**Rejected:** A second hardcoded fact string per screen (duplication nothing tests); a per-screen card type just to host a fact (facts are not per-sol content, unlike the cards); rotating a briefing or crisis line (those already have spoken or choice-driven content).
+**Consequence:** Each screen picks its own seed: the debrief uses the run's sol count, the supply screen uses the last ration beat, and the launch tour uses the part index, so the same run sees the same fact and repeats it through a tour.
+
+---
+
 **D-045 — agent — 2026-11-10**
 **Choice:** Add one real NASA photo per landing region to the landing-site panel, and a rotating list of short NASA facts for screens that have no card of their own.
 **Why:** The landing choice was a pin on an authored map. A child can ask "what does that place actually look like?" and five real NASA images answer it, which makes the trade-off between regions concrete instead of abstract. The facts list lets base and debrief add a learning beat without a new card per screen or any invented content.

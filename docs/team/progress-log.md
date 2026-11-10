@@ -8,6 +8,36 @@ than a documented one.
 
 ---
 
+## 2026-11-10 — Rotate NASA facts onto the supply and launch screens
+
+**Did**
+
+- The supply screen now shows a rotating NASA fact while the player works the ration
+  question: `[data-supply-fact]`, set from `factFor(SUPPLY_BEATS.length)`, styled as
+  `.supply__fact`, sitting under the working line and never covering the choices.
+- The launch parts tour now shows a rotating NASA fact per part: `renderPart` sets
+  `[data-launch-parts-fact]` from `factFor(index)`.
+- No new tests: the facts were already covered by the gallery tests; the screens only
+  pick a seed.
+
+**Files**
+
+- `index.html`, `src/features/supply/{view.ts,supply.css}`,
+  `src/features/launch/{view.ts}`, `docs/team/{tasks,decisions,progress-log}.md`,
+  `docs/architecture.md`
+
+**Problems**
+
+- None blocking. `npm run check` and `npm run build` clean; `npm test` still 424 in 19
+  files. Not yet verified in a real browser; that is the next step before any commit.
+
+**Next**
+
+- Human browser pass (`TASK-049`) on the supply and launch screens, then the production
+  build browser check; then submit for the demo.
+
+---
+
 ## 2026-11-10 — Put the briefing under the astronaut artwork, one line at a time
 
 **Did**
