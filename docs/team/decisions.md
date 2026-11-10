@@ -11,6 +11,46 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+**D-052 — agent — 2026-11-10**
+**Choice:** The activity loop (D-048), the science score (D-049) and the NASA daily feed (D-050) are taken as an explicit **post-freeze scope exception**. The Nov 8 feature freeze (D-007, G-7) allowed only bug fixes; this is new gameplay, and it is recorded here rather than added quietly.
+**Why:** The demo is Nov 14-15, and a freeze that is broken without saying so is not a freeze. Writing the exception down keeps the one thing the freeze exists for — a stable, known artefact — while letting the demo show a game instead of a simulation. The exception is dated and bounded: three features, one branch, no new routes, no new runtime dependencies.
+**Rejected:** Waiting until after the demo (the change is the demo); skipping the freeze without recording it (that is how a freeze dies, and it would leave the history wrong); cutting the work back to bug fixes only (that is the status quo, which is the problem).
+**Consequence:** `docs/team/tasks.md` carries the work as TASK-062 … TASK-070 on branch `feat/daily-activities`. `docs/game-plan-update.md` is the plan of record for this pass. The freeze itself (D-007) is unchanged and still stands for everything else.
+
+---
+
+**D-051 — agent — 2026-11-10**
+**Choice:** The cosmetic `MISSIONS` array in `features/act/model.ts` is replaced by `SOL_PLANS` in `src/sim/activities.ts`: twelve real sol headlines, each carrying the three activity ids offered on that sol, aligned with the baked crisis sols (3, 5, 7, 10).
+**Why:** `MISSIONS` was ten hard-coded strings with **zero** effect on the simulation, and it disagreed with the forecast — sol 8 read "Mission 7: First Harvest" while the dust storm was actually on sol 7. A plan that drives the simulation cannot be cosmetic, and it cannot live in a feature's model when the rules that use it live in `sim/`.
+**Rejected:** Keeping `MISSIONS` and adding a second parallel table (two sources of truth, and the old one would still be wrong); moving the headlines into `features/act/model.ts` (the sim needs them, and a feature model cannot be imported by `sim/`); inventing a fourteenth and fifteenth mission (the run is twelve sols).
+**Consequence:** `act/model.ts` no longer exports `MISSIONS`; `missionHeadline` reads the plan for the sol. `sim/sol.ts` reads the same plan for the crisis-free sols, so the headline and the activity on screen cannot disagree. ISS-048 records the misalignment this fixes.
+
+---
+
+**D-050 — agent — 2026-11-10**
+**Choice:** A **live NASA daily-fact layer sits on top of** the curated gallery, never replacing it: `src/data/nasaDaily.ts` fetches NASA's Astronomy Picture of the Day filtered to Mars, one entry per sol, and falls through to the curated gallery when the request fails, labelling which was used.
+**Why:** D-042 and D-045 rejected *replacing* the curated gallery with a runtime image API, because a flaky second endpoint and unpredictable licensing mid-demo are not worth it. That reasoning still holds, and this decision does not overturn it: the curated gallery remains the guaranteed layer and the game is complete without a network. What is added is an enrichment layer that answers the question the curated gallery cannot — "what is NASA looking at *today*?" — and it follows the pattern D-037 already proved for space weather: **NASA → curated fallback, with the source always reported.**
+**Rejected:** NASA Mars Rover Photos API (it did not answer from this repository — `404` on every rover/sol tried — so it is unverified, and the one place it would have been used is the one place it must not be); replacing the curated gallery with the live feed (D-042); proxying the API through a backend (there is no backend, D-003); a second API key (the existing `VITE_NASA_API_KEY` already covers `api.nasa.gov`, so ISS-006 does not widen).
+**Consequence:** `data/nasaDaily.ts` follows the `data/README.md` contract exactly — injected `fetch` in tests, never throws, always reports its source. `dom/dailyFactLoader.ts` joins `data/` and `sim/` the way `dom/forecastLoader.ts` does, because `act` and `debrief` both want the feed and R-5 stops them importing each other. ISS-049 records the rate limiting measured against the shared `DEMO_KEY`; the fallback is what makes the demo safe without a personal key.
+
+---
+
+**D-049 — agent — 2026-11-10**
+**Choice:** Activities award **science points**. `RunState.science` totals them across the run, and the debrief shows the total and a **rank** earned from it (Explorer → Chief Martian Scientist).
+**Why:** A run whose only question is "did you survive?" is a lesson, not a game. A number to beat and a name to earn give the twelve sols a shape the player can aim at, and the activities in D-048 are the thing that moves the number — so the score and the gameplay are the same system rather than a layer on top of one.
+**Rejected:** Badges and milestones, research levels that gate activities, crew morale, and XP as a second currency — all cut for demo safety and all cheap to add on top of this score later; a score that changes survival (it must not: R-20 and the "losing is informative" half of G-4 mean losing still has to teach, not punish); a random score (a demo must repeat, so every number is derived from the log, never from `Math.random()`).
+**Consequence:** `src/sim/science.ts` holds the ranks and the progress arithmetic, pure and tested. `RunState` gains `science: number`; `SolRecord` gains `activity`. The score is shown in the `act` kicker and in a debrief callout. Badges, levels and morale stay available as later work because the score they would hang off already exists.
+
+---
+
+**D-048 — agent — 2026-11-10**
+**Choice:** Every sol has a **main activity**. On each of the eight crisis-free sols `act` offers three activities and the player picks one; the activity's cost and gain are applied by `advanceSol` and recorded on the sol. On a crisis sol the crisis **is** the activity — it replaces the activity panel exactly as D-040 describes.
+**Why:** The player had a decision on 4 of 12 sols. The other eight were *read five numbers, press "Run sol N"*, which is what made the game read as a science class rather than a game. A daily activity gives every sol a choice with a price, and the price is a real one: the activity's kWh joins the existing `extraPowerCost` path, so spending 25 kWh on a rover survey with a flat battery slows life support exactly as a black night does.
+**Rejected:** A separate planning phase (D-018, D-031 — the owner confirmed no plan phase, and this reaches the same place without a new screen); a new `activities/` route and feature folder (D-039 rejected a new route at freeze, and this needs no new route at all); letting activities stack *on top of* a crisis (D-040 — one panel, one decision, and a crisis that interrupted an activity would leave the player guessing which choice applied); free activities with no cost (a choice with no price is not a decision).
+**Consequence:** `src/sim/activities.ts` is a new pure module holding the twelve activities and the twelve sol plans; `RunState` gains `chosenActivity: string | null`, cleared when the sol resolves. `features/act/README.md` no longer says the screen is "a simulation runner, not a decision screen" — it is both. `features/act/model.ts` gains the activity rows and the score row. ISS-047 records the test gap that this area inherits.
+
+---
+
 **D-046 — agent — 2026-11-10**
 **Choice:** The briefing artwork is shown whole, locked to its own aspect ratio as the backdrop (the supply screen's stage approach), with one spoken line at a time over it, each line replacing the one before it; NEXT or Enter advances, and Enter confirms on the last line.
 **Why:** The stacked beat cards filled the screen with a growing wall of text and left the artwork out entirely. One spoken line under the picture keeps the scene and reads as something being said to you; a child who looks away misses one line rather than five.

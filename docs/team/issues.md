@@ -11,6 +11,10 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
+| ISS-050 | `architecture.md`'s module-contract table lists exports that do not exist | medium | agent | open | — |
+| ISS-049 | NASA's Astronomy Picture of the Day rejects the shared `DEMO_KEY` with a 429 | medium | agent | fixed | this branch |
+| ISS-048 | The cosmetic sol headlines did not match the forecast schedule | low | agent | fixed | this branch |
+| ISS-047 | Four `sim/` modules have no test files, and AGENTS.md's test counts are wrong | medium | agent | open | — |
 | ISS-043 | Space weather had one live source, so a DONKI outage silently replaced every run's flares with baked history | high | agent | fixed | this branch |
 | ISS-046 | The header advertised "Mission Control / Main Menu" as text, and naming's Back to Main Menu navigated to itself | medium | agent | fixed | d90e838 |
 | ISS-045 | The page title said "Under Construction" and the description called the built game a placeholder | low | agent | fixed | 559c0d6 |
@@ -951,4 +955,83 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-**Next free id: ISS-047.**
+---
+
+## ISS-050 — `architecture.md`'s module-contract table lists exports that do not exist
+
+- **Reported by:** agent, 2026-11-10, while reading the contract table before changing `sim/`.
+- **Where:** `docs/architecture.md`, the "Module contracts" table.
+- **Problem:** the table describes an older shape of the codebase. `sim/resources` is listed as exporting
+  `StoreChange`, `DrainResult` and a five-argument `drainForSol`; the real signature is
+  `drainForSol(stores, net, powerCapacity)`. `sim/modules` is listed as exporting `STARTING_MODULES`,
+  `canBuild`, `adjustedBuildCost`, `buildPreview`, `upkeepFor` and `extraBatteryCount` — none of which
+  exist. `sim/crises` is listed as exporting `decide`, which lives in `sim/sol.ts`. `sim/sol` is listed as
+  exporting `LedgerEntry` and returning a `SolResult`; the real type is `SolRecord` in `sim/run.ts` and
+  `advanceSol` returns a `RunState`. `ui/gameLoop` is listed as exporting `gameDock`, which does not exist
+  anywhere in the repository. A caller reading the table would write code that does not compile.
+- **Cause:** the table was written once and never reconciled against the code, because nothing enforces it.
+  The checker proves what a file *may* import; it says nothing about what a file exports.
+- **Fix:** not fixed in this pass beyond the rows this work touches. `sim/run`, `sim/sol`, `sim/activities`,
+  `sim/science` and `data/nasaDaily` are rewritten to match the code in the documentation commit; the
+  remaining stale rows stay open rather than being quietly corrected in a commit about something else.
+- **Pre-existing:** yes; the table has drifted since the game loop was built (2026-11-08).
+
+---
+
+## ISS-049 — NASA's Astronomy Picture of the Day rejects the shared `DEMO_KEY` with a 429
+
+- **Reported by:** agent, 2026-11-10, while probing NASA's live endpoints before designing the daily fact
+  layer.
+- **Where:** `src/data/nasaDaily.ts` (new), `api.nasa.gov/planetary/apod`.
+- **Problem:** `GET https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY` answered once with a real,
+  dated explanation, then the same endpoint returned `429` on every subsequent request, including
+  `?search=Mars`. The shared key is rate-limited in exactly the way ISS-009 describes, so the live NASA
+  daily feed has no guarantee of answering on demo night.
+- **Cause:** `DEMO_KEY` is shared by every project that has not registered a personal key (D-006). The limit
+  is reached by ordinary use, not by abuse.
+- **Fix:** the live feed is an **enrichment layer on top of** the curated gallery, never a replacement
+  (D-050). One request per session, memoised; a 4-second timeout; and on any failure the curated NASA card
+  appears with an honest line saying NASA's picture service is busy. Registering a personal key in
+  `.env.local` removes the limit — `.env.example` already documents how, and TASK-008 is still open.
+- **Pre-existing:** the rate limit is ISS-009; only the discovery that it applies to APOD as well as DONKI
+  is new.
+
+---
+
+## ISS-048 — The cosmetic sol headlines did not match the forecast schedule
+
+- **Reported by:** agent, 2026-11-10, while mapping which sol carries which decision.
+- **Where:** `src/features/act/model.ts`, the `MISSIONS` array and `missionHeadline`.
+- **Problem:** the ten headlines were spread across twelve sols by index arithmetic
+  (`Math.round(((sol - 1) / (WIN_SOL - 1)) * 9)`), so sol 8 displayed "Mission 7: First Harvest" and sol 12
+  displayed "Mission 10: Expand the Outpost". The forecast puts the dust storm on sol 7 and the second flare
+  on sol 10, so the headline a child read on the day of the storm said "First Harvest". The array had no
+  effect on the simulation at all — it was pure decoration carrying a wrong claim about the run.
+- **Cause:** the headlines were written as flavour before the forecast schedule existed, and nothing tied
+  them to it.
+- **Fix:** replaced by `SOL_PLANS` in `src/sim/activities.ts` — twelve real headlines, each carrying the
+  three activities offered on that sol, aligned with the baked crisis sols (D-051). Fixed in this branch.
+- **Pre-existing:** yes; the mismatch shipped with the game loop (2026-11-08).
+
+---
+
+## ISS-047 — Four `sim/` modules have no test files, and AGENTS.md's test counts are wrong
+
+- **Reported by:** agent, 2026-11-10, while adding the activity loop and checking what the sim was covered by.
+- **Where:** `src/sim/run.ts`, `src/sim/forecast.ts`, `src/sim/crises.ts`, `src/sim/comms.ts`; `AGENTS.md` §8.
+- **Problem:** four modules in the layer the project calls its crown jewel have **no test files at all** —
+  there is no `run.test.ts`, `forecast.test.ts`, `crises.test.ts` or `comms.test.ts` in `src/sim/`. The
+  count of nineteen test files and 424 tests is right, but AGENTS.md's per-module counts are not: it claims
+  `sim/modules.ts` has 25 tests (it has 14), `sim/resources.ts` has 18 (it has 7) and `sim/sol.ts` has 12
+  (it has 32), and it attributes 19 tests to `sim/run.ts`, which has none.
+- **Cause:** the modules were written and wired together faster than they were covered, and the document
+  counts were filled in from memory rather than counted.
+- **Fix:** `src/sim/run.test.ts` is added in this pass, because the activity loop changes the run state and
+  the run state is what it changes. The other three modules and the AGENTS.md counts stay open: correcting
+  a doc's numbers is a separate job from a feature, and the counts are corrected in the documentation
+  commit that this pass already touches.
+- **Pre-existing:** yes; the gap dates from the game loop build (2026-11-08).
+
+---
+
+**Next free id: ISS-051.**

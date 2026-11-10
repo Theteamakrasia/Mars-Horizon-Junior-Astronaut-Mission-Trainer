@@ -7,6 +7,15 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 
 | id | task | goal | owner | status | blocked by | notes |
 | --- | --- | --- | --- | --- | --- | --- |
+| TASK-070 | Cover the run state with `src/sim/run.test.ts` and correct AGENTS.md's test counts | G-3 | agent | open | — | ISS-047. The activity loop changes `RunState`, so the run state gets covered |
+| TASK-069 | Update the architecture tree, the module contracts, the game flow and the README | G-6 | agent | open | — | ISS-050. The doc matrix §5 of `AGENTS.md` requires it in the same commit as the change |
+| TASK-068 | Show the Mars Science Score, the rank and the activity breakdown in the debrief | G-4 | agent | open | — | D-049. Score, rank and a per-activity list; reuses the existing callout and stats table |
+| TASK-067 | Show NASA's live daily picture and fact in `act` | G-5 | agent | open | — | D-050. One APOD per sol, with the curated card and an honest note as the fallback |
+| TASK-066 | Add `data/nasaDaily.ts`, tag the static facts, and add `dom/dailyFactLoader.ts` | G-5 | agent | open | — | D-050, ISS-049. The `data/README.md` contract: injected fetch, never throws, always reports its source |
+| TASK-065 | Offer the daily activity in `act` and show the science score | G-4 | agent | open | — | D-048, D-049. Three activity cards, a chosen one, the score in the kicker |
+| TASK-064 | Score science points, rank the run, and apply the chosen activity in `advanceSol` | G-4 | agent | open | — | D-048, D-049. New `sim/science.ts`; `RunState.science` and `RunState.chosenActivity` |
+| TASK-063 | Add the activity catalogue and the twelve sol plans to `sim/` | G-4 | agent | open | — | D-048, D-051. New `sim/activities.ts` and `sim/topics.ts`; replaces the cosmetic `MISSIONS` array |
+| TASK-062 | Record D-048 to D-052, the post-freeze scope exception, ISS-047 to ISS-050 and this task list | G-6 | agent | open | — | D-052. `docs/game-plan-update.md` is the plan of record |
 | TASK-061 | Add rotating NASA facts to the supply and launch screens | G-7 | agent | done | - | D-045 follow-up; `factFor`, `[data-supply-fact]`, `[data-launch-parts-fact]` |
 | TASK-060 | Add a real NASA photo to every landing region and rotating NASA facts to base and debrief | G-7 | agent | done | - | D-045; `REGION_CARDS`, `FACTS`, `factFor`; five region cards and ten new tests |
 | TASK-059 | Document the NASA learning layer and read-aloud in the architecture tree and contracts | G-6 | agent | done | - | D-042, D-043, D-044; `nasaGallery`, `nasaCard`, `readAloud`, `readButton` |
@@ -97,6 +106,12 @@ ISS-043). A personal key (TASK-008) remains optional.
 
 **Sol stepping is decided: turn-based (D-030).** `advanceSol` runs on a button press in
 `act`; there is no clock abstraction and no ticker.
+
+**TASK-062 to TASK-070 are one post-freeze exception (D-052).** The Nov 8 freeze allowed
+only bug fixes. This pass adds a main activity to every sol, a science score with a rank,
+and a live NASA daily-fact layer. `docs/game-plan-update.md` is the plan of record, the
+work is on branch `feat/daily-activities`, and the exception is recorded in
+`docs/team/decisions.md` rather than taken quietly.
 
 **Task ids were duplicated before this pass.** TASK-035/036/037 each appeared twice
 (CI/deploy work and the naming/routing/cutout work). The older naming/routing/cutout rows
