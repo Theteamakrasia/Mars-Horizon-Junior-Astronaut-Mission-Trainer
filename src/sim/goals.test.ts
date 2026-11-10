@@ -1,22 +1,17 @@
 import { describe, expect, it } from 'vitest';
 
-import { createForecast } from './forecast';
 import { goalById, goalReadings, SCIENCE_GOALS } from './goals';
 import { CORE_MODULES, type ModuleKind } from './modules';
 import { newRun, startOutpost, withState, type RunState } from './run';
 import { advanceSol } from './sol';
 import { SCIENCE_TOPICS } from './topics';
+import type { ForecastEvent } from './forecast';
 
 /*
  * The five science goals are the spine of the game, so their readings are
  * facts about the outpost and not decoration. These tests pin the numbers a
  * child would read off the screen.
  */
-
-const FLARES = [
-  { classType: 'M5.0', approximate: true, when: 'in a test' },
-  { classType: 'M5.0', approximate: true, when: 'in a test' },
-];
 
 const SOLAR: readonly ModuleKind[] = ['solar-array', 'solar-array', 'batteries', 'batteries'];
 const CLOSED_LOOP: readonly ModuleKind[] = [
@@ -29,8 +24,23 @@ const CLOSED_LOOP: readonly ModuleKind[] = [
   'regolith-shield',
 ];
 
+/**
+ * A timetable with the events on known sols, so a test can point at one.
+ *
+ * The forecast is rolled per run, so a test cannot assume a storm is on sol 7
+ * or a flare on sol 3. This one puts them there.
+ */
+function fixedForecast(): readonly ForecastEvent[] {
+  return [
+    { id: 'flare-3', sol: 3, kind: 'flare', durationSols: 1, intensity: 2, summary: 'A flare.', approximate: true },
+    { id: 'supply-5', sol: 5, kind: 'supply-pod', durationSols: 1, intensity: 0, summary: 'A pod.', approximate: false },
+    { id: 'storm-7', sol: 7, kind: 'storm', durationSols: 2, intensity: 0, summary: 'A storm.', approximate: false },
+    { id: 'flare-10', sol: 10, kind: 'flare', durationSols: 1, intensity: 2, summary: 'A flare.', approximate: true },
+  ];
+}
+
 function outpost(region: string, extras: readonly ModuleKind[]): RunState {
-  const base = withState(newRun(region, 'Tester'), { forecast: createForecast(FLARES) });
+  const base = withState(newRun(region, 'Tester'), { forecast: fixedForecast() });
 
   return startOutpost(base, [...CORE_MODULES, ...extras]);
 }

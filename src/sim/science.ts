@@ -1,7 +1,7 @@
 /**
  * The science score and the rank it earns.
  *
- * Decision D-049: activities award science points, `RunState.science` totals
+ * Decision D-050: activities award science points, `RunState.science` totals
  * them across the run, and the debrief shows the total and the rank.
  *
  * This measures *science done*, not whether the run was won. A run that did a

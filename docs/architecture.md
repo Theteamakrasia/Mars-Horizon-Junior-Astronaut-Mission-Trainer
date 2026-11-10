@@ -181,15 +181,15 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         ActivityRequirement, SolPlan, ACTIVITY_CATALOGUE,
     │   │                                         SOL_PLANS, activityById, planForSol, lockedReason,
     │   │                                         offerFor, offerForSpec. The twelve activities and
-    │   │                                         the twelve sol plans (D-048, D-051). 17 tests.
+    │   │                                         the twelve sol plans (D-049, D-052). 17 tests.
     │   ├── science.ts                  complete   ScienceRank, SCIENCE_RANKS, SOL_LOG_POINTS,
     │   │                                         rankFor, rankProgress. The score and the rank
-    │   │                                         ladder (D-049). 9 tests.
+    │   │                                         ladder (D-050). 9 tests.
     │   ├── goals.ts                    complete   ScienceGoal, GoalSpec, GoalReading,
     │   │                                         GoalStatus, SCIENCE_GOALS, goalById,
     │   │                                         goalReadings. The five science goals the
     │   │                                         mission is about, and how each is doing
-    │   │                                         right now (D-055). 17 tests.
+    │   │                                         right now (D-056). 17 tests.
     │   ├── topics.ts                   complete   ScienceTopic, SCIENCE_TOPICS, TOPIC_LABEL,
     │   │                                         isScienceTopic. The vocabulary the activities and
     │   │                                         the NASA facts share.
@@ -206,18 +206,20 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         pointsSpent, extraSlots, extraModuleCount. Catalogue
     │   │                                         in `sim/` because `act` needs it and cannot import
     │   │                                         `base` (D-032). 14 tests.
-    │   ├── forecast.ts                 complete   ForecastEvent, FlareInput, DEFAULT_FLARE,
-    │   │                                         flareIntensity, createForecast, eventsStartingOn,
-    │   │                                         stormOn, stormOpacity, MIN_CLEAR_SOLS,
-    │   │                                         forecastIsSpaced. The schedule is worked out
-    │   │                                         from a list, so two events can never touch
-    │   │                                         (flare 3, pod 5, storm 7-8, flare 10); only
-    │   │                                         the flare size comes from data/.
-    │   ├── forecast.test.ts            complete   10 tests; the event spacing is asserted here
+    │   ├── forecast.ts                 complete   ForecastEvent, FlareInput, ForecastKind,
+    │   │                                         flareIntensity, createForecast(flares, seed?,
+    │   │                                         dustScore?), createSeededRandom, planEvents,
+    │   │                                         randomSolBetween, stormChance, visibleForecast,
+    │   │                                         eventsStartingOn, stormOn, stormOpacity,
+    │   │                                         MIN_CLEAR_SOLS, forecastIsSpaced. The timetable
+    │   │                                         is seeded per run (D-048) and two events can
+    │   │                                         never touch (D-054); only the flare size comes
+    │   │                                         from data/.
+    │   ├── forecast.test.ts            complete   15 tests; the event spacing is asserted here
     │   ├── crises.ts                   complete   Crisis, CrisisOption, COUNTDOWN_SECONDS,
     │   │                                         crisisForEvent, pendingCrisis, optionOf,
-    │   │                                         earthIsInTime, earthAdvice. Three forecast events
-    │   │                                         stop the clock and ask for a choice (D-029).
+    │   │                                         earthIsInTime, earthAdvice. Each forecast event
+    │   │                                         stops the clock and asks for a choice (D-029).
     │   ├── comms.ts                    complete   REAL_MIN/MAX_ONE_WAY_MINUTES, oneWayMinutes,
     │   │                                         roundTripMinutes, earthCanAnswerInTime. A
     │   │                                         simplified rising delay over the real range.
@@ -297,10 +299,11 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         resize handler, the grab lifecycle. Exports
     │   │                                         startFloatingAstronaut -> teardown. Discards deltas
     │   │                                         over 50ms.
-    │   ├── forecastLoader.ts           complete   LoadedForecast; loadForecast(signal) fetches the
-    │   │                                         flares and runs createForecast. The join between
-    │   │                                         data/ and sim/, shared by base and act without a
-    │   │                                         cross-feature import. Never rejects.
+    │   ├── forecastLoader.ts           complete   LoadedForecast; loadForecast(signal?, seed?,
+    │   │                                         dustScore?) fetches the flares and runs
+    │   │                                         createForecast. The join between data/ and sim/,
+    │   │                                         shared by base and act without a cross-feature
+    │   │                                         import. Never rejects.
     │   ├── dailyFactLoader.ts          complete   LoadedDailyFacts; loadDailyFacts(signal) fetches
     │   │                                         the NASA daily pictures. The join between data/ and
     │   │                                         sim/, shared by act and debrief without a
@@ -315,11 +318,12 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   ├── README.md                   the quarantine rules and the live-source chain
     │   ├── spaceweather.ts             complete   SpaceWeatherEvent, SpaceWeatherSource
     │   │                                         ('donki' | 'noaa' | 'fallback'),
-    │   │                                         parseFlares, parseNoaaFlares, flareRank,
-    │   │                                         strongest, fetchSpaceWeather, lastSource,
-    │   │                                         lastDetail, describeWhen. NASA DONKI ->
-    │   │                                         NOAA SWPC -> baked, in that order.
-    │   └── spaceweather.test.ts        complete   26 tests; every fetch is injected
+    │   │                                         parseFlares, parseNoaaFlares,
+    │   │                                         fetchSpaceWeather, lastSource, lastDetail,
+    │   │                                         describeWhen. NASA DONKI -> NOAA SWPC ->
+    │   │                                         an empty fallback, in that order; every
+    │   │                                         flare is kept, not just the strongest.
+    │   └── spaceweather.test.ts        complete   25 tests; every fetch is injected
     │   ├── nasaGallery.ts             complete   Twelve sol cards plus a closing card,
     │   │                                         five real region photos and forty tagged
     │   │                                         facts. Static by choice (D-042): no
@@ -331,7 +335,7 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         lastDailyDetail, resetDailyFacts, savedFactFor.
     │   │                                         NASA's Astronomy Picture of the Day, filtered to
     │   │                                         Mars. An enrichment layer on top of the saved
-    │   │                                         gallery, never a replacement (D-050). 17 tests.
+    │   │                                         gallery, never a replacement (D-051). 17 tests.
     │   ├── nasaGallery.test.ts         complete   25 tests; ids resolve, credits and links
     │   │                                         present, length caps enforced, facts wrap
     │   │                                         deterministically, every topic has facts.
@@ -368,7 +372,7 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │   │                                     questionFor, choicesFor, promptFor,
     │   │   │                                     puzzleFor. The question and its four options
     │   │   │                                     change every run, seeded from the astronaut
-    │   │   │                                     name (D-054). 64 tests.
+    │   │   │                                     name (D-055). 64 tests.
     │   │   ├── model.test.ts            complete   64 literal-input tests
     │   │   ├── view.ts                  complete   mountSupply(root, run, setRun) -> teardown
     │   │   └── supply.css               complete   beats and the ration check
@@ -416,7 +420,7 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │   │                                     scienceSentence. Pure, 20 tests.
     │   │   ├── model.test.ts            complete   20 literal-input tests
     │   │   ├── view.ts                  complete   mountAct(root, run, setRun) -> teardown.
-    │   │   │                                     Three activity cards per calm sol (D-048),
+    │   │   │                                     Three activity cards per calm sol (D-049),
     │   │   │                                     a science card in the world panel, and
     │   │   │                                     the live NASA daily picture. Run sol ->
     │   │   │                                     advanceSol; on a finished run, setRun then
@@ -548,12 +552,13 @@ because persistence is deferred (D-003).
 There are two network paths outside the landing page, both in `data/`.
 
 **Space weather.** `base` and `act` call `dom/forecastLoader` → `data/spaceweather`, which
-tries NASA DONKI, then NOAA SWPC, then baked history. The event *schedule* is still baked
-in `sim/forecast.ts` (D-033); only the flare *size* is live.
+tries NASA DONKI, then NOAA SWPC, then an empty fallback. The event *schedule* is seeded
+per run in `sim/forecast.ts` (D-048); the flare *size* is the part that comes from the
+network.
 
 **NASA's daily pictures.** `act` calls `dom/dailyFactLoader` → `data/nasaDaily`, which asks
 NASA's Astronomy Picture of the Day for Mars pictures and falls back to the saved gallery
-when NASA is busy (D-050). This is an **enrichment layer on top of** the saved gallery,
+when NASA is busy (D-051). This is an **enrichment layer on top of** the saved gallery,
 never a replacement: the game is complete without a network, and the screen always says
 which of the two it is showing.
 
@@ -586,22 +591,21 @@ returns to `landing`, which keeps running behind the mounted screen.
 | module | exports | contract |
 | --- | --- | --- |
 | `main.ts` | none (side effects) | composition root; throws on a missing element id |
-| `dom/forecastLoader` | `LoadedForecast`, `loadForecast` | `(signal?) -> Promise<LoadedForecast>`; never rejects. Fetches flares through `data/spaceweather`, then runs `sim/forecast.createForecast`. Sits in `dom/` because it joins `data/` and `sim/`, and both `base` and `act` need it without importing each other (R-5) |
+| `dom/forecastLoader` | `LoadedForecast`, `loadForecast` | `(signal?, seed = Date.now(), dustScore = NEUTRAL_SCORE.dust) -> Promise<LoadedForecast>`; never rejects. Fetches flares through `data/spaceweather`, then runs `sim/forecast.createForecast`. Sits in `dom/` because it joins `data/` and `sim/`, and both `base` and `act` need it without importing each other (R-5) |
 | `dom/dailyFactLoader` | `LoadedDailyFacts`, `loadDailyFacts` | `(signal?) -> Promise<LoadedDailyFacts>`; never rejects. Fetches NASA's daily pictures through `data/nasaDaily` and reports the source. In `dom/` for the same reason as the forecast loader: `act` and `debrief` both want it and R-5 stops them importing each other |
 | `data/spaceweather` | `SpaceWeatherEvent`, `SpaceWeatherSource` | a flare as the game uses it; source is `'donki' \| 'noaa' \| 'fallback'` |
-| | `fetchSpaceWeather` | `(options?) -> Promise<SpaceWeatherEvent[]>`; never rejects. Tries NASA DONKI, then NOAA SWPC, then `FALLBACK_FLARES`. Remembers one answer so two screens cost one request; an answer abandoned by its caller is not remembered |
+| | `fetchSpaceWeather` | `(options?) -> Promise<SpaceWeatherEvent[]>`; never rejects. Tries NASA DONKI, then NOAA SWPC, then the empty `FALLBACK_FLARES`. Every flare is kept, not just the strongest. Remembers one answer so two screens cost one request; an answer abandoned by its caller is not remembered |
 | | `parseFlares`, `parseNoaaFlares` | `(json) -> SpaceWeatherEvent[]`; validate every field and drop anything malformed rather than trusting the wire |
-| | `flareRank`, `strongest` | class ranking (X > M > C, bigger number first) and the strongest N |
 | | `lastSource`, `lastDetail`, `resetSpaceWeather` | what the UI reports; reset is for tests |
 | | `describeWhen` | `(peakTime) -> string`, e.g. `11 May 2024`; `'recently'` on a bad date |
 | `data/nasaGallery` | `NasaFigure`, `NasaCard`, `RegionCard`, `NASA_CARDS`, `NEXT_HORIZON_CARD`, `REGION_CARDS`, `NasaFact`, `FACTS` | twelve curated sol cards plus one closing artist concept; five region photos; forty tagged facts. Every card carries an id, alt text, caption, fact, credit and source link |
 | | `cardForSol`, `regionCard` | the card for a sol or a region, or `null` for one outside the run |
 | | `factFor` | `(seed) -> NasaFact`; wraps deterministically so a screen can rotate facts without `Math.random` |
-| | `factForTopic` | `(topic, seed) -> NasaFact`; the fact about one system, so an activity can show the fact about its own subject (D-050) |
+| | `factForTopic` | `(topic, seed) -> NasaFact`; the fact about one system, so an activity can show the fact about its own subject (D-051) |
 | `data/nasaDaily` | `DailyFact`, `DailyFactSource` | one live NASA picture and its story; source is `'apod' \| 'saved'` |
 | | `parseApod` | `(json) -> DailyFact[]`; every field validated, a malformed entry dropped rather than trusted |
 | | `cleanExplanation` | `(text) -> string`; flattens the whitespace, drops tomorrow's teaser, and cuts on a sentence or a word — never mid-word |
-| | `fetchDailyFacts` | `(options?) => Promise<DailyFact[]>`; never rejects, one request per session, and an empty list when NASA is busy. The enrichment layer on top of the saved gallery (D-050) |
+| | `fetchDailyFacts` | `(options?) => Promise<DailyFact[]>`; never rejects, one request per session, and an empty list when NASA is busy. The enrichment layer on top of the saved gallery (D-051) |
 | | `lastDailySource`, `lastDailyDetail`, `resetDailyFacts` | what the UI reports, and the reset for tests |
 | | `savedFactFor` | `(sol) -> DailyFact`; the saved fact to fall back on |
 | `ui/readAloud` | `canReadAloud`, `readAloud`, `stopReading` | `(text, onDone?) -> boolean`; false when unsupported or the text is empty. Starts cancel any current passage first, and `stopReading()` is safe when nothing plays. Browser speech only (D-043) |
@@ -646,10 +650,12 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `systemsFor` | `(modules, regionId) -> Systems`; the whole outpost as one object: solar, battery, load, what the crew gets and what it costs |
 | | `extrasOf`, `pointsSpent`, `extraSlots`, `extraModuleCount` | what the player built beyond the core, what it cost, and how many more would fit |
 | | `CREW_SIZE`, `SUN_HOURS`, `NIGHT_HOURS`, `OXYGEN_PER_CREW`, `WATER_PER_CREW`, `FOOD_PER_CREW` | the crew and the day; **every tuning number the sol maths uses** |
-| `sim/forecast` | `ForecastEvent`, `FlareInput`, `ForecastKind` | the four forecast events; `intensity` is 1-3 for a flare and 0 for the pod and storm |
+| `sim/forecast` | `ForecastEvent`, `FlareInput`, `ForecastKind` | the run's forecast events; `intensity` is 1-3 for a flare and 0 for the pod and storm |
 | | `flareIntensity` | `(classType) -> 1 \| 2 \| 3`; X = 3, M = 2, C and below = 1 |
-| | `createForecast` | `(flares) -> ForecastEvent[]`; the sols come from the placed schedule, so they are sols 3 / 5 / 7-8 / 10 and two events can never touch. A missing flare uses `DEFAULT_FLARE`, marked approximate. Only the size is live |
-| | `MIN_CLEAR_SOLS`, `forecastIsSpaced` | the quiet sols required between two events, and the check that a forecast honours it (D-053) |
+| | `createForecast` | `(flares, seed = DEFAULT_SEED, dustScore = NEUTRAL_SCORE.dust) -> ForecastEvent[]`; the timetable is seeded, sols 2-10, one event at a time, at least one flare and two events. Flare sizes come from the M/X pool, or from the long-run NOAA mix when it is empty |
+| | `createSeededRandom`, `planEvents`, `randomSolBetween`, `stormChance` | the pure sampler; `planEvents(random, dustScore)` decides the storm, pod and flare sols |
+| | `visibleForecast`, `WARNING_SOLS` | what the crew can see on a given sol: pod always, storm 3 sols ahead, flare 1 sol ahead |
+| | `MIN_CLEAR_SOLS`, `forecastIsSpaced` | the quiet sols required between two events, and the check that a timetable honours it (D-054) |
 | | `eventsStartingOn`, `stormOn`, `stormOpacity` | lookups over the forecast; opacity is a calm-site curve, 0.2-0.95 |
 | `sim/crises` | `Crisis`, `CrisisOption`, `COUNTDOWN_SECONDS` | the moment a forecast event stops the clock and what is asked |
 | | `crisisForEvent`, `pendingCrisis` | the crisis for a forecast event, and the one waiting before the next sol |
@@ -659,13 +665,13 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `ACTIVITY_CATALOGUE` | the twelve activities: cost, gain, science points, topic, the science goal it serves, and the build gate that can lock one |
 | | `SOL_PLANS` | the twelve sol plans: headline, subtitle, and the three activity ids offered. The schedule is fixed, so a demo repeats |
 | | `activityById`, `planForSol` | lookups; both return `null` for something unknown |
-| | `lockedReason`, `offerForSpec`, `offerFor` | whether the outpost is ready for an activity today, and the three offered on a sol (D-048) |
+| | `lockedReason`, `offerForSpec`, `offerFor` | whether the outpost is ready for an activity today, and the three offered on a sol (D-049) |
 | `sim/science` | `ScienceRank`, `SCIENCE_RANKS`, `SOL_LOG_POINTS` | the rank ladder and the point for a sol log |
 | | `rankFor` | `(points) -> ScienceRank`; never throws, a broken score is the bottom rank |
-| | `rankProgress` | `(points) -> { current, next, percent, toNext }`; the road to the next rank, with no NaN at the top (D-049) |
+| | `rankProgress` | `(points) -> { current, next, percent, toNext }`; the road to the next rank, with no NaN at the top (D-050) |
 | `sim/topics` | `ScienceTopic`, `SCIENCE_TOPICS`, `TOPIC_LABEL`, `isScienceTopic` | the vocabulary the activities and the NASA facts share, so a screen can show the fact about the system it is teaching. One topic per science goal, plus `missions` for the science that is not about a system |
 | `sim/goals` | `ScienceGoal`, `GoalSpec`, `GoalReading`, `GoalStatus` | the five science goals and one reading of each |
-| | `SCIENCE_GOALS`, `goalById` | the five goals in the order they are shown: dust storm, life support, radiation, power, food. Each carries its own question and its own NASA fact topic (D-055) |
+| | `SCIENCE_GOALS`, `goalById` | the five goals in the order they are shown: dust storm, life support, radiation, power, food. Each carries its own question and its own NASA fact topic (D-056) |
 | | `goalReadings` | `(run) => GoalReading[]`; how each goal is doing right now, worked out from the sim — the storm actually running, the panels' real output, the stores as they stand, the last sol's blackout |
 | `sim/comms` | `REAL_MIN_ONE_WAY_MINUTES`, `REAL_MAX_ONE_WAY_MINUTES` | the real 3-22 minute range, for the approximation note |
 | | `oneWayMinutes`, `roundTripMinutes`, `earthCanAnswerInTime` | a simplified rising delay over the run; labelled approximate in the UI |
@@ -715,13 +721,13 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `previewFor`, `previewSummary`, `upkeepFor`, `upcomingWarnings` | the calm-sol projection. `previewSummary` gives the five resource cards one number each, from the same projection as the sentences |
 | `features/base/view` | `mountBase` | `(root, run, setRun) -> teardown`; the outpost on Mars, the catalogue steppers, and Land & start sol 1 → `startOutpost` then `act`. Holds a mutable local `extras` so a second build is not applied to stale data; it also shows a rotating NASA fact beside the build panel from `factFor` |
 | `features/supply/model` | `SUPPLY_BEATS`, `packsFor`, `judge`, `hintFor`, `workingSentence`, `approximateTotalKg` | the ration check over `sim/modules.ts`; the crew size is read from the sim, not typed in, so it agrees with the briefing (ISS-044) |
-| | `seedFrom`, `questionFor`, `choicesFor`, `promptFor`, `puzzleFor` | the question and its four options for one run. The mission length, the answer and the button order all vary, seeded from the astronaut name so a demo repeats and a test can pin it (D-054) |
+| | `seedFrom`, `questionFor`, `choicesFor`, `promptFor`, `puzzleFor` | the question and its four options for one run. The mission length, the answer and the button order all vary, seeded from the astronaut name so a demo repeats and a test can pin it (D-055) |
 | `features/act/model` | `missionHeadline`, `meterRows`, `changeRows`, `toneFor`, `secondsLeft`, `powerSentence` | presentation helpers over `sim/sol`; `meterRows` carries `percent`, `tone` and `emoji` for the HUD |
 | | `activityRows`, `activityCosts` | the three activities offered on a sol, and what each costs and gives |
 | | `scienceSummary`, `scienceSentence` | the score, the rank, and the road to the next one |
-| `features/act/view` | `mountAct` | `(root, run, setRun) -> teardown`; three activity cards per calm sol (D-048), a science card in the world panel, and the live NASA daily picture. Run sol calls `advanceSol`, then `setRun`; a finished run navigates to `debrief`. A crisis replaces the mission panel in place, with its countdown and "take your time" switch (D-040) |
+| `features/act/view` | `mountAct` | `(root, run, setRun) -> teardown`; three activity cards per calm sol (D-049), a science card in the world panel, and the live NASA daily picture. Run sol calls `advanceSol`, then `setRun`; a finished run navigates to `debrief`. A crisis replaces the mission panel in place, with its countdown and "take your time" switch (D-040) |
 | `features/debrief/model` | `explainOutcome` | `(run) -> {headline, detail, confident}`; conservative ledger attribution — only claims a cause when a logged fact establishes it, otherwise `confident: false` and the screen points at the timeline |
-| | `scienceReport`, `scienceHeadline`, `scienceDetail`, `scienceSentence` | what science the run did, the rank it earned, and every activity the crew chose. Measures the science, not the outcome (D-049) |
+| | `scienceReport`, `scienceHeadline`, `scienceDetail`, `scienceSentence` | what science the run did, the rank it earned, and every activity the crew chose. Measures the science, not the outcome (D-050) |
 | | `consumptionSummary`, `lowestPoints`, `blackoutSols`, `reviewDecisions`, `timeline` | arithmetic over the log; per-decision verdicts from fixed option rules; one row per sol |
 | | `nextSteps`, `wentEmpty`, `usedApproximateData` | what to try next, each step tied to a fact from this run and carrying an `art` hint; the store that ended the run; whether any flare size was approximate |
 | `features/debrief/view` | `mountDebrief` | `(root, run, setRun) -> teardown`; the results panel with the Mars Science Score, and the journal as a mode reached from "View my Mars story" (D-039). "Try a new outpost" calls `newRun` then `landing-site`; it shows a rotating NASA fact next to the closing card from `factFor` |
@@ -764,7 +770,7 @@ returns a sentence naming what happened, and `lastSource()` drives the approxima
 `.env*` is git-ignored (ISS-006) and `.env.example` documents the key name without storing
 a value.
 
-`fetchDailyFacts()` is the same shape, one source shorter (D-050):
+`fetchDailyFacts()` is the same shape, one source shorter (D-051):
 
 1. **NASA's Astronomy Picture of the Day**, `api.nasa.gov/planetary/apod?search=Mars` — a
    real NASA picture and story, dated, with NASA's own credit line.
@@ -784,10 +790,10 @@ Deliberate shortcuts, and why each was accepted.
    (`forecast.ts`), crisis choices (`crises.ts`), comms delay (`comms.ts`), sol advance and
    win/loss (`sol.ts`), and `RunState` (`run.ts`). The earlier version of this file said
    there was no game state; that stopped being true when the loop was built (D-030-D-035).
-2. **The data layer is live; the forecast's timing is still baked.** `data/spaceweather.ts`
-   supplies live flare sizes, and the sols they land on (3, 5, 7, 10) are fixed in
-   `sim/forecast.ts` (D-033). All nine journey screens are built. The old "data is a stub"
-   entry applied to the pre-loop tree and is no longer accurate.
+2. **The data layer is live; the forecast's timing is seeded, not fixed.** `data/spaceweather.ts`
+   supplies live flare sizes, and `sim/forecast.ts` rolls which sols the events land on from a
+   seed (D-048). All nine journey screens are built. The old "data is a stub" entry applied to
+   the pre-loop tree and is no longer accurate.
 3. **`ui/router.ts` is wired into `main.ts`.** Its DOM half still cannot be tested without
    jsdom (ISS-013), so the pure half (`routes.ts`) carries the tests. The browser
    behaviour is unverified (TASK-049).

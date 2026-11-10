@@ -42,7 +42,7 @@ source that actually answered, so the player is never told NASA when it was NOAA
 
 ## The daily picture chain
 
-`fetchDailyFacts()` is the same idea, one source shorter (D-050):
+`fetchDailyFacts()` is the same idea, one source shorter (D-051):
 
 | # | source | endpoint | why it is here |
 | --- | --- | --- | --- |

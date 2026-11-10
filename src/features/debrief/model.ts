@@ -326,7 +326,7 @@ export interface ScienceRow {
   readonly points: number;
 }
 
-/** What the run's science amounts to (D-049). */
+/** What the run's science amounts to (D-050). */
 export interface ScienceReport {
   /** The score: every science point the run earned. */
   readonly points: number;

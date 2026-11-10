@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { pendingCrisis } from '../../sim/crises';
-import { createForecast } from '../../sim/forecast';
+import { flareIntensity, type ForecastEvent } from '../../sim/forecast';
 import { CORE_MODULES, type ModuleKind } from '../../sim/modules';
 import { newRun, startOutpost, withState, type RunState } from '../../sim/run';
 import { advanceSol, decide } from '../../sim/sol';
@@ -12,8 +12,60 @@ const FLARES = [
   { classType: 'X5.8', approximate: true, when: 'in a test' },
 ];
 
+/**
+ * A timetable with the events on known sols.
+ *
+ * The forecast is rolled per run, so a test about the debrief's reasoning cannot
+ * depend on which sols the dice picked. This one puts a flare on sol 3, a pod on
+ * sol 5, a dust storm on sols 7 and 8, and a second flare on sol 10. The gaps
+ * are the ones the planner guarantees: never two events touching.
+ */
+function fixedForecast(flares = FLARES): readonly ForecastEvent[] {
+  const first = flares[0] ?? { classType: 'M5.0', approximate: true, when: 'in a test' };
+  const second = flares[1] ?? first;
+
+  return [
+    {
+      id: 'flare-3',
+      sol: 3,
+      kind: 'flare',
+      durationSols: 1,
+      intensity: flareIntensity(first.classType),
+      summary: `A ${first.classType} solar flare is on its way.`,
+      approximate: first.approximate,
+    },
+    {
+      id: 'supply-5',
+      sol: 5,
+      kind: 'supply-pod',
+      durationSols: 1,
+      intensity: 0,
+      summary: 'A supply pod from Earth lands near the outpost.',
+      approximate: false,
+    },
+    {
+      id: 'storm-7',
+      sol: 7,
+      kind: 'storm',
+      durationSols: 2,
+      intensity: 0,
+      summary: 'A dust storm is rolling in.',
+      approximate: false,
+    },
+    {
+      id: 'flare-10',
+      sol: 10,
+      kind: 'flare',
+      durationSols: 1,
+      intensity: flareIntensity(second.classType),
+      summary: `A ${second.classType} solar flare is on its way.`,
+      approximate: second.approximate,
+    },
+  ];
+}
+
 function playOut(extras: readonly ModuleKind[], picks: Record<string, string>, flares = FLARES): RunState {
-  let run = startOutpost(withState(newRun('jezero', 'Test'), { forecast: createForecast(flares) }), [...CORE_MODULES, ...extras]);
+  let run = startOutpost(withState(newRun('jezero', 'Test'), { forecast: fixedForecast(flares) }), [...CORE_MODULES, ...extras]);
 
   while (run.status === 'active') {
     const crisis = pendingCrisis(run);
@@ -59,7 +111,7 @@ describe('explainOutcome', () => {
   });
 
   it('says when the clock ran out and the choice was made for the player', () => {
-    let run = startOutpost(withState(newRun('jezero', 'T'), { forecast: createForecast(FLARES) }), [...CORE_MODULES, 'greenhouse']);
+    let run = startOutpost(withState(newRun('jezero', 'T'), { forecast: fixedForecast() }), [...CORE_MODULES, 'greenhouse']);
 
     while (run.status === 'active') {
       const crisis = pendingCrisis(run);
@@ -170,7 +222,12 @@ describe('nextSteps', () => {
   });
 
   it('points at the supply pod that carried water, when the crew unpacked something else', () => {
-    const run = withState(endedByWater(), { decisions: [{ crisisId: 'supply-5', sol: 5, optionId: 'spares', timedOut: false }] });
+    const ended = endedByWater();
+    const pod = ended.forecast.find((event) => event.kind === 'supply-pod');
+
+    if (pod === undefined) throw new Error('No supply pod in this forecast');
+
+    const run = withState(ended, { decisions: [{ crisisId: pod.id, sol: pod.sol, optionId: 'spares', timedOut: false }] });
     const steps = nextSteps(run);
 
     expect(steps.map((step) => step.title)).toContain('Choose water from the pod');
@@ -185,7 +242,7 @@ describe('nextSteps', () => {
   });
 
   it('falls back to a harder site when nothing in the run suggests a fix', () => {
-    const strong = startOutpost(withState(newRun('jezero', 'T'), { forecast: createForecast(FLARES) }), [
+    const strong = startOutpost(withState(newRun('jezero', 'T'), { forecast: fixedForecast() }), [
       ...CORE_MODULES,
       'solar-array',
       'solar-array',
@@ -221,7 +278,7 @@ describe('the science report', () => {
   });
 
   it('lists every activity the crew chose, with what it earned', () => {
-    let run = startOutpost(withState(newRun('jezero', 'Test'), { forecast: createForecast(FLARES) }), [...CORE_MODULES, ...SOLAR]);
+    let run = startOutpost(withState(newRun('jezero', 'Test'), { forecast: fixedForecast() }), [...CORE_MODULES, ...SOLAR]);
 
     run = withState(run, { chosenActivity: 'experiment' });
     run = advanceSol(run);
@@ -235,7 +292,7 @@ describe('the science report', () => {
   });
 
   it('puts the crisis sols apart from the activity sols', () => {
-    let run = startOutpost(withState(newRun('jezero', 'Test'), { forecast: createForecast(FLARES) }), [...CORE_MODULES, ...SOLAR]);
+    let run = startOutpost(withState(newRun('jezero', 'Test'), { forecast: fixedForecast() }), [...CORE_MODULES, ...SOLAR]);
 
     for (let sol = 0; sol < 3; sol += 1) {
       const crisis = pendingCrisis(run);

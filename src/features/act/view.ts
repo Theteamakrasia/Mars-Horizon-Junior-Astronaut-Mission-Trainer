@@ -22,6 +22,7 @@ import { h } from '../../dom/h';
 import { earthAdvice, earthIsInTime, optionOf, pendingCrisis, type Crisis } from '../../sim/crises';
 import { oneWayMinutes, roundTripMinutes } from '../../sim/comms';
 import { withState, type RunState } from '../../sim/run';
+import { visibleForecast } from '../../sim/forecast';
 import { siteScore, regionById, SITE_AXES } from '../../sim/regions';
 import { advanceSol, decide, powerPicture, WIN_SOL } from '../../sim/sol';
 import { gamePanel, gameScreen, gameSection, gameWorld, moduleArt, moduleFigures, type HudStat, type SignalCard } from '../../ui/gameLoop';
@@ -144,7 +145,7 @@ export function mountAct(
   }
 
   /**
-   * Take the day's activity (D-048).
+   * Take the day's activity (D-049).
    *
    * The choice is kept on the run so the sim can apply it when the sol runs,
    * and the screen redraws so the picked card can show itself.
@@ -191,7 +192,7 @@ export function mountAct(
   }
 
   function forecastSection(state: RunState): HTMLElement {
-    const upcoming = state.forecast.filter((event) => event.sol > state.sol).slice(0, 3);
+    const upcoming = visibleForecast(state.forecast, state.sol);
     const triple = h('div', { class: 'gl__triple' });
 
     for (const event of upcoming) {
@@ -214,7 +215,7 @@ export function mountAct(
   }
 
   /**
-   * Today's three activities, and the one the player has picked (D-048).
+   * Today's three activities, and the one the player has picked (D-049).
    *
    * A locked activity is shown greyed out with the reason on it, because
    * hiding it would teach nothing: "you have no greenhouse" is the lesson.
@@ -287,7 +288,7 @@ export function mountAct(
    * The NASA picture for the sol about to run, and the fact about the system
    * the day's activity touches.
    *
-   * The live feed is enrichment (D-050): when NASA did not answer, the screen
+   * The live feed is enrichment (D-051): when NASA did not answer, the screen
    * shows the saved NASA card instead and says why, rather than pretending.
    */
   function nasaFeedSection(state: RunState): Node | false {
@@ -656,7 +657,7 @@ export function mountAct(
     loadingForecast = true;
     render();
 
-    void loadForecast(controller.signal).then((result) => {
+    void loadForecast(controller.signal, Date.now(), siteScore(run.regionId).dust).then((result) => {
       if (disposed || run === null) return;
 
       loadingForecast = false;

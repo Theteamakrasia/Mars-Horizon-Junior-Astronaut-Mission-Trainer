@@ -11,7 +11,7 @@ See `../README.md` for the layout rules.
 This screen runs a sol and shows what happened. **There is no planning phase** — see
 decision D-018, confirmed by the project owner.
 
-**But every sol now has a main activity** (D-048). On the eight calm sols the screen
+**But every sol now has a main activity** (D-049). On the eight calm sols the screen
 offers three activities and the player picks one; the activity's cost and gain are
 applied by `advanceSol`. On a crisis sol the crisis replaces the activity panel
 (D-040), so the crisis *is* that day's activity.
@@ -20,7 +20,7 @@ The difference from D-018 is deliberate and worth stating plainly, because it is
 to build the wrong thing here: **an activity is a choice inside the sol, not a planning
 phase before it.** The player never sees the coming sol's numbers before choosing, and
 there is no separate screen to plan on. A new *phase* still needs a decision recorded in
-`docs/team/decisions.md` first — an activity inside the sol has one (D-048).
+`docs/team/decisions.md` first — an activity inside the sol has one (D-049).
 
 ## The trade-off, shown with a picture instead of a paragraph
 

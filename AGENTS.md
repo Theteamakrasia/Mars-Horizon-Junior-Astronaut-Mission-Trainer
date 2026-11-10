@@ -24,19 +24,20 @@ the outpost (build modules, read the storm warning), `act` advances one sol per 
 `debrief` explains a win or loss from the per-sol ledger. The polished landing page still
 works behind it and is what BACK TO MAIN MENU returns to.
 
-**Every sol now has a main activity** (D-048). On the eight calm sols `act` offers three
+**Every sol now has a main activity** (D-049). On the eight calm sols `act` offers three
 and the player picks one; on a crisis sol the crisis replaces the activity panel, so the
 crisis *is* that day's activity. The rules are in `sim/activities.ts`, the cost and gain
 are applied by `sim/sol.ts`, and the science points they earn give the run a score and a
-rank (D-049) that the debrief reports.
+rank (D-050) that the debrief reports.
 
 What is still a **stub**: nothing in the journey. `data/spaceweather.ts` is implemented and
 live: it reads solar flares from NASA DONKI, falls through to NOAA SWPC when DONKI is
-unreachable or throttled, and finally to famous past flares marked `approximate`.
-`data/nasaDaily.ts` is live too: it reads NASA's Astronomy Picture of the Day and falls
-back to the saved gallery. There is **no save** — the run lives in memory only — and the
-forecast's *timing* is baked (`sim/forecast.ts`), so only the flare *size* comes from the
-network (D-033, D-037, D-050).
+unreachable or throttled, and finally to an empty list, from which `sim/forecast.ts`
+draws typical flares marked `approximate`. `data/nasaDaily.ts` is live too: it reads
+NASA's Astronomy Picture of the Day and falls back to the saved gallery. There is **no
+save** — the run lives in memory only — and the forecast's *timing* is rolled per run
+from a seed (`sim/forecast.ts`, D-048), so only the flare *size* comes from the network
+(D-033, D-037, D-051).
 
 **A stub is not an implementation.** If a file says STUB, calling it throws. That is
 deliberate: it fails loudly instead of silently returning `undefined`.
@@ -103,11 +104,12 @@ refresh.
 The two requests outside the landing page are both in `data/`:
 
 - **Space weather.** `base` and `act` call `dom/forecastLoader` → `data/spaceweather.ts`,
-  which tries NASA DONKI, then NOAA SWPC, then famous past flares marked approximate. The
-  event *schedule* is still baked in `sim/forecast.ts` (D-033); only the flare size is live.
+  which tries NASA DONKI, then NOAA SWPC, then an empty list, from which
+  `sim/forecast.ts` draws typical flares marked approximate. The event *schedule* is
+  rolled per run from a seed in `sim/forecast.ts` (D-048); only the flare size is live.
 - **NASA's daily pictures.** `act` calls `dom/dailyFactLoader` → `data/nasaDaily.ts`, which
   asks NASA's Astronomy Picture of the Day for Mars pictures and falls back to the saved
-  gallery in `data/nasaGallery.ts` (D-050). This is an **enrichment layer on top of** the
+  gallery in `data/nasaGallery.ts` (D-051). This is an **enrichment layer on top of** the
   saved gallery, never a replacement — the game is complete without a network, and the
   screen says which of the two it is showing.
 
@@ -191,10 +193,10 @@ opening its folder — that is the whole point of the layout.
 | Squash-and-stretch feel, spring constants | `src/sim/deform.ts` |
 | How drift and deformation combine per frame | `src/sim/frame.ts` |
 | Resource drain, power/O2/water/food/shielding | `src/sim/resources.ts` — complete, 7 tests |
-| Advancing a sol, resolving events, detecting loss | `src/sim/sol.ts` — complete, 40 tests |
+| Advancing a sol, resolving events, detecting loss | `src/sim/sol.ts` — complete, 53 tests |
 | Run state shape and progression | `src/sim/run.ts` — complete, 11 tests |
 | Module catalogue, build costs, upkeep | `src/sim/modules.ts` — complete, 14 tests |
-| The forecast, its fixed sols, flare intensity | `src/sim/forecast.ts` — 10 tests |
+| The forecast, its seeded timetable, flare intensity | `src/sim/forecast.ts` — 15 tests |
 | **Never two events back to back** | `src/sim/forecast.ts` — `MIN_CLEAR_SOLS`, `forecastIsSpaced` |
 | Crisis choices and what each one costs | `src/sim/crises.ts` |
 | **The day's activity, its cost and its gain** | `src/sim/activities.ts` — complete, 17 tests |

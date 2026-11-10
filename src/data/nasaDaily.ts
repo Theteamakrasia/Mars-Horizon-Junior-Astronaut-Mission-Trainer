@@ -1,7 +1,7 @@
 /**
  * NASA's Astronomy Picture of the Day, live.
  *
- * Decision D-050: this is an **enrichment layer on top of** the curated
+ * Decision D-051: this is an **enrichment layer on top of** the curated
  * gallery in `nasaGallery.ts`, never a replacement. D-042 rejected a runtime
  * NASA image API because a second flaky endpoint could cost the game its
  * teaching moment; that reasoning still holds, so the curated gallery stays

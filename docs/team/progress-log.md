@@ -8,6 +8,46 @@ than a documented one.
 
 ---
 
+## 2026-11-10 — Roll each mission's hazards from a seed
+
+**Did**
+
+- `sim/forecast.ts` no longer hardcodes sols 3/5/7/10. A seeded generator
+  (`createSeededRandom`) now decides per run whether a dust storm happens, how many
+  flares (1-4), whether a supply pod is scheduled, and which sols (2-10, one event at
+  a time). Flare sizes are drawn from the real M/X pool; with no live data they come
+  from the NOAA long-run M:X mix, marked `approximate`.
+- `visibleForecast` replaces "show the next three events": the pod is always visible,
+  a storm three sols ahead and a flare only one. `base`'s read-ahead card and `act`'s
+  "Coming up" panel both use it.
+- `dom/forecastLoader.loadForecast(signal?, seed?, dustScore?)` passes `Date.now()` and
+  the site's dust score, so every new mission differs.
+- `data/spaceweather.ts` returns every flare it parsed (not just the strongest two) and
+  `FALLBACK_FLARES` is empty, so an offline run draws from the long-run record instead
+  of the same two baked flares.
+
+**Files**
+
+- `src/sim/forecast.ts`, `src/dom/forecastLoader.ts`, `src/data/spaceweather.ts`,
+  `src/features/base/{model.ts,model.test.ts,view.ts}`, `src/features/act/view.ts`,
+  `src/sim/sol.test.ts`, `src/features/debrief/model.test.ts`,
+  `src/data/spaceweather.test.ts`, `docs/team/{decisions,progress-log,tasks}.md`,
+  `docs/architecture.md`, `docs/game-flow.md`, `AGENTS.md`, `README.md`,
+  `src/data/README.md`
+
+**Problems**
+
+- None blocking. `npm run check` clean; `npm test` 434 passed in 19 files. The base
+  forecast card can be empty for seeds with no pod and no storm on sols 2-3 (seed 4,
+  for example); the source project added an empty-state line, but the instruction was
+  to keep this project's copy, so it is left as-is. Not yet verified in a browser.
+
+**Next**
+
+- Human browser pass (`TASK-049`) of the new forecast, then the production build check.
+
+---
+
 ## 2026-11-11 — Name the five science goals, and show them on every sol
 
 **Did**
@@ -46,7 +86,7 @@ than a documented one.
 
 - **Two goals had a decision and three did not.** The dust storm and the flare are crises
   the player answers; life support, power and food were only numbers falling. The activity
-  loop (D-048) is what fixed that — `grow-extra`, `dig-ice`, `recycle-tune`, `air-check`
+  loop (D-049) is what fixed that — `grow-extra`, `dig-ice`, `recycle-tune`, `air-check`
   and `stack-shielding` are decisions about the three quieter goals — and naming the goals
   is what makes it obvious that they are decisions *about* something.
 - The dust facts had been filed under `power`, because dust and panels are the same
@@ -69,7 +109,7 @@ than a documented one.
 
 **Did**
 
-- **Two forecast events can never happen back to back** (D-053). The event sols used to be
+- **Two forecast events can never happen back to back** (D-054). The event sols used to be
   four typed-in constants that happened to be spaced right, so the rule was a comment rather
   than a rule. They are now worked out from a schedule: each event starts `MIN_CLEAR_SOLS`
   sols after the previous one has *ended*, so there is always a quiet sol between any two of
@@ -79,7 +119,7 @@ than a documented one.
 - `forecastIsSpaced(forecast)` is exported so the rule can be asserted, and
   `src/sim/forecast.test.ts` is new — one of the four `sim/` modules ISS-047 recorded as
   having no test file at all.
-- **The ration question changes every run** (D-054). It was fixed — two months, four crew,
+- **The ration question changes every run** (D-055). It was fixed — two months, four crew,
   three days per packet — so the answer was always 80 and the buttons were always 20, 80,
   240 and 720. A child who played twice learned the number instead of the calculation.
   The mission length now varies between six authored values, the answer moves with it, and
@@ -124,7 +164,7 @@ than a documented one.
 
 **Did**
 
-- **Every sol now has a main activity** (D-048). On the eight calm sols `act` offers three
+- **Every sol now has a main activity** (D-049). On the eight calm sols `act` offers three
   activities and the player picks one; on a crisis sol the crisis replaces the activity
   panel, so the crisis *is* that day's activity. Twelve activities, each with a real cost,
   in the new pure module `src/sim/activities.ts` alongside the twelve sol plans.
@@ -132,12 +172,12 @@ than a documented one.
   so **an activity competes with life support for the same energy**: spend 25 kWh on a
   rover survey with a flat battery and that sol runs in a blackout. No new machinery was
   needed for this — it fell out of the model that was already there.
-- **Science points and a rank** (D-049). `RunState.science` totals the points, and the new
+- **Science points and a rank** (D-050). `RunState.science` totals the points, and the new
   `src/sim/science.ts` turns the total into a rank: Explorer, Field Scientist, Research
   Lead, Senior Scientist, Chief Martian Scientist. The bands are set by what a run can
   actually earn, so a player who chose nothing is still an Explorer and the top rank is one
   good run away. The debrief reports the score, the rank and every activity the crew chose.
-- **A live NASA picture per sol** (D-050). The new `src/data/nasaDaily.ts` reads NASA's
+- **A live NASA picture per sol** (D-051). The new `src/data/nasaDaily.ts` reads NASA's
   Astronomy Picture of the Day, filtered to Mars, and falls back to the saved gallery when
   NASA is busy — an enrichment layer on top of the curated gallery, never a replacement,
   exactly as D-037 established for space weather. The static facts grew from 15 to 40 and

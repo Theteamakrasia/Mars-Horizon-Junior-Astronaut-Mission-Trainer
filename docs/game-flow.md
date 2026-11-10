@@ -82,7 +82,7 @@ are recorded and replayed by the debrief.
 
 ### The event calendar never doubles up
 
-The forecast is fixed, and **two events never happen back to back** (D-053). Each event
+The forecast is fixed, and **two events never happen back to back** (D-054). Each event
 starts `MIN_CLEAR_SOLS` sols after the previous one has *ended*, so there is always at least
 one quiet sol between any two of them:
 
@@ -140,7 +140,7 @@ water and food down.
 
 ### 3a. The five science goals
 
-Everything in the game is one of five things, and the game says so on every sol (D-055).
+Everything in the game is one of five things, and the game says so on every sol (D-056).
 The rules live in `src/sim/goals.ts`; the act screen shows the five rows and the debrief
 reports how each ended.
 
@@ -156,7 +156,7 @@ Each goal carries a NASA fact filed under a topic of its own, so the dust goal n
 shows the same fact as the power goal.
 
 ### 3b. The day's activity
-Every sol has a main activity (D-048). On the eight calm sols `act` offers three and the
+Every sol has a main activity (D-049). On the eight calm sols `act` offers three and the
 player picks one; on a crisis sol the crisis replaces the activity panel, so the crisis *is*
 that day's activity. The catalogue and the twelve sol plans live in `src/sim/activities.ts`.
 
@@ -347,12 +347,12 @@ no perfect landing spot.
 
 ## 10. Adding a new event
 
-The forecast is fixed and authored. Adding an event touches six places, in this order.
-Nothing here needs a network call; only flare *size* is live.
+The forecast's timetable is rolled per run (D-048); adding a new event *kind* touches
+six places, in this order. Nothing here needs a network call; only flare *size* is live.
 
 | Step | File | What to add |
 | --- | --- | --- |
-| 1 | `src/sim/forecast.ts` | A `ForecastKind` member, a `*_SOL` constant, one entry in `createForecast()` |
+| 1 | `src/sim/forecast.ts` | A `ForecastKind` member, a branch in `planEvents()` and a warning window in `WARNING_SOLS`, plus a builder in `createForecast()` |
 | 2 | `src/sim/run.ts` | The `SolEvent['kind']` union member, so the timeline and debrief accept it |
 | 3 | `src/sim/crises.ts` | A branch in `crisisForEvent()`: title, prompt, `urgent`, `countdownSeconds`, `windowMinutes`, `options`, `defaultOptionId`, `science` |
 | 4 | `src/sim/sol.ts` | Read `chosen(run, event.id)` in the `eventsStartingOn` loop and change `net`, `panelHealth` or `greenhousePaused` |
@@ -387,7 +387,7 @@ Before any of these: log it in `docs/team/tasks.md`, and record the design choic
 
 ## 11. Adding a new activity
 
-An activity is a choice inside a sol, not a forecast event (D-048). Adding one touches
+An activity is a choice inside a sol, not a forecast event (D-049). Adding one touches
 four places, in this order.
 
 | Step | File | What to add |

@@ -405,7 +405,7 @@ export function factFor(seed: number): NasaFact {
  * Pick a fact about one particular system.
  *
  * A screen teaching about solar panels wants a fact about solar panels, not a
- * random one — that is what the topics are for (D-050). A topic with no facts
+ * random one — that is what the topics are for (D-051). A topic with no facts
  * falls back to the first fact rather than returning nothing, so a screen
  * never has to guard against it.
  */
