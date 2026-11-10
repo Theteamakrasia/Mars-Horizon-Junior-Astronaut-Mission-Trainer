@@ -767,6 +767,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `nextSteps`, `wentEmpty`, `usedApproximateData` | what to try next, each step tied to a fact from this run and carrying an `art` hint; the store that ended the run; whether any flare size was approximate |
 | `features/debrief/view` | `mountDebrief` | `(root, run, setRun) -> teardown`; the results panel with the Mars Science Score, and the journal as a mode reached from "View my Mars story" (D-039). "Try a new outpost" calls `newRun` then `landing-site`; it shows a rotating NASA fact next to the closing card from `factFor` |
 | `features/launch/model` | `TITLE` | `'THE MISSION BEGINS'` — the card that holds before the first still |
+| | `NASA_FACT` | one real fact about the rocket itself, which no shot is about: a rocket that goes far drops its empty fuel tanks partway up. Carried in the spoken description rather than as a beat, so the reel does not slow down for it |
 | | `TITLE_DURATION_MS` | 900 — the card alone; 200ms in and out leaves 500ms of readability |
 | | `FADE_MS` | 350 — every dissolve: the title lift, each shot, the film's arrival |
 | | `SHOTS` | the two stills, press then walk, with their camera moves and alt copy |

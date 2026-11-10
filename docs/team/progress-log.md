@@ -173,6 +173,44 @@ than a documented one.
 
 ---
 
+## 2026-11-11 — Merge the last of the launch screen's NASA fact
+
+**Did**
+
+- ApurboAbir17's `mission-briefing` branch had one commit that was not in `main`
+  (`19e59c8`, "add facts to supply check and launch reel"). It was written against an
+  older `main`, so it needed unpicking rather than merging.
+- **The launch half is in.** `launch/model.ts` gains `NASA_FACT` — "a rocket that goes far
+  usually drops its empty fuel tanks partway up, which is called staging" — and the view
+  adds it to the screen's spoken description. The films and the shots carry the story for
+  anyone who cannot see them, but no shot is about the rocket itself, and the description
+  is already where the screen's whole spoken content lives, so the fact joins the text
+  rather than the beat list and the reel does not slow down for it.
+- **The supply half is not, and it is not an oversight.** That commit also added a static
+  "NASA fact" beat to `SUPPLY_BEATS` — red romaine lettuce on the space station. The
+  supply screen has since grown a *rotating* NASA fact in its corner
+  (`factFor` into `[data-supply-fact]`, D-047 and TASK-061), so merging the static beat
+  would have shown two NASA facts on one screen and slowed the beat list for a fact the
+  screen already carries.
+
+**Files**
+
+- `src/features/launch/model.ts`, `src/features/launch/view.ts`,
+  `src/features/launch/model.test.ts`
+
+**Problems**
+
+- The branch was two weeks behind `main` in content, not just in commits. Merging it
+  wholesale would have quietly undone D-047's rotating facts, which is the sort of
+  regression a fast-forward looks innocent until someone reads the screen.
+
+**Next**
+
+- Human browser pass of the launch reel's read-aloud text with the new fact in it
+  (TASK-049).
+
+---
+
 ## 2026-11-11 — Name the five science goals, and show them on every sol
 
 **Did**

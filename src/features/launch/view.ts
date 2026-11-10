@@ -55,6 +55,7 @@ import {
   DOCKING_DESCRIPTION,
   DOCKING_DURATION_MS,
   FADE_MS,
+  NASA_FACT,
   PARTS_DESCRIPTION,
   PARTS,
   PRESS_SHOT,
@@ -204,7 +205,8 @@ export function mountLaunch(
     SHOTS.map((shot) => shot.alt).join(' ') +
     ' ' + VIDEO_DESCRIPTION +
     ' ' + DOCKING_DESCRIPTION +
-    ' ' + PARTS_DESCRIPTION;
+    ' ' + PARTS_DESCRIPTION +
+    ' ' + NASA_FACT;
 
   /*
    * Drive every shot off the title's duration.
