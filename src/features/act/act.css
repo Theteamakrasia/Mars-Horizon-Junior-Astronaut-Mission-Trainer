@@ -130,6 +130,88 @@
   text-align: center;
 }
 
+/* ---------------------------------------------------- the science goals -- */
+
+.act-goals {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(4px, 0.5vw, 10px);
+}
+
+.act-goal {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: clamp(6px, 0.7vw, 14px);
+  align-items: start;
+  padding: clamp(5px, 0.6vw, 11px) clamp(7px, 0.75vw, 14px);
+  border: 1px solid var(--gl-line);
+  border-radius: clamp(8px, 0.72vw, 14px);
+  background: var(--gl-card);
+}
+
+/* The dot is the whole status: green, amber, or the warning colour. A child
+   who cannot read the line under it still sees whether a goal is in trouble. */
+.act-goal__dot {
+  width: clamp(8px, 0.85vw, 14px);
+  height: clamp(8px, 0.85vw, 14px);
+  margin-top: 0.35em;
+  border-radius: 50%;
+  background: var(--gl-green);
+}
+
+.act-goal[data-status='watch'] {
+  border-color: var(--gl-orange);
+}
+
+.act-goal[data-status='watch'] .act-goal__dot {
+  background: var(--gl-orange);
+}
+
+.act-goal[data-status='critical'] {
+  border-color: var(--gl-orange-deep);
+  background: var(--gl-peach);
+}
+
+.act-goal[data-status='critical'] .act-goal__dot {
+  background: var(--gl-orange-deep);
+}
+
+.act-goal__body {
+  min-width: 0;
+}
+
+.act-goal__title {
+  display: block;
+  color: var(--gl-ink);
+  font-family: var(--gl-display);
+  font-size: clamp(0.68rem, 0.86vw, 1.02rem);
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.act-goal__detail {
+  display: block;
+  margin-top: 0.15em;
+  color: var(--gl-ink);
+  font-size: clamp(0.6rem, 0.74vw, 0.9rem);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.act-goal__fact {
+  display: block;
+  margin-top: 0.25em;
+  color: var(--gl-muted);
+  font-size: clamp(0.54rem, 0.68vw, 0.82rem);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.act-goal__fact strong {
+  color: var(--gl-green);
+  font-weight: 900;
+}
+
 /* What the sol added and what it cost, in five small cards. */
 .act-changes {
   display: grid;

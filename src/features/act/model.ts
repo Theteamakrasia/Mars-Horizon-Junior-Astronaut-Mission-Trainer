@@ -8,6 +8,7 @@
  */
 
 import { offerFor, planForSol, type ActivitySpec, type ActivityStoreName } from '../../sim/activities';
+import { goalReadings, type GoalStatus, type ScienceGoal } from '../../sim/goals';
 import { RESOURCE_NAMES, percentOf, type ResourceName, type ResourceStores } from '../../sim/resources';
 import type { RunState } from '../../sim/run';
 import { systemsFor } from '../../sim/modules';
@@ -209,11 +210,43 @@ export function activityRows(run: RunState, sol: number): readonly ActivityRow[]
   });
 }
 
+/* ----------------------------------------------------------------- goals -- */
+
+/** One of the five science goals, read against the run as it stands. */
+export interface GoalRow {
+  readonly id: ScienceGoal;
+  /** The name the science goes by. */
+  readonly title: string;
+  /** How the goal is doing. */
+  readonly status: GoalStatus;
+  /** One line about it right now. */
+  readonly detail: string;
+  /** The topic its NASA fact is filed under. */
+  readonly topic: ScienceTopic;
+}
+
+/**
+ * The five science goals, and how each is doing.
+ *
+ * Every number in the game belongs to one of them, so naming them turns a set
+ * of falling bars into a set of things a player can think about: the dust is
+ * blocking the Sun, the flat batteries are slowing the air makers, the
+ * greenhouse is not keeping up with four appetites.
+ */
+export function goalRows(run: RunState): readonly GoalRow[] {
+  return goalReadings(run).map((reading) => ({
+    id: reading.spec.id,
+    title: reading.spec.title,
+    status: reading.status,
+    detail: reading.detail,
+    topic: reading.spec.topic,
+  }));
+}
+
 /* ---------------------------------------------------------------- science -- */
 
 /** The score, the rank it earns, and the road to the next one. */
-export interface ScienceSummary {
-  readonly points: number;
+export interface ScienceSummary {  readonly points: number;
   readonly rank: ScienceRank;
   readonly next: ScienceRank | null;
   /** 0-100 through the current band. */

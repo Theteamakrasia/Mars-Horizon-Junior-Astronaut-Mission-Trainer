@@ -7,6 +7,7 @@ import {
   activityCosts,
   activityRows,
   changeRows,
+  goalRows,
   meterRows,
   missionHeadline,
   powerSentence,
@@ -135,8 +136,35 @@ describe('the daily activity', () => {
   });
 });
 
-describe('the science score', () => {
-  it('starts at zero and the bottom rank', () => {
+describe('the five science goals', () => {
+  it('shows all five, in order, every sol', () => {
+    const rows = goalRows(run);
+
+    expect(rows).toHaveLength(5);
+    expect(rows.map((row) => row.title)).toEqual([
+      'Martian Dust Storm',
+      'Life Support',
+      'Radiation Exposure',
+      'Power Shortage',
+      'Food Production',
+    ]);
+  });
+
+  it('gives every goal a status and a line about it', () => {
+    for (const row of goalRows(run)) {
+      expect(['ok', 'watch', 'critical']).toContain(row.status);
+      expect(row.detail.length).toBeGreaterThan(10);
+    }
+  });
+
+  it('files each goal under a topic of its own, so two never share a fact', () => {
+    const topics = goalRows(run).map((row) => row.topic);
+
+    expect(new Set(topics).size).toBe(topics.length);
+  });
+});
+
+describe('the science score', () => {  it('starts at zero and the bottom rank', () => {
     const summary = scienceSummary(run);
 
     expect(summary.points).toBe(0);

@@ -32,7 +32,7 @@ import { stopReading } from '../../ui/readAloud';
 import { nextStop } from '../../ui/registry';
 import { navigate } from '../../ui/router';
 
-import { activityRows, changeRows, meterRows, missionHeadline, powerSentence, scienceSummary, secondsLeft } from './model';
+import { activityRows, changeRows, goalRows, meterRows, missionHeadline, powerSentence, scienceSummary, secondsLeft } from './model';
 
 import '../../styles/game-loop.css';
 import './act.css';
@@ -322,6 +322,45 @@ export function mountAct(
     return h('p', { class: 'gl__note', text: `NASA fact · ${fact.text} (${fact.credit})` });
   }
 
+  /**
+   * The five science goals, and how each is doing.
+   *
+   * Every number in the game belongs to one of them: the dust blocking the
+   * Sun, the air and water makers, the shielding, the batteries and the food.
+   * Naming them is what turns a set of falling bars into something a player
+   * can think about — and each goal carries a NASA fact about its own system,
+   * so the science is on the same screen as the state.
+   */
+  function goalSection(state: RunState): HTMLElement {
+    const rows = goalRows(state);
+    const list = h('div', { class: 'act-goals' });
+
+    for (const row of rows) {
+      const fact = factForTopic(row.topic, state.sol + 1);
+
+      list.append(
+        h(
+          'div',
+          { class: 'act-goal', 'data-status': row.status },
+          h('span', { class: 'act-goal__dot', 'aria-hidden': 'true' }),
+          h(
+            'div',
+            { class: 'act-goal__body' },
+            h('span', { class: 'act-goal__title', text: row.title }),
+            h('span', { class: 'act-goal__detail', text: row.detail }),
+            h('span', { class: 'act-goal__fact' }, h('strong', { text: 'Did you know? ' }), `${fact.text} (${fact.credit})`),
+          ),
+        ),
+      );
+    }
+
+    return gameSection(
+      'The five science goals',
+      list,
+      h('p', { class: 'gl__note', text: 'Every number in the game belongs to one of these five.' }),
+    );
+  }
+
   /** A normal sol: what the day costs, what is coming, what happened last. */
   function missionPanel(state: RunState): HTMLElement {
     const mission = missionHeadline(state);
@@ -357,6 +396,7 @@ export function mountAct(
       callout,
       activitySection(state),
       activityFactLine(state),
+      goalSection(state),
       gameSection('Day → Night', dayNight),
       h('p', { class: 'gl__note', text: `${region ? region.name : 'Your site'}: ${SITE_AXES.map((axis) => `${AXIS_NAMES[axis]} ${score[axis]}/5`).join(' · ')}` }),
       forecastSection(state),
