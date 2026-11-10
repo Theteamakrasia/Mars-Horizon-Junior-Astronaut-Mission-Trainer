@@ -55,7 +55,7 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 | TASK-011 | Add CI running `npm run check` + `npm test` | G-6 | agent | done | — | ISS-012. CI also validates HTML and builds |
 | TASK-012 | Self-host the Orbitron font, drop the CDN request | G-1 | unassigned | open | — | ISS-007. Needed for offline `dist/` |
 | TASK-013 | Rewrite README project-status section | G-6 | agent | done | - | ISS-001, D-041. Superseded by TASK-054 |
-| TASK-014 | One-line cleanups: stale comments, `license` field, ISS-003/ISS-004/ISS-014 | G-6 | unassigned | open | — | four separate one-liners, all unowned |
+| TASK-014 | One-line cleanups: stale comments, `license` field, ISS-003/ISS-004/ISS-014 | G-6 | agent | done | - | all four fixed in one commit |
 | TASK-015 | Resource state as pure functions in `sim/` with tests | G-4 | agent | done | — | `sim/resources.ts` + `constants.ts`, 18 tests |
 | TASK-016 | Sol advance: drain, forecast events, reachable failure | G-4 | agent | done | — | `sim/sol.ts` + ledger, 12 tests; turn-based (D-030) |
 | TASK-017 | Plan phase screen | G-4 | — | cut | — | no plan phase: act is built without one (confirmed by owner) |
@@ -64,7 +64,7 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 | TASK-020 | `src/data/` - DONKI and api.nasa.gov clients with fallbacks | G-5 | agent | done | - | ISS-008, ISS-043, D-037. DONKI -> NOAA SWPC -> baked, in that order |
 | TASK-021 | Approximate-data marker in the UI | G-5 | agent | done | - | ISS-043. The base warning, the act timeline and the debrief all mark approximate flare sizes |
 | TASK-022 | Decision on Supabase before Nov 8 | — | unassigned | open | — | D-003. **No owner.** Escalate |
-| TASK-023 | Feature freeze Nov 8 | G-7 | unassigned | open | — | |
+| TASK-023 | Feature freeze Nov 8 | G-7 | agent | done | - | passed; later work recorded as explicit scope exceptions |
 | TASK-024 | Build and verify submission artefact | G-7 | unassigned | open | — | Nov 14-15 |
 
 ## Notes

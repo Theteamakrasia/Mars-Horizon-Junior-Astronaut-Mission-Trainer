@@ -24,7 +24,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | ISS-036 | Landing-site thumbnail layers escape the panel and cover the whole screen | high | agent | fixed | this branch |
 | ISS-035 | The wrong answer gives a direction on the first attempt, which ends the thinking | low | agent | fixed | 969d1c9 |
 | ISS-034 | Wrong answer reverts on a timer before the player can read the feedback | low | agent | fixed | 0f22185, 86756ae |
-| ISS-033 | Parts tour video too fast to read, no way to look back | low | agent | open | — |
+| ISS-033 | Parts tour video too fast to read, no way to look back | low | agent | fixed | this branch |
 | ISS-032 | Launch film stutters like a slideshow on a slow connection | high | agent | fixed | 1f4c709 |
 | ISS-031 | Live production served the pre-interior bundle after the merge | high | agent | fixed | 6774e22 |
 | ISS-030 | Launch reel shows black and cuts or skips on a slow connection | high | agent | fixed | this branch |
@@ -34,7 +34,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | ISS-026 | Parts renderer put two description bars on screen at once during a dissolve | low | agent | fixed | this branch |
 | ISS-025 | Parts renderer mapped the four source filenames to the wrong parts | low | agent | fixed | this branch |
 | ISS-023 | Docking renderer first pass showed a hard black rectangle | low | agent | fixed | this branch |
-| ISS-024 | `architecture.md` file tree omits launch, briefing and supply features and their images | low | unassigned | open | — |
+| ISS-024 | `architecture.md` file tree omits launch, briefing and supply features and their images | low | agent | fixed | this branch |
 | ISS-015 | `frame.test.ts:81` fails ~40% of runs (flaky) | high | agent | fixed | adc5767 |
 | ISS-017 | `START MISSION` has no destination; next scene is a stub | medium | agent | fixed | this branch |
 | ISS-018 | Seven cinematic PNGs committed, 12 MB, never referenced | medium | agent | fixed | this branch |
@@ -236,6 +236,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 - **Where:** `src/features/launch/view.ts`, `src/features/launch/model.ts`, `index.html` (`<video data-launch-parts>`), `Assets/video/parts.mp4`
 - **Problem:** the spacecraft tour is a single 12-second video with the four part names burned into the picture. It plays too fast to read, and there is no way to look back without restarting the whole reel.
 - **Fix:** replace the `parts.mp4` beat with an interactive parts panel. Five slides — overview first, then one named part at a time — each showing the part image (from `Assets/images/parts/*.webp`, each with one part outlined in colour), the part name as text, and the part description as text. Prev / Next buttons move between slides, disabled at the boundaries; a Continue button hands off to the next screen. No auto-advance, no timed beat.
+- **Status:** fixed. The panel is built and the five slides render the named parts; the old video beat is gone. Recorded as D-036 and TASK-051.
 - **Files to change:** `src/features/launch/model.ts`, `src/features/launch/view.ts`, `src/features/launch/launch.css`, `index.html`, `src/features/launch/model.test.ts`, `docs/architecture.md`, this file.
 
 ## ISS-032 — The launch film stutters like a slideshow on a slow connection
@@ -407,6 +408,9 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 - **Cause:** the tree predates those features; the doc matrix was not followed as they landed.
 - **Status:** open. Only the new docking entries were added here; the rest of the tree is left
   as-is rather than half-fixed.
+- **Resolution (2026-11-10):** the tree now lists every built feature — `naming`, `briefing`,
+  `supply`, `launch`, `interior`, `landing-site`, `base`, `act`, `debrief` — and the asset
+  folders each one actually imports. Status: fixed.
 
 ## ISS-015 — `frame.test.ts:81` fails about 40% of runs
 
