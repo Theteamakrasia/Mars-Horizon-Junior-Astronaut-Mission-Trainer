@@ -14,7 +14,9 @@
  * whole screen.
  */
 
-import { cardForSol } from '../../data/nasaGallery';
+import { cardForSol, factForTopic } from '../../data/nasaGallery';
+import type { DailyFact } from '../../data/nasaDaily';
+import { loadDailyFacts } from '../../dom/dailyFactLoader';
 import { loadForecast } from '../../dom/forecastLoader';
 import { h } from '../../dom/h';
 import { earthAdvice, earthIsInTime, optionOf, pendingCrisis, type Crisis } from '../../sim/crises';
@@ -24,6 +26,7 @@ import { siteScore, regionById, SITE_AXES } from '../../sim/regions';
 import { advanceSol, decide, powerPicture, WIN_SOL } from '../../sim/sol';
 import { gamePanel, gameScreen, gameSection, gameWorld, moduleArt, moduleFigures, type HudStat, type SignalCard } from '../../ui/gameLoop';
 import { nasaCard } from '../../ui/nasaCard';
+import { nasaFeedCard } from '../../ui/nasaFeedCard';
 import { readButton } from '../../ui/readButton';
 import { stopReading } from '../../ui/readAloud';
 import { nextStop } from '../../ui/registry';
@@ -76,6 +79,10 @@ export function mountAct(
   let focusedCrisis: string | null = null;
   let clockNodes: { readonly bar: HTMLElement; readonly text: HTMLElement } | null = null;
   let pendingFocus: HTMLElement | null = null;
+  /* NASA's live daily pictures. Empty when NASA did not answer, and the screen
+     says so rather than showing a broken card. */
+  let dailyFacts: readonly DailyFact[] = [];
+  let dailyDetail = '';
   const controller = new AbortController();
 
   function stopTimer(): void {
@@ -276,6 +283,45 @@ export function mountAct(
     return gameSection("Today's activity", list, h('p', { class: 'gl__note', text: note }), read ?? false);
   }
 
+  /**
+   * The NASA picture for the sol about to run, and the fact about the system
+   * the day's activity touches.
+   *
+   * The live feed is enrichment (D-050): when NASA did not answer, the screen
+   * shows the saved NASA card instead and says why, rather than pretending.
+   */
+  function nasaFeedSection(state: RunState): Node | false {
+    if (dailyFacts.length === 0) {
+      return h('p', {
+        class: 'gl__note',
+        text: dailyDetail.length > 0 ? dailyDetail : 'NASA is not answering right now, so the saved NASA picture above is the one on screen.',
+      });
+    }
+
+    const fact = dailyFacts[state.sol % dailyFacts.length];
+
+    if (fact === undefined) return false;
+
+    return gameSection('From NASA today', nasaFeedCard(fact));
+  }
+
+  /**
+   * The NASA fact that matches the day's activity.
+   *
+   * A player cleaning the solar panels gets a fact about solar panels, not a
+   * random one. That is what the topics on the facts are for.
+   */
+  function activityFactLine(state: RunState): Node | false {
+    const rows = activityRows(state, state.sol + 1);
+    const row = rows.find((offer) => offer.chosen) ?? rows.find((offer) => offer.available) ?? rows[0];
+
+    if (row === undefined) return false;
+
+    const fact = factForTopic(row.topic, state.sol + 1);
+
+    return h('p', { class: 'gl__note', text: `NASA fact · ${fact.text} (${fact.credit})` });
+  }
+
   /** A normal sol: what the day costs, what is coming, what happened last. */
   function missionPanel(state: RunState): HTMLElement {
     const mission = missionHeadline(state);
@@ -310,6 +356,7 @@ export function mountAct(
     const body: (Node | false)[] = [
       callout,
       activitySection(state),
+      activityFactLine(state),
       gameSection('Day → Night', dayNight),
       h('p', { class: 'gl__note', text: `${region ? region.name : 'Your site'}: ${SITE_AXES.map((axis) => `${AXIS_NAMES[axis]} ${score[axis]}/5`).join(' · ')}` }),
       forecastSection(state),
@@ -363,6 +410,7 @@ export function mountAct(
       if (learning !== null) body.push(nasaCard(learning));
     }
 
+    body.push(nasaFeedSection(state));
     body.push(h('p', { class: 'gl__note', text: 'Sol = one Mars day. You control when it runs.' }));
 
     const go = h(
@@ -577,6 +625,16 @@ export function mountAct(
       render();
     });
   }
+
+  /* NASA's daily pictures. Fetched once for the whole session: the loader
+     remembers the answer, so the debrief costs no second request. */
+  void loadDailyFacts(controller.signal).then((result) => {
+    if (disposed) return;
+
+    dailyFacts = result.facts;
+    dailyDetail = result.detail;
+    render();
+  });
 
   return () => {
     disposed = true;
