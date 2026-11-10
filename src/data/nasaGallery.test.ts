@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { NASA_CARDS, NEXT_HORIZON_CARD, REGION_CARDS, cardForSol, factFor, FACTS, regionCard } from './nasaGallery';
+import { NASA_CARDS, NEXT_HORIZON_CARD, REGION_CARDS, cardForSol, factFor, factForTopic, FACTS, regionCard } from './nasaGallery';
+import { SCIENCE_TOPICS } from '../sim/topics';
 
 /**
  * The gallery is data, so every input here is fixed. No clock, no network and no
@@ -156,5 +157,38 @@ describe('facts', () => {
     expect(factFor(FACTS.length)).toBe(FACTS[0]);
     expect(factFor(Number.NaN)).toBe(FACTS[0]);
     expect(factFor(Number.POSITIVE_INFINITY)).toBe(FACTS[0]);
+  });
+
+  it('has at least two facts for every topic, so a screen never runs dry', () => {
+    expect(FACTS.length).toBeGreaterThanOrEqual(40);
+
+    for (const topic of SCIENCE_TOPICS) {
+      const matching = FACTS.filter((fact) => fact.topic === topic);
+
+      expect(matching.length).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  it('gives every fact a topic it recognises', () => {
+    for (const fact of FACTS) {
+      expect(SCIENCE_TOPICS).toContain(fact.topic);
+    }
+  });
+
+  it('picks a fact about the topic it was asked for', () => {
+    for (const topic of SCIENCE_TOPICS) {
+      expect(factForTopic(topic, 0).topic).toBe(topic);
+      expect(factForTopic(topic, 1).topic).toBe(topic);
+    }
+  });
+
+  it('picks the same topic fact for the same seed', () => {
+    expect(factForTopic('water', 2)).toBe(factForTopic('water', 2));
+  });
+
+  it('wraps negative and huge topic seeds instead of throwing', () => {
+    expect(factForTopic('power', -1).topic).toBe('power');
+    expect(factForTopic('food', 9999).topic).toBe('food');
+    expect(factForTopic('power', Number.NaN).topic).toBe('power');
   });
 });
