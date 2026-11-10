@@ -392,6 +392,32 @@
   line-height: 1.25;
 }
 
+/* The one card the frame wants read first: the debrief's days survived, or the
+   journal's science note. Same markup, closer to the design's larger card. */
+.gl__signal--hero {
+  gap: clamp(8px, 1vw, 20px);
+  padding: clamp(10px, 1.15vw, 22px) clamp(10px, 1.15vw, 22px);
+}
+
+.gl__signal--hero .gl__signal-icon {
+  font-size: clamp(1.3rem, 2.2vw, 2.8rem);
+}
+
+.gl__signal--hero .gl__signal-kicker {
+  font-size: clamp(0.55rem, 0.73vw, 0.9rem);
+}
+
+.gl__signal--hero .gl__signal-text {
+  margin-top: 0.2em;
+  font-size: clamp(0.86rem, 1.3vw, 1.8rem);
+  line-height: 1.18;
+}
+
+.gl__signal--hero .gl__signal-detail {
+  margin-top: 0.3em;
+  font-size: clamp(0.62rem, 0.84vw, 1.1rem);
+}
+
 .gl__hint {
   position: absolute;
   left: 50%;
@@ -534,6 +560,15 @@
   color: var(--gl-muted);
   font-size: clamp(0.62rem, 0.78vw, 0.95rem);
   font-weight: 600;
+}
+
+/* A paragraph of explanation inside a panel, at the size the frames use for it. */
+.gl__body {
+  margin: 0.25em 0 0;
+  color: var(--gl-ink);
+  font-size: clamp(0.74rem, 0.98vw, 1.2rem);
+  font-weight: 700;
+  line-height: 1.35;
 }
 
 .gl__sr-only {

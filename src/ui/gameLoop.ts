@@ -131,6 +131,8 @@ export interface SignalCard {
   readonly text: string;
   readonly detail?: string;
   readonly tone?: 'plain' | 'warn' | 'good' | 'peach';
+  /** Draws larger: the one thing the frame wants read first. */
+  readonly hero?: boolean;
 }
 
 /** Everything the world panel needs. */
@@ -139,6 +141,8 @@ export interface WorldOptions {
   readonly label: string;
   /** The weather pill under it. */
   readonly weather: string;
+  /** The glyph before the weather text. A sun unless the screen says otherwise. */
+  readonly weatherIcon?: string;
   /** What the crewmate says. */
   readonly crew: string;
   readonly crewLabel?: string;
@@ -254,7 +258,7 @@ export function gameWorld(options: WorldOptions): HTMLElement {
     'div',
     { class: 'gl__world-col' },
     h('span', { class: 'gl__location', text: options.label }),
-    h('span', { class: 'gl__weather' }, h('span', { 'aria-hidden': 'true', text: '☀' }), options.weather),
+    h('span', { class: 'gl__weather' }, h('span', { 'aria-hidden': 'true', text: options.weatherIcon ?? '☀' }), options.weather),
     h(
       'div',
       { class: 'gl__crew' },
@@ -266,10 +270,12 @@ export function gameWorld(options: WorldOptions): HTMLElement {
   const right = h('div', { class: 'gl__signals' });
 
   for (const signal of options.signals ?? []) {
+    const classes = signal.hero === true ? 'gl__signal gl__signal--hero' : 'gl__signal';
+
     right.append(
       h(
         'div',
-        { class: 'gl__signal', 'data-tone': signal.tone ?? 'plain' },
+        { class: classes, 'data-tone': signal.tone ?? 'plain' },
         h('span', { class: 'gl__signal-icon', 'aria-hidden': 'true', text: signal.icon }),
         h(
           'div',
