@@ -12,11 +12,14 @@ file is wrong. The numbers below were read from `src/sim/` on 2026-11-10.
 | --- | --- |
 | `impl` (green) | Built, wired into the journey, covered by tests |
 | `gate` (amber) | A hard stop: the journey cannot continue until this is satisfied |
-| `planned` (grey, dashed) | Wanted, **not built** — do not assume it works |
 | `terminal` (blue) | A screen you can leave the loop from |
 
 The run is turn-based: a sol advances only when the player presses the button. The only
 timer in the whole game is the 10-second crisis countdown.
+
+> GitHub renders Mermaid in the browser. If a diagram shows **"Unable to render rich
+> display"**, reload the page: the renderer occasionally times out before it draws. The
+> diagrams are kept small and few on purpose so this stays rare.
 
 ---
 
@@ -25,9 +28,9 @@ timer in the whole game is the 10-second crisis countdown.
 ```mermaid
 flowchart TD
     Naming["naming<br/>name your astronaut"]:::impl
-    Briefing["briefing<br/>why we go + the five resources"]:::impl
-    Supply["supply<br/>RATION CHECK<br/>2 months x 4 crew x 3 days per packet"]:::gate
-    Launch["launch<br/>cinematic + spacecraft tour"]:::impl
+    Briefing["briefing<br/>why we go + five resources"]:::impl
+    Supply["supply<br/>RATION CHECK"]:::gate
+    Launch["launch<br/>cinematic + tour"]:::impl
     Interior["interior<br/>visit all six rooms"]:::gate
     Site["landing-site<br/>pick 1 of 5 regions"]:::gate
     Base["base<br/>spend 14 build points"]:::gate
@@ -53,14 +56,12 @@ flowchart TD
 
     classDef impl fill:#d7f5dd,stroke:#2f7d4f,color:#12351f
     classDef gate fill:#fff2c7,stroke:#a97a00,color:#3a2b00
-    classDef planned fill:#eeeeee,stroke:#999999,color:#444444,stroke-dasharray:4 3
     classDef terminal fill:#dbe9ff,stroke:#2b5b9e,color:#10233d
 ```
 
 The landing page still renders behind the journey, but it is no longer a stop: `naming` is the
-main menu (D-021) and the default route. `landing` remains a valid deep link (`#/landing`), and
-`nextStop('naming')` goes straight to `briefing`; the under-construction interstitial is only
-inserted for a route that has no screen registered.
+main menu (D-021) and the default route. `landing` remains a valid deep link (`#/landing`),
+and `nextStop('naming')` goes straight to `briefing`.
 
 ---
 
@@ -85,74 +86,47 @@ are recorded and replayed by the debrief.
 
 ```mermaid
 flowchart TD
-    A["Press Run sol N"] --> B{"pendingCrisis(run)?"}
+    A["Press Run sol N"] --> B{"pendingCrisis<br/>(run)?"}
     B -->|"yes"| C["Open the crisis panel<br/>nothing advances yet"]
-    C --> D["decide(): record the option in decisions[]"]
+    C --> D["decide() records the choice"]
     D --> E["advanceSol()"]
     B -->|"no"| E
-    E --> F["1. Apply this sol's event choices"]
-    F --> G["2. Storm factor from the site's dust score"]
-    G --> H["3. Power by day<br/>solar + half the nuclear - load"]
-    H --> I{"battery below 0?"}
-    I -->|"yes"| J["unmet kWh recorded, level = 0"]
-    I -->|"no"| K["cap at battery capacity"]
-    J --> L["4. Power by night<br/>half the nuclear - night load"]
-    K --> L
-    L --> M["blackout = unmet / demand<br/>powered = 1 - blackout"]
-    M --> N["5. Crew and plants<br/>oxygen, water, food, shielding"]
-    N --> O["6. Clamp every store to its tank"]
-    O --> P{"a life store at 0?"}
-    P -->|"yes"| Q["status = lost"]
-    P -->|"no"| R{"sol >= 12?"}
-    R -->|"yes"| S["status = won"]
-    R -->|"no"| T["status = active"]
-    Q --> U["navigate to debrief"]
-    S --> U
-    T --> V["act re-renders"]
-    V --> A
+    E --> F["Power by day:<br/>solar + nuclear - load"]
+    F --> G{"battery below 0?"}
+    G -->|"yes"| H["unmet kWh; life support<br/>and greenhouse slow down"]
+    G -->|"no"| I["full power"]
+    H --> J["Crew and plants:<br/>oxygen, water, food, shielding"]
+    I --> J
+    J --> K{"a life store at 0?"}
+    K -->|"yes"| L["status = lost"]
+    K -->|"no"| M{"sol >= 12?"}
+    M -->|"yes"| N["status = won"]
+    M -->|"no"| A
+    L --> O["debrief"]
+    N --> O
 
     classDef impl fill:#d7f5dd,stroke:#2f7d4f,color:#12351f
     classDef gate fill:#fff2c7,stroke:#a97a00,color:#3a2b00
-    class A,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,V impl
-    class B gate
+    class A,C,D,E,F,H,I,J,L,N,O impl
+    class B,G,K,M gate
 ```
 
 Order matters and is the model: **cargo arrives, the Sun comes up, the night drains the
-batteries, and whatever power could not be found slows life support.** Everything else
-follows from how much of the sol the lights stayed on.
-
-Power is deliberately **not** a life store. A flat battery is not a loss; it causes a
-blackout, and the blackout is what runs oxygen, water and food down.
+batteries, and whatever power could not be found slows life support.** Power is deliberately
+**not** a life store: a flat battery causes a blackout, and the blackout is what runs oxygen,
+water and food down.
 
 ---
 
-## 4. How a crisis is presented and recorded
+## 4. How a crisis is presented
 
-```mermaid
-flowchart TD
-    S["Forecast event on sol + 1"] --> U{"urgent?"}
-    U -->|"flare or storm"| Clock["10 s countdown<br/>Take your time can stop it"]
-    U -->|"supply pod"| NoClock["No countdown"]
-    Clock --> Ask{"Ask Mission Control?"}
-    NoClock --> Ask
-    Ask -->|"reply arrives in time"| Advice["Earth recommends one option<br/>but does not press the button"]
-    Ask -->|"reply too late"| Alone["Only the delay is shown<br/>the crew decides alone"]
-    Advice --> Pick["Player chooses an option"]
-    Alone --> Pick
-    Clock -->|"countdown reaches 0"| Default["Default option applied<br/>timedOut = true"]
-    NoClock --> Pick
-    Default --> Record["decide()<br/>DecisionRecord { sol, crisisId, optionId, timedOut }"]
-    Pick --> Record
-    Record --> Resolve["advanceSol() applies the effect"]
-
-    classDef impl fill:#d7f5dd,stroke:#2f7d4f,color:#12351f
-    classDef gate fill:#fff2c7,stroke:#a97a00,color:#3a2b00
-    class S,Clock,NoClock,Ask,Advice,Alone,Pick,Default,Record,Resolve impl
-    class U gate
-```
-
-The comms delay makes the "ask Earth" button honest: `oneWayMinutes(sol) = min(22, 6 + sol)`,
-so the round trip is `2 x that`.
+| Fact | Value |
+| --- | --- |
+| Countdown | 10 seconds, flare and storm only; the supply pod has none |
+| "Take your time" | Stops the countdown for that crisis |
+| Timeout | The default option is applied and `timedOut = true` |
+| Earth advice | Shown only if the reply arrives before the problem does |
+| Comms delay | `oneWayMinutes(sol) = min(22, 6 + sol)`, so round trip is `2 x that` |
 
 | Crisis | Window | Round trip | Can Earth answer? |
 | --- | --- | --- | --- |
@@ -161,114 +135,62 @@ so the round trip is `2 x that`.
 | Storm on sol 7 | 10 min | 26 min | **No** |
 | Flare on sol 10 | 15 min | 32 min | **No** |
 
-That asymmetry is intentional: the fast, dangerous problems are the ones you must solve
-yourself.
+The fast, dangerous problems are the ones the crew must solve alone. The supply pod is the
+one decision there is time to ask about.
 
 ---
 
-## 5. The three crisis decision trees
-
-### 5.1 Solar flare — sol 3 and sol 10
+## 5. The three crisis decisions
 
 ```mermaid
 flowchart TD
-    E["Solar flare<br/>intensity from the live flare class<br/>X = 3, M = 2, C or below = 1"] --> Base["Shielding damage before your choice<br/>6 / 12 / 20 points"]
-    Base --> Shelter["Shelter in the storm room<br/>x0.4 -> 2 / 5 / 8 points<br/>greenhouse paused this sol"]
-    Base --> ShieldUp["Pile on extra soil<br/>x0.6 -> 4 / 7 / 12 points<br/>costs 60 kWh"]
-    Base --> Carry["Carry on working<br/>x1.0 -> 6 / 12 / 20 points<br/>default on timeout"]
+    F["Solar flare — sols 3 and 10"] --> FB["Shielding damage: 6 / 12 / 20"]
+    FB --> F1["Shelter: x0.4 → 2 / 5 / 8<br/>greenhouse paused"]
+    FB --> F2["Extra soil: x0.6 → 4 / 7 / 12<br/>costs 60 kWh"]
+    FB --> F3["Carry on: x1.0 → 6 / 12 / 20<br/>default on timeout"]
+
+    S["Dust storm — sol 7, two sols"] --> S1["Fold panels:<br/>no solar for 2 sols"]
+    S --> S2["Fold + pause greenhouse:<br/>saves 8 kW, no food"]
+    S --> S3["Leave out: some power,<br/>panelHealth -25% for good<br/>default on timeout"]
+
+    P["Supply pod — sol 5"] --> P1["+30 food"]
+    P --> P2["+30 water"]
+    P --> P3["+20 shielding<br/>panelHealth +0.2"]
 
     classDef impl fill:#d7f5dd,stroke:#2f7d4f,color:#12351f
-    classDef gate fill:#fff2c7,stroke:#a97a00,color:#3a2b00
-    class E,Base,Shelter,ShieldUp,Carry impl
+    class F,FB,F1,F2,F3,S,S1,S2,S3,P,P1,P2,P3 impl
 ```
 
-Debrief: `shelter` and `shield-up` are `solved`; `carry-on` is `caught`.
+Flare intensity comes from the live flare class: `X = 3`, `M = 2`, `C or below = 1`.
 
-### 5.2 Dust storm — sol 7, two sols long
+Debrief rules:
 
-```mermaid
-flowchart TD
-    S["Dust storm arrives on sol 7<br/>lasts sols 7 and 8"] --> O{"Panel decision"}
-    O --> R["Fold the panels away<br/>no solar power for 2 sols<br/>greenhouse keeps running"]
-    O --> RS["Fold and pause the greenhouse<br/>no solar, saves 8 kW<br/>no food grows"]
-    O --> Ex["Leave the panels out<br/>some power still comes in<br/>panelHealth -25%, permanent, floor 25%<br/>default on timeout"]
+- Flare: `shelter` and `shield-up` are `solved`; `carry-on` is `caught`.
+- Storm: `retract-save` is `solved`; `retract` is `mixed`; `expose` is `caught`.
+- Supply: no special rule, so all three stay `mixed`. Earth's advice is computed from
+  days-of-food versus days-of-water, not scripted.
 
-    classDef impl fill:#d7f5dd,stroke:#2f7d4f,color:#12351f
-    classDef gate fill:#fff2c7,stroke:#a97a00,color:#3a2b00
-    class S,R,RS,Ex impl
-    class O gate
-```
-
-Debrief: `retract-save` is `solved`, `retract` is `mixed`, `expose` is `caught`.
-
-Storm strength is site-dependent: `stormOpacity(dust) = clamp(0.95 - 0.12 x dust, 0.2, 0.95)`.
-A dust score of 5 still blocks 35%; a dust score of 2 blocks 71%.
-
-### 5.3 Supply pod — sol 5
-
-```mermaid
-flowchart TD
-    P["Supply pod lands on sol 5<br/>unpack exactly one kind"] --> F["Food<br/>+30 food"]
-    P --> W["Water<br/>+30 water"]
-    P --> Sp["Spare parts<br/>+20 shielding<br/>panelHealth +0.2, capped at 1.0"]
-
-    classDef impl fill:#d7f5dd,stroke:#2f7d4f,color:#12351f
-    classDef gate fill:#fff2c7,stroke:#a97a00,color:#3a2b00
-    class P,F,W,Sp impl
-```
-
-Debrief rules do not single out any supply option, so all three stay `mixed`. Mission
-Control's advice is computed, not scripted: it compares days-of-food against days-of-water
-and recommends whichever runs out first; if both hold, it recommends spares.
+Storm strength depends on the site:
+`stormOpacity(dust) = clamp(0.95 - 0.12 x dust, 0.2, 0.95)`. A dust score of 5 still blocks
+35%; a dust score of 2 blocks 71%.
 
 ---
 
-## 6. What the decisions actually move
+## 6. What the levers move
 
-```mermaid
-flowchart LR
-    Solar["Solar arrays<br/>25 kW each x site sun<br/>x panelHealth x stormFactor"] --> Power["power"]
-    Nuke["Nuclear unit<br/>10 kW day and night"] --> Power
-    Banks["Battery banks<br/>100 kWh each"] --> Power
-    Load["Load<br/>habitat 4 + life support 8<br/>+ greenhouse 8 + ice miner 6<br/>+ heating (5 - temp) kW"] --> Power
-    Power --> Blackout{"blackout?"}
-    Blackout -->|"yes"| Slow["life support, recycling,<br/>greenhouse, ice miner slow down"]
-    Blackout -->|"no"| Full["everything at full power"]
-    Slow --> O2["oxygen"]
-    Full --> O2
-    Slow --> H2O["water"]
-    Full --> H2O
-    Life["life support<br/>generates 14 O2, recycles 90% water"] --> O2
-    Life --> H2O
-    Ice["ice miner<br/>3 x site water points"] --> H2O
-    Green["greenhouse<br/>12 food, 5 water per sol"] --> Food["food"]
-    Green --> H2O
-    Crew["4 crew every sol<br/>3.5 O2, 2 water, 2.5 food each"] --> O2
-    Crew --> H2O
-    Crew --> Food
-    Crises["crisis choices"] --> Food
-    Crises --> H2O
-    Crises --> Shield["shielding"]
-    Erosion["1 point of erosion per sol"] --> Shield
-    Regolith["regolith shields +30 each"] --> Shield
-    O2 --> Ends{"any life store at 0?"}
-    H2O --> Ends
-    Food --> Ends
-    Shield --> Ends
-    Ends -->|"yes"| Lost["run lost"]
-    Ends -->|"no"| Alive["run continues"]
+| Lever | Improves | Costs |
+| --- | --- | --- |
+| Solar array | 25 kW while the Sun is up, x site sun x panelHealth x storm factor | 2 points; dust storms cut it |
+| Battery bank | 100 kWh of night storage | 2 points; only helps if the panels fill it |
+| Nuclear unit | 10 kW day and night, weather-proof | 4 of the 14 build points |
+| Greenhouse | 12 food per sol | 8 kW and 5 water per sol |
+| Ice miner | water = 3 x site water score | 6 kW; needs a site with water >= 3 |
+| Regolith shield | +30 starting shielding each | 2 points; needs terrain >= 2 |
+| Life support | 14 oxygen, recycles 90% of water | 8 kW, plus water for electrolysis |
+| Crisis choices | stores, panel health, or a paused greenhouse | power, food, water or shielding |
 
-    classDef impl fill:#d7f5dd,stroke:#2f7d4f,color:#12351f
-    classDef gate fill:#fff2c7,stroke:#a97a00,color:#3a2b00
-    classDef bad fill:#ffe0e0,stroke:#a33,color:#3a0000
-    class Solar,Nuke,Banks,Load,Power,Life,Ice,Green,Crew,Crises,Erosion,Regolith,O2,H2O,Food,Shield,Alive impl
-    class Blackout,Slow,Full,Ends gate
-    class Lost bad
-```
-
-The coupling is the game: every module improves one line and loads another. A greenhouse
-grows 12 food but costs 8 kW and 5 water; a nuclear unit adds 10 kW around the clock but
-costs 4 of the 14 build points.
+The coupling is the game: every module improves one line and loads another. A greenhouse grows
+food but costs power and water; a nuclear unit is reliable but eats the build budget.
 
 ---
 
@@ -278,8 +200,8 @@ costs 4 of the 14 build points.
 stateDiagram-v2
     [*] --> active: newRun / startOutpost
     active --> active: advanceSol, life stores above 0, sol below 12
-    active --> won: advanceSol reaches sol 12 with life stores above 0
-    active --> lost: advanceSol leaves oxygen, water, food or shielding at or below 0
+    active --> won: reaches sol 12 with life stores above 0
+    active --> lost: oxygen, water, food or shielding hits 0
     won --> [*]
     lost --> [*]
 ```
@@ -289,7 +211,7 @@ life (R-20).
 
 ---
 
-## 8. The five landing regions and what they change
+## 8. The five landing regions
 
 | Region | Water | Sun | Terrain | Dust | Temp | Total | Practical effect |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -302,7 +224,7 @@ life (R-20).
 Two site rules are hard gates on modules:
 
 - **Ice miner** needs `water >= 3` (rules out Olympus Mons).
-- **Regolith shield** needs `terrain >= 2` (rules out... nothing today, but the check exists).
+- **Regolith shield** needs `terrain >= 2`.
 
 Build room is `terrain + 3` extra modules. Every site totals within 1 of 17/25, so there is
 no perfect landing spot.
@@ -310,9 +232,6 @@ no perfect landing spot.
 ---
 
 ## 9. Implementation status
-
-Everything in the journey is built. The table lists the decision surface and where its
-effect lives, so a new event can copy an existing pattern.
 
 | Area | Status | Where the logic lives | Where the effect is applied |
 | --- | --- | --- | --- |
@@ -334,38 +253,19 @@ effect lives, so a new event can copy an existing pattern.
 
 ## 10. Adding a new event
 
-The forecast is fixed and authored. Adding an event touches five places, in this order.
+The forecast is fixed and authored. Adding an event touches six places, in this order.
 Nothing here needs a network call; only flare *size* is live.
-
-### 10.1 The checklist
-
-```mermaid
-flowchart TD
-    A["1. sim/forecast.ts<br/>add the kind, its sol, its summary"] --> B["2. sim/run.ts<br/>widen the SolEvent kind union if it is new"]
-    B --> C["3. sim/crises.ts<br/>crisisForEvent() branch<br/>options, default, countdown"]
-    C --> D["4. sim/sol.ts<br/>apply the effect inside advanceSol()"]
-    D --> E["5. features/debrief/model.ts<br/>verdict rule for the choice"]
-    E --> F["6. tests<br/>sim/*.test.ts + features/*/model.test.ts"]
-    F --> G["7. docs/team/decisions.md<br/>record the choice and the rejected alternative"]
-
-    classDef impl fill:#d7f5dd,stroke:#2f7d4f,color:#12351f
-    classDef planned fill:#eeeeee,stroke:#999999,color:#444444,stroke-dasharray:4 3
-    class A,B,C,D,E,F,G impl
-```
-
-### 10.2 The touchpoints, concretely
 
 | Step | File | What to add |
 | --- | --- | --- |
 | 1 | `src/sim/forecast.ts` | A `ForecastKind` member, a `*_SOL` constant, one entry in `createForecast()` |
 | 2 | `src/sim/run.ts` | The `SolEvent['kind']` union member, so the timeline and debrief accept it |
-| 3 | `src/sim/crises.ts` | A branch in `crisisForEvent()` returning title, prompt, `urgent`, `countdownSeconds`, `windowMinutes`, `options`, `defaultOptionId`, `science` |
-| 4 | `src/sim/sol.ts` | Read `chosen(run, event.id)` in the `eventsStartingOn` loop and change `net` / `panelHealth` / `greenhousePaused` |
+| 3 | `src/sim/crises.ts` | A branch in `crisisForEvent()`: title, prompt, `urgent`, `countdownSeconds`, `windowMinutes`, `options`, `defaultOptionId`, `science` |
+| 4 | `src/sim/sol.ts` | Read `chosen(run, event.id)` in the `eventsStartingOn` loop and change `net`, `panelHealth` or `greenhousePaused` |
 | 5 | `src/features/debrief/model.ts` | A `crisis.kind === ...` verdict block in `reviewDecisions()` |
-| 6 | tests | Pin the option ids and the exact store deltas; never depend on `Math.random()` |
-| 7 | `docs/team/decisions.md` | Newest first, including the **Rejected** line |
+| 6 | tests + docs | Pin the option ids and store deltas; record the choice in `docs/team/decisions.md`, including the **Rejected** line |
 
-### 10.3 Event patterns you can copy
+Event patterns you can copy:
 
 | Pattern | Copy from | Effect shape |
 | --- | --- | --- |
@@ -375,22 +275,19 @@ flowchart TD
 | Choice that repairs hardware | supply spares | `panelHealth = min(1, panelHealth + 0.2)` |
 | Choice that costs battery | flare `shield-up` | `extraPowerCost += 60` |
 
-### 10.4 Planned event ideas (not built)
+Planned ideas, none of them built:
 
-These are sketches, not commitments. None of them is in the code.
-
-| Idea | Kind | Decision it creates | Files it would touch | Cost of building |
+| Idea | Kind | Decision it creates | Files it would touch | Cost |
 | --- | --- | --- | --- | --- |
-| Communications blackout | new | Spend power to retry, or wait a sol | `forecast.ts`, `crises.ts`, `sol.ts` | Small: a store cost and a one-sol delay |
-| Micrometeorite hit | new | Patch the hull now, or seal the room and lose space | `crises.ts`, `sol.ts` | Medium: needs a new outpost state |
-| Crew illness | new | Ration medicine, or isolate and lose a worker | `crises.ts`, `sol.ts` | Medium: crew count is currently a constant |
-| Ice miner breakdown | reuse `supply-pod` shape | Repair, or run on stored water | `forecast.ts`, `crises.ts` | Small: same option/cost pattern |
-| Second supply pod | reuse `supply-pod` | Two cargo choices in one run | `forecast.ts` only | Very small: add a second entry |
-| Solar storm with a warning window | reuse `flare` + comms | Act now, or wait for a better forecast | `crises.ts`, `comms.ts` | Medium: needs a delayed resolution |
+| Communications blackout | new | Spend power to retry, or wait a sol | `forecast.ts`, `crises.ts`, `sol.ts` | Small |
+| Micrometeorite hit | new | Patch the hull now, or seal a room | `crises.ts`, `sol.ts` | Medium |
+| Crew illness | new | Ration medicine, or isolate and lose a worker | `crises.ts`, `sol.ts` | Medium |
+| Ice miner breakdown | reuse supply shape | Repair, or run on stored water | `forecast.ts`, `crises.ts` | Small |
+| Second supply pod | reuse supply shape | Two cargo choices in one run | `forecast.ts` only | Very small |
+| Warning-window solar storm | reuse flare + comms | Act now, or wait for a better forecast | `crises.ts`, `comms.ts` | Medium |
 
-Before any of these: log it in `docs/team/issues.md` or `docs/team/tasks.md`, and record the
-design choice in `docs/team/decisions.md`. A new event changes the balance, so update the
-acceptance tests too.
+Before any of these: log it in `docs/team/tasks.md`, and record the design choice in
+`docs/team/decisions.md`. A new event changes the balance, so update the acceptance tests too.
 
 ---
 

@@ -19,20 +19,26 @@ than a documented one.
   a checklist for adding a new event.
 - Marked what is built and what is not: every journey screen is built; save, login, a plan
   phase and any new event kind are not. Planned event ideas are sketches only.
-- Validated all nine Mermaid blocks by rendering each through `mermaid.ink` and checking for
-  a syntax error and for expected node text.
+- Validated the Mermaid blocks by rendering them locally. The first version had nine
+  diagrams; GitHub's renderer only drew the last few before timing out and showed "Unable to
+  render rich display" over the rest, so the page was cut back to four compact diagrams and
+  re-checked. The README now links to the map from its index and project-status section.
 
 **Files**
 
 - `docs/game-flow.md` (new)
 - `docs/architecture.md` (docs tree)
+- `README.md` (index + project-status link)
 - `docs/team/tasks.md`, `docs/team/progress-log.md`
 
 **Problems**
 
 - No Mermaid parser is installed and adding one would be a runtime dependency, so the
-  diagrams were rendered through an external service instead. The repo still has zero
-  dependencies. If that service is unavailable, the diagrams are unverified, not broken.
+  diagrams were rendered through a local headless browser and an external service instead.
+  The repo still has zero dependencies.
+- GitHub renders Mermaid client-side and silently gives up on a page with many diagrams:
+  nine diagrams produced five "Unable to render rich display" panels even though every block
+  parsed cleanly. This is a host limit, not a syntax error; four smaller diagrams avoid it.
 - The existing docs still name `sim/events.ts`, `sim/constants.ts` and `sim/balance.test.ts`,
   which do not exist; the real files are `sim/forecast.ts` and `sim/modules.ts`. The new
   map points at the real ones and does not repeat the stale names.

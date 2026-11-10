@@ -60,6 +60,7 @@ save it for the greenhouse? When a dust storm is three sols away, what do you fi
 - [NASA Data Sources](#nasa-data-sources)
 - [Kid-Friendly by Design](#kid-friendly-by-design)
 - [Project Status](#project-status)
+- [Game Flow and Decisions](docs/game-flow.md)
 - [Screenshot Index](#screenshot-index)
 - [Keep Exploring](#keep-exploring)
 
@@ -411,6 +412,9 @@ This game is built for young players first, and every decision follows from that
 ## 🛠 Project Status
 
 Release and deployment updates are tracked in the [changelog](docs/CHANGELOG.md).
+
+Every player decision, the sol loop, what is built, and where a new event plugs in are mapped
+in [docs/game-flow.md](docs/game-flow.md).
 
 **Mars Horizon is currently in the design and prototype stage.** This repository holds the
 project documentation, the game design notes and the UI mockups.
