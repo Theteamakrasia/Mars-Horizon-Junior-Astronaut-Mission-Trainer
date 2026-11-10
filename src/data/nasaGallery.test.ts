@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { NASA_CARDS, NEXT_HORIZON_CARD, cardForSol } from './nasaGallery';
+import { NASA_CARDS, NEXT_HORIZON_CARD, REGION_CARDS, cardForSol, factFor, FACTS, regionCard } from './nasaGallery';
 
 /**
  * The gallery is data, so every input here is fixed. No clock, no network and no
@@ -79,5 +79,82 @@ describe('cardForSol', () => {
     expect(cardForSol(13)).toBeNull();
     expect(cardForSol(Number.NaN)).toBeNull();
     expect(cardForSol(Number.POSITIVE_INFINITY)).toBeNull();
+  });
+});
+
+describe('REGION_CARDS', () => {
+  const REGION_IDS = ['arcadia', 'jezero', 'olympus', 'valles', 'argyre'];
+
+  it('has exactly one card for each landing region', () => {
+    expect(Object.keys(REGION_CARDS).sort()).toEqual([...REGION_IDS].sort());
+  });
+
+  it('uses a unique NASA image on every card', () => {
+    const ids = Object.values(REGION_CARDS).map((card) => card.nasaId);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('serves every image and source over https, on the same id', () => {
+    for (const card of Object.values(REGION_CARDS)) {
+      expect(card.imageUrl.startsWith('https://images-assets.nasa.gov/image/')).toBe(true);
+      expect(card.imageUrl.endsWith('.jpg')).toBe(true);
+      expect(card.imageUrl).toContain(`/${card.nasaId}/`);
+      expect(card.sourceUrl).toBe(`https://images.nasa.gov/details/${card.nasaId}`);
+    }
+  });
+
+  it('gives every card words a child can read and a credit NASA requires', () => {
+    for (const card of Object.values(REGION_CARDS)) {
+      expect(card.title.trim().length).toBeGreaterThan(0);
+      expect(card.alt.trim().length).toBeGreaterThan(0);
+      expect(card.caption.trim().length).toBeGreaterThan(0);
+      expect(card.fact.trim().length).toBeGreaterThan(0);
+      expect(card.credit.trim().length).toBeGreaterThan(0);
+      expect(card.title.length).toBeLessThanOrEqual(45);
+      expect(card.alt.length).toBeLessThanOrEqual(140);
+      expect(card.caption.length).toBeLessThanOrEqual(200);
+      expect(card.fact.length).toBeLessThanOrEqual(130);
+    }
+  });
+
+  it('says plainly when a region picture is an artist idea, not a photo', () => {
+    // Jezero's card is the one artist concept in the set; a child must not read
+    // it as a photograph of a real lake.
+    expect(REGION_CARDS.jezero?.caption.toLowerCase()).toContain('artist');
+    expect(REGION_CARDS.jezero?.caption.toLowerCase()).toContain('not a photograph');
+  });
+});
+
+describe('regionCard', () => {
+  it('returns the card for a known region', () => {
+    expect(regionCard('arcadia')).toBe(REGION_CARDS.arcadia);
+    expect(regionCard('valles')).toBe(REGION_CARDS.valles);
+  });
+
+  it('returns null for an unknown region', () => {
+    expect(regionCard('')).toBeNull();
+    expect(regionCard('atlantis')).toBeNull();
+  });
+});
+
+describe('facts', () => {
+  it('has more facts than one screen, each credited', () => {
+    expect(FACTS.length).toBeGreaterThan(10);
+
+    for (const fact of FACTS) {
+      expect(fact.text.trim().length).toBeGreaterThan(0);
+      expect(fact.credit.trim().length).toBeGreaterThan(0);
+    }
+  });
+
+  it('picks the same fact for the same seed', () => {
+    expect(factFor(3)).toBe(factFor(3));
+  });
+
+  it('wraps negative and huge seeds instead of throwing', () => {
+    expect(factFor(-1)).toBe(FACTS[FACTS.length - 1]);
+    expect(factFor(FACTS.length)).toBe(FACTS[0]);
+    expect(factFor(Number.NaN)).toBe(FACTS[0]);
+    expect(factFor(Number.POSITIVE_INFINITY)).toBe(FACTS[0]);
   });
 });

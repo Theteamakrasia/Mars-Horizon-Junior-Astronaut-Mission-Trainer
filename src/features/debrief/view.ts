@@ -11,7 +11,7 @@
  * its own.
  */
 
-import { NEXT_HORIZON_CARD } from '../../data/nasaGallery';
+import { NEXT_HORIZON_CARD, factFor } from '../../data/nasaGallery';
 import { lastDetail, lastSource } from '../../data/spaceweather';
 import { h } from '../../dom/h';
 import { newRun, type RunState } from '../../sim/run';
@@ -224,6 +224,7 @@ export function mountDebrief(
         outcome,
         whatHappened,
         gameSection('Next time, try…', tips(steps)),
+        gameSection('NASA fact', h('p', { class: 'gl__note', text: `${factFor(consumptionSummary(state).sols).text} (${factFor(consumptionSummary(state).sols).credit})` })),
         nasaCard(NEXT_HORIZON_CARD, 'A real NASA idea · Where this could lead'),
       ],
       footer: [replay, h('div', { class: 'debrief__links' }, journalLink, menuLink)],

@@ -331,6 +331,15 @@
   opacity: 1;
 }
 
+/* The real NASA picture of the chosen region. */
+.landing-site__nasa {
+  margin: 0 0 0.75rem;
+}
+
+.landing-site__nasa[hidden] {
+  display: none;
+}
+
 .landing-site__actions {
   margin-top: auto;
   padding-top: 0.75rem;

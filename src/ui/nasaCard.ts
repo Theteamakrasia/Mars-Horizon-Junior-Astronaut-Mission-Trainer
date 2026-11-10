@@ -10,7 +10,7 @@
  * caption, the fact and the NASA link stay either way.
  */
 
-import type { NasaCard } from '../data/nasaGallery';
+import type { NasaFigure } from '../data/nasaGallery';
 import { h } from '../dom/h';
 import { readButton } from './readButton';
 
@@ -19,13 +19,13 @@ import './nasa-card.css';
 /**
  * A figure, its picture, and the words that make it a lesson.
  *
- * `kicker` overrides the "Sol N" label for cards shown outside the sol loop,
- * such as the closing card on the debrief.
+ * Works for a sol card, a region card, or the closing card: the only difference
+ * is the kicker. It defaults to the sol when the card has one, and to a plain
+ * NASA label when it does not.
  */
-export function nasaCard(
-  card: NasaCard,
-  kicker = `A real picture from NASA · Sol ${card.sol}`,
-): HTMLElement {
+export function nasaCard(card: NasaFigure, kicker?: string): HTMLElement {
+  const label = kicker ?? ('sol' in card ? `A real picture from NASA · Sol ${card.sol}` : 'A real picture from NASA');
+
   const image = h('img', {
     class: 'nasa-card__img',
     src: card.imageUrl,
@@ -67,7 +67,7 @@ export function nasaCard(
   const body = h(
     'figcaption',
     { class: 'nasa-card__body' },
-    h('p', { class: 'nasa-card__kicker', text: kicker }),
+    h('p', { class: 'nasa-card__kicker', text: label }),
     h('p', { class: 'nasa-card__title', text: card.title }),
     h('p', { class: 'nasa-card__caption', text: card.caption }),
     h('p', { class: 'nasa-card__fact' }, h('strong', { text: 'Did you know? ' }), card.fact),

@@ -15,10 +15,14 @@
  * here, and a credit line is never removed.
  */
 
-/** One learning card, tied to the sol it appears after. */
-export interface NasaCard {
-  /** The sol this card follows: 1-12. */
-  readonly sol: number;
+/**
+ * Everything every NASA figure needs, whether it belongs to a sol or a region.
+ *
+ * `sol` and `regionId` are deliberately separate fields on separate interfaces
+ * rather than one optional pair: a card that claims to be for sol 4 must say
+ * so, and a region card must not be able to lie about which sol it follows.
+ */
+export interface NasaFigure {
   /** NASA's image id, e.g. `PIA21958`. Also the last part of the details URL. */
   readonly nasaId: string;
   /** Headline on the card. Short enough for a child to read at a glance. */
@@ -35,6 +39,18 @@ export interface NasaCard {
   readonly imageUrl: string;
   /** The image's page on images.nasa.gov. */
   readonly sourceUrl: string;
+}
+
+/** One learning card, tied to the sol it appears after. */
+export interface NasaCard extends NasaFigure {
+  /** The sol this card follows: 1-12. */
+  readonly sol: number;
+}
+
+/** One learning card for a landing region. */
+export interface RegionCard extends NasaFigure {
+  /** The `Region.id` this card illustrates, e.g. `jezero`. */
+  readonly regionId: string;
 }
 
 /** Build the stable asset URL. `small` is about 640px wide, enough for a card. */
@@ -224,3 +240,128 @@ export function cardForSol(sol: number): NasaCard | null {
 
   return NASA_CARDS[whole - 1] ?? null;
 }
+
+/**
+ * One real NASA picture per landing region, so the choice the player is making
+ * is a real place rather than a dot on a map.
+ *
+ * Every id here was checked against NASA's image API, and the caption says when
+ * the picture is an artist's idea rather than a photograph.
+ */
+export const REGION_CARDS: Readonly<Record<string, RegionCard>> = {
+  arcadia: {
+    regionId: 'arcadia',
+    nasaId: 'PIA22377',
+    title: 'Arcadia Planitia',
+    alt: 'Rounded hills and long ridges on the flat plains of Arcadia Planitia.',
+    caption: 'Arcadia Planitia is a flat northern plain with ice buried under the surface. NASA orbiters photographed these rounded hills and ridges.',
+    fact: 'There is so much buried ice here that a future crew could dig for water.',
+    credit: 'NASA/JPL-Caltech/ASU',
+    imageUrl: assetUrl('PIA22377'),
+    sourceUrl: sourceUrl('PIA22377'),
+  },
+  jezero: {
+    regionId: 'jezero',
+    nasaId: 'PIA24172',
+    title: 'Jezero Crater, long ago',
+    alt: "An artist's idea of Jezero Crater filled with a lake, with rivers flowing in and out.",
+    caption: 'Jezero Crater held a lake billions of years ago. This is an artist picture of what it may have looked like, not a photograph.',
+    fact: 'NASA landed the Perseverance rover here in 2021 to look for signs of ancient life.',
+    credit: 'NASA/JPL-Caltech',
+    imageUrl: assetUrl('PIA24172'),
+    sourceUrl: sourceUrl('PIA24172'),
+  },
+  olympus: {
+    regionId: 'olympus',
+    nasaId: 'PIA00300',
+    title: 'Olympus Mons',
+    alt: 'A huge flat-topped volcano rising above the surrounding plains of Mars.',
+    caption: 'Olympus Mons is the tallest volcano in the solar system. It is about 22 kilometres high, more than twice as tall as Mount Everest.',
+    fact: 'The cliff around the volcano is so tall that a day on Mars would not be long enough to climb it.',
+    credit: 'NASA/JPL/USGS',
+    imageUrl: assetUrl('PIA00300'),
+    sourceUrl: sourceUrl('PIA00300'),
+  },
+  valles: {
+    regionId: 'valles',
+    nasaId: 'PIA06926',
+    title: 'Valles Marineris',
+    alt: 'A huge canyon system stretching across Mars, with layered walls and landslides.',
+    caption: 'Valles Marineris is a canyon system more than 4,000 kilometres long. It would stretch almost all the way across the United States.',
+    fact: 'Earth\'s Grand Canyon would fit inside Valles Marineris many times over.',
+    credit: 'NASA/JPL/Arizona State University',
+    imageUrl: assetUrl('PIA06926'),
+    sourceUrl: sourceUrl('PIA06926'),
+  },
+  argyre: {
+    regionId: 'argyre',
+    nasaId: 'PIA08067',
+    title: 'Argyre Basin',
+    alt: 'A wide impact basin on Mars seen from orbit, with lighter and darker ground.',
+    caption: 'Argyre is a giant impact basin in the southern highlands. Scientists think it may once have held water.',
+    fact: 'Argyre Basin is about 1,800 kilometres across, wider than the whole island of Hawaii.',
+    credit: 'NASA/JPL/MSSS',
+    imageUrl: assetUrl('PIA08067', 'small'),
+    sourceUrl: sourceUrl('PIA08067'),
+  },
+};
+
+/** The card for a landing region, or `null` for an unknown id. */
+export function regionCard(regionId: string): RegionCard | null {
+  return REGION_CARDS[regionId] ?? null;
+}
+
+/** A short NASA fact a screen can show beside its own numbers. */
+export interface NasaFact {
+  readonly text: string;
+  readonly credit: string;
+}
+
+/** The first fact is also the fallback, so `factFor` can never return undefined. */
+const FIRST_FACT: NasaFact = {
+  text: 'A day on Mars, called a sol, is 24 hours and 39 minutes long.',
+  credit: 'NASA',
+};
+
+/**
+ * Short, surprising NASA facts for the screens that have no card of their own.
+ *
+ * Kept separate from the cards because these rotate rather than follow a sol:
+ * the same screen can show a different fact each run without inventing one.
+ */
+export const FACTS: readonly NasaFact[] = [
+  FIRST_FACT,
+  { text: 'A year on Mars lasts 687 Earth days, almost twice as long as an Earth year.', credit: 'NASA' },
+  { text: 'Mars has two small moons, Phobos and Deimos. Phobos is so close that it rises and sets twice in one sol.', credit: 'NASA/JPL' },
+  { text: 'The tallest volcano in the solar system, Olympus Mons, is about 22 kilometres high.', credit: 'NASA/JPL/USGS' },
+  { text: 'Martian dust is so fine that it makes the sunset on Mars look blue.', credit: 'NASA/JPL-Caltech' },
+  { text: 'Sometimes a dust storm on Mars grows so large that it covers the whole planet.', credit: 'NASA/JPL-Caltech/MSSS' },
+  { text: 'NASA\'s Curiosity rover found evidence that Mars once had rivers and lakes.', credit: 'NASA/JPL-Caltech' },
+  { text: 'Almost all the water on Mars today is frozen, in the polar ice caps and underground.', credit: 'NASA/JPL-Caltech/ASU' },
+  { text: 'The red colour of Mars comes from rusty iron in its dust.', credit: 'NASA/JPL' },
+  { text: 'Mars is about half as wide as Earth.', credit: 'NASA' },
+  { text: 'Perseverance carried a small helicopter called Ingenuity that flew in the thin Martian air.', credit: 'NASA/JPL-Caltech' },
+  { text: 'The air on Mars is about 95% carbon dioxide, so crews must bring their own oxygen.', credit: 'NASA/JPL-Caltech' },
+  { text: 'Valles Marineris is more than 4,000 kilometres long.', credit: 'NASA/JPL/Arizona State University' },
+  { text: 'Mars has no global magnetic field, so crews will need shielding from space radiation.', credit: 'NASA/JPL-Caltech/SwRI' },
+  { text: 'The sun\'s solar wind stripped away much of Mars\'s air a long time ago.', credit: 'NASA/GSFC' },
+];
+
+/**
+ * Pick a fact from a number, so a screen can rotate facts without `Math.random`.
+ *
+ * A seed is usually the sol, the run length or the region index: the same run
+ * sees the same fact, which keeps the screen repeatable in a demo and in tests.
+ * Negative and huge seeds are wrapped rather than throwing.
+ */
+export function factFor(seed: number): NasaFact {
+  const count = FACTS.length;
+
+  if (!Number.isFinite(seed)) return FIRST_FACT;
+
+  const wrapped = ((Math.trunc(seed) % count) + count) % count;
+  const found = FACTS[wrapped];
+
+  return found ?? FIRST_FACT;
+}
+
