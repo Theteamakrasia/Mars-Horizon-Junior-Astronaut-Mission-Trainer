@@ -1,9 +1,9 @@
 # `src/features/` — one folder per screen
 
-**This folder is empty of code.** Nothing here is implemented. Each screen folder
-appears in the repository with a README like this one, and is filled in by whoever picks
-up its task. A folder existing does not mean the screen is built — check `model.ts` and
-`view.ts` for that.
+Every journey screen is built. The folder layout is the map: open the screen's folder
+and its `README.md` says what it is meant to contain. A folder existing still does not
+mean the screen is complete — check `model.ts` and `view.ts` for that — but there are
+no stubs left.
 
 ## Layout contract
 
@@ -34,23 +34,26 @@ Two rules are conventions, not enforced — do not forget them:
 - **Feature CSS is imported by your own `view.ts`.** Never add a line to
   `src/style.css` — that file is the landing page's, and it becomes a merge magnet.
 
-## Screens in scope before the Nov 8 feature freeze
+## Screens
 
-| folder | screen | task |
+| folder | screen | state |
 | --- | --- | --- |
-| `landing-site/` | choose a landing region | TASK-028 |
-| `base/` | establish the outpost | TASK-029 |
-| `act/` | advance a sol, resolve a mission | TASK-030 |
-| `debrief/` | explain the outcome | TASK-031 |
+| `naming/` | main menu, name entry, rotating stage | built (TASK-043) |
+| `briefing/` | mission briefing, one beat at a time | built |
+| `supply/` | ration check | built |
+| `launch/` | launch reel and parts tour | built |
+| `interior/` | exploration rooms | built |
+| `landing-site/` | choose a landing region | built (TASK-028) |
+| `base/` | establish the outpost | built (TASK-029) |
+| `act/` | advance a sol, resolve a crisis | built (TASK-030) |
+| `debrief/` | explain the outcome | built (TASK-031) |
 
 **There is deliberately no `plan/`.** The act screen is built without a planning phase —
 confirmed by the project owner and recorded as decision D-018. Do not add one unasked.
 
 ## Start here
 
-`landing-site/` is the best first task: one folder, no dependency on the resource model,
-and its rules are fully specified by the project README.
-
-The pure simulation those screens share — five resources with per-sol drain, advancing a
-sol, and the `RunState` shape — lives in `src/sim/resources.ts`, `src/sim/sol.ts` and
-`src/sim/run.ts`. **Those do not exist yet either.**
+All nine screens are built and the pure simulation behind them is complete:
+`src/sim/resources.ts`, `src/sim/sol.ts`, `src/sim/run.ts` and `src/sim/forecast.ts`.
+Pick up an open task from `docs/team/tasks.md`; every journey screen is wired into
+`src/ui/registry.ts`, which is the only file permitted to import a feature's `view.ts`.

@@ -19,7 +19,7 @@ than eyeballed, and it is what `npm run check` protects.
 
 ## The invariant, and why it is enforced
 
-401 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
+414 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
 reference it would still work, and the cost would surface later as an untestable bug.
 Enforced as `no-dom-in-pure-zone`.
 
@@ -217,13 +217,30 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         navigate(route). Reads location.hash, listens for
     │   │                                         hashchange, normalises an unknown hash to the
     │   │                                         default via replaceState, and mounts/unmounts
-    │   │                                         exactly one screen. Wired into `main.ts`.
+    │   │                                         exactly one screen. Stops any read-aloud before
+    │   │                                         a route change. Wired into `main.ts`.
     │   │                                         DOM behaviour UNVERIFIED in a browser.
     │   ├── button-strip.ts             complete   createButtonStrip(root, options) -> ButtonStripSpec;
     │   │                                         full-width fixed-height bottom strip owning Next /
     │   │                                         Prev / action buttons; teardown mandatory.
     │   ├── button-strip.css            complete   structural styles only (flex row, gap, padding);
     │   │                                         features theme colours in their own CSS.
+    │   ├── readAloud.ts               complete   canReadAloud(), readAloud(text, onDone?),
+    │   │                                         stopReading(). Browser speechSynthesis only:
+    │   │                                         no audio file, no network, hidden where
+    │   │                                         unsupported. Cancels any playing passage
+    │   │                                         before starting a new one (D-043).
+    │   ├── readButton.ts              complete   readButton(getText, options?) -> button |
+    │   │                                         null. Shared toggle around readAloud: label
+    │   │                                         flips, aria-pressed tracks state, and a
+    │   │                                         cancelled passage cannot reset a newer one.
+    │   │                                         `getText` runs at click time so a screen can
+    │   │                                         read what it has revealed so far.
+    │   ├── nasaCard.ts                complete   nasaCard(card, kicker?) -> figure. One image,
+    │   │                                         caption, fact, credit and source link, plus
+    │   │                                         the shared read-aloud control when the browser
+    │   │                                         has speech. Static data only: no runtime fetch.
+    │   ├── nasa-card.css              complete   card frame, caption type scale, action row.
     │   ├── registry.ts                 complete   the one composition seam. Exports ScreenFactory,
     │   │                                         screenMount, resolveScreen, nextStop,
     │   │                                         allScreenMounts. Maps all nine built routes onto
@@ -237,7 +254,11 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │                                             moduleFigures. Presentation only — every word
     │                                             and number arrives as an argument, and it owns
     │                                             the shared artwork imports so base, act and
-    │                                             debrief do not copy them.
+    │                                             debrief do not copy them. `gameHeader` takes an
+    │                                             optional `onLeave`: with it the right-hand label
+    │                                             becomes a Menu button opening an in-screen
+    │                                             leave dialog (D-044); without it the old plain
+    │                                             label stays.
     │
     ├── dom/                            landing-page side effects only. Untested (ISS-011).
     │   ├── floatAstronaut.ts           complete   218 lines. The rAF loop, the two transforms, the
@@ -263,6 +284,14 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         lastDetail, describeWhen. NASA DONKI ->
     │   │                                         NOAA SWPC -> baked, in that order.
     │   └── spaceweather.test.ts        complete   26 tests; every fetch is injected
+    │   ├── nasaGallery.ts             complete   Twelve curated NASA images with id,
+    │   │                                         alt, caption, fact, credit and source
+    │   │                                         link, plus `NEXT_HORIZON_CARD` for the
+    │   │                                         debrief's closing card. Static by choice
+    │   │                                         (D-042): no runtime image API, and the
+    │   │                                         words are unit tested here.
+    │   └── nasaGallery.test.ts        complete   10 tests; ids resolve, credits and links
+    │                                             present, length caps enforced.
     │
     ├── features/                       one folder per screen. Every journey screen is built.
     │   │                               There are no feature stubs left.
@@ -501,6 +530,10 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `flareRank`, `strongest` | class ranking (X > M > C, bigger number first) and the strongest N |
 | | `lastSource`, `lastDetail`, `resetSpaceWeather` | what the UI reports; reset is for tests |
 | | `describeWhen` | `(peakTime) -> string`, e.g. `11 May 2024`; `'recently'` on a bad date |
+| `data/nasaGallery` | `NasaCard`, `NASA_CARDS`, `NEXT_HORIZON_CARD`, `cardForSol` | twelve curated cards keyed by sol 1-12, plus one closing artist concept. Every card carries an id, alt text, caption, fact, credit and source link. `cardForSol(sol)` returns the matching card or `null` outside the run |
+| `ui/readAloud` | `canReadAloud`, `readAloud`, `stopReading` | `(text, onDone?) -> boolean`; false when unsupported or the text is empty. Starts cancel any current passage first, and `stopReading()` is safe when nothing plays. Browser speech only (D-043) |
+| `ui/readButton` | `readButton` | `(getText, options?) -> HTMLButtonElement \| null`; a toggle whose label, `aria-pressed` and pause hooks (`onStart`, `onStop`) are shared by every screen that reads aloud. Returns null where speech is unavailable |
+| `ui/nasaCard` | `nasaCard` | `(card, kicker?) -> figure`; picture, alt, caption, "Did you know?", credit and source link, plus the shared read-aloud control only when `canReadAloud()` is true |
 | `sim/drift` | `stepDrift` | `(state, dt, size, viewport) -> DriftResult`; reflects off walls, returns the fastest `Impact` or null |
 | | `createInitialDrift` | `(size, viewport, speed) -> DriftState`; random 30-45 degree diagonal. **5 `Math.random()` calls** |
 | | `driftSpeedForViewport` | `(width) -> number`, clamped 96..176 px/s |
@@ -560,7 +593,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `routeToHash` | `(route) -> '#/<route>'` |
 | | `nextRoute`, `previousRoute` | `(route) -> Route \| null`; null at the ends |
 | `ui/router` | `startRouter` | `({onRoute, onUnknownHash?}) -> teardown`; fires `onRoute` once immediately and on every `hashchange`; normalises an unknown hash via `replaceState` |
-| | `navigate` | `(route) => void`; assigns `location.hash` so Back works |
+| | `navigate` | `(route) => void`; assigns `location.hash` so Back works. `startRouter` calls `stopReading()` on every route change so a voice cannot follow the player into the next screen |
 | `ui/registry` | `screenMount` | `(route) => selector \| null`; null when nothing is built for that route |
 | | `resolveScreen` | `(route) => ScreenFactory \| null`; null when nothing is built |
 | | `nextStop` | `(route) => Route \| null`; the next built screen, or the placeholder when the next is unbuilt |
@@ -578,7 +611,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `strengthAndWeakness` | `(score) -> {strength, weakness}` axes |
 | `features/landing-site/view` | `mountLandingSite` | `(root, run, setRun) -> teardown`; map + five pins + Site Analysis panel, LAND HERE calls `landAt` then navigates to `nextStop('landing-site')` |
 | `ui/gameLoop` | `gameScreen`, `gameWorld`, `gamePanel` | the shared frame from the Figma frames (D-038): one `.gl` root, the illustrated world panel, and the scrolling right-hand panel. Every word, number and variant arrives in an options object; no `sim/` rule is applied here |
-| | `gameHeader`, `gameHud`, `gameDock` | decorative header chrome, the five resource cards (`HudStat`), and the three-tab dock. The pause/settings/BUILD pills and the dock are `aria-hidden` spans, not buttons (D-038) |
+| | `gameHeader`, `gameHud`, `gameDock` | `gameHeader(sub?, onLeave?)`: without `onLeave` the right-hand label is plain decorative text; with it, it is a Menu button opening an in-screen leave dialog with Keep playing / Leave mission (D-044). `gameHud` draws the five resource cards (`HudStat`) and `gameDock` the three-tab dock. The pause/settings/BUILD pills and the dock are `aria-hidden` spans, not buttons (D-038) |
 | | `gameSection` | `(label, ...content) -> section`; an uppercase label and its body |
 | | `moduleFigures`, `moduleArt`, `MODULE_ART`, `WORLD_BACKGROUND`, `ASTRONAUT_SPRITE` | artwork placement and the bundled asset URLs; the only import site for the figures base, act and debrief share |
 | `features/base/model` | `BUILDABLE`, `canPlace`, `addModule`, `removeModule`, `pointsLeft` | build rules over the `sim/modules.ts` catalogue (D-032) |

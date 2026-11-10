@@ -11,6 +11,30 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+**D-043 — agent — 2026-11-10**
+**Choice:** Read-aloud uses the browser's own `speechSynthesis`, wrapped in `ui/readAloud.ts` and shared through `ui/readButton.ts`. No audio file, no network request, no dependency, and the control is omitted entirely where the API is missing.
+**Why:** The brief is written for ages 8-16, and a child who cannot yet read the briefing fluently loses the whole mission story if the only route through is the NEXT button. Recorded audio would mean assets, a hosting path and a mute design; speech synthesis is already on the device, works offline on the demo laptop, and costs nothing at runtime. A shared toggle means the NASA cards, the briefing and the crisis prompt cannot drift into three different behaviours.
+**Rejected:** Bundled narration audio files (assets the team cannot supply at freeze, and a licence question for NASA voice/music); a backend TTS service (no backend, D-003); a single global read-aloud that re-reads the whole screen (a crisis re-read must include the choices, not the recap).
+**Consequence:** `readButton` returns null where speech is unavailable, so unsupported browsers simply do not get a dead control. The router calls `stopReading()` on every route change, and screens stop the voice in teardown, so a passage cannot follow the player into the next scene. The briefing pauses its closing hand-off while a passage is playing and resumes it only when the reading finishes naturally.
+
+---
+
+**D-042 — agent — 2026-11-10**
+**Choice:** The NASA learning layer is a curated static gallery in `data/nasaGallery.ts`: twelve real images, one per sol, plus a closing artist concept on the debrief, each with a NASA id, alt text, caption, fact, credit and source link.
+**Why:** The pitch promises NASA data, and the space-weather path already proves a live NASA connection; but image search at runtime would add a second network dependency, rate limits and unpredictable licensing mid-demo, and the demo laptop may have no network at all. A fixed set of twelve cards can be checked for length, alt text and attribution in unit tests — which is the same discipline the rest of `sim/` and `data/` already runs under.
+**Rejected:** A runtime NASA image API (a second flaky endpoint, per-image licence review, and a cache story); generic stock Mars photos (the promise is NASA data); decorative artwork with no credit line (the README's attribution terms are explicit).
+**Consequence:** `NASA_CARDS` is pure data with a test that enforces every field, every id and the source link, so a bad card fails `npm test` rather than shipping. The closing card is labelled an artist's concept, not a photograph, because it is the one place a child could mistake an illustration for a real mission.
+
+---
+
+**D-044 — agent — 2026-11-10**
+**Choice:** The game-loop header's "Mission Control / Main Menu" label becomes a real Menu button that opens an in-screen leave dialog with Keep playing / Leave mission, and naming's "Back to Main Menu" becomes "Start over", which clears the form and discards the run.
+**Why:** The header label was plain text drawn as chrome, so it advertised an escape that did not exist; a child who wanted out mid-run had none, and the browser Back button silently dropped state. Naming's back button called `navigate('naming')` while already on naming, so after the first press it did nothing at all.
+**Rejected:** `window.confirm()` (R-9 bans it); a separate route that renders nothing (`landing` has no call to action, so sending a player there strands them); keeping the label as-is (a dead affordance in front of judges).
+**Consequence:** `gameHeader(sub, onLeave?)` keeps the plain label when a screen has no run to leave, so nothing advertises a control that does nothing. The dialog is an in-screen card with its own focus handling, never a native dialog. Leaving always returns to `naming`, and the README already says progress is not saved, so the dialog states that rather than pretending otherwise.
+
+---
+
 **D-041 — agent · 2026-11-10**
 **Choice:** `README.md` is maintained as the technical front page — status, setup commands, the real `src/` tree and links to every document — and it is updated in the same commit as any change that makes it false.
 **Why:** D-011 left the README untouched so its design, science and attribution writing would survive, and logged the false status as ISS-001. Since then the code grew a complete nine-screen journey, and the README still told every reader there was nothing to run. That is the first file a judge, teacher or new teammate opens. The design sections were kept; only the technical claims were corrected.

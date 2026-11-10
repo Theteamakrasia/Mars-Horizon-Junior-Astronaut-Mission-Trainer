@@ -8,6 +8,50 @@ than a documented one.
 
 ---
 
+## 2026-11-10 — Add the NASA learning layer, read-aloud, and a real way out of a run
+
+**Did**
+
+- Curated gallery: twelve real NASA images, one per sol, plus a closing artist concept on the
+  debrief. Every card has a NASA id, alt text, caption, fact, credit and source link, and ten
+  tests enforce those fields. Recorded as D-042.
+- Read-aloud on the NASA cards, the briefing and the crisis prompt, using the browser's own
+  `speechSynthesis`. Shared toggle in `ui/readButton.ts`, engine in `ui/readAloud.ts`, and the
+  router stops the voice on every navigation. Recorded as D-043.
+- "What this sol changed" strip on `act`: all five stores, signed deltas, `+15 kWh` / `−14%` /
+  `no change`, with a note that power is stored energy and the rest are tank percentages.
+- A safe leave dialog on base, act and debrief (Menu → Keep playing / Leave mission), and
+  naming's dead "Back to Main Menu" relabelled "Start over", which resets the form and the run.
+  Recorded as D-044.
+- Fixed the briefing's crew count (`CREW_SIZE = 4`), the page title/description, and updated the
+  docs to match: architecture tree and contracts, test counts, issues, decisions and tasks.
+
+**Files**
+
+- `src/data/nasaGallery.ts` + test, `src/ui/nasaCard.ts`, `src/ui/nasa-card.css`,
+  `src/ui/readAloud.ts`, `src/ui/readButton.ts`, `src/ui/gameLoop.ts`,
+  `src/styles/game-loop.css`, `src/ui/router.ts`, `src/features/{act,briefing,debrief,base,naming}`,
+  `index.html`, `docs/architecture.md`, `docs/team/{decisions,issues,tasks,progress-log}.md`,
+  `README.md`, `AGENTS.md`
+
+**Problems**
+
+- The briefing's closing hand-off would have cut off a reading mid-sentence, so the read button
+  pauses that timer and restarts it only when the passage finishes naturally.
+- `speechSynthesis` is unavailable in the Vitest node environment, so read-aloud has no automated
+  test; the control is hidden where the API is missing and the rest is code-reading plus the
+  browser pass.
+- NASA image URLs point at `images-assets.nasa.gov`. A card whose image fails to load still shows
+  the caption, fact and credit, but no offline fallback image is bundled.
+
+**Next**
+
+- Human browser acceptance pass (`TASK-049`) and a `npm run preview` check of `dist/`.
+- Optional: self-host the fonts (TASK-012) and remove the unused 12 MB of cinematic PNGs
+  (ISS-018).
+
+---
+
 ## 2026-11-10 — Make the README describe the project that actually exists
 
 **Did**
