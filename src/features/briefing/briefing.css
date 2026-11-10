@@ -197,6 +197,22 @@
   color: var(--b-accent);
 }
 
+/* The read-aloud toggle. It sits after NEXT as a quieter secondary action, so
+   the eye still lands on the button that moves the story on. */
+.briefing__button--read {
+  margin-left: auto;
+  border-color: transparent;
+  background: transparent;
+  color: var(--b-muted);
+  text-transform: none;
+  letter-spacing: 0.04em;
+}
+
+.briefing__button--read[aria-pressed='true'] {
+  border-color: var(--b-accent);
+  color: var(--b-accent);
+}
+
 /*
   YES, the answer to the closing question.
 

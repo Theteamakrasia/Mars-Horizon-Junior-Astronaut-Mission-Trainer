@@ -12,7 +12,7 @@
 
 import type { NasaCard } from '../data/nasaGallery';
 import { h } from '../dom/h';
-import { canReadAloud, readAloud, stopReading } from './readAloud';
+import { readButton } from './readButton';
 
 import './nasa-card.css';
 
@@ -55,46 +55,14 @@ export function nasaCard(
   );
 
   const actions = h('div', { class: 'nasa-card__actions' });
+  const read = readButton(() => `${card.title}. ${card.caption} ${card.fact}`, {
+    className: 'nasa-card__read',
+    idleLabel: '🔊 Read to me',
+    stopLabel: '⏹ Stop reading',
+    ariaLabel: 'Read this card aloud',
+  });
 
-  /* The browser's own voice, only where it exists. A browser without speech
-     simply does not get the button rather than getting one that does nothing. */
-  if (canReadAloud()) {
-    const button = h('button', { class: 'nasa-card__read', type: 'button' });
-    let reading = false;
-    let generation = 0;
-
-    const paint = (): void => {
-      button.textContent = reading ? '⏹ Stop reading' : '🔊 Read to me';
-      button.setAttribute('aria-pressed', String(reading));
-      button.setAttribute('aria-label', reading ? 'Stop reading this card aloud' : 'Read this card aloud');
-    };
-
-    button.addEventListener('click', () => {
-      if (reading) {
-        generation += 1;
-        reading = false;
-        stopReading();
-        paint();
-
-        return;
-      }
-
-      const mine = ++generation;
-
-      reading = readAloud(`${card.title}. ${card.caption} ${card.fact}`, () => {
-        /* A cancelled passage can still fire its end callback after a new one
-           starts, so only the newest request is allowed to reset the button. */
-        if (mine !== generation) return;
-
-        reading = false;
-        paint();
-      });
-      paint();
-    });
-
-    paint();
-    actions.append(button);
-  }
+  if (read !== null) actions.append(read);
 
   const body = h(
     'figcaption',
