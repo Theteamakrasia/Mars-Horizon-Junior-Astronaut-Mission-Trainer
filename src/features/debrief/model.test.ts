@@ -5,7 +5,7 @@ import { createForecast } from '../../sim/forecast';
 import { CORE_MODULES, type ModuleKind } from '../../sim/modules';
 import { newRun, startOutpost, withState, type RunState } from '../../sim/run';
 import { advanceSol, decide } from '../../sim/sol';
-import { blackoutSols, consumptionSummary, explainOutcome, lowestPoints, nextSteps, reviewDecisions, scienceDetail, scienceHeadline, scienceReport, scienceSentence, timeline, usedApproximateData, wentEmpty } from './model';
+import { blackoutSols, consumptionSummary, explainOutcome, goalOutcomes, lowestPoints, nextSteps, reviewDecisions, scienceDetail, scienceHeadline, scienceReport, scienceSentence, timeline, usedApproximateData, wentEmpty } from './model';
 
 const FLARES = [
   { classType: 'X5.8', approximate: true, when: 'in a test' },
@@ -269,5 +269,61 @@ describe('the science report', () => {
 
     expect(scienceSentence(report)).toContain('30 science points');
     expect(scienceSentence(report)).toContain('Research Lead');
+  });
+});
+
+describe('the five science goals at the end', () => {
+  it('reports on all five, in order', () => {
+    const outcomes = goalOutcomes(playOut(SOLAR, SMART));
+
+    expect(outcomes).toHaveLength(5);
+    expect(outcomes.map((outcome) => outcome.title)).toEqual([
+      'Martian Dust Storm',
+      'Life Support',
+      'Radiation Exposure',
+      'Power Shortage',
+      'Food Production',
+    ]);
+  });
+
+  it('says the dust was held when the panels stayed clean', () => {
+    const dust = goalOutcomes(playOut(SOLAR, SMART)).find((outcome) => outcome.id === 'dust-storm');
+
+    expect(dust?.verdict).toBe('held');
+    expect(dust?.detail).toContain('still clean');
+  });
+
+  it('says the power took damage when the batteries ran flat', () => {
+    const power = goalOutcomes(playOut([], SMART)).find((outcome) => outcome.id === 'power');
+
+    expect(power?.verdict).toBe('hurt');
+    expect(power?.detail).toContain('ran flat');
+  });
+
+  it('says the food failed when the food ran out', () => {
+    const run = playOut(['solar-array', 'solar-array', 'batteries', 'batteries', 'regolith-shield'], SMART);
+    const food = goalOutcomes(run).find((outcome) => outcome.id === 'food');
+
+    expect(run.status).toBe('lost');
+    expect(food?.verdict).toBe('failed');
+    expect(food?.detail).toContain('food ran out');
+  });
+
+  it('says the radiation failed when the shielding ran out', () => {
+    const run = playOut(
+      ['solar-array', 'batteries', 'greenhouse'],
+      { ...SMART, flare: 'carry-on' },
+    );
+    const radiation = goalOutcomes(run).find((outcome) => outcome.id === 'radiation');
+
+    expect(radiation?.verdict).toBe('failed');
+    expect(radiation?.detail).toContain('shielding ran out');
+  });
+
+  it('always gives every goal a verdict and a line', () => {
+    for (const outcome of goalOutcomes(playOut(SOLAR, SMART))) {
+      expect(['held', 'hurt', 'failed']).toContain(outcome.verdict);
+      expect(outcome.detail.length).toBeGreaterThan(10);
+    }
   });
 });

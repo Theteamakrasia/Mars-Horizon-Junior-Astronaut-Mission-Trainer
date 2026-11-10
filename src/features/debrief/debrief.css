@@ -71,3 +71,55 @@
   justify-content: space-between;
   gap: 0.5rem 1rem;
 }
+
+/* How each of the five science goals fared. */
+.debrief__goals {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(5px, 0.62vw, 12px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.debrief__goal {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: clamp(6px, 0.8vw, 16px);
+  align-items: start;
+  padding: clamp(6px, 0.7vw, 13px);
+  border: 1px solid var(--gl-line);
+  border-radius: clamp(8px, 0.72vw, 14px);
+  background: var(--gl-card);
+}
+
+.debrief__goal[data-verdict='hurt'] {
+  border-color: var(--gl-orange);
+}
+
+.debrief__goal[data-verdict='failed'] {
+  border-color: var(--gl-orange-deep);
+  background: var(--gl-peach);
+}
+
+.debrief__goal-icon {
+  font-size: clamp(0.85rem, 1.15vw, 1.4rem);
+  line-height: 1.2;
+}
+
+.debrief__goal-title {
+  display: block;
+  color: var(--gl-ink);
+  font-family: var(--gl-display);
+  font-weight: 800;
+  font-size: clamp(0.72rem, 0.92vw, 1.12rem);
+  line-height: 1.15;
+}
+
+.debrief__goal-detail {
+  margin: 0.15em 0 0;
+  color: var(--gl-muted);
+  font-weight: 600;
+  font-size: clamp(0.6rem, 0.76vw, 0.92rem);
+  line-height: 1.3;
+}

@@ -29,10 +29,17 @@ import iceMinerUrl from '../../../Assets/images/game-loop/ice-miner.png';
 import lifeSupportUrl from '../../../Assets/images/game-loop/life-support.png';
 import solarUrl from '../../../Assets/images/game-loop/solar.png';
 
-import { consumptionSummary, explainOutcome, lowestPoints, nextSteps, reviewDecisions, scienceDetail, scienceHeadline, scienceReport, timeline, usedApproximateData, wentEmpty, type NextStep } from './model';
+import { consumptionSummary, explainOutcome, goalOutcomes, lowestPoints, nextSteps, reviewDecisions, scienceDetail, scienceHeadline, scienceReport, timeline, usedApproximateData, wentEmpty, type NextStep } from './model';
 
 const VERDICT_TEXT = { solved: 'Solved early', caught: 'Caught you out', mixed: 'A trade-off' } as const;
 const VERDICT_ICON = { solved: '✅', caught: '⚠️', mixed: '🤔' } as const;
+
+/** How each of the five science goals fared, in one word and one picture. */
+const GOAL_VERDICT = {
+  held: { label: 'Held', icon: '✅' },
+  hurt: { label: 'Took damage', icon: '⚠️' },
+  failed: { label: 'Failed', icon: '❌' },
+} as const;
 
 /** What a store is called when a sentence has to name it. */
 const STORE_WORD = { power: 'power', oxygen: 'air', water: 'water', food: 'food', shielding: 'radiation shield' } as const;
@@ -254,6 +261,34 @@ export function mountDebrief(
       explanation.confident ? null : h('p', { class: 'gl__note', text: 'The game is not sure about this one. The journal lists every sol so you can work out the cause yourself.' }),
     );
 
+    /* The five science goals, read back as science: what the dust did, how far
+       the shielding fell, whether the greenhouse kept up. */
+    const goals = h('ul', { class: 'debrief__goals' });
+
+    for (const outcome of goalOutcomes(state)) {
+      const verdict = GOAL_VERDICT[outcome.verdict];
+
+      goals.append(
+        h(
+          'li',
+          { class: 'debrief__goal', 'data-verdict': outcome.verdict },
+          h('span', { class: 'debrief__goal-icon', 'aria-hidden': 'true', text: verdict.icon }),
+          h(
+            'div',
+            null,
+            h('span', { class: 'debrief__goal-title', text: `${outcome.title} — ${verdict.label}` }),
+            h('p', { class: 'debrief__goal-detail', text: outcome.detail }),
+          ),
+        ),
+      );
+    }
+
+    const goalSection = gameSection(
+      'The five science goals',
+      goals,
+      h('p', { class: 'gl__note', text: 'Dust storms, life support, radiation, power and food — the whole mission is these five things.' }),
+    );
+
     const replay = h(
       'button',
       { class: 'gl__btn gl__btn--primary gl__btn--start', type: 'button' },
@@ -273,6 +308,7 @@ export function mountDebrief(
       body: [
         outcome,
         whatHappened,
+        goalSection,
         gameSection('Mars Science Score', scienceCard, scienceList),
         gameSection('Next time, try…', tips(steps)),
         gameSection('NASA fact', h('p', { class: 'gl__note', text: `${factFor(consumptionSummary(state).sols).text} (${factFor(consumptionSummary(state).sols).credit})` })),

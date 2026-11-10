@@ -11,6 +11,7 @@
  */
 
 import { crisisForEvent, optionOf } from '../../sim/crises';
+import { goalById, type ScienceGoal } from '../../sim/goals';
 import { systemsFor, countOf, NIGHT_HOURS, type ModuleKind } from '../../sim/modules';
 import { RESOURCE_NAMES, type ResourceName } from '../../sim/resources';
 import type { RunState, SolRecord } from '../../sim/run';
@@ -408,6 +409,192 @@ export function scienceDetail(report: ScienceReport): string {
 /** One line for the science score, so it can be read aloud as well as seen. */
 export function scienceSentence(report: ScienceReport): string {
   return `${report.points} science points. ${scienceHeadline(report)} ${scienceDetail(report)}`;
+}
+
+/* ------------------------------------------------------------ the goals -- */
+
+/** How one of the five science goals fared over the run. */
+export interface GoalOutcome {
+  readonly id: ScienceGoal;
+  readonly title: string;
+  /** `held` — it was fine. `hurt` — it was damaged or dipped. `failed` — it ran out. */
+  readonly verdict: 'held' | 'hurt' | 'failed';
+  readonly detail: string;
+}
+
+/**
+ * How each of the five science goals fared.
+ *
+ * This is the run read back as science rather than as numbers: the dust took
+ * so much off the panels, the shielding fell so far, the greenhouse grew less
+ * than the crew ate. Every figure comes from the log or the final stores, so
+ * the debrief can be checked against the timeline.
+ */
+export function goalOutcomes(run: RunState): readonly GoalOutcome[] {
+  const lows = lowestPoints(run);
+  const blackouts = blackoutSols(run);
+  const ended = endedBy(run);
+  const systems = systemsFor(run.modules, run.regionId);
+
+  const title = (id: ScienceGoal): string => goalById(id)?.title ?? id;
+
+  /* -- Martian Dust Storm ----------------------------------------------- */
+  const dust: GoalOutcome = (() => {
+    if (run.panelHealth <= 0.25) {
+      return {
+        id: 'dust-storm',
+        title: title('dust-storm'),
+        verdict: 'failed',
+        detail: 'The panels are wrecked. They will never make their full power again.',
+      };
+    }
+
+    if (run.panelHealth < 1) {
+      const lost = Math.round((1 - run.panelHealth) * 100);
+
+      return {
+        id: 'dust-storm',
+        title: title('dust-storm'),
+        verdict: 'hurt',
+        detail: `Dust took ${lost}% off the panels, and it is for good.`,
+      };
+    }
+
+    return {
+      id: 'dust-storm',
+      title: title('dust-storm'),
+      verdict: 'held',
+      detail: 'The panels are still clean.',
+    };
+  })();
+
+  /* -- Life Support ------------------------------------------------------ */
+  const life: GoalOutcome = (() => {
+    if (ended.includes('oxygen')) {
+      return {
+        id: 'life-support',
+        title: title('life-support'),
+        verdict: 'failed',
+        detail: `The air ran out on sol ${failureSol(run, 'oxygen')}.`,
+      };
+    }
+
+    if (ended.includes('water')) {
+      return {
+        id: 'life-support',
+        title: title('life-support'),
+        verdict: 'failed',
+        detail: `The water ran out on sol ${failureSol(run, 'water')}.`,
+      };
+    }
+
+    if (lows.oxygen < 40 || lows.water < 40) {
+      return {
+        id: 'life-support',
+        title: title('life-support'),
+        verdict: 'hurt',
+        detail: `The air fell to ${lows.oxygen}% and the water to ${lows.water}%.`,
+      };
+    }
+
+    return {
+      id: 'life-support',
+      title: title('life-support'),
+      verdict: 'held',
+      detail: `The air never fell below ${lows.oxygen}% and the water never below ${lows.water}%.`,
+    };
+  })();
+
+  /* -- Radiation Exposure ------------------------------------------------ */
+  const radiation: GoalOutcome = (() => {
+    if (ended.includes('shielding')) {
+      return {
+        id: 'radiation',
+        title: title('radiation'),
+        verdict: 'failed',
+        detail: `The shielding ran out on sol ${failureSol(run, 'shielding')}.`,
+      };
+    }
+
+    if (lows.shielding < 40) {
+      return {
+        id: 'radiation',
+        title: title('radiation'),
+        verdict: 'hurt',
+        detail: `The shielding fell to ${lows.shielding} of 100.`,
+      };
+    }
+
+    return {
+      id: 'radiation',
+      title: title('radiation'),
+      verdict: 'held',
+      detail: `The shielding never fell below ${lows.shielding} of 100.`,
+    };
+  })();
+
+  /* -- Power Shortage ---------------------------------------------------- */
+  const power: GoalOutcome = (() => {
+    if (blackouts.length > 0) {
+      const sols = blackouts.join(', ');
+
+      return {
+        id: 'power',
+        title: title('power'),
+        verdict: 'hurt',
+        detail:
+          blackouts.length === 1
+            ? `The batteries ran flat on sol ${sols}, and life support slowed down with them.`
+            : `The batteries ran flat on ${blackouts.length} sols (${sols}).`,
+      };
+    }
+
+    return {
+      id: 'power',
+      title: title('power'),
+      verdict: 'held',
+      detail: 'The batteries never ran flat. The crew never lost power to the dark.',
+    };
+  })();
+
+  /* -- Food Production --------------------------------------------------- */
+  const food: GoalOutcome = (() => {
+    if (ended.includes('food')) {
+      return {
+        id: 'food',
+        title: title('food'),
+        verdict: 'failed',
+        detail: `The food ran out on sol ${failureSol(run, 'food')}.`,
+      };
+    }
+
+    if (!systems.hasGreenhouse) {
+      return {
+        id: 'food',
+        title: title('food'),
+        verdict: 'hurt',
+        detail: 'There was no greenhouse. The crew ate the stores and nothing replaced it.',
+      };
+    }
+
+    if (lows.food < 40) {
+      return {
+        id: 'food',
+        title: title('food'),
+        verdict: 'hurt',
+        detail: `The food fell to ${lows.food}%. The greenhouse barely kept up.`,
+      };
+    }
+
+    return {
+      id: 'food',
+      title: title('food'),
+      verdict: 'held',
+      detail: `The food never fell below ${lows.food}%. The greenhouse kept up.`,
+    };
+  })();
+
+  return [dust, life, radiation, power, food];
 }
 
 /**
