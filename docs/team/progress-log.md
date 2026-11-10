@@ -21,6 +21,8 @@ than a documented one.
 - The title, greeting and form moved into a `.naming__content` wrapper, so the block can
   be centred in the space above the trainer card, and the panel sits on the right at 44%
   of the width.
+- START MISSION carries the accent fill every other screen's primary button uses, and
+  "Start over" is the quiet one beside it. The way forward is the bright button.
 - Typography now uses Outfit, the geometric sans the site already loads for the rest of
   its screens. Panels are translucent and a radial scrim over the planet keeps the menu
   legible on top of it.

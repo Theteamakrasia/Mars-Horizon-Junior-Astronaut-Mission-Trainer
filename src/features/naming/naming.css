@@ -322,13 +322,30 @@
   cursor: not-allowed;
 }
 
-/* The outlined button reads as the emphatic one in the mockup: a light border
-   and white type over the same dark panel. */
-.naming__button--outline {
-  border-color: #c9d1d7;
-  background: rgba(19, 29, 36, 0.72);
-  color: var(--n-text);
+/* The way forward carries the emphasis.
+   The accent fill is the same primary-button treatment the other screens use
+   (interior's Next room, launch's Continue, the briefing's YES): START MISSION
+   is the action the player is here for, so it is the one that lights up, and
+   "Start over" stays quiet beside it. */
+.naming__button--primary {
+  border-color: var(--n-accent);
+  background: var(--n-accent);
+  color: #150800;
   font-weight: 800;
+}
+
+.naming__button--primary:hover:not(:disabled),
+.naming__button--primary:focus-visible {
+  border-color: #ff7b33;
+  background: #ff7b33;
+  color: #150800;
+}
+
+/* The accent focus ring would vanish against the accent fill, so the primary
+   button gets a light one instead: the keyboard focus has to be visible. */
+.naming__button--primary:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
 }
 
 .naming__trainer {

@@ -11,7 +11,7 @@ Versions will be assigned when the project begins publishing releases.
 
 ### Changed
 
-- Redraw the start screen as a full-bleed scene: the astronaut stands on the left, Mars fills the right and runs off the edges of the window, and the menu — title, name field, buttons and trainer card — sits on the right over the planet. The menu now uses the site's geometric sans, its panels are translucent so the planet shows through, and a soft scrim keeps the text readable. The rotating planet is unchanged.
+- Redraw the start screen as a full-bleed scene: the astronaut stands on the left, Mars fills the right and runs off the edges of the window, and the menu — title, name field, buttons and trainer card — sits on the right over the planet. The menu now uses the site's geometric sans, its panels are translucent so the planet shows through, and a soft scrim keeps the text readable. START MISSION is the highlighted button, the way the other screens treat their primary action, and "Start over" is quiet beside it. The rotating planet is unchanged.
 - Enlarge the start screen's planet and astronaut so they stay sharp on a large screen. They are drawn at roughly the width of the window, so the 606px originals were being stretched three times over and the craters turned to mush.
 
 ### Added
