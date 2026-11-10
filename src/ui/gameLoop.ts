@@ -13,7 +13,9 @@
  */
 
 import { h } from '../dom/h';
+import { navigate } from './router';
 import type { ModuleKind } from '../sim/modules';
+import { MODULE_SPOT, SPOT_BAND, clamp } from './baseLayout';
 
 /* The artwork is bundled by Vite, never fetched: the Figma asset URLs expire. */
 import astronautUrl from '../../Assets/images/interior/sprite/interact-alt.webp';
@@ -50,17 +52,21 @@ export function moduleArt(kind: ModuleKind): string {
   return MODULE_ART[kind];
 }
 
-/** Where each module stands in the world, in percent of the panel. */
-const MODULE_SPOT: Readonly<Record<ModuleKind, { readonly left: number; readonly bottom: number; readonly width: number; readonly z: number }>> = {
-  'solar-array': { left: 16, bottom: 20, width: 20, z: 3 },
-  habitat: { left: 33, bottom: 23, width: 21, z: 4 },
-  'life-support': { left: 27, bottom: 6, width: 11, z: 5 },
-  batteries: { left: 46, bottom: 5, width: 9, z: 5 },
-  greenhouse: { left: 56, bottom: 22, width: 19, z: 4 },
-  'ice-miner': { left: 76, bottom: 7, width: 11, z: 5 },
-  'regolith-shield': { left: 80, bottom: 25, width: 13, z: 3 },
-  'nuclear-unit': { left: 89, bottom: 8, width: 10, z: 5 },
-};
+/**
+ * Where each module stands in the world, in percent of the panel.
+ *
+ * The table itself lives in `baseLayout.json`, and `baseLayout.ts` loads it,
+ * validates every number and clamps it into the band. A developer places the
+ * modules by dragging them on the real base screen (`?editlayout=1`) rather
+ * than editing a literal here, and that file is the record of what they chose.
+ *
+ * Modules sit in four dedicated zones so the outpost looks established rather
+ * than scattered: Power (solar + batteries), Habitat (home + life support),
+ * Food (greenhouse + ice miner), and Shielding/Energy (regolith shield +
+ * nuclear). Each kind gets one fixed slot in its zone, nothing overlaps, and
+ * duplicates of a kind step right within their zone row and shrink (see
+ * `moduleFigures`), clamped to the panel edge.
+ */
 
 /** A figure standing in the world. */
 export interface WorldFigure {
@@ -77,9 +83,15 @@ export interface WorldFigure {
 /**
  * Lay out the modules the outpost actually has.
  *
- * A second and third copy of the same module step to the right and shrink a
- * little, so four solar arrays read as a row of panels rather than one picture
- * drawn four times on top of itself.
+ * Each kind sits in its fixed slot. A second and third copy of the same
+ * module step to the right within the same row and shrink a little, so a row
+ * of panels reads as a row rather than one picture drawn on top of itself.
+ * Duplicates are clamped to the panel edge so nothing paints off-screen or
+ * into a neighbour's slot.
+ *
+ * Every figure this returns is inside `SPOT_BAND`, which is the same band the
+ * CSS clamp uses. That is deliberate: the CSS clamp is a safety net for a bad
+ * hand-edited file, and it should never be what decides where a module lands.
  */
 export function moduleFigures(kinds: readonly ModuleKind[]): readonly WorldFigure[] {
   const placed = new Map<ModuleKind, number>();
@@ -91,12 +103,16 @@ export function moduleFigures(kinds: readonly ModuleKind[]): readonly WorldFigur
 
     placed.set(kind, copy + 1);
 
-    const width = Math.max(6, spot.width - copy * 1.5);
+    // Step half a slot per duplicate and shrink fast, so copies stay inside
+    // their zone and never touch the next one.
+    const width = Math.max(SPOT_BAND.width.min, spot.width - copy * 3);
+    const step = Math.floor(spot.width * 0.5);
+    const left = clamp(Math.min(96 - width, spot.left + copy * step), SPOT_BAND.left.min, SPOT_BAND.left.max);
 
     figures.push({
       src: moduleArt(kind),
-      left: Math.min(92 - width, spot.left + copy * (spot.width * 0.36)),
-      bottom: Math.min(34, spot.bottom + copy * 3),
+      left,
+      bottom: clamp(spot.bottom + copy * 4, SPOT_BAND.bottom.min, SPOT_BAND.bottom.max),
       width,
       z: spot.z + copy,
     });
@@ -141,6 +157,10 @@ export interface WorldOptions {
   readonly signals?: readonly SignalCard[];
   readonly figures?: readonly WorldFigure[];
   readonly hint?: string;
+  /** Show the Mars landscape behind the figures. Default true; set false for reference screens. */
+  readonly showBackground?: boolean;
+  /** Show the crewmate sprite in the world panel. Default true; set false where it should not appear. */
+  readonly showAstronaut?: boolean;
 }
 
 /** Everything the right-hand panel needs. */
@@ -155,10 +175,13 @@ export interface PanelOptions {
 /** The whole screen: header, HUD, world, panel. */
 export interface ScreenOptions {
   readonly hud: readonly HudStat[];
-  readonly world: HTMLElement;
+  /** The world panel (Mars background + figures). Omitted when fullWidth is true. */
+  readonly world?: HTMLElement;
   readonly panel: HTMLElement;
   /** Text under the MARS HORIZON brand, naming this screen. */
   readonly headerSub?: string;
+  /** When true, the panel spans the full page width and no world column is shown. */
+  readonly fullWidth?: boolean;
   /** A screen-specific modifier on the root, for that feature's own CSS. */
   readonly variant?: string;
   /**
@@ -203,6 +226,7 @@ export function gameHeader(sub?: string, onLeave?: () => void): HTMLElement {
   }
 
   const keep = h('button', { class: 'gl__btn gl__btn--primary', type: 'button' }, 'Keep playing');
+  const encyclopedia = h('button', { class: 'gl__btn', type: 'button' }, '📖 Encyclopedia');
   const leave = h('button', { class: 'gl__btn gl__btn--navy', type: 'button' }, 'Leave mission');
   const button = h(
     'button',
@@ -219,7 +243,7 @@ export function gameHeader(sub?: string, onLeave?: () => void): HTMLElement {
       class: 'gl__menu-text',
       text: 'Your run is not saved. Leaving now returns to the main menu, and the next mission starts again from sol 1.',
     }),
-    h('div', { class: 'gl__menu-actions' }, keep, leave),
+    h('div', { class: 'gl__menu-actions' }, keep, encyclopedia, leave),
   );
 
   const backdrop = h('div', { class: 'gl__menu-backdrop', hidden: true }, card);
@@ -229,6 +253,11 @@ export function gameHeader(sub?: string, onLeave?: () => void): HTMLElement {
     button.setAttribute('aria-expanded', 'false');
     button.focus();
   };
+
+  encyclopedia.addEventListener('click', () => {
+    close();
+    navigate('encyclopedia');
+  });
 
   const open = (): void => {
     backdrop.hidden = false;
@@ -345,7 +374,11 @@ export function gameWorld(options: WorldOptions): HTMLElement {
 
   const world = h(
     'section',
-    { class: 'gl__world', 'aria-label': 'Your outpost on Mars', style: `background-image:url(${WORLD_BACKGROUND})` },
+    {
+      class: 'gl__world',
+      'aria-label': 'Your outpost on Mars',
+      style: options.showBackground === false ? 'background:transparent' : `background-image:url(${WORLD_BACKGROUND})`,
+    },
     h('div', { class: 'gl__world-top' }, left, right),
   );
 
@@ -361,7 +394,9 @@ export function gameWorld(options: WorldOptions): HTMLElement {
   }
 
   if (options.hint !== undefined) world.append(h('p', { class: 'gl__hint', text: options.hint }));
-  world.append(h('span', { class: 'gl__astronaut', 'aria-hidden': 'true', style: `background-image:url(${ASTRONAUT_SPRITE})` }));
+  if (options.showAstronaut !== false) {
+    world.append(h('span', { class: 'gl__astronaut', 'aria-hidden': 'true', style: `background-image:url(${ASTRONAUT_SPRITE})` }));
+  }
 
   return world;
 }
@@ -384,12 +419,19 @@ export function gamePanel(options: PanelOptions): HTMLElement {
 
 /** Assemble a screen. Always one `.gl` root, so the fixed layout is one rule. */
 export function gameScreen(options: ScreenOptions): HTMLElement {
+  const main = h(
+    'div',
+    { class: 'gl__main' },
+    ...(options.world === undefined || options.fullWidth ? [] : [options.world]),
+    options.panel,
+  );
+
   return h(
     'div',
     { class: options.variant === undefined ? 'gl' : `gl ${options.variant}` },
     gameHeader(options.headerSub, options.onLeave),
     gameHud(options.hud),
-    h('div', { class: 'gl__main' }, options.world, options.panel),
+    main,
   );
 }
 
