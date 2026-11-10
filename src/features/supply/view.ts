@@ -31,6 +31,7 @@ import { nextStop } from '../../ui/registry';
 import { navigate } from '../../ui/router';
 import type { RunState } from '../../sim/run';
 import { createButtonStrip } from '../../ui/button-strip';
+import { factFor } from '../../data/nasaGallery';
 
 import './supply.css';
 
@@ -132,6 +133,10 @@ export function mountSupply(
   const advance = require<HTMLButtonElement>(root, '[data-supply-next]');
   const retry = require<HTMLButtonElement>(root, '[data-supply-retry]');
   const cont = require<HTMLButtonElement>(root, '[data-supply-continue]');
+  const fact = require<HTMLParagraphElement>(root, '[data-supply-fact]');
+  const supplyFact = factFor(SUPPLY_BEATS.length);
+
+  fact.textContent = `NASA fact · ${supplyFact.text} (${supplyFact.credit})`;
 
   // Bottom button strip: Next lives here instead of inside the speech bubble,
   // so the dialogue stays where it is and only the controls move to a

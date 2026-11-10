@@ -35,6 +35,7 @@
 import { nextStop } from '../../ui/registry';
 import { navigate } from '../../ui/router';
 import type { RunState } from '../../sim/run';
+import { factFor } from '../../data/nasaGallery';
 
 import './launch.css';
 
@@ -173,6 +174,7 @@ export function mountLaunch(
   const partsImage = require<HTMLImageElement>(root, '[data-launch-parts-image]');
   const partsName = require<HTMLHeadingElement>(root, '[data-launch-parts-name]');
   const partsDescription = require<HTMLParagraphElement>(root, '[data-launch-parts-description]');
+  const partsFact = require<HTMLParagraphElement>(root, '[data-launch-parts-fact]');
   const partsPrev = require<HTMLButtonElement>(root, '[data-launch-parts-prev]');
   const partsNext = require<HTMLButtonElement>(root, '[data-launch-parts-next]');
   const partsContinue = require<HTMLButtonElement>(root, '[data-launch-parts-continue]');
@@ -449,6 +451,7 @@ export function mountLaunch(
     partsImage.alt = part.name;
     partsName.textContent = part.name;
     partsDescription.textContent = part.description;
+    partsFact.textContent = `NASA fact · ${factFor(index).text} (${factFor(index).credit})`;
     const dot = partsName.previousElementSibling;
     if (dot instanceof HTMLElement) {
       dot.style.backgroundColor = part.accent;

@@ -328,6 +328,14 @@
   border-left-color: var(--s-good);
 }
 
+/* A short NASA fact while the player thinks. */
+.supply__fact {
+  margin: 0.6rem 0 0;
+  font-size: clamp(0.62rem, 1.05vmin, 0.74rem);
+  line-height: 1.45;
+  color: var(--s-muted);
+}
+
 /* ---------- THE WAY OUT ---------- */
 
 .supply__action {

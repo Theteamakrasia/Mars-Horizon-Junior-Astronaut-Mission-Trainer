@@ -279,6 +279,10 @@
             <!-- The working, in small type, so the question stays on screen in the
                  bubble beside it. -->
             <p class="supply__result" data-supply-result hidden></p>
+
+            <!-- A short NASA fact while the player thinks. Purely additive: it
+                 sits under the working and never covers the choices. -->
+            <p class="supply__fact" data-supply-fact></p>
           </div>
 
           <!-- TRY AGAIN. Shown only after a wrong answer.
@@ -415,6 +419,9 @@
             decoding="async"
           />
           <p class="launch__parts-description" data-launch-parts-description></p>
+
+          <!-- A short NASA fact per part, so the tour teaches while it shows. -->
+          <p class="launch__parts-fact" data-launch-parts-fact></p>
           <div class="launch__parts-controls">
             <button
               class="launch__parts-button launch__parts-button--prev"
