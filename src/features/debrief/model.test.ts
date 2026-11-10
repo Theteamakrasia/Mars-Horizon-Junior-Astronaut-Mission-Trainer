@@ -5,7 +5,7 @@ import { createForecast } from '../../sim/forecast';
 import { CORE_MODULES, type ModuleKind } from '../../sim/modules';
 import { newRun, startOutpost, withState, type RunState } from '../../sim/run';
 import { advanceSol, decide } from '../../sim/sol';
-import { blackoutSols, consumptionSummary, explainOutcome, lowestPoints, nextSteps, reviewDecisions, timeline, usedApproximateData, wentEmpty } from './model';
+import { blackoutSols, consumptionSummary, explainOutcome, lowestPoints, nextSteps, reviewDecisions, scienceDetail, scienceHeadline, scienceReport, scienceSentence, timeline, usedApproximateData, wentEmpty } from './model';
 
 const FLARES = [
   { classType: 'X5.8', approximate: true, when: 'in a test' },
@@ -206,5 +206,68 @@ describe('nextSteps', () => {
 
   it('honours the limit the panel has room for', () => {
     expect(nextSteps(endedByWater(), 1)).toHaveLength(1);
+  });
+});
+
+describe('the science report', () => {
+  it('reports no science for a run that chose nothing', () => {
+    const report = scienceReport(playOut(SOLAR, SMART));
+
+    expect(report.points).toBe(12);
+    expect(report.activities).toHaveLength(0);
+    expect(report.crisisSols).toEqual([3, 5, 7, 10]);
+    expect(report.quietSols).toEqual([1, 2, 4, 6, 8, 9, 11, 12]);
+    expect(scienceHeadline(report)).toBe('Your rank: Explorer.');
+  });
+
+  it('lists every activity the crew chose, with what it earned', () => {
+    let run = startOutpost(withState(newRun('jezero', 'Test'), { forecast: createForecast(FLARES) }), [...CORE_MODULES, ...SOLAR]);
+
+    run = withState(run, { chosenActivity: 'experiment' });
+    run = advanceSol(run);
+
+    const report = scienceReport(run);
+
+    expect(report.activities).toHaveLength(1);
+    expect(report.activities[0]?.sol).toBe(1);
+    expect(report.activities[0]?.points).toBe(6);
+    expect(report.points).toBe(7);
+  });
+
+  it('puts the crisis sols apart from the activity sols', () => {
+    let run = startOutpost(withState(newRun('jezero', 'Test'), { forecast: createForecast(FLARES) }), [...CORE_MODULES, ...SOLAR]);
+
+    for (let sol = 0; sol < 3; sol += 1) {
+      const crisis = pendingCrisis(run);
+
+      if (crisis !== null) run = decide(run, crisis.id, SMART[crisis.kind] ?? crisis.defaultOptionId);
+      run = advanceSol(run);
+    }
+
+    const report = scienceReport(run);
+
+    expect(report.crisisSols).toEqual([3]);
+    expect(report.quietSols).toEqual([1, 2]);
+  });
+
+  it('names the rank without getting the article wrong', () => {
+    const report = scienceReport(withState(playOut(SOLAR, SMART), { science: 30 }));
+
+    expect(scienceHeadline(report)).toBe('Your rank: Research Lead.');
+    expect(scienceDetail(report)).toContain('11 more points');
+  });
+
+  it('says the top rank is the top rank', () => {
+    const report = scienceReport(withState(playOut(SOLAR, SMART), { science: 52 }));
+
+    expect(scienceDetail(report)).toContain('top rank');
+    expect(report.next).toBeNull();
+  });
+
+  it('writes the score as a sentence for screen readers', () => {
+    const report = scienceReport(withState(playOut(SOLAR, SMART), { science: 30 }));
+
+    expect(scienceSentence(report)).toContain('30 science points');
+    expect(scienceSentence(report)).toContain('Research Lead');
   });
 });

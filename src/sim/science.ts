@@ -25,16 +25,18 @@ export interface ScienceRank {
 /**
  * The ladder, lowest first.
  *
- * The bands are twelve points apart because a twelve-sol run can earn twelve
- * day-log points on its own, so the first band covers "you did not get far"
- * and the top band needs both survival and good choices.
+ * The bands are set by what a run can actually earn. A twelve-sol run earns
+ * twelve day-log points on its own, so the first band has to reach past that
+ * or a player who chose nothing would still be called a Field Scientist. The
+ * best possible run — the best activity on each of the eight calm sols, plus
+ * the day logs — scores 52, so the top band starts just below it.
  */
 export const SCIENCE_RANKS: readonly ScienceRank[] = [
   { id: 'explorer', title: 'Explorer', icon: '🌱', min: 0 },
-  { id: 'field-scientist', title: 'Field Scientist', icon: '🔬', min: 12 },
-  { id: 'research-lead', title: 'Research Lead', icon: '🧪', min: 24 },
-  { id: 'senior-scientist', title: 'Senior Scientist', icon: '🛰️', min: 36 },
-  { id: 'chief-scientist', title: 'Chief Martian Scientist', icon: '🏅', min: 48 },
+  { id: 'field-scientist', title: 'Field Scientist', icon: '🔬', min: 14 },
+  { id: 'research-lead', title: 'Research Lead', icon: '🧪', min: 28 },
+  { id: 'senior-scientist', title: 'Senior Scientist', icon: '🛰️', min: 41 },
+  { id: 'chief-scientist', title: 'Chief Martian Scientist', icon: '🏅', min: 50 },
 ];
 
 /**

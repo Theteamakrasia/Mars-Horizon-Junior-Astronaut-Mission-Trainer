@@ -29,7 +29,7 @@ import iceMinerUrl from '../../../Assets/images/game-loop/ice-miner.png';
 import lifeSupportUrl from '../../../Assets/images/game-loop/life-support.png';
 import solarUrl from '../../../Assets/images/game-loop/solar.png';
 
-import { consumptionSummary, explainOutcome, lowestPoints, nextSteps, reviewDecisions, timeline, usedApproximateData, wentEmpty, type NextStep } from './model';
+import { consumptionSummary, explainOutcome, lowestPoints, nextSteps, reviewDecisions, scienceDetail, scienceHeadline, scienceReport, timeline, usedApproximateData, wentEmpty, type NextStep } from './model';
 
 const VERDICT_TEXT = { solved: 'Solved early', caught: 'Caught you out', mixed: 'A trade-off' } as const;
 const VERDICT_ICON = { solved: '✅', caught: '⚠️', mixed: '🤔' } as const;
@@ -154,6 +154,19 @@ export function mountDebrief(
       : { icon: '🛰', hero: true, kicker: 'A little real Mars science', text: lesson.science };
   }
 
+  /** The science score, beside the outcome rather than mixed into it. */
+  function scienceSignal(state: RunState): SignalCard {
+    const science = scienceReport(state);
+
+    return {
+      icon: science.rank.icon,
+      kicker: 'Science',
+      text: `${science.points} points · ${science.rank.title}`,
+      detail: science.next === null ? 'Top rank reached.' : `${science.toNext} more to reach ${science.next.title}.`,
+      tone: 'good',
+    };
+  }
+
   function worldFor(state: RunState): HTMLElement {
     const empty = wentEmpty(state);
     const won = state.status === 'won';
@@ -176,7 +189,7 @@ export function mountDebrief(
       weather: empty === null ? 'All systems held' : `${STORE_WORD[empty]} needs a refill`,
       weatherIcon: empty === null ? '✅' : STORE_ICON[empty],
       crew: won ? "We made it! Let's try somewhere harder next time." : `We learned a lot! Next time, let's ${STORE_ASK[empty ?? 'water']}.`,
-      signals: [heroCard(state)],
+      signals: [heroCard(state), scienceSignal(state)],
       figures: moduleFigures(state.modules),
     });
   }
@@ -184,6 +197,7 @@ export function mountDebrief(
   function debriefPanel(state: RunState): HTMLElement {
     const explanation = explainOutcome(state);
     const steps = nextSteps(state);
+    const science = scienceReport(state);
     const won = state.status === 'won';
 
     const outcome = h(
@@ -195,6 +209,42 @@ export function mountDebrief(
         null,
         h('p', { class: 'gl__callout-title', text: explanation.headline }),
         h('p', { class: 'gl__callout-detail', text: won ? 'The crew got through. Try a new site or a tighter budget.' : 'The adventure ends here — but you can try again.' }),
+      ),
+    );
+
+    /* The science score: what the run earned, and what the crew did to earn
+       it. It is a separate thing from winning, and it says so. */
+    const scienceList = h('ul', { class: 'gl__list' });
+
+    for (const row of science.activities) {
+      scienceList.append(h('li', { text: `Sol ${row.sol}: ${row.title} (+${row.points})` }));
+    }
+
+    if (science.activities.length === 0) {
+      scienceList.append(h('li', { text: 'No activities were chosen, so no science was done.' }));
+    }
+
+    if (science.crisisSols.length > 0) {
+      scienceList.append(
+        h('li', { text: `Sol ${science.crisisSols.join(', ')}: spent on a crisis instead of an activity.` }),
+      );
+    }
+
+    if (science.quietSols.length > 0) {
+      scienceList.append(
+        h('li', { text: `Sol ${science.quietSols.join(', ')}: nothing was chosen, so no science was done.` }),
+      );
+    }
+
+    const scienceCard = h(
+      'div',
+      { class: 'gl__callout', 'data-tone': 'plain' },
+      h('span', { class: 'gl__callout-icon', 'aria-hidden': 'true', text: science.rank.icon }),
+      h(
+        'div',
+        null,
+        h('p', { class: 'gl__callout-title', text: `${science.points} science points` }),
+        h('p', { class: 'gl__callout-detail', text: `${scienceHeadline(science)} ${scienceDetail(science)}` }),
       ),
     );
 
@@ -223,6 +273,7 @@ export function mountDebrief(
       body: [
         outcome,
         whatHappened,
+        gameSection('Mars Science Score', scienceCard, scienceList),
         gameSection('Next time, try…', tips(steps)),
         gameSection('NASA fact', h('p', { class: 'gl__note', text: `${factFor(consumptionSummary(state).sols).text} (${factFor(consumptionSummary(state).sols).credit})` })),
         nasaCard(NEXT_HORIZON_CARD, 'A real NASA idea · Where this could lead'),
@@ -280,8 +331,10 @@ export function mountDebrief(
     );
 
     const stats = h('dl', { class: 'gl__stats' });
+    const science = scienceReport(state);
     const rows: readonly (readonly [string | null, string, string])[] = [
       [null, 'Sols played', String(totals.sols)],
+      [null, 'Science points', `${science.points} (${science.rank.title})`],
       [lifeSupportUrl, 'Crew breathed', `${totals.crewOxygen} oxygen`],
       [iceMinerUrl, 'Crew drank', `${totals.crewWater} water`],
       [greenhouseUrl, 'Crew ate', `${totals.crewFood} food`],

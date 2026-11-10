@@ -14,6 +14,7 @@ import { crisisForEvent, optionOf } from '../../sim/crises';
 import { systemsFor, countOf, NIGHT_HOURS, type ModuleKind } from '../../sim/modules';
 import { RESOURCE_NAMES, type ResourceName } from '../../sim/resources';
 import type { RunState, SolRecord } from '../../sim/run';
+import { rankProgress, type ScienceRank } from '../../sim/science';
 import { endedBy, isSelfSustaining, WIN_SOL } from '../../sim/sol';
 
 /** What the player is told, and how sure we are. */
@@ -315,6 +316,98 @@ export interface NextStep {
    * or a different site. A hint for the view, not a rule.
    */
   readonly art: ModuleKind | 'choice' | 'site';
+}
+
+/** One sol the crew spent on an activity. */
+export interface ScienceRow {
+  readonly sol: number;
+  readonly title: string;
+  readonly points: number;
+}
+
+/** What the run's science amounts to (D-049). */
+export interface ScienceReport {
+  /** The score: every science point the run earned. */
+  readonly points: number;
+  /** The rank that score earns. */
+  readonly rank: ScienceRank;
+  /** The rank above it, or null at the top. */
+  readonly next: ScienceRank | null;
+  /** How many more points to the next rank. */
+  readonly toNext: number;
+  /** 0-100 through the current band. */
+  readonly percent: number;
+  /** Every activity the crew chose, in order. */
+  readonly activities: readonly ScienceRow[];
+  /** The sols spent on a crisis instead of an activity. */
+  readonly crisisSols: readonly number[];
+  /** The sols where nothing at all was chosen. */
+  readonly quietSols: readonly number[];
+}
+
+/**
+ * What science the run did.
+ *
+ * This measures the science, not the outcome: a run that did a great deal of
+ * science and then ran out of water still did the science. The debrief's own
+ * section explains whether the crew got home, and this one is about the work.
+ */
+export function scienceReport(run: RunState): ScienceReport {
+  const progress = rankProgress(run.science);
+
+  const activities: ScienceRow[] = [];
+  const crisisSols: number[] = [];
+  const quietSols: number[] = [];
+
+  for (const record of run.log) {
+    if (record.activity !== null) {
+      activities.push({ sol: record.sol, title: record.activity.title, points: record.activity.science });
+      continue;
+    }
+
+    /* No activity: either a crisis took the day, or nothing was chosen. */
+    if (record.events.length > 0) crisisSols.push(record.sol);
+    else quietSols.push(record.sol);
+  }
+
+  return {
+    points: run.science,
+    rank: progress.current,
+    next: progress.next,
+    toNext: progress.toNext,
+    percent: progress.percent,
+    activities,
+    crisisSols,
+    quietSols,
+  };
+}
+
+/**
+ * The headline for the science score.
+ *
+ * No article before the rank: "a Explorer" is wrong, and the sentence has to
+ * survive every rank in the ladder.
+ */
+export function scienceHeadline(report: ScienceReport): string {
+  if (report.points === 0) return 'No science points yet.';
+
+  return `Your rank: ${report.rank.title}.`;
+}
+
+/** The line under the headline: what is left to reach, or what was reached. */
+export function scienceDetail(report: ScienceReport): string {
+  if (report.points === 0) {
+    return 'Next time, pick an activity on every calm sol. Each one earns science points.';
+  }
+
+  if (report.next === null) return 'That is the top rank. There is nothing above it.';
+
+  return `${report.toNext} more points to reach ${report.next.title}.`;
+}
+
+/** One line for the science score, so it can be read aloud as well as seen. */
+export function scienceSentence(report: ScienceReport): string {
+  return `${report.points} science points. ${scienceHeadline(report)} ${scienceDetail(report)}`;
 }
 
 /**

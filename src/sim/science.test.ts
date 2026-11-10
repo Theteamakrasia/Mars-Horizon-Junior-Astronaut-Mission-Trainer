@@ -34,14 +34,26 @@ describe('the science score', () => {
 
     expect(progress.current.id).toBe('explorer');
     expect(progress.next?.id).toBe('field-scientist');
-    expect(progress.toNext).toBe(12);
+    expect(progress.toNext).toBe(14);
     expect(progress.percent).toBe(0);
   });
 
   it('fills the band as the score rises, and starts again at the next one', () => {
-    expect(rankProgress(6).percent).toBe(50);
-    expect(rankProgress(12).current.id).toBe('field-scientist');
-    expect(rankProgress(12).percent).toBe(0);
+    expect(rankProgress(7).percent).toBe(50);
+    expect(rankProgress(14).current.id).toBe('field-scientist');
+    expect(rankProgress(14).percent).toBe(0);
+  });
+
+  it('leaves a run that chose nothing on the bottom rung', () => {
+    /* Twelve day-log points and nothing else: still an Explorer. */
+    expect(rankFor(12).id).toBe('explorer');
+  });
+
+  it('leaves the top rung reachable by a good run', () => {
+    /* The best possible run: the best activity on each calm sol, plus the
+       day logs, scores 52. */
+    expect(rankFor(52).id).toBe('chief-scientist');
+    expect(rankFor(49).id).toBe('senior-scientist');
   });
 
   it('stops at the top rank instead of running off the end', () => {
@@ -54,7 +66,7 @@ describe('the science score', () => {
   });
 
   it('never hands the screen a NaN to draw', () => {
-    for (const points of [-1, 0, 5, 12, 23, 24, 35, 36, 47, 48, 999]) {
+    for (const points of [-1, 0, 5, 12, 14, 27, 28, 40, 41, 49, 50, 999]) {
       expect(Number.isNaN(rankProgress(points).percent)).toBe(false);
       expect(Number.isNaN(rankProgress(points).toNext)).toBe(false);
     }

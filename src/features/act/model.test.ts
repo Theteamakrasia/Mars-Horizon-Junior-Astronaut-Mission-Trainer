@@ -144,21 +144,21 @@ describe('the science score', () => {
   });
 
   it('moves up the ladder as the points come in', () => {
-    expect(scienceSummary({ ...run, science: 24 }).rank.id).toBe('research-lead');
-    expect(scienceSummary({ ...run, science: 48 }).rank.id).toBe('chief-scientist');
+    expect(scienceSummary({ ...run, science: 30 }).rank.id).toBe('research-lead');
+    expect(scienceSummary({ ...run, science: 52 }).rank.id).toBe('chief-scientist');
   });
 
   it('shows the road to the next rank', () => {
     const summary = scienceSummary({ ...run, science: 10 });
 
     expect(summary.next?.id).toBe('field-scientist');
-    expect(summary.toNext).toBe(2);
+    expect(summary.toNext).toBe(4);
   });
 
   it('writes the score as a sentence for screen readers', () => {
     const summary = scienceSummary({ ...run, science: 10 });
 
-    expect(scienceSentence(summary)).toBe('10 science points. Your rank is Explorer. 2 more points to reach Field Scientist.');
-    expect(scienceSentence(scienceSummary({ ...run, science: 48 }))).toContain('That is the top rank.');
+    expect(scienceSentence(summary)).toBe('10 science points. Your rank is Explorer. 4 more points to reach Field Scientist.');
+    expect(scienceSentence(scienceSummary({ ...run, science: 52 }))).toContain('That is the top rank.');
   });
 });
