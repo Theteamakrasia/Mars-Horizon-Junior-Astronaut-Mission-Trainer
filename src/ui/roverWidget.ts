@@ -17,7 +17,7 @@
  * No `confirm()` (R-9): the deploy question is a window of its own.
  */
 
-import roverGifUrl from '../../Assets/images/rover/mars_rover_seamless_loop.webp';
+import roverGifUrl from '../../Assets/images/rover/mars_rover_seamless_loop.gif';
 import roverButtonUrl from '../../Assets/images/rover/rbutton.webp';
 import { ROVER_FINDS } from '../data/roverFinds';
 import { h } from '../dom/h';

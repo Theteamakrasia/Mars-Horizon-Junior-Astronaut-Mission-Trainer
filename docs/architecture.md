@@ -73,11 +73,15 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
 │   │                                             Orion), each with a different part outlined and a
 │   │                                             baked label card. Read by tools/render-parts.py.
 │   ├── images/rover/                    complete   rbutton.webp (58 KB, 512x512) and
-│   │                                             mars_rover_seamless_loop.webp (21 KB, 380x250,
-│   │                                             animated): the rover's button and its loop. Both
-│   │                                             imported from TS so Vite fingerprints them.
-│   ├── images/rover/source/             complete   the untouched originals (a 1254x1254 PNG and a
-│   │                                             GIF), kept so the conversion can be re-run. Read
+│   │                                             mars_rover_seamless_loop.gif (810 KB, 380x250,
+│   │                                             16 frames): the rover's button and its loop. Both
+│   │                                             imported from TS so Vite fingerprints them. The
+│   │                                             loop is the original GIF, shipped as it is: GIF
+│   │                                             is the one format every browser plays without
+│   │                                             argument, and it is only fetched when the player
+│   │                                             opens the rover's status window.
+│   ├── images/rover/source/             complete   the untouched button original (a 1254x1254
+│   │                                             PNG), kept so the conversion can be re-run. Read
 │   │                                             by tools/compress-rover-assets.py.
 │   └── README_ref/*.png                complete   6 UI mockups, ~2.4 MB. Never bundled
 │                                                 (publicDir:false exists to exclude them).
@@ -117,17 +121,21 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
 │   │                                             Assets/images/naming/source/. They are drawn
 │   │                                             full-screen, so the 606px originals turned to
 │   │                                             mush at 1920px wide.
-│   ├── compress-rover-assets.py        complete   ~90 lines. PIL. Rewrites the rover's button and
-│   │                                             animation as WebP from the untouched originals in
+│   ├── compress-rover-assets.py        complete   ~120 lines. PIL. Rewrites the rover's button as
+│   │                                             WebP from the untouched original in
 │   │                                             Assets/images/rover/source/. The button was a 1.4 MB
-│   │                                             PNG for a 56-84px circle, and the animation a 790 KB
-│   │                                             GIF; they are now 58 KB and 21 KB.
-│   └── browser-check-rover.mjs         complete   ~170 lines. Node only. Drives the real game in
+│   │                                             PNG for a 56-84px circle; it is now 58 KB and
+│   │                                             indistinguishable side by side. The animation is NOT
+│   │                                             converted - it is shipped as the original GIF - but
+│   │                                             the script checks that it still has its frames,
+│   │                                             because a still frame there is a bug that looks
+│   │                                             like a design choice.
+│   └── browser-check-rover.mjs         complete   ~230 lines. Node only. Drives the real game in
 │                                                 headless Chrome over the DevTools Protocol: names the
 │                                                 astronaut, walks to the outpost, deploys the rover
-│                                                 and checks that the NASA picture really loads. A
-│                                                 check, not a test - `npm test` stays free of a
-│                                                 browser. Needs `npm run build && npm run preview`.
+│                                                 and checks that the NASA picture really loads. A check,
+│                                                 not a test - `npm test` stays free of a browser.
+│                                                 Needs `npm run build && npm run preview`.
 │
 │   All five are dev tools: not scanned by `npm run check`, and they add no runtime dependency.
 │

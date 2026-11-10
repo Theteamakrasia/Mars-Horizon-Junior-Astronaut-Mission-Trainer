@@ -225,8 +225,8 @@ opening its folder — that is the whole point of the layout.
 | **Advancing a sol, and picking the day's activity** | `src/features/act/` — **built**, 20 tests |
 | **Why the run was won or lost, and the science score** | `src/features/debrief/` — **built**, 25 tests |
 | **The rover button, its windows, and what it finds** | `src/ui/roverWidget.ts`, `src/sim/rover.ts`, `src/data/roverFinds.ts` — **built**, 28 tests |
-| **Shrinking the rover's art** | `tools/compress-rover-assets.py` — PNG and GIF to WebP, originals kept in `source/` |
-| **Checking the rover in a real browser** | `tools/browser-check-rover.mjs` — headless Chrome over the DevTools Protocol |
+| **Shrinking the rover's button** | `tools/compress-rover-assets.py` — the PNG to WebP, and a check that the animation still has its frames |
+| **Checking the rover in a real browser** | `tools/browser-check-rover.mjs` — headless Chrome over the DevTools Protocol; proves the NASA picture loads and the rover moves |
 | Where START MISSION goes | `onSubmit` in `src/features/naming/view.ts` — flows to `briefing` |
 | Boot, element lookup, `?motion=`, mounting screens | `src/main.ts` |
 | Page structure, element ids, font link | `index.html` |
