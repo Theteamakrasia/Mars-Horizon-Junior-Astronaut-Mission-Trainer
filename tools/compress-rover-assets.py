@@ -1,95 +1,114 @@
-"""Shrink the rover's two assets so the outpost screens stay quick.
+"""Shrink the rover's button so the outpost screens stay quick.
 
 The rover button is drawn at 56-84 CSS pixels, but the supplied PNG is
 1254x1254 and weighs 1.4 MB - the second-largest thing in the build, fetched
-the moment the player reaches the outpost. The rover's looping animation is
-380x250 and weighs 790 KB.
+the moment the player reaches the outpost.
 
-Both are rewritten as WebP, the format the game already ships for the naming
-screen and every module sprite. The PNG and the GIF stay in `source/` so the
-pipeline can be re-run at any size without regenerating the art.
+It is rewritten as WebP, the format the game already ships for the naming
+screen and every module sprite. The PNG stays in `source/` so the conversion
+can be re-run at any size without regenerating the art.
 
     python tools/compress-rover-assets.py
 
-Why these sizes and settings
-----------------------------
+Why these settings
+------------------
 The button is kept at 512x512, four times the largest size it is ever drawn
 at, so it stays crisp on a high-density screen without carrying the source
 resolution. At quality 90 the WebP is 58 KB against the PNG's 1.4 MB and the
-two are indistinguishable side by side; the picture is a flat illustration with
-a few hard black edges, which is exactly what WebP handles well.
+two are indistinguishable side by side; the picture is a flat illustration
+with a few hard black edges, which is exactly what WebP handles well.
 
-The animation keeps its own 380x250. It is a small wide strip in a narrow
-window, and shrinking it would blur the wheels. Saved as an animated WebP it
-comes to 21 KB against the GIF's 790 KB, because the sixteen frames are nearly
-identical and WebP codes them as one picture with small updates.
+The rover's looping animation is NOT converted. It is a GIF, it is the
+original art, and GIF is the one format every browser plays without argument.
+It is also 810 KB, but it is only fetched when the player opens the rover's
+status window, so it is never on the critical path. The script checks that it
+is still an animation, because a still frame there is a bug that looks like
+a design choice.
 
-The original files are written to `source/` once and never edited, so a
-re-run always starts from the same art.
+The tool fails loudly rather than quietly shipping the wrong thing: if the
+button's WebP is not a picture of the right size, or the animation has lost
+its frames, it says so and exits non-zero.
 """
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
-from PIL import Image, ImageSequence
+from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
 ROVER_DIR = ROOT / "Assets" / "images" / "rover"
 SOURCE_DIR = ROVER_DIR / "source"
 
-# source name -> (target name, size or None to keep, webp kwargs)
-ASSETS = {
+# The button: source name -> (target name, size or None to keep, webp kwargs)
+BUTTON = {
     "rbutton.png": ("rbutton.webp", (512, 512), {"quality": 90, "method": 6}),
-    "mars_rover_seamless_loop.gif": (
-        "mars_rover_seamless_loop.webp",
-        None,
-        {"quality": 80, "method": 6},
-    ),
 }
+
+# The animation is shipped as it is. It is only checked.
+ANIMATION = "mars_rover_seamless_loop.gif"
 
 
 def kib(path: Path) -> str:
     return f"{path.stat().st_size / 1024:.0f} KB"
 
 
-def save_webp(image: Image.Image, target: Path, webp_kwargs: dict[str, object]) -> None:
-    """Save one picture, or every frame of an animation with its own timing."""
-    if getattr(image, "is_animated", False):
-        frames = [frame.convert("RGB").copy() for frame in ImageSequence.Iterator(image)]
-        durations = [frame.info.get("duration", 100) or 100 for frame in ImageSequence.Iterator(image)]
-        frames[0].save(target, format="WEBP", save_all=True, loop=0, duration=durations, **webp_kwargs)
+def convert_button() -> None:
+    """Rewrite the button as WebP and prove the result is a picture."""
+    for source_name, (target_name, size, webp_kwargs) in BUTTON.items():
+        source = SOURCE_DIR / source_name
+        target = ROVER_DIR / target_name
 
-        return
+        if not source.exists():
+            raise SystemExit(f"missing the original: {source}")
 
-    image.save(target, format="WEBP", **webp_kwargs)
+        image = Image.open(source).convert("RGBA")
+
+        if size is not None:
+            image = image.resize(size, Image.LANCZOS)
+
+        image.save(target, format="WEBP", **webp_kwargs)
+
+        print(f"{source_name} ({kib(source)}) -> {target_name} ({kib(target)})")
+
+        written = Image.open(target)
+        if written.format != "WEBP":
+            raise SystemExit(f"{target_name} is a {written.format}, not a WebP")
+        if written.size != (size or image.size):
+            raise SystemExit(f"{target_name} is {written.size}, expected {size}")
+        if target.stat().st_size >= source.stat().st_size:
+            raise SystemExit(f"{target_name} is not smaller than {source_name}; the conversion did nothing")
+
+
+def check_animation() -> None:
+    """The animation must still be an animation, not one still frame."""
+    path = ROVER_DIR / ANIMATION
+
+    if not path.exists():
+        raise SystemExit(f"missing the animation: {path}")
+
+    image = Image.open(path)
+    frames = getattr(image, "n_frames", 1)
+
+    print(f"{ANIMATION} ({kib(path)}) -> {frames} frames")
+
+    if frames < 2:
+        raise SystemExit(
+            f"{ANIMATION} has {frames} frame. The rover would stand still. "
+            "The animation is shipped as the original GIF, so this means the file is wrong."
+        )
 
 
 def main() -> None:
     SOURCE_DIR.mkdir(parents=True, exist_ok=True)
-
-    for source_name, (target_name, size, webp_kwargs) in ASSETS.items():
-        source = ROVER_DIR / source_name
-        target = ROVER_DIR / target_name
-
-        if not source.exists():
-            print(f"skip {source_name}: not found")
-            continue
-
-        # Keep the original once, so the conversion can be re-run.
-        kept = SOURCE_DIR / source_name
-        if not kept.exists():
-            kept.write_bytes(source.read_bytes())
-
-        image = Image.open(source)
-
-        if size is not None:
-            image = image.convert("RGBA").resize(size, Image.LANCZOS)
-
-        save_webp(image, target, webp_kwargs)
-
-        print(f"{source_name} ({kib(source)}) -> {target_name} ({kib(target)})")
+    convert_button()
+    check_animation()
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except SystemExit as error:
+        print(f"FAILED: {error}", file=sys.stderr)
+        raise
