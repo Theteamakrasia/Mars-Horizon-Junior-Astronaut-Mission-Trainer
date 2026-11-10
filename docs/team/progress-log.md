@@ -8,6 +8,32 @@ than a documented one.
 
 ---
 
+## 2026-11-10 — Add NASA facts to the supply check and the launch reel
+
+**Did**
+
+- Added a real NASA fact to the supply screen: the astronaut now speaks one as part of the
+  dialogue, before the ration-packet beats, about growing and eating red romaine lettuce on
+  the International Space Station in 2014.
+- Added a real NASA fact to the launch screen: the cinematic now carries one — staging, about
+  dropping empty fuel tanks partway up — appended to its spoken description, so a
+  screen-reader player gets the same teaching a looking player does.
+
+**Files**
+
+- `src/features/supply/model.ts`, `src/features/launch/model.ts`, `src/features/launch/view.ts`,
+  `docs/architecture.md`
+
+**Problems**
+
+- None blocking.
+
+**Next**
+
+- Browser pass on `#/supply` and `#/launch` before committing.
+
+---
+
 ## 2026-11-10 — Put the briefing under the astronaut artwork, one line at a time
 
 **Did**

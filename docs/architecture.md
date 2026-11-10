@@ -330,8 +330,8 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │   └── supply.css               complete   beats and the ration check
     │   ├── launch/                     COMPLETE   The launch reel and spacecraft tour.
     │   │   ├── README.md                           the contract
-    │   │   ├── model.ts                 complete   TITLE, SHOTS, PARTS, beat durations,
-    │   │   │                                     resolveBeatStart. 32 tests.
+    │   │   ├── model.ts                 complete   TITLE, SHOTS, PARTS, NASA_FACT, beat
+    │   │   │                                     durations, resolveBeatStart. 32 tests.
     │   │   ├── model.test.ts            complete   32 literal-input tests
     │   │   ├── view.ts                  complete   mountLaunch(root, run, setRun) -> teardown;
     │   │   │                                     media-driven beats, poster frames
@@ -639,6 +639,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `DOCKING_DESCRIPTION` | what the docking clip shows, for screen readers |
 | | `PARTS` | five tour slides: overview then one named part at a time, each with name, description and accent colour |
 | | `PARTS_DESCRIPTION` | all four parts the tour names, for screen readers |
+| | `NASA_FACT` | a real NASA fact the cinematic teaches with, appended to the spoken description |
 | | `TOTAL_DURATION_MS` | title + shots + both films; the reel's *nominal* runtime, not a timer — the screen exits at the Continue button in the parts tour, or when the last film ends |
 | | `resolveBeatStart` | `(earliestMs, readyAtMs) -> ms`; a beat starts at the later of its slot and its clip's readiness |
 | `features/launch/view` | `mountLaunch` | `(root, run) -> teardown`; plays the stills, then the launch film and the docking clip, then opens the interactive parts tour. Beats are media-driven: only the launch film loads up front, the docking clip loads when the film's beat starts, each has a poster, and a beat waits for its clip rather than being skipped. Reduced motion holds the stills and both films. The parts tour is static images and text — Prev / Next move between parts, disabled at the boundaries, Continue hands off. |

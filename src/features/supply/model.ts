@@ -75,6 +75,11 @@ export const SUPPLY_BEATS: readonly SupplyBeat[] = [
     resource: 'shielding',
   },
   {
+    id: 'nasa-fact',
+    label: 'NASA fact',
+    line: 'In 2014, astronauts on the International Space Station grew and ate red romaine lettuce in space.',
+  },
+  {
     id: 'packet',
     label: 'A ration packet',
     line: 'Freeze-dried meals, cereal bars and long-life treats. Fresh fruit and vegetables do not survive the trip.',
