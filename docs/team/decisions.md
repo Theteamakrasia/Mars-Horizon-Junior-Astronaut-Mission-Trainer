@@ -11,6 +11,14 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+**D-050 — agent · 2026-11-10**
+**Choice:** The supply screen answers Enter exactly as NEXT does. The two rules that decide it — "is this a plain Enter?" and "does the focused element deal with Enter itself?" — live in `features/supply/model.ts`, where they are pure and can be tested; the view holds one `window` keydown listener. The screen also resets itself when it mounts, because its markup is static and everything it shows survives a visit.
+**Why:** The screen had no keyboard handler at all: Enter did nothing until NEXT had been clicked with a mouse, and even then it worked only because the click left the focus on the button and the browser activates a focused button on Enter. A key that works only after a click reads as broken (ISS-047). The reset is the same defect's other half: a second visit came back with NEXT hidden, the answers still on screen and eight answer options instead of four, so Enter would have gone quiet again on every revisit.
+**Rejected:** (a) A shared `ui/` helper for the Enter rule — the briefing has the same rule inline, and extracting it would touch a screen that is not part of this fix; it can be done once two screens want it. (b) Enter answering the ration question — a stray press would pick an answer for a child. (c) An auto-advance timer like the briefing's — it would take the beat away while it is still being read. (d) Rebuilding the screen's DOM on every mount to clear the old state — the markup is shared with the rest of the page, and the reset is six lines.
+**Consequence:** `features/supply/model.ts` exports `isPlainEnter` and `focusHandlesEnter`, both pure and covered by tests; `features/supply/view.ts` adds one `window` keydown listener, removes it in its teardown, and resets the screen's state on mount. The other screens' views and models are untouched.
+
+---
+
 **D-048 — agent — 2026-11-10**
 **Choice:** Every mission's hazards are rolled from a seed: whether a dust storm happens, how many flares (1–4), whether a supply pod is scheduled, and which sols (2–10, one event at a time). Flare sizes are drawn from the real M and X flares the live feed returned; with no live data they are drawn from the NOAA long-run record (3,791 M to 345 X flares, 1975–2012), marked `approximate`. A dustier landing site gets more storms. The crew sees a pod for the whole run, a storm three sols ahead and a flare only one sol ahead.
 **Why:** The fixed schedule (D-033) meant every replay was the same four decisions in the same order, which undercuts "a living simulation". Real hazards vary: flare activity changes month to month, dust storms are common but not certain, and flares give almost no warning. Seeding rather than `Math.random` keeps a run repeatable in a demo and assertable in a test.

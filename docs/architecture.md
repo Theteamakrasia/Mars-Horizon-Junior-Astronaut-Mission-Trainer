@@ -328,9 +328,12 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   ├── supply/                     COMPLETE   The ration-check puzzle.
     │   │   ├── README.md                           the contract
     │   │   ├── model.ts                 complete   SUPPLY_BEATS, packsFor, judge, hintFor,
-    │   │   │                                     workingSentence, approximateTotalKg. 49 tests.
-    │   │   ├── model.test.ts            complete   49 literal-input tests
-    │   │   ├── view.ts                  complete   mountSupply(root, run, setRun) -> teardown
+    │   │   │                                     workingSentence, approximateTotalKg,
+    │   │   │                                     isPlainEnter, focusHandlesEnter. 56 tests.
+    │   │   ├── model.test.ts            complete   56 literal-input tests
+    │   │   ├── view.ts                  complete   mountSupply(root, run, setRun) -> teardown.
+    │   │   │                                     Enter advances while NEXT is visible, and
+    │   │   │                                     the screen resets its state on mount.
     │   │   └── supply.css               complete   beats and the ration check
     │   ├── launch/                     COMPLETE   The launch reel and spacecraft tour.
     │   │   ├── README.md                           the contract
@@ -614,6 +617,11 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `checkName` | `(raw) -> {ok, value, problem}`; returns the normalised value so a caller never normalises twice |
 | | `displayName` | strips control characters and caps length — the one string interpolated into markup |
 | `features/naming/view` | `mountNaming` | `(root, run, setRun) -> teardown`; START MISSION disabled until the name is usable |
+| `features/supply/model` | `SUPPLY_BEATS`, `CHOICES`, `CORRECT_ANSWER` | the six spoken facts, the four answer buttons and the right answer |
+| | `packsFor`, `judge`, `hintFor` | the ration arithmetic and what to say about a wrong pick; no answer in the working until it is earned |
+| | `isPlainEnter` | `(key, modifiers) -> boolean`; an unmodified Enter is the one key the screen answers |
+| | `focusHandlesEnter` | `(tagName) -> boolean`; a focused button, link or field deals with Enter itself, so the screen must not answer it as well |
+| `features/supply/view` | `mountSupply` | `(root, run, setRun) -> teardown`; one `window` keydown listener advances the beats while NEXT is visible, and the screen resets its state on mount because its markup is static (D-050) |
 | `features/landing-site/model` | `REGIONS` | the five authored regions, re-exported from `sim/regions` |
 | | `scoreRegion` | `(regionId) -> SiteScore`; all-zero safe score for an unknown id, never throws |
 | | `tradeoffSummary` | `(score) -> string`; names strongest and weakest axis, never "recommended" |

@@ -11,7 +11,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
-| ISS-047 | The supply screen ignored the Enter key until NEXT had been clicked with a mouse | medium | agent | open | - |
+| ISS-047 | The supply screen ignored the Enter key until NEXT had been clicked with a mouse | medium | agent | fixed | this branch |
 | ISS-043 | Space weather had one live source, so a DONKI outage silently replaced every run's flares with baked history | high | agent | fixed | this branch |
 | ISS-046 | The header advertised "Mission Control / Main Menu" as text, and naming's Back to Main Menu navigated to itself | medium | agent | fixed | d90e838 |
 | ISS-045 | The page title said "Under Construction" and the description called the built game a placeholder | low | agent | fixed | 559c0d6 |
@@ -967,9 +967,15 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 - **Fix:** `isPlainEnter` and `focusHandlesEnter` in `features/supply/model.ts` (pure, tested) and one
   `window` keydown listener in the view, mirroring the briefing's. Enter advances while NEXT is visible
   and does nothing once the question is up, so a stray press cannot answer the question. The listener is
-  removed in the teardown. Recorded as D-050.
-- **Pre-existing:** yes; the supply screen has had no keyboard handler since it was built.
-- **Status:** open.
+  removed in the teardown.
+- **The same root cause had a second face.** The markup is static, so the screen never cleared the last
+  visit's state: a second visit to #/supply came back with NEXT hidden, the answers still on screen and
+  **eight** answer options instead of four, because the old buttons were never removed. The screen now
+  resets itself when it mounts. Without that reset, Enter would have gone quiet again on every revisit —
+  the same symptom, a different cause.
+- **Pre-existing:** yes; the supply screen has had no keyboard handler since it was built, and it has
+  never reset its state on a mount.
+- **Status:** fixed in this branch. Recorded as D-050.
 
 ---
 

@@ -8,6 +8,47 @@ than a documented one.
 
 ---
 
+## 2026-11-10 — Make Enter work on the supply screen
+
+**Did**
+
+- The supply screen now answers Enter exactly as NEXT does. `isPlainEnter` and
+  `focusHandlesEnter` live in `features/supply/model.ts` — pure, with seven new tests — and
+  the view holds one `window` keydown listener that mirrors the briefing's.
+- The screen resets itself when it mounts: NEXT visible, the answers, the retry, the
+  continue and the working hidden, the result empty, and the answer list cleared.
+- The listener is removed in the teardown, so it cannot go on advancing a screen the
+  player has left, and it cannot fight the briefing's own Enter handler.
+
+**Files**
+
+- `src/features/supply/{model.ts,model.test.ts,view.ts}`,
+  `docs/team/{issues,decisions,progress-log,tasks}.md`, `docs/architecture.md`,
+  `docs/CHANGELOG.md`
+
+**Problems**
+
+- None blocking. `npm run check` clean, `npm test` 441 in 19 files, `npm run build`
+  warning-free.
+- Two defects came out of the same root cause. The screen had no keyboard handler at all,
+  so Enter did nothing until NEXT had been clicked with the mouse — and it only worked
+  then because the click left the focus on the button, which the browser activates with
+  Enter. Separately, the screen never cleared the previous visit's state: a second visit
+  came back with NEXT hidden, the answers still on screen, and eight answer options
+  instead of four, because the old buttons were never removed. Without the reset, Enter
+  would have gone quiet again on every revisit — the same symptom, a different cause.
+- There is no DOM test setup in this repo (ISS-013, TASK-009), so the fix was verified by
+  driving the real app in headless Chrome: Enter advances from the first beat with nothing
+  focused, advances exactly once when NEXT has the focus, does nothing on the question
+  phase, still picks a focused answer, a revisit starts clean, and the briefing is
+  undisturbed.
+
+**Next**
+
+- The owner checks the screen on their own device. The branch is not pushed yet.
+
+---
+
 ## 2026-11-10 — Roll each mission's hazards from a seed
 
 **Did**
