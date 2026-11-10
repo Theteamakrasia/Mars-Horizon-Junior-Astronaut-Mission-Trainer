@@ -121,7 +121,6 @@ export function mountBase(
       crew: "Hi, explorer! Let's build a home on Mars.",
       signals,
       figures: moduleFigures([...CORE_MODULES, ...extras]),
-      dock: 'outpost',
     });
 
     // ---- The catalogue.
@@ -195,7 +194,7 @@ export function mountBase(
       footer: [launch, h('p', { class: 'gl__note', text: BUDGET_NONE })],
     });
 
-    mount.replaceChildren(gameScreen({ hud, world, panel, variant: 'gl--base' }));
+    mount.replaceChildren(gameScreen({ hud, world, panel, variant: 'gl--base', headerSub: 'BUILD YOUR OUTPOST' }));
 
     if (focusKey !== undefined) focusable.get(focusKey)?.focus();
   }

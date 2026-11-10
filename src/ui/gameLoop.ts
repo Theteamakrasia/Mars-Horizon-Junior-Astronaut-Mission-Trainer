@@ -1,6 +1,6 @@
 /**
  * The shared chrome of the game loop: the navy header, the five-card resource
- * HUD, the illustrated Mars world with its speech bubbles, the bottom dock and
+ * HUD, the illustrated Mars world with its speech bubbles, and
  * the cream interaction panel.
  *
  * It lives in `ui/` because `base`, `act` and `debrief` all draw it and a
@@ -105,14 +105,6 @@ export function moduleFigures(kinds: readonly ModuleKind[]): readonly WorldFigur
   return figures;
 }
 
-/** The tabs in the dock, in the order the design draws them. */
-export type DockTab = 'outpost' | 'inventory' | 'journal';
-
-const DOCK: Readonly<Record<DockTab, { readonly icon: string; readonly label: string }>> = {
-  outpost: { icon: '🏠', label: 'Outpost' },
-  inventory: { icon: '🎒', label: 'Inventory' },
-  journal: { icon: '📖', label: 'Journal' },
-};
 
 /** One HUD card: an icon, a name, a value, and optionally a 0-100 bar. */
 export interface HudStat {
@@ -148,9 +140,7 @@ export interface WorldOptions {
   readonly crewLabel?: string;
   readonly signals?: readonly SignalCard[];
   readonly figures?: readonly WorldFigure[];
-  /** A small line above the dock, as the crisis and journal frames draw. */
   readonly hint?: string;
-  readonly dock?: DockTab | null;
 }
 
 /** Everything the right-hand panel needs. */
@@ -167,30 +157,36 @@ export interface ScreenOptions {
   readonly hud: readonly HudStat[];
   readonly world: HTMLElement;
   readonly panel: HTMLElement;
+  /** Text under the MARS HORIZON brand, naming this screen. */
+  readonly headerSub?: string;
   /** A screen-specific modifier on the root, for that feature's own CSS. */
   readonly variant?: string;
 }
 
-/**
+/** 
  * The header.
  *
- * Pause, settings and BUILD are drawn because the frame draws them, but they are
- * `span`s, not buttons: nothing in the journey can pause, open settings, or go
- * back to the builder without throwing the run away, and an affordance that
- * does nothing is worse than a picture that does nothing.
+ * Drawn as the standard page header: a rocket mark, the MARS HORIZON brand,
+ * the screen name, and a muted Mission Control / Main Menu line on the right.
  */
-export function gameHeader(): HTMLElement {
+export function gameHeader(sub?: string): HTMLElement {
+  const subtitle = sub ?? 'GAME LOOP';
+
   return h(
     'header',
     { class: 'gl__header' },
-    h('p', { class: 'gl__brand', text: 'MARS HORIZON' }),
     h(
       'div',
-      { class: 'gl__header-actions', 'aria-hidden': 'true' },
-      h('span', { class: 'gl__chrome', text: '❚❚' }),
-      h('span', { class: 'gl__chrome', text: '⚙' }),
-      h('span', { class: 'gl__build', text: 'Build' }),
+      { class: 'gl__brand' },
+      h('span', { class: 'gl__brand-mark', 'aria-hidden': 'true', text: '🚀' }),
+      h(
+        'span',
+        { class: 'gl__brand-text' },
+        h('span', { class: 'gl__brand-name', text: 'MARS HORIZON' }),
+        h('span', { class: 'gl__brand-sub', text: subtitle }),
+      ),
     ),
+    h('nav', { class: 'gl__nav', 'aria-label': 'Primary', text: 'Mission Control / Main Menu' }),
   );
 }
 
@@ -231,28 +227,7 @@ export function gameHud(stats: readonly HudStat[]): HTMLElement {
   return hud;
 }
 
-/** The three-tab dock. Decorative: no screen behind it can be reached safely. */
-export function gameDock(active: DockTab): HTMLElement {
-  const dock = h('div', { class: 'gl__dock', role: 'presentation' });
-
-  for (const tab of ['outpost', 'inventory', 'journal'] as const) {
-    const entry = DOCK[tab];
-    const current = tab === active;
-
-    dock.append(
-      h(
-        'span',
-        { class: current ? 'gl__tab gl__tab--active' : 'gl__tab', 'aria-hidden': current ? undefined : 'true' },
-        h('span', { 'aria-hidden': 'true', text: entry.icon }),
-        entry.label,
-      ),
-    );
-  }
-
-  return dock;
-}
-
-/** The illustrated world panel, with its bubbles, figures and dock. */
+/** The illustrated world panel, with its bubbles and figures. */
 export function gameWorld(options: WorldOptions): HTMLElement {
   const left = h(
     'div',
@@ -306,7 +281,6 @@ export function gameWorld(options: WorldOptions): HTMLElement {
   }
 
   if (options.hint !== undefined) world.append(h('p', { class: 'gl__hint', text: options.hint }));
-  if (options.dock !== undefined && options.dock !== null) world.append(gameDock(options.dock));
   world.append(h('span', { class: 'gl__astronaut', 'aria-hidden': 'true', style: `background-image:url(${ASTRONAUT_SPRITE})` }));
 
   return world;
@@ -333,7 +307,7 @@ export function gameScreen(options: ScreenOptions): HTMLElement {
   return h(
     'div',
     { class: options.variant === undefined ? 'gl' : `gl ${options.variant}` },
-    gameHeader(),
+    gameHeader(options.headerSub),
     gameHud(options.hud),
     h('div', { class: 'gl__main' }, options.world, options.panel),
   );

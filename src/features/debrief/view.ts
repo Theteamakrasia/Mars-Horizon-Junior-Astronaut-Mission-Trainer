@@ -122,7 +122,6 @@ export function mountDebrief(
       weather: 'No sols flown',
       crew: "We haven't flown yet. Shall we?",
       figures: [],
-      dock: 'outpost',
     });
 
     const panel = gamePanel({
@@ -133,7 +132,7 @@ export function mountDebrief(
       footer: [button],
     });
 
-    mount.replaceChildren(gameScreen({ hud: [], world, panel, variant: 'gl--debrief' }));
+    mount.replaceChildren(gameScreen({ hud: [], world, panel, variant: 'gl--debrief', headerSub: 'MISSION DEBRIEF' }));
   }
 
   /** The world's one hero card: how long the crew lasted, or the science behind it. */
@@ -166,8 +165,7 @@ export function mountDebrief(
         signals: [heroCard(state)],
         figures: moduleFigures(state.modules),
         hint: 'Your full sol log and the space-weather notes are below.',
-        dock: 'journal',
-      });
+        });
     }
 
     return gameWorld({
@@ -177,7 +175,6 @@ export function mountDebrief(
       crew: won ? "We made it! Let's try somewhere harder next time." : `We learned a lot! Next time, let's ${STORE_ASK[empty ?? 'water']}.`,
       signals: [heroCard(state)],
       figures: moduleFigures(state.modules),
-      dock: 'outpost',
     });
   }
 
@@ -351,7 +348,7 @@ export function mountDebrief(
 
     const panel = mode === 'debrief' ? debriefPanel(run) : journalPanel(run);
 
-    mount.replaceChildren(gameScreen({ hud: hudFor(run), world: worldFor(run), panel, variant: 'gl--debrief' }));
+    mount.replaceChildren(gameScreen({ hud: hudFor(run), world: worldFor(run), panel, variant: 'gl--debrief', headerSub: 'MISSION DEBRIEF' }));
 
     if (focus !== undefined) mount.querySelector<HTMLElement>(`[data-focus="${focus}"]`)?.focus();
   }

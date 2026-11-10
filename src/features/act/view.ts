@@ -354,7 +354,6 @@ export function mountAct(
             weather: 'Clear skies',
             crew: last === undefined ? 'A sol is one Mars day. Ready for our first one?' : `Sol ${last.sol} is done. Ready for the next one?`,
             figures: moduleFigures(state.modules),
-            dock: 'outpost',
           })
         : gameWorld({
             label: 'Crew alert',
@@ -365,12 +364,11 @@ export function mountAct(
               ? `Mission Control can answer in ${roundTripMinutes(crisis.sol)} minutes.`
               : `Earth cannot reply before this ${EVENT_NAME[crisis.kind].toLowerCase()} arrives.`,
             signals: [{ icon: EVENT_ICON[crisis.kind], tone: 'warn', kicker: EVENT_NAME[crisis.kind], text: CRISIS_BRIEF[crisis.kind].signal }],
-            dock: 'outpost',
           });
 
     const panel = crisis === null ? missionPanel(state) : crisisPanel(state, crisis);
 
-    mount.replaceChildren(gameScreen({ hud: hudFor(state), world, panel, variant: 'gl--act' }));
+    mount.replaceChildren(gameScreen({ hud: hudFor(state), world, panel, variant: 'gl--act', headerSub: 'RUNNING THE DAY' }));
 
     if (pendingFocus !== null) {
       pendingFocus.focus();
@@ -389,6 +387,7 @@ export function mountAct(
         world: gameWorld({ label: 'Not ready yet', weather: 'Waiting', crew: 'We need a site and an outpost first.', figures: [] }),
         panel: gamePanel({ kicker: 'Not ready yet', title: label, sub: text, footer: [button] }),
         variant: 'gl--act',
+        headerSub: 'RUNNING THE DAY',
       }),
     );
   }
