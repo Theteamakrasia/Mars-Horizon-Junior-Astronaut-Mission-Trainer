@@ -221,13 +221,20 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         Prev / action buttons; teardown mandatory.
     │   ├── button-strip.css            complete   structural styles only (flex row, gap, padding);
     │   │                                         features theme colours in their own CSS.
-    │   └── registry.ts                 complete   the one composition seam. Exports ScreenFactory,
-    │                                             screenMount, resolveScreen, nextStop,
-    │                                             allScreenMounts. Maps all nine built routes onto
-    │                                             feature views; the only file permitted to import
-    │                                             them. `ScreenFactory` is (root, run, setRun) ->
-    │                                             teardown. Returns null for routes with nothing
-    │                                             built, so the router can fall through.
+    │   ├── registry.ts                 complete   the one composition seam. Exports ScreenFactory,
+    │   │                                         screenMount, resolveScreen, nextStop,
+    │   │                                         allScreenMounts. Maps all nine built routes onto
+    │   │                                         feature views; the only file permitted to import
+    │   │                                         them. `ScreenFactory` is (root, run, setRun) ->
+    │   │                                         teardown. Returns null for routes with nothing
+    │   │                                         built, so the router can fall through.
+    │   └── gameLoop.ts                 complete   the shared game-loop chrome from the Figma
+    │                                             frames (D-038): gameHeader, gameHud, gameDock,
+    │                                             gameWorld, gamePanel, gameScreen, gameSection,
+    │                                             moduleFigures. Presentation only — every word
+    │                                             and number arrives as an argument, and it owns
+    │                                             the shared artwork imports so base, act and
+    │                                             debrief do not copy them.
     │
     ├── dom/                            landing-page side effects only. Untested (ISS-011).
     │   ├── floatAstronaut.ts           complete   218 lines. The rAF loop, the two transforms, the
@@ -309,40 +316,53 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │   └── landing-site.css                   complete   16:9 stage, five pins, Site Analysis panel
     │   ├── base/                       COMPLETE   TASK-029. Outpost overview and build panel.
     │   │   ├── README.md                           the contract
-    │   │   ├── model.ts                 complete   BUILDABLE, canPlace, upkeep, blockedKinds,
-    │   │   │                                     previewOf, formatStore, formatCost. Re-exports
-    │   │   │                                     the `sim/modules.ts` catalogue (D-032).
-    │   │   ├── model.test.ts            complete   11 literal-input tests
+    │   │   ├── model.ts                 complete   BUILDABLE, canPlace, addModule,
+    │   │   │                                     removeModule, pointsLeft, upkeepFor,
+    │   │   │                                     previewFor, previewSummary, upcomingWarnings.
+    │   │   │                                     Re-exports the `sim/modules.ts` catalogue
+    │   │   │                                     (D-032).
+    │   │   ├── model.test.ts            complete   14 literal-input tests
     │   │   ├── view.ts                  complete   mountBase(root, run, setRun) -> teardown.
-    │   │   │                                     Holds a mutable local `state`; build panel,
-    │   │   │                                     five stores, storm warning, Start sols.
-    │   │   └── base.css                 complete   two-column grid, build list, store rows
+    │   │   │                                     Rebuilt on the game-loop shell (D-038): the
+    │   │   │                                     outpost on Mars, the catalogue, five cards.
+    │   │   └── base.css                 complete   the budget line and card reasons only
     │   ├── act/                        COMPLETE   TASK-030. Turn-based sol control (D-030).
     │   │   ├── README.md                           the contract
-    │   │   ├── model.ts                 complete   formatSigned, eventsOn. Pure, 7 tests.
-    │   │   ├── model.test.ts            complete   7 literal-input tests
+    │   │   ├── model.ts                 complete   MISSIONS, missionHeadline, meterRows,
+    │   │   │                                     toneFor, progressPercent, secondsLeft,
+    │   │   │                                     powerSentence. Pure, 8 tests.
+    │   │   ├── model.test.ts            complete   8 literal-input tests
     │   │   ├── view.ts                  complete   mountAct(root, run, setRun) -> teardown.
     │   │   │                                     Advance sol -> advanceSol; on a finished run,
-    │   │   │                                     setRun then navigate to `debrief`.
-    │   │   └── act.css                  complete   day/night scene, Power Surplus steps, event log
+    │   │   │                                     setRun then navigate to `debrief`. A crisis
+    │   │   │                                     replaces the mission panel (D-040).
+    │   │   └── act.css                  complete   crisis option artwork only; the frame is shared
     │   └── debrief/                    COMPLETE   TASK-031. Why the run was won or lost.
     │       ├── README.md                           the contract
-    │       ├── model.ts                 complete   Explanation, ConsumptionSummary, explainOutcome,
-    │       │                                     consumptionSummary, depletedStores. Conservative
-    │       │                                     ledger attribution. 12 tests.
-    │       ├── model.test.ts            complete   12 literal-input tests
+    │       ├── model.ts                 complete   Explanation, ConsumptionSummary, NextStep,
+    │       │                                     explainOutcome, consumptionSummary,
+    │       │                                     blackoutSols, reviewDecisions, timeline,
+    │       │                                     lowestPoints, usedApproximateData,
+    │       │                                     nextSteps, wentEmpty. Conservative ledger
+    │       │                                     attribution. 18 tests.
+    │       ├── model.test.ts            complete   18 literal-input tests
     │       ├── view.ts                  complete   mountDebrief(root, run, setRun) -> teardown.
-    │       │                                     CSS-bar timeline, used/weather summary, replay.
-    │       └── debrief.css              complete   timeline bars, outcome panel, honesty note
+    │       │                                     Results panel, plus the journal as a mode
+    │       │                                     (D-039): decisions, sol table, honesty note.
+    │       └── debrief.css              complete   tip cards, journal entries, two-link footer
     │
-    └── styles/                         plain CSS, landing page only
+    └── styles/                         shared CSS: the landing page, the game-loop frame
         ├── base.css                    complete   94 lines. Tokens, reset, backdrop, nebulae.
         │                                         Comment at line 60 is stale — ISS-014.
         ├── starfield.css               complete   70 lines. Carries the suspect ISS-002 animation.
         ├── astronaut.css               complete   82 lines. Three nested elements each owning one
         │                                         transform, plus sway/breathe keyframes.
-        └── message.css                 complete   125 lines. Title, cursor, vignette, reduced-motion
-                                                  block. Lines 100-101 contradict 110-113 — ISS-003.
+        ├── message.css                 complete   125 lines. Title, cursor, vignette, reduced-motion
+        │                                         block. Lines 100-101 contradict 110-113 — ISS-003.
+        └── game-loop.css               complete   the `.gl` frame for base, act and debrief (D-038):
+                                                  header, HUD cards, world, dock, panel, cards,
+                                                  choices, clock, journal; imported by each
+                                                  feature's view.ts (R-15)
 ```
 
 ### The shape of a feature
@@ -554,14 +574,19 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `totalScore` | `(score) -> number`, 0-25 |
 | | `strengthAndWeakness` | `(score) -> {strength, weakness}` axes |
 | `features/landing-site/view` | `mountLandingSite` | `(root, run, setRun) -> teardown`; map + five pins + Site Analysis panel, LAND HERE calls `landAt` then navigates to `nextStop('landing-site')` |
-| `features/base/model` | `BUILDABLE`, `canPlace`, `upkeep`, `blockedKinds`, `previewOf` | build rules over the `sim/modules.ts` catalogue (D-032), plus `formatStore` and `formatCost` |
-| `features/base/view` | `mountBase` | `(root, run, setRun) -> teardown`; placed modules, five stores, storm warning, build panel, Start sols → `act`. Holds a mutable local `state` so a second build is not applied to stale data |
-| `features/act/model` | `formatSigned`, `eventsOn` | presentation helpers over the sim's event schedule |
-| `features/act/view` | `mountAct` | `(root, run, setRun) -> teardown`; Advance sol calls `advanceSol`, then `setRun`; a finished run navigates to `debrief`. Disables both buttons during the transition so a double press cannot advance twice |
-| `features/debrief/model` | `explainOutcome` | `(run, history) -> {headline, detail, confident}`; conservative ledger attribution — only claims a cause when it is more than half the loss in the last five sols |
-| | `consumptionSummary` | `(run, history) -> {used, wasted}`; totals negative deltas and the weather share |
-| | `depletedStores` | `(stores) -> ResourceName[]` |
-| `features/debrief/view` | `mountDebrief` | `(root, run, setRun) -> teardown`; CSS-bar timeline, used/weather summary, confidence note, Play again → `landing-site` |
+| `ui/gameLoop` | `gameScreen`, `gameWorld`, `gamePanel` | the shared frame from the Figma frames (D-038): one `.gl` root, the illustrated world panel, and the scrolling right-hand panel. Every word, number and variant arrives in an options object; no `sim/` rule is applied here |
+| | `gameHeader`, `gameHud`, `gameDock` | decorative header chrome, the five resource cards (`HudStat`), and the three-tab dock. The pause/settings/BUILD pills and the dock are `aria-hidden` spans, not buttons (D-038) |
+| | `gameSection` | `(label, ...content) -> section`; an uppercase label and its body |
+| | `moduleFigures`, `moduleArt`, `MODULE_ART`, `WORLD_BACKGROUND`, `ASTRONAUT_SPRITE` | artwork placement and the bundled asset URLs; the only import site for the figures base, act and debrief share |
+| `features/base/model` | `BUILDABLE`, `canPlace`, `addModule`, `removeModule`, `pointsLeft` | build rules over the `sim/modules.ts` catalogue (D-032) |
+| | `previewFor`, `previewSummary`, `upkeepFor`, `upcomingWarnings` | the calm-sol projection. `previewSummary` gives the five resource cards one number each, from the same projection as the sentences |
+| `features/base/view` | `mountBase` | `(root, run, setRun) -> teardown`; the outpost on Mars, the catalogue steppers, and Land & start sol 1 → `startOutpost` then `act`. Holds a mutable local `extras` so a second build is not applied to stale data |
+| `features/act/model` | `missionHeadline`, `meterRows`, `secondsLeft`, `powerSentence` | presentation helpers over `sim/sol`; `meterRows` carries `percent`, `tone` and `emoji` for the HUD |
+| `features/act/view` | `mountAct` | `(root, run, setRun) -> teardown`; Advance sol calls `advanceSol`, then `setRun`; a finished run navigates to `debrief`. A crisis replaces the mission panel in place, with its countdown and "take your time" switch (D-040) |
+| `features/debrief/model` | `explainOutcome` | `(run) -> {headline, detail, confident}`; conservative ledger attribution — only claims a cause when a logged fact establishes it, otherwise `confident: false` and the screen points at the timeline |
+| | `consumptionSummary`, `lowestPoints`, `blackoutSols`, `reviewDecisions`, `timeline` | arithmetic over the log; per-decision verdicts from fixed option rules; one row per sol |
+| | `nextSteps`, `wentEmpty`, `usedApproximateData` | what to try next, each step tied to a fact from this run and carrying an `art` hint; the store that ended the run; whether any flare size was approximate |
+| `features/debrief/view` | `mountDebrief` | `(root, run, setRun) -> teardown`; the results panel, and the journal as a mode reached from "View my Mars story" (D-039). "Try a new outpost" calls `newRun` then `landing-site` |
 | `features/launch/model` | `TITLE` | `'THE MISSION BEGINS'` — the card that holds before the first still |
 | | `TITLE_DURATION_MS` | 900 — the card alone; 200ms in and out leaves 500ms of readability |
 | | `FADE_MS` | 350 — every dissolve: the title lift, each shot, the film's arrival |

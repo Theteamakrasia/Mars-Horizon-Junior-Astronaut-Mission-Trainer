@@ -11,6 +11,30 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+**D-040 — agent · 2026-11-10**
+**Choice:** A crisis replaces the mission panel inside the same screen shell, rather than opening a modal over it.
+**Why:** The Figma frames draw the decision as the right-hand panel, with the outpost still visible on the left so the player can see what they are protecting. A modal would hide the world and add a focus trap the journey does not otherwise need.
+**Rejected:** A `<dialog>` or full-screen overlay for `66:26`, `66:32` and `66:38` — more state to tear down, and none of the frames show it.
+**Consequence:** `features/act/view.ts` renders either `missionPanel` or `crisisPanel` for the same `RunState`; mounting a crisis also clears the previous clock nodes, so only one countdown can ever be live.
+
+---
+
+**D-039 — agent · 2026-11-10**
+**Choice:** The journal (`66:50`) is a mode of `debrief`, opened by "View my Mars story", not a new route.
+**Why:** It reads the same finished run and owns no state of its own. A route would need a tenth screen, a registry entry and a way to stop a player deep-linking into a journal for a run that no longer exists.
+**Rejected:** `features/journal/` with its own route (scope at freeze); rendering the journal in place of the debrief with no way back (the frames show a back link).
+**Consequence:** `mountDebrief` toggles a local `mode` and re-renders; focus moves to the control that reverses the switch. The dock shows `journal` active in journal mode and `outpost` otherwise, as the frames do.
+
+---
+
+**D-038 — agent · 2026-11-10**
+**Choice:** Rebuild base, act and debrief on one shared game-loop shell in `ui/gameLoop.ts` + `styles/game-loop.css`, with the header's pause, settings and BUILD pills and the Outpost/Inventory/Journal dock drawn as decorative chrome, not controls.
+**Why:** The Figma frames (`66:14` … `66:50`) are one screen chrome with different content. Features may not import each other (R-5), so shared chrome belongs in `ui/`. The chrome cannot be made real: nothing in the journey can pause or open settings, and a BUILD control on `act` would let `startOutpost` reset stores and log — an exploit, not a feature.
+**Rejected:** Copying the header into three `view.ts` files (drift, three sets of asset imports); React/Tailwind (no runtime dependencies); wiring BUILD to `base` (resets the run).
+**Consequence:** The dock is `aria-hidden` chrome, and real navigation stays on the panel buttons. `gameLoop.ts` owns the only asset imports for the shared frame; a screen passes words and numbers in, never `sim/` rules.
+
+---
+
 **D-037 — agent · 2026-11-09**
 **Choice:** Live space weather tries NASA DONKI first, then NOAA SWPC, then famous past flares marked approximate.
 **Why:** DONKI is the NASA source the pitch promises, but on 2026-11-09 the NASA API portal returned `503 upstream connect error` and then `429 OVER_RATE_LIMIT` for the shared `DEMO_KEY` (ISS-008, ISS-009). One source means one outage turns the live forecast into history. NOAA SWPC's GOES X-ray feed sends `Access-Control-Allow-Origin: *` and is the instrument data DONKI itself mirrors, so it keeps the feature honest and live without inventing numbers.
