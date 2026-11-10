@@ -131,8 +131,29 @@
     </section>
 
     <!-- The mission briefing. Reached by naming the astronaut and pressing
-         START MISSION. No images: the copy is the whole screen. -->
+         START MISSION.
+
+         The artwork carries the scene: the astronaut between Earth and Mars, shown
+         WHOLE and locked to its own aspect ratio the way the supply screen locks
+         its stage - nothing is ever cropped, and the letterbox bars are plain
+         background. The briefing is spoken ONE LINE AT A TIME over it, each line
+         replacing the one before it, so a child who looks away misses one line
+         rather than a wall of five.
+
+         No src on the image, on purpose: briefing/view.ts imports the WebP as a
+         module so Vite fingerprints and bundles it, and assigns it itself. A
+         hand-written path would be a second place to update and would 404 in the
+         build. -->
     <section id="briefing" class="briefing" aria-labelledby="briefing-title">
+      <!-- The artwork is the scene; the briefing is one line over it at a time.
+           It carries a real alt rather than being hidden from a screen reader. -->
+      <img
+        class="briefing__art"
+        data-briefing-art
+        alt="A cheerful cartoon astronaut in a white spacesuit, waving in front of Earth and Mars"
+        decoding="async"
+      />
+
       <header class="briefing__header">
         <div class="briefing__brand">
           <span class="briefing__brand-mark" aria-hidden="true">&#128640;</span>
@@ -148,14 +169,15 @@
         <h1 class="briefing__title" id="briefing-title">Mission Briefing</h1>
         <p class="briefing__greeting" data-briefing-greeting role="status"></p>
 
-        <!-- The beats are generated in briefing/view.ts so the copy lives in
-             briefing/model.ts, where it is unit tested. -->
-        <ol class="briefing__stream" data-briefing-stream></ol>
+        <!-- One message, swapped in place. The copy lives in briefing/model.ts,
+             where it is unit tested; aria-live announces each swap. -->
+        <p class="briefing__message" data-briefing-message aria-live="polite"></p>
 
         <p class="briefing__hint" data-briefing-hint aria-live="polite"></p>
 
-        <!-- NEXT brings up the next line and is the only thing that does. There is no
-             Skip: it was a second button whose only job was what NEXT does.
+        <!-- NEXT brings up the next line; the Enter key does the same, and confirms
+             on the last line. There is no Skip: it was a second button whose only
+             job was what NEXT does.
 
              There is also no Continue. The briefing is not optional, so a button
              that let you leave before reading it was the wrong affordance.

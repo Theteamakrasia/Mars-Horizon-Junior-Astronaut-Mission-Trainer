@@ -8,6 +8,43 @@ than a documented one.
 
 ---
 
+## 2026-11-10 — Put the briefing under the astronaut artwork, one line at a time
+
+**Did**
+
+- Replaced the briefing's stacked beat cards with the astronaut-between-Earth-and-Mars artwork
+  (`Assets/images/briefing/astronaut.webp`, converted from a 2.2 MB PNG to a 203 KB WebP) and a
+  single message that swaps one line at a time. The artwork is locked to its own aspect ratio
+  as the backdrop — the supply screen's stage approach — so it is never cropped; an earlier
+  attempt used `object-fit: cover` over the whole viewport, which zoomed the picture and cut
+  the astronaut, and was replaced.
+- NEXT and the Enter key both advance; Enter confirms on the last line. Enter is ignored while
+  a button or link has focus, so one press cannot advance twice.
+- The YES!! button and the ~2.6 s auto-advance are unchanged, as are `model.ts` and its tests.
+- Updated `docs/architecture.md`, `README.md` §2, `docs/team/decisions.md` (D-042) and this log
+  in the same change.
+
+**Files**
+
+- `Assets/images/briefing/astronaut.webp` (new), `index.html`, `src/features/briefing/view.ts`,
+  `src/features/briefing/briefing.css`, `README.md`, `docs/architecture.md`,
+  `docs/team/decisions.md`, `docs/team/progress-log.md`
+
+**Problems**
+
+- None blocking. `npm run check`, `npm test` (401 tests) and `npm run build` all pass; the new
+  WebP bundles at 208 KB. The source PNG is 2.2 MB, so the conversion is what keeps the bundle
+  honest — the other screens' assets are WebP for the same reason.
+- Not yet verified in a real browser; that is the next step before any commit.
+
+**Next**
+
+- Human browser pass on `#/briefing`: artwork visible, messages swap on NEXT and Enter, Enter
+  does not double-advance from a focused button, YES!! and the auto-advance still fire.
+- Then commit on `mission-briefing`; push only when the owner says so.
+
+---
+
 ## 2026-11-10 — Make the README describe the project that actually exists
 
 **Did**

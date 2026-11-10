@@ -48,6 +48,9 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
 ├── Assets/
 │   ├── images/floating.png             complete   145 KB astronaut sprite, imported from TS so
 │   │                                             Vite fingerprints it into dist/
+│   ├── images/briefing/                complete   astronaut.webp (203 KB). The cheerful astronaut
+│   │                                             between Earth and Mars; the briefing screen's
+│   │                                             scene. Imported from TS so Vite fingerprints it.
 │   ├── images/launch/                  complete   launch-cinematic.mp4 (6.9 MB, the launch film) and
 │   │                                             launch-poster.webp (90 KB, the pad frame the film
 │   │                                             is parked on). Both imported from TS so Vite
@@ -285,8 +288,10 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │   ├── README.md                           the contract
     │   │   ├── model.ts                 complete   BEATS, beatsThrough, greetingFor. Pure.
     │   │   ├── model.test.ts            complete   literal-input tests
-    │   │   ├── view.ts                  complete   mountBriefing(root, run, setRun) -> teardown
-    │   │   └── briefing.css             complete   beat cards
+    │   │   ├── view.ts                  complete   mountBriefing(root, run, setRun) -> teardown.
+    │   │   │                                     One beat at a time under the artwork; NEXT or
+    │   │   │                                     Enter advances, Enter confirms on the last beat.
+    │   │   └── briefing.css             complete   aspect-locked artwork + message bubble
     │   ├── supply/                     COMPLETE   The ration-check puzzle.
     │   │   ├── README.md                           the contract
     │   │   ├── model.ts                 complete   SUPPLY_BEATS, packsFor, judge, hintFor,

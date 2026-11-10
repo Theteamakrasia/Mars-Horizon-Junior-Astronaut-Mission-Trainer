@@ -11,6 +11,14 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+**D-042 — agent · 2026-11-10**
+**Choice:** The briefing artwork is shown whole, locked to its own aspect ratio as the backdrop (the supply screen's stage approach), with one spoken line at a time over it, each line replacing the one before it; NEXT or Enter advances, and Enter confirms on the last line.
+**Why:** The stacked beat cards filled the screen with a growing wall of text and left the artwork out entirely. One spoken line under the picture keeps the scene and reads as something being said to you; a child who looks away misses one line rather than five.
+**Rejected:** A chat-thread accumulation where every beat stays on screen (the previous build) — it re-created the wall; auto-revealing on a timer — it takes the pace away from the reader.
+**Consequence:** `features/briefing/view.ts` swaps `data-briefing-message` in place and restarts one fade; `model.ts` is unchanged, so the five beats and their tests stand. The YES!! button and the ~2.6 s auto-advance are unchanged.
+
+---
+
 **D-041 — agent · 2026-11-10**
 **Choice:** `README.md` is maintained as the technical front page — status, setup commands, the real `src/` tree and links to every document — and it is updated in the same commit as any change that makes it false.
 **Why:** D-011 left the README untouched so its design, science and attribution writing would survive, and logged the false status as ISS-001. Since then the code grew a complete nine-screen journey, and the README still told every reader there was nothing to run. That is the first file a judge, teacher or new teammate opens. The design sections were kept; only the technical claims were corrected.

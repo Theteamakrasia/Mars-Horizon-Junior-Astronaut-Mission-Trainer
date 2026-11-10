@@ -207,9 +207,13 @@ and is lost on refresh (D-003).
 <a id="mission-briefing"></a>
 ### 2. Mission Briefing
 
-`#/briefing` explains why the mission goes to Mars and what the five resources are. It is a
-sequence of beats advanced with **YES**; the last beat hands you on automatically. There is
-no skip and no CONTINUE, because the briefing is not optional.
+`#/briefing` explains why the mission goes to Mars and what the five resources are. The
+astronaut-between-Earth-and-Mars artwork is shown **whole**, locked to its own shape as the
+backdrop (the supply screen does the same with its stage), and the briefing is spoken **one
+line at a time over it**: **NEXT** (or the **Enter** key) swaps in the next line, each one
+replacing the last. The closing line brings up **YES!!**, and the screen hands you on by
+itself if nobody presses it. There is no skip and no CONTINUE, because the briefing is not
+optional.
 
 <a id="supply-check--the-ration-gate"></a>
 ### 3. Supply Check — The Ration Gate

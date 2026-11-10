@@ -1,13 +1,18 @@
 /**
- * The mission briefing, read one beat at a time.
+ * The mission briefing, read one beat at a time under the artwork.
  *
  * DOM only. The words live in ./model and are unit tested there; this file is
- * just the drawing, one button, and the hand-off.
+ * just the drawing, one button, the Enter key, and the hand-off.
  *
- * The reader drives it. NEXT brings up the next line and nothing else does - the
- * screen holds still until asked. An earlier version revealed on a timer and
- * offered SKIP to jump ahead, which is the wrong shape for two reasons: it took
- * away the pace, and SKIP was a button whose only job was to do what NEXT does.
+ * The reader drives it. NEXT (or Enter) swaps in the next line and nothing else
+ * does - the screen holds still until asked. Each line REPLACES the one before
+ * it, so the artwork stays the scene and the copy stays one spoken sentence
+ * rather than a wall that grows down the screen. An earlier version stacked the
+ * beats as they were revealed; that is the version this replaces.
+ *
+ * An even earlier version revealed on a timer and offered SKIP to jump ahead,
+ * which is the wrong shape for two reasons: it took away the pace, and SKIP was
+ * a button whose only job was to do what NEXT does.
  *
  * There is no CONTINUE. The briefing is not optional, so a button that let you
  * leave before you had read it was the wrong affordance; and once every beat has
@@ -27,6 +32,8 @@ import { navigate } from '../../ui/router';
 import type { RunState } from '../../sim/run';
 
 import './briefing.css';
+
+import astronautUrl from '../../../Assets/images/briefing/astronaut.webp';
 
 import { BEATS, greetingFor } from './model';
 
@@ -56,27 +63,16 @@ export function mountBriefing(
   _setRun: (next: RunState | null) => void,
 ): () => void {
   const greeting = require<HTMLParagraphElement>(root, '[data-briefing-greeting]');
-  const stream = require<HTMLOListElement>(root, '[data-briefing-stream]');
+  const art = require<HTMLImageElement>(root, '[data-briefing-art]');
+  const message = require<HTMLParagraphElement>(root, '[data-briefing-message]');
   const advance = require<HTMLButtonElement>(root, '[data-briefing-next]');
   const yes = require<HTMLButtonElement>(root, '[data-briefing-yes]');
   const hint = require<HTMLParagraphElement>(root, '[data-briefing-hint]');
 
   greeting.textContent = greetingFor(run?.astronautName ?? '');
+  art.src = astronautUrl;
 
-  // Every beat is built up front, hidden. NEXT then only un-hides them in order,
-  // so the DOM order is the reading order and a screen reader gets the whole
-  // briefing whether or not anyone clicks.
-  const lines = BEATS.map((beat) => {
-    const item = document.createElement('li');
-    item.className = 'briefing__line';
-    item.dataset.briefingLine = beat.id;
-    item.textContent = beat.text;
-    item.hidden = true;
-    stream.appendChild(item);
-    return item;
-  });
-
-  /** How many beats have been shown. The reader owns this by clicking. */
+  /** Which beat is on screen. The reader owns this by clicking. */
   let index = 0;
   let timers: number[] = [];
 
@@ -125,45 +121,74 @@ export function mountBriefing(
   };
 
   /**
-   * Show the next unrevealed beat, or finish if there is none.
+   * Put one beat on screen.
+   *
+   * The text is written first, then the fade is restarted, so the animation
+   * decorates the swap rather than gating it - the line is readable the instant
+   * `textContent` lands, whatever the animation does.
+   */
+  const showBeat = (at: number): void => {
+    message.textContent = BEATS[at].text;
+
+    message.classList.remove('is-revealed');
+    void message.offsetWidth;
+    message.classList.add('is-revealed');
+  };
+
+  /**
+   * Show the next beat, or finish if the last one is already up.
    *
    * The button hides itself on the last beat rather than disabling: a control
    * that has nothing left to do is noise, and a greyed-out button invites
    * pressing it twice to find out why.
    */
   const revealNext = (): void => {
-    if (index >= lines.length) return;
-
-    const item = lines[index];
-
-    // Un-hide first, then mark it revealed. The class only decorates the
-    // appearance; the content is readable the moment `hidden` comes off.
-    //
-    // An earlier version animated max-width from 0, which meant a line stayed
-    // invisible whenever its animation did not run - leaving the briefing as an
-    // empty column with a heading and two buttons.
-    item.hidden = false;
-    item.classList.remove('is-typing');
-    item.classList.add('is-revealed');
+    if (index >= BEATS.length - 1) return;
 
     index += 1;
+    showBeat(index);
 
-    if (index >= lines.length) {
+    if (index >= BEATS.length - 1) {
       advance.hidden = true;
       handOff();
     }
   };
 
+  /**
+   * Enter advances, and confirms on the last beat.
+   *
+   * NEXT is the visible control, but a child reading with a keyboard should not
+   * have to reach for the mouse: Enter does what NEXT does, and once the last
+   * line is up it does what YES!! does.
+   *
+   * Ignored while a button or link has focus. Enter on a focused button already
+   * fires a click, so handling it here as well would advance twice on one press.
+   */
+  const onKeyDown = (event: KeyboardEvent): void => {
+    if (event.key !== 'Enter' || event.altKey || event.ctrlKey || event.metaKey) return;
+
+    const target = event.target as HTMLElement | null;
+
+    if (target !== null && (target.tagName === 'BUTTON' || target.tagName === 'A')) return;
+
+    event.preventDefault();
+
+    if (yes.hidden) revealNext();
+    else goOn();
+  };
+
   advance.addEventListener('click', revealNext);
   yes.addEventListener('click', goOn);
+  window.addEventListener('keydown', onKeyDown);
 
   // The opening line is already on screen when you arrive; nobody should have to
   // click to find out what the screen is.
-  revealNext();
+  showBeat(0);
 
   return () => {
     advance.removeEventListener('click', revealNext);
     yes.removeEventListener('click', goOn);
+    window.removeEventListener('keydown', onKeyDown);
 
     for (const timer of timers) window.clearTimeout(timer);
     timers = [];

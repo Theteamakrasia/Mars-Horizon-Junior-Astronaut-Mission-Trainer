@@ -1,7 +1,9 @@
 /* ==========================================================================
    BRIEFING — the mission briefing
-   No images. Palette reused from the naming menu so the two screens read as one
-   product; no new colours are introduced here.
+   The artwork fills the screen as the backdrop; the copy is one line over it
+   at a time.
+   Palette reused from the naming menu so the two screens read as one product;
+   no new colours are introduced here.
    Imported by ./view.ts only (AGENTS.md R-15).
    ========================================================================== */
 
@@ -33,7 +35,11 @@
   box-sizing: border-box;
 }
 
+/* The artwork is absolutely positioned, so the header and body are the only
+   flex children; both are lifted above it (and above the scrim) by z-index. */
 .briefing__header {
+  position: relative;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -81,11 +87,17 @@
   text-transform: uppercase;
 }
 
-/* ---------- BODY ---------- */
+/* ---------- BODY ----------
+   The title and greeting sit at the top, over the dark space above the
+   astronaut's head. The message is pushed down toward the bottom (its
+   margin-top is auto), so it and the actions sit over the lower part of the
+   picture instead of across the astronaut's face. */
 .briefing__body {
+  position: relative;
+  z-index: 2;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   flex: 1 1 auto;
   min-height: 0;
   max-width: 46rem;
@@ -111,40 +123,56 @@
   letter-spacing: 0.03em;
 }
 
-/* The stream is a list so the reading order is in the markup, not in the
-   animation. A screen reader reads all of it whether or not the reveal ran. */
-.briefing__stream {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
-  min-height: 12rem;
+/*
+  The artwork, whole and uncropped, as the backdrop.
+
+  Same approach as the supply screen's stage: the box is locked to the image's
+  own ratio (1570x1001) and sized to fit the window, so object-fit never has to
+  crop anything - on a wider screen there are plain letterbox bars, exactly as
+  supply gets them. An earlier version used object-fit: cover over the whole
+  viewport, which zoomed the picture and cut the astronaut's head and feet; that
+  is what this replaces.
+*/
+.briefing__art {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 0;
+  display: block;
+  width: min(100%, calc(100vh * 1570 / 1001));
+  aspect-ratio: 1570 / 1001;
+  object-fit: cover;
+  background: var(--b-panel);
 }
 
-.briefing__line {
+/*
+  One message, swapped in place. min-height covers the longest beat at the
+  narrowest width, so swapping to a short line does not make the screen jump.
+
+  A revealed message is fully visible. The text is never hidden behind an
+  animation that has to finish for it to be readable - an earlier version
+  animated max-width from 0 to 100%, which meant a line stayed invisible if its
+  animation never ran. That is what left the briefing showing an empty column
+  with only its heading and buttons: the lines existed and were un-hidden, but
+  their width was still zero.
+
+  The reveal is a step change on the message's own opacity and transform, so the
+  content is readable the instant the message appears, and the animation only
+  decorates that change.
+*/
+.briefing__message {
   margin: 0;
+  margin-top: auto;
+  min-height: 4.6em;
   padding: 0.7rem 0.9rem;
-  border-left: 2px solid var(--b-border);
+  border-left: 2px solid var(--b-accent);
   background: var(--b-panel);
   font-size: clamp(0.9rem, 1.7vw, 1.1rem);
   line-height: 1.5;
 }
 
-/*
-  A revealed line is fully visible. The text is never hidden behind an animation
-  that has to finish for it to be readable — an earlier version animated max-width
-  from 0 to 100%, which meant a line stayed invisible if its animation never ran.
-  That is what left the briefing showing an empty column with only its heading and
-  buttons: the lines existed and were un-hidden, but their width was still zero.
-
-  The reveal is now a step change on the line's own opacity and transform, so the
-  content is readable the instant the line appears, and the animation only
-  decorates that change.
-*/
-.briefing__line.is-revealed,
-.briefing__line.is-typing {
+.briefing__message.is-revealed {
   animation: briefing-fade 340ms ease-out both;
 }
 
@@ -158,15 +186,6 @@
     transform: translateY(0);
   }
 }
-
-/* The line that is speaking: the accent rule is the only emphasis, so the
-   reader's eye lands in the right place without any other motion. */
-.briefing__line.is-typing,
-.briefing__line.is-revealed {
-  border-left-color: var(--b-accent);
-}
-
-/* Nothing here clips text any more. See the note on .briefing__line above. */
 
 .briefing__actions {
   display: flex;
@@ -246,11 +265,10 @@
 
 /* ---------- REDUCED MOTION ----------
    The reveal is the only motion on this screen, and it is removed outright
-   rather than shortened: it is the thing the preference is about. `revealAll`
-   in view.ts also shows every line immediately, so nothing is left invisible. */
+   rather than shortened: it is the thing the preference is about. The text is
+   set before the class is added, so nothing is left invisible. */
 @media (prefers-reduced-motion: reduce) {
-  .briefing__line.is-revealed,
-  .briefing__line.is-typing {
+  .briefing__message.is-revealed {
     animation: none;
   }
 
@@ -260,15 +278,11 @@
 }
 
 /* ---------- SHORT VIEWPORTS ----------
-   The stream needs room to be readable. On a short window it scrolls rather than
-   shrinking the type below a comfortable size. */
+   The artwork and the message both need room to be readable. On a short window
+   the body scrolls rather than shrinking the type below a comfortable size. */
 @media (max-height: 620px) {
   .briefing__body {
     justify-content: flex-start;
     overflow-y: auto;
-  }
-
-  .briefing__stream {
-    min-height: 0;
   }
 }
