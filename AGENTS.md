@@ -13,7 +13,7 @@ demo **Nov 14-15**.
 **The one invariant: `sim/` and each feature's `model.ts` are pure — no `document`, no
 `window`, no network.**
 
-That is what lets 498 tests run in a few seconds with no browser and no mocks, so the game
+That is what lets 509 tests run in a few seconds with no browser and no mocks, so the game
 can be asserted on rather than eyeballed. Everything else here exists to protect it. If
 you are unsure where code goes: if it touches the DOM it is not pure.
 
@@ -61,7 +61,7 @@ human upholds it and nothing catches you.
 | R-10 | No `on*="..."` inline handlers in markup | **enforced** | `no-inline-handler` |
 | R-11 | A relative import that resolves to nothing is an error | **enforced** | `unresolved-import` |
 | R-12 | Typecheck clean; `strict`, `noUnusedLocals` | **enforced** | `npm run check` |
-| R-13 | Tests pass (498 today) | **enforced** | `npm test`, watch ISS-015 |
+| R-13 | Tests pass (509 today) | **enforced** | `npm test`, watch ISS-015 |
 | R-14 | No `index.ts` barrel files — import concrete paths | convention | nothing |
 | R-15 | Feature CSS is imported by its own `view.ts`, never added to `style.css` | convention | nothing |
 | R-16 | Files are UTF-8, LF, no BOM. Preserve a file's existing endings | convention | **nothing** — ISS-005 |
@@ -192,7 +192,7 @@ opening its folder — that is the whole point of the layout.
 | How drift and deformation combine per frame | `src/sim/frame.ts` |
 | Resource drain, power/O2/water/food/shielding | `src/sim/resources.ts` — complete, 7 tests |
 | Advancing a sol, resolving events, detecting loss | `src/sim/sol.ts` — complete, 40 tests |
-| Run state shape and progression | `src/sim/run.ts` — complete, no test file yet (ISS-047) |
+| Run state shape and progression | `src/sim/run.ts` — complete, 11 tests |
 | Module catalogue, build costs, upkeep | `src/sim/modules.ts` — complete, 14 tests |
 | The forecast, its fixed sols, flare intensity | `src/sim/forecast.ts` |
 | Crisis choices and what each one costs | `src/sim/crises.ts` |
@@ -240,7 +240,7 @@ opening its folder — that is the whole point of the layout.
 npm install
 npm run dev        # Vite dev server
 npm run check      # layer + banned-API check, then tsc --noEmit   <- run this
-npm test           # vitest, 498 tests                            <- 40% flaky, ISS-015
+npm test           # vitest, 509 tests                            <- 40% flaky, ISS-015
 npm run build      # to dist/
 npm run preview    # serve the build
 npm run typecheck  # tsc alone

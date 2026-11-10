@@ -35,7 +35,9 @@ than a documented one.
   forecast — sol 8 read "Mission 7: First Harvest" while the storm was on sol 7 — and it
   had no effect on the simulation at all. It is now `SOL_PLANS`, twelve real headlines each
   carrying its three activities.
-- The suite went from 424 tests in 19 files to **498 tests in 22 files**.
+- The suite went from 424 tests in 19 files to **509 tests in 23 files**. `src/sim/run.test.ts` was added
+  as well: ISS-047 recorded that the run state had no test file at all, and the activity loop changes
+  exactly that state.
 
 **Files**
 

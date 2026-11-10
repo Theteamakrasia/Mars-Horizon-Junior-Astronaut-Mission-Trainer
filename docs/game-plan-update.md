@@ -240,4 +240,5 @@ Everything in the plan landed, with three changes made along the way.
    50+ Chief Martian Scientist.
 
 **Still to do:** a human browser pass (TASK-049), a personal NASA key before the
-demo (TASK-008, ISS-009), and `src/sim/run.test.ts` (TASK-070, ISS-047).
+demo (TASK-008, ISS-009), and test files for `sim/forecast.ts`, `sim/crises.ts`
+and `sim/comms.ts` (ISS-047). `src/sim/run.test.ts` was added with this work.

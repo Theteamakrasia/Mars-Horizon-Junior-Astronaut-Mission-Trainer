@@ -14,7 +14,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | ISS-050 | `architecture.md`'s module-contract table lists exports that do not exist | medium | agent | open | — |
 | ISS-049 | NASA's Astronomy Picture of the Day rejects the shared `DEMO_KEY` with a 429 | medium | agent | fixed | this branch |
 | ISS-048 | The cosmetic sol headlines did not match the forecast schedule | low | agent | fixed | 816e1fb, b471ecb |
-| ISS-047 | Four `sim/` modules have no test files, and AGENTS.md's test counts are wrong | medium | agent | open | — |
+| ISS-047 | Four `sim/` modules have no test files, and AGENTS.md's test counts are wrong | medium | agent | open | `sim/run.test.ts` added |
 | ISS-043 | Space weather had one live source, so a DONKI outage silently replaced every run's flares with baked history | high | agent | fixed | this branch |
 | ISS-046 | The header advertised "Mission Control / Main Menu" as text, and naming's Back to Main Menu navigated to itself | medium | agent | fixed | d90e838 |
 | ISS-045 | The page title said "Under Construction" and the description called the built game a placeholder | low | agent | fixed | 559c0d6 |
@@ -1030,10 +1030,10 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
   (it has 32), and it attributes 19 tests to `sim/run.ts`, which has none.
 - **Cause:** the modules were written and wired together faster than they were covered, and the document
   counts were filled in from memory rather than counted.
-- **Fix:** `src/sim/run.test.ts` is added in this pass, because the activity loop changes the run state and
-  the run state is what it changes. The other three modules and the AGENTS.md counts stay open: correcting
-  a doc's numbers is a separate job from a feature, and the counts are corrected in the documentation
-  commit that this pass already touches.
+- **Fix:** partly fixed. `src/sim/run.test.ts` is added, because the activity loop changes the run state and
+  the run state is what it changes, and AGENTS.md's test counts are corrected to the real numbers.
+  `sim/forecast.ts`, `sim/crises.ts` and `sim/comms.ts` still have no test files, so the issue stays
+  open: those three are untouched by this work, and adding coverage for them is its own job.
 - **Pre-existing:** yes; the gap dates from the game loop build (2026-11-08).
 
 ---

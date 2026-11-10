@@ -7,7 +7,7 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 
 | id | task | goal | owner | status | blocked by | notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| TASK-070 | Cover the run state with `src/sim/run.test.ts` and correct AGENTS.md's test counts | G-3 | agent | open | — | ISS-047. The activity loop changes `RunState`, so the run state gets covered |
+| TASK-070 | Cover the run state with `src/sim/run.test.ts` and correct AGENTS.md's test counts | G-3 | agent | done | — | ISS-047. The activity loop changes `RunState`, so the run state gets covered |
 | TASK-069 | Update the architecture tree, the module contracts, the game flow and the README | G-6 | agent | done | — | ISS-050. The doc matrix §5 of `AGENTS.md` requires it in the same commit as the change |
 | TASK-068 | Show the Mars Science Score, the rank and the activity breakdown in the debrief | G-4 | agent | done | — | D-049. Score, rank and a per-activity list; reuses the existing callout and stats table |
 | TASK-067 | Show NASA's live daily picture and fact in `act` | G-5 | agent | done | — | D-050. One APOD per sol, with the curated card and an honest note as the fallback |
