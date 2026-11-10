@@ -8,48 +8,55 @@
  * Crisis choices (D-029) are a deliberate exception to D-018's "no mid-sol
  * choices": three forecast events stop the clock and ask. Every option costs
  * something, and Earth's reply is delayed in proportion to the sol.
+ *
+ * The steps follow the game-loop frames: `66:20` for a normal sol, `66:26` for a
+ * crisis, where the decision replaces the mission panel instead of covering the
+ * whole screen.
  */
 
 import { loadForecast } from '../../dom/forecastLoader';
-import { clear, h } from '../../dom/h';
+import { h } from '../../dom/h';
 import { earthAdvice, earthIsInTime, optionOf, pendingCrisis, type Crisis } from '../../sim/crises';
 import { oneWayMinutes, roundTripMinutes } from '../../sim/comms';
 import { withState, type RunState } from '../../sim/run';
 import { siteScore, regionById, SITE_AXES } from '../../sim/regions';
 import { advanceSol, decide, powerPicture, WIN_SOL } from '../../sim/sol';
+import { gamePanel, gameScreen, gameSection, gameWorld, moduleArt, moduleFigures, type HudStat } from '../../ui/gameLoop';
 import { nextStop } from '../../ui/registry';
 import { navigate } from '../../ui/router';
 
-import '../../styles/game.css';
+import { meterRows, missionHeadline, powerSentence, secondsLeft } from './model';
+
+import '../../styles/game-loop.css';
 import './act.css';
-
-import bgDayUrl from '../../../Assets/images/game-loop/bg-day.png';
-import batteryUrl from '../../../Assets/images/game-loop/battery-bank.png';
-import habitatUrl from '../../../Assets/images/game-loop/habitat.png';
-import solarUrl from '../../../Assets/images/game-loop/solar.png';
-import iceMinerUrl from '../../../Assets/images/game-loop/ice-miner.png';
-import greenhouseUrl from '../../../Assets/images/game-loop/green-house.png';
-import regolithUrl from '../../../Assets/images/game-loop/regolith-sheild.png';
-import lifeSupportUrl from '../../../Assets/images/game-loop/life-support.png';
-
-import { meterRows, missionHeadline, powerSentence, progressPercent, secondsLeft } from './model';
 
 const AXIS_NAMES: Readonly<Record<string, string>> = { water: 'Water', sun: 'Sun', terrain: 'Terrain', dust: 'Dust', temp: 'Warmth' };
 
-/** The artwork shown beside each resource meter. */
-const RESOURCE_IMAGE: Readonly<Record<string, string>> = {
-  power: batteryUrl,
-  oxygen: lifeSupportUrl,
-  water: iceMinerUrl,
-  food: greenhouseUrl,
-  shielding: regolithUrl,
+/** What the crew calls each forecast event. */
+const EVENT_NAME: Readonly<Record<Crisis['kind'], string>> = {
+  flare: 'Solar flare',
+  storm: 'Dust storm',
+  'supply-pod': 'Supply pod',
 };
 
-/** The artwork shown at the top of a crisis dialog, by crisis kind. */
-const CRISIS_IMAGE: Readonly<Record<string, string>> = {
-  flare: solarUrl,
-  storm: regolithUrl,
-  'supply-pod': habitatUrl,
+const EVENT_ICON: Readonly<Record<Crisis['kind'], string>> = {
+  flare: '☀',
+  storm: '🌪',
+  'supply-pod': '📦',
+};
+
+/** The one-line picture on the crisis card, and what the crew says about it. */
+const CRISIS_BRIEF: Readonly<Record<Crisis['kind'], { readonly signal: string; readonly crew: string }>> = {
+  flare: { signal: 'Radiation is coming. Shield your crew.', crew: "The Sun is sending a burst of radiation. What's our plan?" },
+  storm: { signal: 'Dust is coming. Protect the panels.', crew: 'Dust is rolling in fast. The panels are wide open.' },
+  'supply-pod': { signal: 'It landed nearby. Choose what to unpack.', crew: 'A pod from Earth touched down. What do we need most?' },
+};
+
+/** The artwork for each option, in order: two pictures, then a tool glyph. */
+const CRISIS_ART: Readonly<Record<Crisis['kind'], readonly { readonly src?: string; readonly glyph?: string }[]>> = {
+  flare: [{ src: moduleArt('habitat') }, { src: moduleArt('regolith-shield') }, { glyph: '🛠' }],
+  storm: [{ src: moduleArt('solar-array') }, { src: moduleArt('greenhouse') }, { glyph: '🛠' }],
+  'supply-pod': [{ src: moduleArt('habitat') }, { glyph: '📦' }, { glyph: '🛠' }],
 };
 
 export function mountAct(
@@ -60,23 +67,16 @@ export function mountAct(
   let run = initial;
   let disposed = false;
   let timer: number | null = null;
-  let overlay: HTMLElement | null = null;
-  let loadingForecast = false;
   let calmMode = false;
+  let loadingForecast = false;
+  let focusedCrisis: string | null = null;
+  let clockNodes: { readonly bar: HTMLElement; readonly text: HTMLElement } | null = null;
+  let pendingFocus: HTMLElement | null = null;
   const controller = new AbortController();
-
-  mount.classList.add('gx', 'act');
-  mount.style.background = `linear-gradient(rgba(7, 14, 18, 0.86), rgba(7, 14, 18, 0.94)), url(${bgDayUrl}) center / cover no-repeat`;
 
   function stopTimer(): void {
     if (timer !== null) window.clearInterval(timer);
     timer = null;
-  }
-
-  function closeOverlay(): void {
-    stopTimer();
-    overlay?.remove();
-    overlay = null;
   }
 
   function step(): void {
@@ -97,31 +97,180 @@ export function mountAct(
   function choose(crisis: Crisis, optionId: string, timedOut: boolean): void {
     if (run === null) return;
 
-    closeOverlay();
+    stopTimer();
     run = decide(run, crisis.id, optionId, timedOut);
     setRun(run);
     step();
   }
 
-  function openCrisis(crisis: Crisis): void {
+  function startClock(crisis: Crisis): void {
+    stopTimer();
+
+    if (crisis.countdownSeconds === null || calmMode || clockNodes === null) return;
+
+    const total = crisis.countdownSeconds;
+    const began = performance.now();
+
+    timer = window.setInterval(() => {
+      if (clockNodes === null) return;
+
+      const elapsed = performance.now() - began;
+
+      clockNodes.bar.style.width = `${Math.max(0, 100 - (elapsed / (total * 1000)) * 100)}%`;
+      clockNodes.text.textContent = `${secondsLeft(total, elapsed)} seconds left. If the clock runs out, nothing is done.`;
+
+      if (elapsed >= total * 1000) choose(crisis, crisis.defaultOptionId, true);
+    }, 100);
+  }
+
+  function onRunSol(): void {
     if (run === null) return;
 
-    const current = run;
-    const sol = current.sol + 1;
-    const inTime = earthIsInTime(current, crisis);
-    const clockBar = h('span');
-    const clockText = h('p', { class: 'gx__note', 'aria-hidden': 'true' });
-    const earthBox = h('div', { class: 'act__earth', 'aria-live': 'polite', hidden: true });
-    const options = h('div', { class: 'act__options' });
+    const crisis = pendingCrisis(run);
 
-    for (const option of crisis.options) {
-      const button = h('button', { class: 'gx__btn act__option', type: 'button', 'data-choice': option.id }, h('strong', { text: option.label }), h('span', { text: option.detail }));
+    if (crisis === null) step();
+    else render();
+  }
 
-      button.addEventListener('click', () => choose(crisis, option.id, false));
-      options.append(button);
+  /** The five resource cards, from the same rows the old meters used. */
+  function hudFor(state: RunState): readonly HudStat[] {
+    const toneOf = (tone: string): HudStat['tone'] => (tone === 'critical' ? 'bad' : tone === 'low' ? 'warn' : 'ok');
+
+    return meterRows(state).map((row) => ({
+      icon: row.emoji,
+      label: row.label,
+      value: `${row.percent}%`,
+      percent: row.percent,
+      tone: toneOf(row.tone),
+    }));
+  }
+
+  function forecastSection(state: RunState): HTMLElement {
+    const upcoming = state.forecast.filter((event) => event.sol > state.sol).slice(0, 3);
+    const triple = h('div', { class: 'gl__triple' });
+
+    for (const event of upcoming) {
+      triple.append(
+        h(
+          'div',
+          { class: 'gl__mini' },
+          h('span', { class: 'gl__mini-label' }, h('span', { 'aria-hidden': 'true', text: EVENT_ICON[event.kind] }), `Sol ${event.sol}`),
+          h('span', { class: 'gl__mini-value', text: EVENT_NAME[event.kind] }),
+          h('span', { class: 'gl__mini-detail', text: event.approximate ? `${event.summary} (approximate)` : event.summary }),
+        ),
+      );
     }
 
-    const ask = h('button', { class: 'gx__btn gx__btn--ghost', type: 'button' }, 'Ask Mission Control');
+    if (upcoming.length === 0) {
+      triple.append(h('p', { class: 'gl__note', text: 'Nothing else is coming. Keep the numbers steady.' }));
+    }
+
+    return gameSection('Coming up', triple);
+  }
+
+  /** A normal sol: what the day costs, what is coming, what happened last. */
+  function missionPanel(state: RunState): HTMLElement {
+    const mission = missionHeadline(state);
+    const region = regionById(state.regionId);
+    const score = siteScore(state.regionId);
+    const power = powerPicture(state);
+    const last = state.log[state.log.length - 1];
+    const waiting = loadingForecast && state.forecast.length === 0;
+
+    const callout = h(
+      'div',
+      { class: 'gl__callout' },
+      h('span', { class: 'gl__callout-icon', 'aria-hidden': 'true', text: '🏠' }),
+      h(
+        'div',
+        null,
+        h('p', { class: 'gl__callout-title', text: `Sol ${state.sol + 1} at ${region ? region.name : 'your site'}` }),
+        h('p', { class: 'gl__callout-detail', text: powerSentence(power.generatedKw, power.storedKwh, power.nightDrainKw) }),
+      ),
+    );
+
+    const dayNight = h(
+      'div',
+      { class: 'gl__triple', 'aria-hidden': 'true' },
+      h('div', { class: 'gl__mini' }, h('span', { class: 'gl__mini-label', text: '☀ Daytime' }), h('span', { class: 'gl__mini-value', text: `+${power.generatedKw} kW` }), h('span', { class: 'gl__mini-detail', text: 'panels in sunlight' })),
+      h('div', { class: 'gl__mini' }, h('span', { class: 'gl__mini-label', text: '🔋 Stored' }), h('span', { class: 'gl__mini-value', text: `${power.storedKwh} kWh` }), h('span', { class: 'gl__mini-detail', text: `of ${power.capacityKwh}` })),
+      h('div', { class: 'gl__mini' }, h('span', { class: 'gl__mini-label', text: '🌙 Night use' }), h('span', { class: 'gl__mini-value', text: `−${power.nightDrainKw} kW` }), h('span', { class: 'gl__mini-detail', text: 'from the batteries' })),
+    );
+
+    const body: (Node | false)[] = [
+      callout,
+      gameSection('Day → Night', dayNight),
+      h('p', { class: 'gl__note', text: `${region ? region.name : 'Your site'}: ${SITE_AXES.map((axis) => `${AXIS_NAMES[axis]} ${score[axis]}/5`).join(' · ')}` }),
+      forecastSection(state),
+    ];
+
+    if (last !== undefined) {
+      const items = [...last.events.map((event) => event.summary), ...last.notes];
+      const list = h('ul', { class: 'gl__list' });
+
+      for (const item of items.length > 0 ? items : ['A quiet sol. Everything ran as expected.']) list.append(h('li', { text: item }));
+
+      body.push(gameSection(`What happened on sol ${last.sol}`, list));
+    }
+
+    body.push(h('p', { class: 'gl__note', text: 'Sol = one Mars day. You control when it runs.' }));
+
+    const go = h(
+      'button',
+      { class: 'gl__btn gl__btn--primary gl__btn--start', type: 'button', disabled: waiting },
+      waiting ? 'Reading space weather…' : `Run sol ${state.sol + 1}`,
+      h('span', { class: 'gl__btn-arrow', 'aria-hidden': 'true', text: '→' }),
+    );
+
+    go.addEventListener('click', onRunSol);
+
+    return gamePanel({
+      kicker: `Sol ${state.sol} of ${WIN_SOL}`,
+      title: mission.title,
+      sub: mission.subtitle,
+      body,
+      footer: [go],
+    });
+  }
+
+  /** A crisis: the same shell, with the decision where the mission panel was. */
+  function crisisPanel(state: RunState, crisis: Crisis): HTMLElement {
+    const sol = state.sol + 1;
+    const inTime = earthIsInTime(state, crisis);
+    const clockBar = h('span');
+    const clockText = h('p', { class: 'gl__clock-text', 'aria-live': 'polite' });
+    const earthBox = h('p', { class: 'gl__earth', 'aria-live': 'polite', hidden: true });
+    const choices = h('div', { class: 'gl__choices' });
+    let firstChoice: HTMLElement | null = null;
+
+    clockNodes = { bar: clockBar, text: clockText };
+
+    for (const [index, option] of crisis.options.entries()) {
+      const art = CRISIS_ART[crisis.kind][index] ?? { glyph: '›' };
+      const icon =
+        art.src === undefined
+          ? h('span', { class: 'gl__choice-icon', 'aria-hidden': 'true', text: art.glyph })
+          : h('span', { class: 'gl__choice-icon' }, h('img', { class: 'gl__choice-img', src: art.src, alt: '' }));
+
+      const button = h(
+        'button',
+        { class: 'gl__choice', type: 'button', 'data-choice': option.id },
+        icon,
+        h('span', null, h('span', { class: 'gl__choice-title', text: option.label }), h('span', { class: 'gl__choice-detail', text: option.detail })),
+        h('span', { class: 'gl__choice-arrow', 'aria-hidden': 'true', text: '›' }),
+      );
+
+      button.addEventListener('click', () => choose(crisis, option.id, false));
+      choices.append(button);
+      firstChoice ??= button;
+    }
+
+    const ask = h(
+      'button',
+      { class: 'gl__btn gl__btn--navy', type: 'button' },
+      h('span', null, h('span', { 'aria-hidden': 'true', text: '🛰 ' }), 'Ask Mission Control'),
+      h('span', { 'aria-hidden': 'true', text: '?' }),
+    );
 
     ask.addEventListener('click', () => {
       earthBox.hidden = false;
@@ -132,80 +281,51 @@ export function mountAct(
         return;
       }
 
-      const advice = earthAdvice(current, crisis);
+      const advice = earthAdvice(state, crisis);
       const label = optionOf(crisis, advice.optionId)?.label ?? advice.optionId;
 
       earthBox.textContent = `Mission Control, ${roundTripMinutes(sol)} minutes later: ${advice.text} (They suggest: ${label}.)`;
     });
 
-    const calm = h('input', { type: 'checkbox', id: 'act-calm' });
+    const calm = h('button', { class: 'gl__calm', type: 'button', 'aria-pressed': String(calmMode) });
 
-    calm.checked = calmMode;
-    calm.addEventListener('change', () => {
-      calmMode = calm.checked;
+    calm.textContent = '✓ Take your time · no countdown';
+    calm.addEventListener('click', () => {
+      calmMode = !calmMode;
+      calm.setAttribute('aria-pressed', String(calmMode));
+
       if (calmMode) {
         stopTimer();
         clockBar.style.width = '100%';
-        clockText.textContent = 'Take your time.';
+        clockText.textContent = 'Take your time — the clock is off.';
       } else {
-        startClock();
+        startClock(crisis);
       }
     });
 
-    function startClock(): void {
-      if (crisis.countdownSeconds === null || calmMode) return;
+    const body: (Node | false)[] = [
+      crisis.urgent ? h('div', { class: 'gl__clock' }, h('span', { class: 'gl__clock-bar' }, clockBar), clockText) : false,
+      choices,
+      earthBox,
+    ];
 
-      const total = crisis.countdownSeconds;
-      const began = performance.now();
+    const panel = gamePanel({
+      kicker: `Sol ${sol} · ${EVENT_NAME[crisis.kind]}`,
+      title: crisis.title,
+      sub: crisis.prompt,
+      body,
+      footer: [ask, crisis.urgent ? calm : false],
+    });
 
-      stopTimer();
-      timer = window.setInterval(() => {
-        const elapsed = performance.now() - began;
+    // The clock nodes belong to this render; a new one replaces them.
+    startClock(crisis);
 
-        clockBar.style.width = `${Math.max(0, 100 - (elapsed / (total * 1000)) * 100)}%`;
-        clockText.textContent = `${secondsLeft(total, elapsed)} seconds left. If the clock runs out, nothing is done.`;
-
-        if (elapsed >= total * 1000) choose(crisis, crisis.defaultOptionId, true);
-      }, 100);
+    if (focusedCrisis !== crisis.id) {
+      focusedCrisis = crisis.id;
+      pendingFocus = firstChoice;
     }
 
-    overlay = h(
-      'div',
-      { class: 'act__overlay', role: 'dialog', 'aria-modal': 'true', 'aria-label': crisis.title },
-      h(
-        'div',
-        { class: 'act__dialog' },
-        h('img', { class: 'act__crisis-img', src: CRISIS_IMAGE[crisis.kind], alt: '' }),
-        h('p', { class: 'gx__kicker', text: crisis.urgent ? `Sol ${sol}: decide now` : `Sol ${sol}: decide` }),
-        h('h2', { class: 'gx__title', text: crisis.title }),
-        h('p', { text: crisis.prompt }),
-        crisis.urgent ? h('div', { class: 'act__clock' }, clockBar) : null,
-        crisis.urgent ? clockText : null,
-        options,
-        h('div', { class: 'act__go' }, ask, crisis.urgent ? h('label', null, calm, ' Take your time (no countdown)') : null),
-        earthBox,
-      ),
-    );
-
-    mount.append(overlay);
-    overlay.querySelector<HTMLElement>('.act__option')?.focus();
-    startClock();
-  }
-
-  function onRunSol(): void {
-    if (run === null) return;
-
-    const crisis = pendingCrisis(run);
-
-    if (crisis === null) step();
-    else openCrisis(crisis);
-  }
-
-  function notice(text: string, label: string, route: 'landing-site' | 'base'): void {
-    const button = h('button', { class: 'gx__btn gx__btn--primary', type: 'button' }, label);
-
-    button.addEventListener('click', () => navigate(route));
-    mount.replaceChildren(h('header', { class: 'gx__top' }, h('h1', { class: 'gx__title', text: 'Not ready yet' })), h('p', { text }), h('div', null, button));
+    return panel;
   }
 
   function render(): void {
@@ -222,91 +342,55 @@ export function mountAct(
     }
 
     const state = run;
-    const mission = missionHeadline(state);
-    const region = regionById(state.regionId);
-    const score = siteScore(state.regionId);
-    const power = powerPicture(state);
+    const crisis = pendingCrisis(state);
     const last = state.log[state.log.length - 1];
 
-    // ---- Resource meters.
-    const meters = h('section', { class: 'gx__panel', 'aria-label': 'Resources' }, h('h2', { class: 'gx__h', text: 'Resources' }));
+    clockNodes = null;
 
-    for (const row of meterRows(state)) {
-      meters.append(
-        h(
-          'div',
-          { class: 'gx__meter', 'data-tone': row.tone, role: 'meter', 'aria-label': row.label, 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(row.percent) },
-          h('span', { class: 'gx__meter-label' }, h('img', { class: 'gx__meter-icon', src: RESOURCE_IMAGE[row.name], alt: '' }), row.label),
-          h('span', { class: 'gx__meter-bar' }, h('span', { class: 'gx__meter-fill', style: `width:${row.percent}%` })),
-          h('span', { class: 'gx__meter-val', text: `${row.percent}%` }),
-        ),
-      );
+    const world =
+      crisis === null
+        ? gameWorld({
+            label: 'Your outpost',
+            weather: 'Clear skies',
+            crew: last === undefined ? 'A sol is one Mars day. Ready for our first one?' : `Sol ${last.sol} is done. Ready for the next one?`,
+            figures: moduleFigures(state.modules),
+            dock: 'outpost',
+          })
+        : gameWorld({
+            label: 'Crew alert',
+            weather: `${EVENT_NAME[crisis.kind]} incoming`,
+            crew: CRISIS_BRIEF[crisis.kind].crew,
+            figures: moduleFigures(state.modules),
+            hint: earthIsInTime(state, crisis)
+              ? `Mission Control can answer in ${roundTripMinutes(crisis.sol)} minutes.`
+              : `Earth cannot reply before this ${EVENT_NAME[crisis.kind].toLowerCase()} arrives.`,
+            signals: [{ icon: EVENT_ICON[crisis.kind], tone: 'warn', kicker: EVENT_NAME[crisis.kind], text: CRISIS_BRIEF[crisis.kind].signal }],
+            dock: 'outpost',
+          });
+
+    const panel = crisis === null ? missionPanel(state) : crisisPanel(state, crisis);
+
+    mount.replaceChildren(gameScreen({ hud: hudFor(state), world, panel, variant: 'gl--act' }));
+
+    if (pendingFocus !== null) {
+      pendingFocus.focus();
+      pendingFocus = null;
     }
+  }
 
-    // ---- The trade-off picture: the README's sun, arrays, battery, night.
-    const picture = h(
-      'section',
-      { class: 'gx__panel' },
-      h('h2', { class: 'gx__h', text: 'Power: day against night' }),
-      h(
-        'div',
-        { class: 'act__picture', 'aria-hidden': 'true' },
-        h('div', null, '☀️', h('strong', { text: `+${power.generatedKw} kW` }), 'panels, daytime'),
-        h('div', null, '🔋', h('strong', { text: `${power.storedKwh}` }), `of ${power.capacityKwh} kWh stored`),
-        h('div', null, '🌙', h('strong', { text: `−${power.nightDrainKw} kW` }), 'drain at night'),
-        h('div', null, '🧑‍🚀', h('strong', { text: `${state.panelHealth < 1 ? Math.round(state.panelHealth * 100) : 100}%` }), 'panel health'),
-      ),
-      h('p', { class: 'gx__note', text: powerSentence(power.generatedKw, power.storedKwh, power.nightDrainKw) }),
+  function notice(text: string, label: string, route: 'landing-site' | 'base'): void {
+    const button = h('button', { class: 'gl__btn gl__btn--primary gl__btn--start', type: 'button' }, label, h('span', { class: 'gl__btn-arrow', 'aria-hidden': 'true', text: '→' }));
+
+    button.addEventListener('click', () => navigate(route));
+
+    mount.replaceChildren(
+      gameScreen({
+        hud: [],
+        world: gameWorld({ label: 'Not ready yet', weather: 'Waiting', crew: 'We need a site and an outpost first.', figures: [] }),
+        panel: gamePanel({ kicker: 'Not ready yet', title: label, sub: text, footer: [button] }),
+        variant: 'gl--act',
+      }),
     );
-
-    // ---- Conditions and forecast.
-    const conditions = h(
-      'section',
-      { class: 'gx__panel' },
-      h('h2', { class: 'gx__h', text: `Conditions at ${region?.name ?? 'your site'}` }),
-      h('p', { text: SITE_AXES.map((axis) => `${AXIS_NAMES[axis]} ${score[axis]}/5`).join(' · ') }),
-    );
-
-    const forecastList = h('ul', { class: 'act__list' });
-
-    for (const event of state.forecast.filter((entry) => entry.sol > state.sol)) {
-      forecastList.append(h('li', null, `Sol ${event.sol}: `, event.summary, event.approximate ? ' ' : null, event.approximate ? h('span', { class: 'gx__tag', text: 'approximate' }) : null));
-    }
-
-    const forecast = h('section', { class: 'gx__panel' }, h('h2', { class: 'gx__h', text: 'Forecast' }), forecastList.childElementCount > 0 ? forecastList : h('p', { text: 'Nothing else is coming. Keep the numbers steady.' }));
-
-    // ---- What happened last sol.
-    const happened = h('section', { class: 'gx__panel', 'aria-live': 'polite' }, h('h2', { class: 'gx__h', text: last ? `What happened on sol ${last.sol}` : 'Before the first sol' }));
-
-    if (last === undefined) {
-      happened.append(h('p', { text: 'Your outpost has landed. Read the forecast, then run the first sol.' }));
-    } else {
-      const list = h('ul', { class: 'act__list' });
-
-      for (const event of last.events) list.append(h('li', { text: event.summary }));
-      for (const note of last.notes) list.append(h('li', { text: note }));
-      if (list.childElementCount === 0) list.append(h('li', { text: 'A quiet sol. Everything ran as expected.' }));
-      happened.append(list);
-    }
-
-    const waiting = loadingForecast && state.forecast.length === 0;
-    const go = h('button', { class: 'gx__btn gx__btn--primary', type: 'button', disabled: waiting }, waiting ? 'Reading space weather…' : `Run sol ${state.sol + 1}`);
-
-    go.addEventListener('click', onRunSol);
-
-    clear(mount);
-    mount.append(
-      h(
-        'header',
-        { class: 'gx__top' },
-        h('div', null, h('p', { class: 'gx__kicker', text: `Sol ${state.sol} of ${WIN_SOL}` }), h('h1', { class: 'gx__title', text: mission.title }), h('p', { class: 'gx__sub', text: mission.subtitle })),
-        h('div', { class: 'act__go' }, go),
-      ),
-      h('div', { class: 'act__progress', role: 'progressbar', 'aria-label': 'Mission progress', 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(progressPercent(state)) }, h('span', { style: `width:${progressPercent(state)}%` })),
-      h('div', { class: 'act__body' }, h('div', { class: 'act__col' }, meters, picture, conditions), h('div', { class: 'act__col' }, happened, forecast)),
-    );
-
-    if (overlay !== null) mount.append(overlay);
   }
 
   render();
@@ -328,8 +412,8 @@ export function mountAct(
   return () => {
     disposed = true;
     controller.abort();
-    closeOverlay();
-    mount.classList.remove('gx', 'act');
+    stopTimer();
+    clockNodes = null;
     mount.replaceChildren();
   };
 }
