@@ -202,9 +202,12 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         `base` (D-032). 14 tests.
     │   ├── forecast.ts                 complete   ForecastEvent, FlareInput, DEFAULT_FLARE,
     │   │                                         flareIntensity, createForecast, eventsStartingOn,
-    │   │                                         stormOn, stormOpacity. The schedule is baked
-    │   │                                         (flare 3, pod 5, storm 7, flare 10); only the
-    │   │                                         flare size comes from data/.
+    │   │                                         stormOn, stormOpacity, MIN_CLEAR_SOLS,
+    │   │                                         forecastIsSpaced. The schedule is worked out
+    │   │                                         from a list, so two events can never touch
+    │   │                                         (flare 3, pod 5, storm 7-8, flare 10); only
+    │   │                                         the flare size comes from data/.
+    │   ├── forecast.test.ts            complete   10 tests; the event spacing is asserted here
     │   ├── crises.ts                   complete   Crisis, CrisisOption, COUNTDOWN_SECONDS,
     │   │                                         crisisForEvent, pendingCrisis, optionOf,
     │   │                                         earthIsInTime, earthAdvice. Three forecast events
@@ -355,8 +358,12 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   ├── supply/                     COMPLETE   The ration-check puzzle.
     │   │   ├── README.md                           the contract
     │   │   ├── model.ts                 complete   SUPPLY_BEATS, packsFor, judge, hintFor,
-    │   │   │                                     workingSentence, approximateTotalKg. 49 tests.
-    │   │   ├── model.test.ts            complete   49 literal-input tests
+    │   │   │                                     workingSentence, approximateTotalKg, seedFrom,
+    │   │   │                                     questionFor, choicesFor, promptFor,
+    │   │   │                                     puzzleFor. The question and its four options
+    │   │   │                                     change every run, seeded from the astronaut
+    │   │   │                                     name (D-054). 64 tests.
+    │   │   ├── model.test.ts            complete   64 literal-input tests
     │   │   ├── view.ts                  complete   mountSupply(root, run, setRun) -> teardown
     │   │   └── supply.css               complete   beats and the ration check
     │   ├── launch/                     COMPLETE   The launch reel and spacecraft tour.
@@ -635,7 +642,8 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `CREW_SIZE`, `SUN_HOURS`, `NIGHT_HOURS`, `OXYGEN_PER_CREW`, `WATER_PER_CREW`, `FOOD_PER_CREW` | the crew and the day; **every tuning number the sol maths uses** |
 | `sim/forecast` | `ForecastEvent`, `FlareInput`, `ForecastKind` | the four forecast events; `intensity` is 1-3 for a flare and 0 for the pod and storm |
 | | `flareIntensity` | `(classType) -> 1 \| 2 \| 3`; X = 3, M = 2, C and below = 1 |
-| | `createForecast` | `(flares) -> ForecastEvent[]`; schedule is fixed at sols 3 / 5 / 7 / 10. A missing flare uses `DEFAULT_FLARE`, marked approximate. Only the size is live |
+| | `createForecast` | `(flares) -> ForecastEvent[]`; the sols come from the placed schedule, so they are sols 3 / 5 / 7-8 / 10 and two events can never touch. A missing flare uses `DEFAULT_FLARE`, marked approximate. Only the size is live |
+| | `MIN_CLEAR_SOLS`, `forecastIsSpaced` | the quiet sols required between two events, and the check that a forecast honours it (D-053) |
 | | `eventsStartingOn`, `stormOn`, `stormOpacity` | lookups over the forecast; opacity is a calm-site curve, 0.2-0.95 |
 | `sim/crises` | `Crisis`, `CrisisOption`, `COUNTDOWN_SECONDS` | the moment a forecast event stops the clock and what is asked |
 | | `crisisForEvent`, `pendingCrisis` | the crisis for a forecast event, and the one waiting before the next sol |
@@ -697,6 +705,8 @@ returns to `landing`, which keeps running behind the mounted screen.
 | `features/base/model` | `BUILDABLE`, `canPlace`, `addModule`, `removeModule`, `pointsLeft` | build rules over the `sim/modules.ts` catalogue (D-032) |
 | | `previewFor`, `previewSummary`, `upkeepFor`, `upcomingWarnings` | the calm-sol projection. `previewSummary` gives the five resource cards one number each, from the same projection as the sentences |
 | `features/base/view` | `mountBase` | `(root, run, setRun) -> teardown`; the outpost on Mars, the catalogue steppers, and Land & start sol 1 → `startOutpost` then `act`. Holds a mutable local `extras` so a second build is not applied to stale data; it also shows a rotating NASA fact beside the build panel from `factFor` |
+| `features/supply/model` | `SUPPLY_BEATS`, `packsFor`, `judge`, `hintFor`, `workingSentence`, `approximateTotalKg` | the ration check over `sim/modules.ts`; the crew size is read from the sim, not typed in, so it agrees with the briefing (ISS-044) |
+| | `seedFrom`, `questionFor`, `choicesFor`, `promptFor`, `puzzleFor` | the question and its four options for one run. The mission length, the answer and the button order all vary, seeded from the astronaut name so a demo repeats and a test can pin it (D-054) |
 | `features/act/model` | `missionHeadline`, `meterRows`, `changeRows`, `toneFor`, `secondsLeft`, `powerSentence` | presentation helpers over `sim/sol`; `meterRows` carries `percent`, `tone` and `emoji` for the HUD |
 | | `activityRows`, `activityCosts` | the three activities offered on a sol, and what each costs and gives |
 | | `scienceSummary`, `scienceSentence` | the score, the rank, and the road to the next one |

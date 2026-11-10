@@ -70,7 +70,7 @@ and `nextStop('naming')` goes straight to `briefing`.
 | # | Decision | Screen | Trigger | Options | If the timer runs out | Stored in `RunState` | Debrief verdict |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | D1 | Astronaut name | `naming` | Start Mission | non-empty after trimming; 24 characters max; runs of whitespace collapse | cannot submit empty | `astronautName` | — |
-| D2 | Ration packets | `supply` | answer the maths question | 20 · **80** · 240 · 720 | must be solved; CONTINUE stays hidden | not stored (the screen is a gate) | — |
+| D2 | Ration packets | `supply` | answer the maths question | four numbers worked out from the question on screen: the answer, plus the three mistakes (forgot the crew, forgot the packet size, forgot both) | must be solved; CONTINUE stays hidden | not stored (the screen is a gate) | — |
 | D3 | Landing region | `landing-site` | Land here | Arcadia · Jezero · Olympus · Valles · Argyre | cannot skip | `regionId` | — |
 | D4 | Build loadout | `base` | Land &amp; start sol 1 | 8 module kinds, 14 build points, site rules and slot limits | allowed to launch with nothing extra | `modules` | — |
 | D5 | Flare response | `act` | sol 3 and sol 10 | `shelter` · `shield-up` · `carry-on` | `carry-on`, `timedOut = true` | `decisions[]` | `solved` / `caught` |
@@ -79,6 +79,26 @@ and `nextStop('naming')` goes straight to `briefing`.
 
 D1–D4 are **pre-run gates**: they shape the starting state. D5–D7 are **in-run crises**: they
 are recorded and replayed by the debrief.
+
+### The event calendar never doubles up
+
+The forecast is fixed, and **two events never happen back to back** (D-053). Each event
+starts `MIN_CLEAR_SOLS` sols after the previous one has *ended*, so there is always at least
+one quiet sol between any two of them:
+
+| Sol | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Event | | | ☀ flare | | 📦 pod | | 🌪 storm | 🌪 storm | | ☀ flare | | |
+| Crisis? | | | yes | | yes | | yes | | | yes | | |
+| Activity | pick | pick | — | pick | — | pick | — | pick | pick | — | pick | pick |
+
+The storm is the only event that lasts more than one sol, and the quiet sol on sol 9 is
+what keeps it from running straight into the second flare. The sols are *worked out* from
+the schedule in `sim/forecast.ts` rather than typed in, so adding a fifth event cannot land
+it on top of another one. `forecastIsSpaced(forecast)` is exported so the rule can be
+asserted, and `src/sim/forecast.test.ts` does exactly that.
+
+The other eight sols are the player's: they pick an activity and the day is theirs.
 
 ---
 

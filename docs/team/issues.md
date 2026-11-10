@@ -11,10 +11,11 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
+| ISS-051 | The ration check asked the same question every run, so the answer was always 80 | medium | agent | fixed | 9f0fabb |
 | ISS-050 | `architecture.md`'s module-contract table lists exports that do not exist | medium | agent | open | — |
 | ISS-049 | NASA's Astronomy Picture of the Day rejects the shared `DEMO_KEY` with a 429 | medium | agent | fixed | this branch |
 | ISS-048 | The cosmetic sol headlines did not match the forecast schedule | low | agent | fixed | 816e1fb, b471ecb |
-| ISS-047 | Four `sim/` modules have no test files, and AGENTS.md's test counts are wrong | medium | agent | open | `sim/run.test.ts` added |
+| ISS-047 | Four `sim/` modules have no test files, and AGENTS.md's test counts are wrong | medium | agent | open | `sim/run.test.ts`, `sim/forecast.test.ts` added |
 | ISS-043 | Space weather had one live source, so a DONKI outage silently replaced every run's flares with baked history | high | agent | fixed | this branch |
 | ISS-046 | The header advertised "Mission Control / Main Menu" as text, and naming's Back to Main Menu navigated to itself | medium | agent | fixed | d90e838 |
 | ISS-045 | The page title said "Under Construction" and the description called the built game a placeholder | low | agent | fixed | 559c0d6 |
@@ -957,6 +958,25 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
+## ISS-051 — The ration check asked the same question every run, so the answer was always 80
+
+- **Reported by:** agent, 2026-11-10, while reviewing the supply screen.
+- **Where:** `src/features/supply/model.ts`, `src/features/supply/view.ts`.
+- **Problem:** the ration question was fixed — two months, four crew, three days per packet — so the
+  answer was always 80 and the buttons were always 20, 80, 240 and 720. A child who played the game twice
+  learned the number instead of the calculation, and the screen that exists to teach arithmetic had become a
+  memory test. The fourth option was worse: 720 was not a mistake anyone could describe, so it was a guess
+  button rather than a wrong answer that teaches something.
+- **Cause:** the question was authored once, when the point was the three-step conversion, and never revisited.
+- **Fix:** the mission length now varies between six authored values, the answer moves with it, and all four
+  buttons are worked out from the question on screen — the answer, plus the three mistakes a child actually makes
+  (forgot the crew, forgot the packet size, forgot both). The order is shuffled too. The variation is seeded
+  from the astronaut's name rather than `Math.random()`, so a demo repeats and a test can pin it. Fixed in
+  9f0fabb.
+- **Pre-existing:** yes; the fixed question shipped with the supply screen.
+
+---
+
 ## ISS-050 — `architecture.md`'s module-contract table lists exports that do not exist
 
 - **Reported by:** agent, 2026-11-10, while reading the contract table before changing `sim/`.
@@ -1030,13 +1050,13 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
   (it has 32), and it attributes 19 tests to `sim/run.ts`, which has none.
 - **Cause:** the modules were written and wired together faster than they were covered, and the document
   counts were filled in from memory rather than counted.
-- **Fix:** partly fixed. `src/sim/run.test.ts` and `src/sim/balance.test.ts` are added, because the
-  activity loop changes the run state and the balance it depends on, and AGENTS.md's test counts are
-  corrected to the real numbers. `sim/forecast.ts`, `sim/crises.ts` and `sim/comms.ts` still have no test
-  files, so the issue stays open: those three are untouched by this work, and adding coverage for them is
-  its own job.
+- **Fix:** partly fixed. `src/sim/run.test.ts`, `src/sim/balance.test.ts` and `src/sim/forecast.test.ts` are
+  added, because the activity loop changes the run state and the balance it depends on, and because the
+  forecast's event spacing had to be pinned down. AGENTS.md's test counts are corrected to the real
+  numbers. `sim/crises.ts` and `sim/comms.ts` still have no test files, so the issue stays open: those two
+  are untouched by this work, and adding coverage for them is its own job.
 - **Pre-existing:** yes; the gap dates from the game loop build (2026-11-08).
 
 ---
 
-**Next free id: ISS-051.**
+**Next free id: ISS-052.**

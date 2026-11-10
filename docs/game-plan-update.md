@@ -224,6 +224,9 @@ Everything in the plan landed, with three changes made along the way.
 | 7 | `feat(act): show NASA's daily picture and fact` | `ui/nasaFeedCard.ts`, the live picture on every sol |
 | 8 | `feat(debrief): add the science report and the rank` | the score, the rank and every activity the crew chose |
 | 9 | `docs(architecture): update the tree, the contracts and the game flow` | architecture, game flow, AGENTS, README, the team records |
+| 10 | `fix(sim): guarantee the forecast never puts two events back to back` | the event sols are worked out from a schedule, with a quiet sol between every pair (D-053) |
+| 11 | `feat(supply): make the ration question change every run` | the mission length, the answer and the button order all vary now (D-054) |
+| 12 | `test(sim): guard the balance after the activity loop` | `sim/balance.test.ts` and the crisis rule made explicit in the sim |
 
 **The three changes from the plan as written:**
 

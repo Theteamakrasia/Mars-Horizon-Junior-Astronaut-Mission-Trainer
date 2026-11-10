@@ -8,6 +8,61 @@ than a documented one.
 
 ---
 
+## 2026-11-10 — Never double up the events, and make the ration question change every run
+
+**Did**
+
+- **Two forecast events can never happen back to back** (D-053). The event sols used to be
+  four typed-in constants that happened to be spaced right, so the rule was a comment rather
+  than a rule. They are now worked out from a schedule: each event starts `MIN_CLEAR_SOLS`
+  sols after the previous one has *ended*, so there is always a quiet sol between any two of
+  them — including after the two-sol dust storm, which is still dusting the panels when the
+  next alarm arrives. The schedule the game has always had is unchanged: a flare on sol 3, a
+  pod on sol 5, a storm on sols 7 and 8, and a second flare on sol 10.
+- `forecastIsSpaced(forecast)` is exported so the rule can be asserted, and
+  `src/sim/forecast.test.ts` is new — one of the four `sim/` modules ISS-047 recorded as
+  having no test file at all.
+- **The ration question changes every run** (D-054). It was fixed — two months, four crew,
+  three days per packet — so the answer was always 80 and the buttons were always 20, 80,
+  240 and 720. A child who played twice learned the number instead of the calculation.
+  The mission length now varies between six authored values, the answer moves with it, and
+  all four buttons are worked out from the question on screen: the answer, plus the three
+  mistakes a child actually makes. The order is shuffled too, so there is no button to
+  memorise either.
+- The variation is seeded from the astronaut's name — the one thing that changes between runs
+  — and never from `Math.random()`, so a demo repeats and a test can pin it.
+- The crew size in the question is now read from `sim/modules.ts` rather than typed in, so
+  the ration maths cannot drift from the briefing again.
+- The suite went from 517 tests in 24 files to **542 tests in 25 files**.
+
+**Files**
+
+- New: `src/sim/forecast.test.ts`
+- Changed: `src/sim/forecast.ts`, `src/features/supply/{model,view}.ts`,
+  `src/features/supply/model.test.ts`, `docs/architecture.md`, `docs/game-flow.md`,
+  `AGENTS.md`, `README.md`, `docs/team/{decisions,issues,tasks}.md`
+
+**Problems**
+
+- The forecast's event sols were a *second copy of the truth*: four constants that had to be
+  kept in step with `createForecast` by hand. They are now derived from the placed schedule,
+  so they cannot disagree with it. The old numbers are unchanged — 3, 5, 7, 10 — but they
+  are now a result rather than an input.
+- The fourth answer button, 720, was not a mistake anyone could describe, so it was a guess
+  button rather than a wrong answer that teaches something. Every option is now a specific
+  mistake, worked out from the question.
+- The seeding is the astronaut's name, which means the same name always gets the same
+  question. That is deliberate — a demo must repeat — but it does mean a player who always
+  types the same name sees the same question. A run counter would fix that and cannot be
+  done without putting mutable state in `sim/`, so the name stays.
+
+**Next**
+
+- A human browser pass of the supply screen with a few different names, to confirm the
+  question reads naturally in all six forms (TASK-049).
+
+---
+
 ## 2026-11-10 — Give every sol a main activity, a science score and a live NASA picture
 
 **Did**
