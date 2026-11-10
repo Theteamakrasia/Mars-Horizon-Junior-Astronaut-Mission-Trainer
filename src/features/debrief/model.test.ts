@@ -5,7 +5,7 @@ import { createForecast } from '../../sim/forecast';
 import { CORE_MODULES, type ModuleKind } from '../../sim/modules';
 import { newRun, startOutpost, withState, type RunState } from '../../sim/run';
 import { advanceSol, decide } from '../../sim/sol';
-import { blackoutSols, consumptionSummary, explainOutcome, lowestPoints, reviewDecisions, timeline, usedApproximateData } from './model';
+import { blackoutSols, consumptionSummary, explainOutcome, lowestPoints, nextSteps, reviewDecisions, timeline, usedApproximateData, wentEmpty } from './model';
 
 const FLARES = [
   { classType: 'X5.8', approximate: true, when: 'in a test' },
@@ -143,5 +143,68 @@ describe('the rest of the debrief', () => {
   it('reports when flare sizes came from fallback data, so the screen can say so', () => {
     expect(usedApproximateData(playOut(SOLAR, SMART))).toBe(true);
     expect(usedApproximateData(playOut(SOLAR, SMART, [{ classType: 'M1.0', approximate: false, when: 'today' }]))).toBe(false);
+  });
+
+  it('names the store that ended the run, and nothing at all after a win', () => {
+    const lost = withState(playOut(SOLAR, SMART), { status: 'lost', stores: { power: 40, oxygen: 40, water: 0, food: 40, shielding: 40 } });
+
+    expect(wentEmpty(lost)).toBe('water');
+    expect(wentEmpty(playOut(SOLAR, SMART))).toBeNull();
+  });
+});
+
+describe('nextSteps', () => {
+  /** A finished run with a chosen cause of death, so the tip rules can be checked in isolation. */
+  function endedByWater(extras: readonly ModuleKind[] = SOLAR): RunState {
+    const run = playOut(extras, SMART);
+
+    return withState(run, { status: 'lost', stores: { ...run.stores, water: 0 } });
+  }
+
+  it('tells a water loss with no ice miner to add one, and asks for it first', () => {
+    const steps = nextSteps(endedByWater());
+
+    expect(steps[0].title).toBe('Add an ice miner');
+    expect(steps[0].art).toBe('ice-miner');
+    expect(steps.length).toBeLessThanOrEqual(2);
+  });
+
+  it('points at the supply pod that carried water, when the crew unpacked something else', () => {
+    const run = withState(endedByWater(), { decisions: [{ crisisId: 'supply-5', sol: 5, optionId: 'spares', timedOut: false }] });
+    const steps = nextSteps(run);
+
+    expect(steps.map((step) => step.title)).toContain('Choose water from the pod');
+  });
+
+  it('tells a food loss with no greenhouse to add one', () => {
+    const run = playOut(['solar-array', 'batteries'], SMART);
+    const steps = nextSteps(withState(run, { status: 'lost', stores: { ...run.stores, food: 0 } }));
+
+    expect(steps[0].title).toBe('Add a greenhouse');
+    expect(steps[0].art).toBe('greenhouse');
+  });
+
+  it('falls back to a harder site when nothing in the run suggests a fix', () => {
+    const strong = startOutpost(withState(newRun('jezero', 'T'), { forecast: createForecast(FLARES) }), [
+      ...CORE_MODULES,
+      'solar-array',
+      'solar-array',
+      'batteries',
+      'batteries',
+      'batteries',
+      'batteries',
+      'greenhouse',
+      'ice-miner',
+      'regolith-shield',
+    ]);
+    const steps = nextSteps(withState(strong, { status: 'won' }));
+
+    expect(steps).toHaveLength(1);
+    expect(steps[0].title).toBe('Try a harsher site');
+    expect(steps[0].art).toBe('site');
+  });
+
+  it('honours the limit the panel has room for', () => {
+    expect(nextSteps(endedByWater(), 1)).toHaveLength(1);
   });
 });

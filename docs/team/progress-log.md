@@ -8,6 +8,38 @@ than a documented one.
 
 ---
 
+## 2026-11-10 — Rebuild base, act and debrief from the Figma game-loop frames (D-038, D-039, D-040)
+
+**Did**
+
+- Pulled the seven Figma nodes (`66:14`, `66:20`, `66:26`, `66:32`, `66:38`, `66:44`, `66:50`) through the Figma MCP and rebuilt the three screens on the shared chrome they draw: navy header, five resource cards, illustrated Mars world with the crewmate, cream interaction panel and dock.
+- Added `src/ui/gameLoop.ts` + `src/styles/game-loop.css` as the one place the frame is drawn. Features pass in words and numbers; the shell knows no `sim/` rule.
+- `base` now shows the outpost on Mars with module artwork and a build catalogue with steppers. `previewSummary()` gives the five cards their numbers from the same calm-sol projection the sentences use.
+- `act` keeps the turn-based loop, and a crisis now replaces the mission panel in place (`66:26`, `66:32`, `66:38`) with the countdown, Earth reply and "take your time" switch intact.
+- `debrief` is the results panel from `66:44`, and its journal is the `66:50` frame: decisions with verdicts, the full sol table and the honesty note, reached from "View my Mars story". `nextSteps()` and `wentEmpty()` are new pure helpers, with 6 new tests.
+- Checked the rendered screens in headless Chrome at 1600×900 against the frame exports, then deleted the temporary harness.
+
+**Files**
+
+- `src/ui/gameLoop.ts`, `src/styles/game-loop.css`, `index.html` (Outfit/Nunito/Orbitron)
+- `src/features/{base,act,debrief}/view.ts`, their `.css`, and `base/model.ts`, `debrief/model.ts`
+- `docs/architecture.md`, `docs/team/{decisions,progress-log}.md`
+
+**Problems**
+
+- The frames show Pause, Settings and BUILD, and a working Outpost/Inventory/Journal dock. None of those screens or controls exist, so they are decorative `<span>`s marked `aria-hidden` (D-038). A BUILD button on `act` would call `startOutpost` and wipe the run.
+- The journal frame has no room for the sol table or the honesty note. Both live below the decision entries in the same scrolling panel, so the debrief can still show its reasoning and the timing caveat.
+- Icons are emoji, not the frame's custom glyphs: there are no SVG exports for them and the project carries no icon dependency. Module and resource artwork is real.
+- `src/styles/game.css` is now imported by nobody. Left in place in this change; removing it is a separate commit.
+- The visual harness needed Chrome's `--headless=new --screenshot`; no Playwright/Puppeteer is installed and adding one is a dependency change, so it stays a manual check.
+
+**Next**
+
+- Human browser pass of the whole journey at laptop and phone widths (TASK-049).
+- Retune `base`'s forecast card if three banner events in one sentence reads too long on a laptop.
+
+---
+
 ## 2026-11-09 — Hook live space weather up to a second source (ISS-043, D-037)
 
 **Did**

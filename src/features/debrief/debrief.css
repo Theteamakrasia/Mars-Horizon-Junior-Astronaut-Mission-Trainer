@@ -1,73 +1,73 @@
-/* DEBRIEF — why it ended, and what to try next. Imported by ./view.ts only. */
+/* DEBRIEF — the results screen and the journal it opens into.
+   Imported by ./view.ts only. The shared frame is in styles/game-loop.css;
+   only the tip cards, the journal entries' rhythm and the two-link footer are
+   unique to this screen. */
 
-.debrief__banner {
-  border-left: 5px solid var(--g-accent);
-}
-
-.debrief__banner[data-status='won'] {
-  border-left-color: var(--g-good);
-}
-
-.debrief__cols {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
-  gap: clamp(0.6rem, 1.6vmin, 1.2rem);
-}
-
-.debrief__stats {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.25rem 1rem;
-  margin: 0;
-}
-
-.debrief__stats dt {
-  color: var(--g-muted);
-}
-
-.debrief__stats dd {
-  margin: 0;
-  font-variant-numeric: tabular-nums;
-}
-
-.debrief__review {
-  margin: 0 0 0.9rem;
-  padding-bottom: 0.7rem;
-  border-bottom: 1px solid var(--g-border);
-}
-
-.debrief__review:last-child {
-  border-bottom: 0;
-}
-
-.debrief__verdict {
-  font-family: var(--font-display);
-  font-size: 0.75rem;
-  letter-spacing: 0.1em;
+.gl--debrief .gl__entry-sol {
   text-transform: uppercase;
 }
 
-.debrief__table-wrap {
-  overflow-x: auto;
+/* The tip cards: green like the design, with the artwork of the thing to build. */
+.debrief__tips {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(6px, 0.72vw, 14px);
 }
 
-.debrief__table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.85rem;
-  font-variant-numeric: tabular-nums;
+.debrief__tip {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(8px, 0.9vw, 18px);
+  padding: clamp(7px, 0.72vw, 14px) clamp(8px, 0.83vw, 16px);
+  border-radius: clamp(8px, 0.72vw, 14px);
+  background: var(--gl-green-soft);
 }
 
-.debrief__table th,
-.debrief__table td {
-  padding: 0.35rem 0.5rem;
-  border-bottom: 1px solid var(--g-border);
-  text-align: left;
-  vertical-align: top;
+.debrief__tip-img {
+  width: clamp(24px, 2.6vw, 50px);
+  height: clamp(24px, 2.6vw, 50px);
+  object-fit: contain;
 }
 
-.debrief__actions {
+.debrief__tip-glyph {
+  display: grid;
+  place-items: center;
+  width: clamp(24px, 2.6vw, 50px);
+  height: clamp(24px, 2.6vw, 50px);
+  font-size: clamp(1rem, 1.6vw, 2rem);
+  line-height: 1;
+}
+
+.debrief__tip-title {
+  margin: 0;
+  color: var(--gl-green);
+  font-family: var(--gl-display);
+  font-weight: 800;
+  font-size: clamp(0.8rem, 1.1vw, 1.35rem);
+  line-height: 1.15;
+}
+
+.debrief__tip-detail {
+  margin: 0.15em 0 0;
+  color: var(--gl-muted);
+  font-weight: 600;
+  font-size: clamp(0.62rem, 0.78vw, 0.95rem);
+  line-height: 1.3;
+}
+
+/* The journal's decision entries, in the same rhythm as the tip cards. */
+.debrief__entries {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(6px, 0.72vw, 14px);
+}
+
+/* Two text links under the primary button: side by side, not stacked. */
+.debrief__links {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.6rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
 }
