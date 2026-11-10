@@ -1,24 +1,38 @@
 import { describe, expect, it } from 'vitest';
 
-import { newRun, startOutpost } from '../../sim/run';
+import { newRun, startOutpost, withState } from '../../sim/run';
 import { CORE_MODULES } from '../../sim/modules';
 import { WIN_SOL } from '../../sim/sol';
-import { changeRows, MISSIONS, meterRows, missionHeadline, powerSentence, progressPercent, secondsLeft, toneFor } from './model';
+import {
+  activityCosts,
+  activityRows,
+  changeRows,
+  meterRows,
+  missionHeadline,
+  powerSentence,
+  progressPercent,
+  scienceSentence,
+  scienceSummary,
+  secondsLeft,
+  toneFor,
+} from './model';
 
 const run = startOutpost(newRun('jezero', 'Test'), CORE_MODULES);
 
 describe('act model', () => {
-  it('has the ten missions from the README', () => {
-    expect(MISSIONS).toHaveLength(10);
-  });
-
   it('starts on the first mission and ends on the last', () => {
     expect(missionHeadline(run).title).toContain('Mission 1');
-    expect(missionHeadline({ ...run, sol: WIN_SOL - 1 }).title).toContain('Mission 10');
+    expect(missionHeadline({ ...run, sol: WIN_SOL - 1 }).title).toContain('Mission 12');
   });
 
   it('keeps the last mission if the sol is somehow past the end', () => {
-    expect(missionHeadline({ ...run, sol: 99 }).title).toContain('Mission 10');
+    expect(missionHeadline({ ...run, sol: 99 }).title).toContain('Mission 12');
+  });
+
+  it('gives every mission a line under it', () => {
+    for (let sol = 0; sol < WIN_SOL; sol += 1) {
+      expect(missionHeadline({ ...run, sol }).subtitle.length).toBeGreaterThan(0);
+    }
   });
 
   it('shows all five stores, in order, as percentages', () => {
@@ -69,5 +83,82 @@ describe('changeRows', () => {
 
     expect(zeroes).toHaveLength(5);
     expect(rows.every((row) => row.tone === 'flat')).toBe(true);
+  });
+});
+
+describe('the daily activity', () => {
+  it('offers three activities on the sol about to be played', () => {
+    const rows = activityRows(run, 1);
+
+    expect(rows).toHaveLength(3);
+    expect(rows.map((row) => row.id)).toEqual(['rest', 'sweep-panels', 'experiment']);
+  });
+
+  it('names the cost and the gain of each activity', () => {
+    const rows = activityRows(run, 1);
+    const survey = activityRows(run, 2).find((row) => row.id === 'survey');
+
+    expect(rows.find((row) => row.id === 'experiment')?.costs).toEqual(['−15 kWh']);
+    expect(rows.find((row) => row.id === 'experiment')?.gains).toEqual(['+6 science']);
+    expect(survey?.costs).toEqual(['−25 kWh']);
+  });
+
+  it('shows a locked activity with the reason, rather than hiding it', () => {
+    const rows = activityRows(run, 7);
+    const grow = rows.find((row) => row.id === 'grow-extra');
+
+    expect(grow?.available).toBe(false);
+    expect(grow?.lockedReason).toContain('greenhouse');
+  });
+
+  it('marks the activity the player has already picked', () => {
+    const picked = withState(run, { chosenActivity: 'experiment' });
+
+    expect(activityRows(picked, 1).find((row) => row.id === 'experiment')?.chosen).toBe(true);
+    expect(activityRows(picked, 1).find((row) => row.id === 'rest')?.chosen).toBe(false);
+  });
+
+  it('splits what an activity costs from what it gives', () => {
+    const costs = activityCosts({
+      id: 'test',
+      title: 'Test',
+      detail: 'Test',
+      icon: '🧪',
+      topic: 'missions',
+      science: 2,
+      powerCostKwh: 8,
+      storeDelta: { food: 6, water: -5 },
+    });
+
+    expect(costs.costs).toEqual(['−8 kWh', '−5 Water']);
+    expect(costs.gains).toEqual(['+6 Food', '+2 science']);
+  });
+});
+
+describe('the science score', () => {
+  it('starts at zero and the bottom rank', () => {
+    const summary = scienceSummary(run);
+
+    expect(summary.points).toBe(0);
+    expect(summary.rank.id).toBe('explorer');
+  });
+
+  it('moves up the ladder as the points come in', () => {
+    expect(scienceSummary({ ...run, science: 24 }).rank.id).toBe('research-lead');
+    expect(scienceSummary({ ...run, science: 48 }).rank.id).toBe('chief-scientist');
+  });
+
+  it('shows the road to the next rank', () => {
+    const summary = scienceSummary({ ...run, science: 10 });
+
+    expect(summary.next?.id).toBe('field-scientist');
+    expect(summary.toNext).toBe(2);
+  });
+
+  it('writes the score as a sentence for screen readers', () => {
+    const summary = scienceSummary({ ...run, science: 10 });
+
+    expect(scienceSentence(summary)).toBe('10 science points. Your rank is Explorer. 2 more points to reach Field Scientist.');
+    expect(scienceSentence(scienceSummary({ ...run, science: 48 }))).toContain('That is the top rank.');
   });
 });

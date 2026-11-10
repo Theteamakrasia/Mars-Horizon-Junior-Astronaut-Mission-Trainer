@@ -3,13 +3,17 @@
  *
  * Deliberately thin: every simulation rule — drain, events, loss — lives in
  * `src/sim/sol.ts`, where it is tested. This file only decides how a run is
- * worded and which meters look worrying.
+ * worded, which meters look worrying, and what the day's three activities
+ * say on the screen (D-048).
  */
 
+import { offerFor, planForSol, type ActivitySpec, type ActivityStoreName } from '../../sim/activities';
 import { RESOURCE_NAMES, percentOf, type ResourceName, type ResourceStores } from '../../sim/resources';
 import type { RunState } from '../../sim/run';
 import { systemsFor } from '../../sim/modules';
+import { rankProgress, type ScienceRank } from '../../sim/science';
 import { WIN_SOL } from '../../sim/sol';
+import type { ScienceTopic } from '../../sim/topics';
 
 /** A headline and a line under it for the sol about to be played. */
 export interface ActPresentation {
@@ -18,31 +22,25 @@ export interface ActPresentation {
 }
 
 /**
- * The ten missions from the README, spread over the run's sols.
+ * The plan for the sol about to be played.
  *
- * They are the story of the outpost growing, shown as the headline. They do not
- * change the rules — the rules are the forecast and the resources.
+ * The plan lives in `sim/activities.ts` because the sim needs it too: the
+ * headline on the screen and the activities on the screen have to be the same
+ * day, and a cosmetic array in this file could drift from the forecast the
+ * way the old `MISSIONS` array did (ISS-048).
  */
-export const MISSIONS: readonly { readonly title: string; readonly subtitle: string }[] = [
-  { title: 'Mission 1: Establish Outpost', subtitle: 'Nothing works without power. Watch the batteries.' },
-  { title: 'Mission 2: Survey the Environment', subtitle: 'Read your site before trusting it.' },
-  { title: 'Mission 3: Robotic Operations', subtitle: 'Rovers do the routine jobs so people do not have to.' },
-  { title: 'Mission 4: First EVA', subtitle: 'Suits, airlocks and the clock: every spacewalk is on a budget.' },
-  { title: 'Mission 5: Find Resources', subtitle: 'What you can find here is cargo you do not have to launch.' },
-  { title: 'Mission 6: Make Water (ISRU)', subtitle: 'Turn local ice and dirt into supplies.' },
-  { title: 'Mission 7: First Harvest', subtitle: 'Food you grow is food you do not launch.' },
-  { title: 'Mission 8: Survive a Major Hazard', subtitle: 'A dust storm tests everything you prepared.' },
-  { title: 'Mission 9: Science Expedition', subtitle: 'Research is the whole point of being here.' },
-  { title: 'Mission 10: Expand the Outpost', subtitle: 'Grow without losing stability.' },
-];
-
-/** The mission for a sol (1-based). Sols past the tenth keep the last mission. */
 export function missionHeadline(run: RunState): ActPresentation {
-  const sol = Math.min(WIN_SOL, run.sol + 1);
-  const index = Math.min(MISSIONS.length - 1, Math.max(0, Math.round(((sol - 1) / (WIN_SOL - 1)) * (MISSIONS.length - 1))));
+  const plan = planForSol(run.sol + 1);
 
-  return MISSIONS[index];
+  if (plan !== null) return { title: plan.title, subtitle: plan.subtitle };
+
+  const last = planForSol(WIN_SOL);
+
+  return { title: last?.title ?? 'Mission complete', subtitle: last?.subtitle ?? 'The outpost is out there, on its own.' };
 }
+
+/** The order the stores are listed in when an activity names a cost or a gain. */
+const ACTIVITY_STORE_ORDER: readonly ActivityStoreName[] = ['oxygen', 'water', 'food', 'shielding'];
 
 export type MeterTone = 'ok' | 'low' | 'critical';
 
@@ -126,4 +124,122 @@ export function secondsLeft(totalSeconds: number, elapsedMs: number): number {
 /** Words for a night-power picture, so it can be read aloud as well as seen. */
 export function powerSentence(generatedKw: number, storedKwh: number, nightDrainKw: number): string {
   return `The arrays make ${generatedKw} kW while the Sun is up. ${storedKwh} kWh is stored. Night costs ${nightDrainKw} kW for 12 hours.`;
+}
+
+/* ------------------------------------------------------------- activities -- */
+
+/**
+ * What an activity costs and what it gives, as short lines.
+ *
+ * The numbers come from the catalogue rather than from the sentence beside
+ * them, so a cost can never disagree with the words describing it.
+ */
+export interface ActivityCost {
+  /** What the activity takes, e.g. `−25 kWh`. Empty when it is free. */
+  readonly costs: readonly string[];
+  /** What the activity gives, e.g. `+4 science`. */
+  readonly gains: readonly string[];
+}
+
+/** Split an activity's effect into what it costs and what it gives. */
+export function activityCosts(spec: ActivitySpec): ActivityCost {
+  const costs: string[] = [];
+  const gains: string[] = [];
+
+  if (spec.powerCostKwh > 0) costs.push(`−${spec.powerCostKwh} kWh`);
+
+  for (const name of ACTIVITY_STORE_ORDER) {
+    const value = spec.storeDelta[name] ?? 0;
+
+    if (value === 0) continue;
+
+    const text = `${value > 0 ? '+' : '−'}${Math.abs(value)} ${RESOURCE_LABELS[name].label}`;
+
+    if (value > 0) gains.push(text);
+    else costs.push(text);
+  }
+
+  gains.push(`+${spec.science} science`);
+
+  return { costs, gains };
+}
+
+/** One activity card, ready to draw. */
+export interface ActivityRow {
+  readonly id: string;
+  readonly title: string;
+  readonly detail: string;
+  readonly icon: string;
+  readonly topic: ScienceTopic;
+  readonly science: number;
+  readonly costs: readonly string[];
+  readonly gains: readonly string[];
+  /** False when the outpost is not built for it yet. */
+  readonly available: boolean;
+  /** Why it is locked, or null when it is available. */
+  readonly lockedReason: string | null;
+  /** True when the player has already picked this one. */
+  readonly chosen: boolean;
+}
+
+/**
+ * The three activities offered on a sol.
+ *
+ * A locked activity is still listed, with the reason attached: hiding it would
+ * teach nothing, and showing it greyed out tells the player what building
+ * next would be for.
+ */
+export function activityRows(run: RunState, sol: number): readonly ActivityRow[] {
+  return offerFor(run, sol).map((offer) => {
+    const { costs, gains } = activityCosts(offer.spec);
+
+    return {
+      id: offer.spec.id,
+      title: offer.spec.title,
+      detail: offer.spec.detail,
+      icon: offer.spec.icon,
+      topic: offer.spec.topic,
+      science: offer.spec.science,
+      costs,
+      gains,
+      available: offer.available,
+      lockedReason: offer.lockedReason,
+      chosen: run.chosenActivity === offer.spec.id,
+    };
+  });
+}
+
+/* ---------------------------------------------------------------- science -- */
+
+/** The score, the rank it earns, and the road to the next one. */
+export interface ScienceSummary {
+  readonly points: number;
+  readonly rank: ScienceRank;
+  readonly next: ScienceRank | null;
+  /** 0-100 through the current band. */
+  readonly percent: number;
+  /** How many more points to the next rank. Zero at the top. */
+  readonly toNext: number;
+}
+
+/** What the science score looks like right now. */
+export function scienceSummary(run: RunState): ScienceSummary {
+  const progress = rankProgress(run.science);
+
+  return {
+    points: run.science,
+    rank: progress.current,
+    next: progress.next,
+    percent: progress.percent,
+    toNext: progress.toNext,
+  };
+}
+
+/** One line for the score card, so it can be read aloud as well as seen. */
+export function scienceSentence(summary: ScienceSummary): string {
+  const base = `${summary.points} science points. Your rank is ${summary.rank.title}.`;
+
+  if (summary.next === null) return `${base} That is the top rank.`;
+
+  return `${base} ${summary.toNext} more points to reach ${summary.next.title}.`;
 }

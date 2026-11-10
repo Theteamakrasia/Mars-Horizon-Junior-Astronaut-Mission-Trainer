@@ -27,7 +27,9 @@ import type { ScienceTopic } from './topics';
  * `extraPowerCost` path a flare's shielding digger uses. Excluding it here
  * means the type cannot be wrong.
  */
-export type ActivityStores = Partial<Pick<ResourceStores, 'oxygen' | 'water' | 'food' | 'shielding'>>;
+export type ActivityStoreName = 'oxygen' | 'water' | 'food' | 'shielding';
+
+export type ActivityStores = Partial<Pick<ResourceStores, ActivityStoreName>>;
 
 /** Why an activity cannot be chosen today. */
 export type ActivityRequirement =

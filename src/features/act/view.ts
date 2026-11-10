@@ -22,14 +22,14 @@ import { oneWayMinutes, roundTripMinutes } from '../../sim/comms';
 import { withState, type RunState } from '../../sim/run';
 import { siteScore, regionById, SITE_AXES } from '../../sim/regions';
 import { advanceSol, decide, powerPicture, WIN_SOL } from '../../sim/sol';
-import { gamePanel, gameScreen, gameSection, gameWorld, moduleArt, moduleFigures, type HudStat } from '../../ui/gameLoop';
+import { gamePanel, gameScreen, gameSection, gameWorld, moduleArt, moduleFigures, type HudStat, type SignalCard } from '../../ui/gameLoop';
 import { nasaCard } from '../../ui/nasaCard';
 import { readButton } from '../../ui/readButton';
 import { stopReading } from '../../ui/readAloud';
 import { nextStop } from '../../ui/registry';
 import { navigate } from '../../ui/router';
 
-import { changeRows, meterRows, missionHeadline, powerSentence, secondsLeft } from './model';
+import { activityRows, changeRows, meterRows, missionHeadline, powerSentence, scienceSummary, secondsLeft } from './model';
 
 import '../../styles/game-loop.css';
 import './act.css';
@@ -136,6 +136,40 @@ export function mountAct(
     else render();
   }
 
+  /**
+   * Take the day's activity (D-048).
+   *
+   * The choice is kept on the run so the sim can apply it when the sol runs,
+   * and the screen redraws so the picked card can show itself.
+   */
+  function pickActivity(id: string): void {
+    if (run === null) return;
+
+    const row = activityRows(run, run.sol + 1).find((offer) => offer.id === id);
+
+    if (row === undefined || !row.available) return;
+
+    run = withState(run, { chosenActivity: id });
+    setRun(run);
+    render();
+  }
+
+  /** The score card in the world panel: how much science, and what rank. */
+  function scienceSignal(state: RunState): SignalCard {
+    const summary = scienceSummary(state);
+
+    return {
+      icon: summary.rank.icon,
+      kicker: 'Science',
+      text: `${summary.points} points · ${summary.rank.title}`,
+      detail:
+        summary.next === null
+          ? 'The top rank. Nothing left to climb.'
+          : `${summary.toNext} more points to reach ${summary.next.title}.`,
+      tone: 'good',
+    };
+  }
+
   /** The five resource cards, from the same rows the old meters used. */
   function hudFor(state: RunState): readonly HudStat[] {
     const toneOf = (tone: string): HudStat['tone'] => (tone === 'critical' ? 'bad' : tone === 'low' ? 'warn' : 'ok');
@@ -172,6 +206,76 @@ export function mountAct(
     return gameSection('Coming up', triple);
   }
 
+  /**
+   * Today's three activities, and the one the player has picked (D-048).
+   *
+   * A locked activity is shown greyed out with the reason on it, because
+   * hiding it would teach nothing: "you have no greenhouse" is the lesson.
+   */
+  function activitySection(state: RunState): HTMLElement {
+    const rows = activityRows(state, state.sol + 1);
+    const list = h('div', { class: 'act-activities' });
+
+    for (const row of rows) {
+      const button = h(
+        'button',
+        {
+          class: 'act-activity',
+          type: 'button',
+          'data-activity': row.id,
+          'aria-pressed': String(row.chosen),
+          disabled: !row.available,
+        },
+        h('span', { class: 'act-activity__icon', 'aria-hidden': 'true', text: row.icon }),
+        h(
+          'span',
+          { class: 'act-activity__body' },
+          h('span', { class: 'act-activity__title', text: row.title }),
+          h('span', {
+            class: 'act-activity__detail',
+            text: row.available ? row.detail : (row.lockedReason ?? row.detail),
+          }),
+          h(
+            'span',
+            { class: 'act-activity__tags' },
+            ...row.costs.map((text) => h('span', { class: 'act-tag act-tag--cost', text })),
+            ...row.gains.map((text) => h('span', { class: 'act-tag act-tag--gain', text })),
+          ),
+        ),
+        h('span', { class: 'act-activity__mark', 'aria-hidden': 'true', text: row.chosen ? '✓' : '' }),
+      );
+
+      if (row.available) button.addEventListener('click', () => pickActivity(row.id));
+
+      list.append(button);
+    }
+
+    const picked = rows.some((row) => row.chosen);
+
+    const note =
+      rows.length === 0
+        ? 'There is nothing to choose today.'
+        : picked
+          ? 'You can change your mind until you run the sol.'
+          : 'Pick one to run today. It costs what it says it costs.';
+
+    /* The cards are the day's decision, so they are worth hearing as well as
+       reading: the cheapest kind of access for a player who cannot read yet. */
+    const read = readButton(
+      () =>
+        rows
+          .map((row) => {
+            const locked = row.available ? '' : ` ${row.lockedReason ?? ''}`;
+
+            return `${row.title}. ${row.detail}${locked} Costs ${row.costs.join(' and ') || 'nothing'}. Gives ${row.gains.join(' and ')}.`;
+          })
+          .join(' '),
+      { ariaLabel: "Read today's activities aloud" },
+    );
+
+    return gameSection("Today's activity", list, h('p', { class: 'gl__note', text: note }), read ?? false);
+  }
+
   /** A normal sol: what the day costs, what is coming, what happened last. */
   function missionPanel(state: RunState): HTMLElement {
     const mission = missionHeadline(state);
@@ -180,6 +284,8 @@ export function mountAct(
     const power = powerPicture(state);
     const last = state.log[state.log.length - 1];
     const waiting = loadingForecast && state.forecast.length === 0;
+    const activities = activityRows(state, state.sol + 1);
+    const mustChoose = activities.length > 0 && !activities.some((row) => row.chosen);
 
     const callout = h(
       'div',
@@ -203,6 +309,7 @@ export function mountAct(
 
     const body: (Node | false)[] = [
       callout,
+      activitySection(state),
       gameSection('Day → Night', dayNight),
       h('p', { class: 'gl__note', text: `${region ? region.name : 'Your site'}: ${SITE_AXES.map((axis) => `${AXIS_NAMES[axis]} ${score[axis]}/5`).join(' · ')}` }),
       forecastSection(state),
@@ -211,6 +318,12 @@ export function mountAct(
     if (last !== undefined) {
       const items = [...last.events.map((event) => event.summary), ...last.notes];
       const list = h('ul', { class: 'gl__list' });
+
+      /* What the crew chose comes first: it is the decision this sol was
+         about, and the science it earned is why the score moved. */
+      if (last.activity !== null) {
+        list.append(h('li', { text: `You chose: ${last.activity.title}. (+${last.activity.science} science points)` }));
+      }
 
       for (const item of items.length > 0 ? items : ['A quiet sol. Everything ran as expected.']) list.append(h('li', { text: item }));
 
@@ -254,7 +367,7 @@ export function mountAct(
 
     const go = h(
       'button',
-      { class: 'gl__btn gl__btn--primary gl__btn--start', type: 'button', disabled: waiting },
+      { class: 'gl__btn gl__btn--primary gl__btn--start', type: 'button', disabled: waiting || mustChoose },
       waiting ? 'Reading space weather…' : `Run sol ${state.sol + 1}`,
       h('span', { class: 'gl__btn-arrow', 'aria-hidden': 'true', text: '→' }),
     );
@@ -266,7 +379,7 @@ export function mountAct(
       title: mission.title,
       sub: mission.subtitle,
       body,
-      footer: [go],
+      footer: [go, mustChoose ? h('p', { class: 'gl__note', text: "Choose today's activity to run the sol." }) : false],
     });
   }
 
@@ -406,6 +519,7 @@ export function mountAct(
             weather: 'Clear skies',
             crew: last === undefined ? 'A sol is one Mars day. Ready for our first one?' : `Sol ${last.sol} is done. Ready for the next one?`,
             figures: moduleFigures(state.modules),
+            signals: [scienceSignal(state)],
           })
         : gameWorld({
             label: 'Crew alert',
@@ -415,7 +529,10 @@ export function mountAct(
             hint: earthIsInTime(state, crisis)
               ? `Mission Control can answer in ${roundTripMinutes(crisis.sol)} minutes.`
               : `Earth cannot reply before this ${EVENT_NAME[crisis.kind].toLowerCase()} arrives.`,
-            signals: [{ icon: EVENT_ICON[crisis.kind], tone: 'warn', kicker: EVENT_NAME[crisis.kind], text: CRISIS_BRIEF[crisis.kind].signal }],
+            signals: [
+              { icon: EVENT_ICON[crisis.kind], tone: 'warn', kicker: EVENT_NAME[crisis.kind], text: CRISIS_BRIEF[crisis.kind].signal },
+              scienceSignal(state),
+            ],
           });
 
     const panel = crisis === null ? missionPanel(state) : crisisPanel(state, crisis);

@@ -1,6 +1,6 @@
 /* ACT — the sol loop. Imported by ./view.ts only.
    The shared frame is in styles/game-loop.css; only the crisis decision cards
-   add anything of their own. */
+   and the daily activity cards add anything of their own. */
 
 .gl--act .gl__choice-img {
   width: 72%;
@@ -16,6 +16,118 @@
 
 .gl--act .gl__calm[aria-pressed='true'] {
   opacity: 0.75;
+}
+
+/* --------------------------------------------------- the daily activity -- */
+
+.act-activities {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(5px, 0.62vw, 12px);
+}
+
+.act-activity {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: clamp(6px, 0.8vw, 16px);
+  width: 100%;
+  padding: clamp(7px, 0.72vw, 14px);
+  border: 2px solid transparent;
+  border-radius: clamp(8px, 0.72vw, 14px);
+  background: var(--gl-card);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.act-activity:hover:not(:disabled) {
+  background: var(--gl-card-strong);
+}
+
+.act-activity:focus-visible {
+  outline: 3px solid var(--gl-orange);
+  outline-offset: 2px;
+}
+
+/* The picked activity: a green border and a tick, so the player always knows
+   what the sol will do before they press the button. */
+.act-activity[aria-pressed='true'] {
+  border-color: var(--gl-green);
+  background: var(--gl-green-soft);
+}
+
+.act-activity:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.act-activity__icon {
+  display: grid;
+  place-items: center;
+  width: clamp(26px, 2.6vw, 50px);
+  height: clamp(26px, 2.6vw, 50px);
+  border-radius: 50%;
+  background: var(--gl-panel);
+  font-size: clamp(0.85rem, 1.3vw, 1.6rem);
+}
+
+.act-activity__body {
+  min-width: 0;
+}
+
+.act-activity__title {
+  display: block;
+  color: var(--gl-ink);
+  font-weight: 900;
+  font-size: clamp(0.76rem, 1vw, 1.2rem);
+  line-height: 1.15;
+}
+
+.act-activity__detail {
+  display: block;
+  margin-top: 0.15em;
+  color: var(--gl-muted);
+  font-weight: 600;
+  font-size: clamp(0.6rem, 0.75vw, 0.92rem);
+  line-height: 1.25;
+}
+
+.act-activity__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.35em;
+}
+
+/* What it costs and what it gives, as two kinds of chip. */
+.act-tag {
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  font-size: clamp(0.52rem, 0.66vw, 0.78rem);
+  font-weight: 800;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.act-tag--cost {
+  background: var(--gl-peach);
+  color: var(--gl-orange-deep);
+}
+
+.act-tag--gain {
+  background: var(--gl-green-soft);
+  color: var(--gl-green);
+}
+
+.act-activity__mark {
+  color: var(--gl-green);
+  font-size: clamp(0.9rem, 1.2vw, 1.4rem);
+  font-weight: 900;
+  min-width: 1em;
+  text-align: center;
 }
 
 /* What the sol added and what it cost, in five small cards. */

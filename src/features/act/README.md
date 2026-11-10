@@ -1,20 +1,26 @@
 # `act/` — advance a sol, resolve a mission
 
-**Built.** Task: **TASK-030**. Goal: **G-4**. The simulation lives in
-`src/sim/resources.ts` and `src/sim/sol.ts`.
+**Built.** Task: **TASK-030**, extended by **TASK-065**. Goal: **G-4**. The simulation
+lives in `src/sim/resources.ts` and `src/sim/sol.ts`; the day's activity lives in
+`src/sim/activities.ts`.
 
 See `../README.md` for the layout rules.
 
-## What the screen does, and what it deliberately does not
+## What the screen does
 
 This screen runs a sol and shows what happened. **There is no planning phase** — see
-decision D-018, confirmed by the project owner. The player's decisions happen at build
-time in `base/`, not here.
+decision D-018, confirmed by the project owner.
 
-The consequence is worth stating plainly, because it is easy to build the wrong thing:
-**`act/` is a simulation runner, not a decision screen.** If someone asks you to add a
-"choose your action" panel here, that is the plan phase, and it needs a decision recorded
-in `docs/team/decisions.md` first.
+**But every sol now has a main activity** (D-048). On the eight calm sols the screen
+offers three activities and the player picks one; the activity's cost and gain are
+applied by `advanceSol`. On a crisis sol the crisis replaces the activity panel
+(D-040), so the crisis *is* that day's activity.
+
+The difference from D-018 is deliberate and worth stating plainly, because it is easy
+to build the wrong thing here: **an activity is a choice inside the sol, not a planning
+phase before it.** The player never sees the coming sol's numbers before choosing, and
+there is no separate screen to plan on. A new *phase* still needs a decision recorded in
+`docs/team/decisions.md` first — an activity inside the sol has one (D-048).
 
 ## The trade-off, shown with a picture instead of a paragraph
 
@@ -33,17 +39,22 @@ support and the greenhouse.
 That is not an invented puzzle. It is why NASA's rovers and habitats lean heavily on
 nuclear power rather than solar alone.
 
+An activity draws from the same budget. Its kWh joins the same `extraPowerCost` path a
+flare's shielding digger uses, so spending 25 kWh on a rover survey with a flat battery
+runs the sol in a blackout — and that is the trade-off, not a decoration.
+
 ## What `model.ts` must contain
 
-Nothing. **All of it belongs in `src/sim/sol.ts`.**
+**Nothing that is a rule.** The activity catalogue, the sol plans, the science score and
+the rank all live in `src/sim/`, where they are tested.
 
-`sol.ts` owns: applying per-sol drain to the five stores, firing forecast events, applying
-mission effects, and deciding whether the run has ended. It is pure and returns a new
-state.
+`src/sim/` owns: applying per-sol drain to the five stores, firing forecast events,
+applying the chosen activity, awarding science points, and deciding whether the run has
+ended. It is pure and returns a new state.
 
-`act/model.ts` should stay thin — a small pure helper for this screen's own presentation
-logic at most. If you find yourself writing simulation rules here, they belong in
-`src/sim/`, and putting them there means they get tested like `drift.ts` already is.
+`act/model.ts` stays thin — the activity cards' wording, the score card's wording, and
+the meters' appearance. If you find yourself writing simulation rules here, they belong
+in `src/sim/`, and putting them there means they get tested like `drift.ts` already is.
 
 ## Sol stepping is decided: turn-based
 
@@ -53,8 +64,9 @@ resolves, so a double press cannot advance twice.
 
 ## What `view.ts` must contain
 
-The active mission with its trade-off visualiser, a Location Conditions panel, and the
-control that commits the sol. Then navigate to `debrief` when the run ends.
+The day's activity cards, the active mission with its trade-off visualiser, the science
+score card in the world panel, the recap of what the last sol changed, and the control
+that commits the sol. Then navigate to `debrief` when the run ends.
 
 Use `nextStop` from `src/ui/registry.ts` for navigation, not a hand-written path — the
 route order lives in exactly one place.
