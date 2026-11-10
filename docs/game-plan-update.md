@@ -1,7 +1,7 @@
 # Game plan update — activities, science score and NASA facts
 
 **Written:** 2026-11-10 · **Branch:** `feat/daily-activities` · **Status:** shipped
-**Decisions:** D-049 … D-053 · **Issues:** ISS-047 … ISS-050 · **Tasks:** TASK-063 … TASK-071
+**Decisions:** D-049 … D-053 · **Issues:** ISS-047 … ISS-050 · **Tasks:** TASK-066 … TASK-074
 
 > **What actually shipped** is in §8 at the bottom. The plan below is the plan as it was
 > written, so the difference between the two is visible rather than buried.
@@ -199,7 +199,7 @@ Branch `feat/daily-activities`. One commit per step, `type(scope): message`,
    rewritten.
 3. **Stale docs.** `docs/architecture.md` has about seven stale contract rows,
    and `sim/run.ts`, `sim/forecast.ts`, `sim/crises.ts` and `sim/comms.ts` have
-   no test files at all. Both pre-date this work; ISS-047 and ISS-050 record
+   no test files at all. Both pre-date this work; ISS-053 and ISS-050 record
    them and this pass fixes the rows it touches.
 4. **The Mars rover photos idea is parked.** NASA's Mars Photos API did not
    answer from this machine. It is the single most striking possible feature
@@ -215,7 +215,7 @@ Everything in the plan landed, with three changes made along the way.
 
 | # | Commit | What |
 | --- | --- | --- |
-| 1 | `docs(team): record the activity loop, science score and NASA fact layer` | D-049 … D-053, ISS-047 … ISS-050, TASK-063 … TASK-071 |
+| 1 | `docs(team): record the activity loop, science score and NASA fact layer` | D-049 … D-053, ISS-047 … ISS-050, TASK-066 … TASK-074 |
 | 2 | `feat(sim): add the activity catalogue and the twelve sol plans` | `sim/activities.ts`, `sim/topics.ts` |
 | 3 | `feat(sim): score science points and apply the chosen activity` | `sim/science.ts`, `RunState.science` and `chosenActivity`, `advanceSol` |
 | 4 | `fix(sim): replace the weak ice activity and let growing food cost water` | `ice-store` → `sample-rock`; `grow-extra` now costs water |
@@ -247,6 +247,6 @@ Everything in the plan landed, with three changes made along the way.
 
 **Still to do:** a human browser pass (TASK-049), a personal NASA key before the
 demo (TASK-008, ISS-009), and test files for `sim/forecast.ts`, `sim/crises.ts`
-and `sim/comms.ts` (ISS-047). `src/sim/run.test.ts` and `src/sim/balance.test.ts`
+and `sim/comms.ts` (ISS-053). `src/sim/run.test.ts` and `src/sim/balance.test.ts`
 were added with this work: the activity loop changed the balance, and the
 balance needed a guard.

@@ -42,8 +42,10 @@ import wrongUrl from '../../../Assets/images/supply/wrong.webp';
 
 import {
   SUPPLY_BEATS,
+  focusHandlesEnter,
   hintFor,
   isCorrect,
+  isPlainEnter,
   judge,
   puzzleFor,
   successSentence,
@@ -133,6 +135,28 @@ export function mountSupply(
   const cont = require<HTMLButtonElement>(root, '[data-supply-continue]');
   const fact = require<HTMLParagraphElement>(root, '[data-supply-fact]');
   const supplyFact = factFor(SUPPLY_BEATS.length);
+
+  /*
+   * Start from a known state.
+   *
+   * The markup is static, so everything this screen shows survives a visit. Coming
+   * back to #/supply after the question had been asked put the first fact in the
+   * bubble with NEXT still hidden and the answers still up - a screen with no way
+   * forward, and a dead Enter key with it (ISS-047).
+   *
+   * The answer buttons were worse. They are built below, and the ones from the
+   * last visit were never removed, so a second visit offered eight options and a
+   * third offered twelve.
+   *
+   * So the screen resets itself on the way in.
+   */
+  advance.hidden = false;
+  retry.hidden = true;
+  cont.hidden = true;
+  answers.hidden = true;
+  result.hidden = true;
+  result.textContent = '';
+  choiceList.replaceChildren();
 
   fact.textContent = `NASA fact · ${supplyFact.text} (${supplyFact.credit})`;
 
@@ -556,9 +580,39 @@ const reduced = prefersReducedMotion();
     navigate(next);
   };
 
+  /**
+   * Enter advances, exactly as NEXT does.
+   *
+   * The briefing already works this way (D-046): NEXT is the visible control, but a
+   * player reading with a keyboard should not have to reach for the mouse.
+   *
+   * Without this, Enter did nothing at all until NEXT had been clicked with a mouse.
+   * The click was not the point: it left the focus on the button, and the browser
+   * activates a focused button on Enter - so the key worked by accident, and only
+   * once the screen had been clicked (ISS-047).
+   *
+   * Ignored while a button, link or field has focus: Enter on a focused button
+   * already fires a click, so answering it here as well would advance twice on one
+   * press.
+   */
+  const onKeyDown = (event: KeyboardEvent): void => {
+    if (!isPlainEnter(event.key, { alt: event.altKey, ctrl: event.ctrlKey, meta: event.metaKey })) return;
+
+    const target = event.target as HTMLElement | null;
+
+    if (target !== null && focusHandlesEnter(target.tagName)) return;
+
+    event.preventDefault();
+
+    // NEXT is hidden once the question is up, so Enter advances the explanation and
+    // nothing else. A stray press must never answer the question for the player.
+    if (!advance.hidden) revealNext();
+  };
+
   advance.addEventListener('click', revealNext);
   retry.addEventListener('click', onRetry);
   cont.addEventListener('click', onContinue);
+  window.addEventListener('keydown', onKeyDown);
 
   // Open on the astronaut explaining, with the clipboard. The pointing-at-the-
   // checklist frame waits for the question, which is what he is pointing at.
@@ -576,6 +630,11 @@ const reduced = prefersReducedMotion();
     advance.removeEventListener('click', revealNext);
     retry.removeEventListener('click', onRetry);
     cont.removeEventListener('click', onContinue);
+
+    // The keydown listener lives on the window, so it has to come off again here:
+    // left in place it would keep advancing this screen after the player had left
+    // it, and the briefing's own Enter handler would fight it.
+    window.removeEventListener('keydown', onKeyDown);
 
     for (const button of choiceButtons) {
       button.removeEventListener('click', onChoiceClick);

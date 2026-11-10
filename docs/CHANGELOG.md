@@ -9,6 +9,11 @@ Versions will be assigned when the project begins publishing releases.
 
 ## [Unreleased]
 
+### Fixed
+
+- The supply screen now answers the Enter key exactly as NEXT does. It ignored Enter until NEXT had been clicked with a mouse, and even then it worked only because the click left the focus on the button.
+- Returning to the supply screen now starts it cleanly. Its markup is static, so a second visit used to come back with no way to advance and eight answer buttons instead of four.
+
 ### Added
 
 - Deploy the validated default-branch build to Vercel from GitHub Actions using pinned Vercel CLI and repository secrets.

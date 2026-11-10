@@ -6,7 +6,7 @@ import { newRun, landAt, startOutpost, withState, type RunState } from './run';
 /*
  * The run state is the only thing shared between screens, so a change to it
  * changes every screen. These tests are about the shape of that state and the
- * promises the three constructors make (ISS-047).
+ * promises the three constructors make (ISS-053).
  */
 
 describe('a new run', () => {

@@ -16,7 +16,8 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | ISS-050 | `architecture.md`'s module-contract table lists exports that do not exist | medium | agent | open | — |
 | ISS-049 | NASA's Astronomy Picture of the Day rejects the shared `DEMO_KEY` with a 429 | medium | agent | fixed | this branch |
 | ISS-048 | The cosmetic sol headlines did not match the forecast schedule | low | agent | fixed | 816e1fb, b471ecb |
-| ISS-047 | Four `sim/` modules have no test files, and AGENTS.md's test counts are wrong | medium | agent | open | `sim/run.test.ts`, `sim/forecast.test.ts` added |
+| ISS-047 | The supply screen ignored the Enter key until NEXT had been clicked with a mouse | medium | agent | fixed | this branch |
+| ISS-053 | Four `sim/` modules have no test files, and AGENTS.md's test counts are wrong | medium | agent | open | `sim/run.test.ts`, `sim/forecast.test.ts` added |
 | ISS-043 | Space weather had one live source, so a DONKI outage silently replaced every run's flares with baked history | high | agent | fixed | this branch |
 | ISS-046 | The header advertised "Mission Control / Main Menu" as text, and naming's Back to Main Menu navigated to itself | medium | agent | fixed | d90e838 |
 | ISS-045 | The page title said "Under Construction" and the description called the built game a placeholder | low | agent | fixed | 559c0d6 |
@@ -957,6 +958,31 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
+## ISS-047 — The supply screen ignored the Enter key until NEXT had been clicked
+
+- **Reported by:** the owner, 2026-11-10, from the deployed build: on `#/supply` the Enter key did
+  nothing on the first beat, and clicking NEXT with the mouse first made Enter work.
+- **Where:** `src/features/supply/view.ts` (`mountSupply`).
+- **Problem:** the screen had no keyboard handler at all. The only way to advance a beat was
+  `advance.addEventListener('click', revealNext)`, so a keyboard player could not move past the first
+  fact. Enter appeared to work after clicking NEXT only because the mouse click left the focus on the
+  button and the browser activates a focused button on Enter - so the key worked by accident, and only
+  once the screen had been clicked.
+- **Cause:** the briefing got an Enter handler with D-046 ("NEXT (or the Enter key) swaps in the next
+  line"); the supply screen, which has the same NEXT-button shape, never got the same treatment.
+- **Fix:** `isPlainEnter` and `focusHandlesEnter` in `features/supply/model.ts` (pure, tested) and one
+  `window` keydown listener in the view, mirroring the briefing's. Enter advances while NEXT is visible
+  and does nothing once the question is up, so a stray press cannot answer the question. The listener is
+  removed in the teardown.
+- **The same root cause had a second face.** The markup is static, so the screen never cleared the last
+  visit's state: a second visit to #/supply came back with NEXT hidden, the answers still on screen and
+  **eight** answer options instead of four, because the old buttons were never removed. The screen now
+  resets itself when it mounts. Without that reset, Enter would have gone quiet again on every revisit -
+  the same symptom, a different cause.
+- **Pre-existing:** yes; the supply screen has had no keyboard handler since it was built, and it has
+  never reset its state on a mount.
+- **Status:** fixed in this branch. Recorded as D-050.
+
 ---
 
 ## ISS-052 — The game never named the five science goals it is about
@@ -1059,7 +1085,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-## ISS-047 — Four `sim/` modules have no test files, and AGENTS.md's test counts are wrong
+## ISS-053 — Four `sim/` modules have no test files, and AGENTS.md's test counts are wrong
 
 - **Reported by:** agent, 2026-11-10, while adding the activity loop and checking what the sim was covered by.
 - **Where:** `src/sim/run.ts`, `src/sim/forecast.ts`, `src/sim/crises.ts`, `src/sim/comms.ts`; `AGENTS.md` §8.
@@ -1079,4 +1105,5 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-**Next free id: ISS-053.**
+**Next free id: ISS-054.**
+
