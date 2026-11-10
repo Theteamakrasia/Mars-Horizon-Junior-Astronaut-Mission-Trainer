@@ -266,8 +266,8 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         an out-of-range number is clamped, not discarded.
     │   ├── baseLayout.test.ts          complete   31 tests. Every input literal.
     │   ├── baseLayoutEditor.ts         complete   the placement editor (D-049). Exports
-    │   │                                         isLayoutEditing(), startLayoutEditor(root) ->
-    │   │                                         teardown. Dev-only: a developer drags the modules
+    │   │                                         startLayoutEditor(root) -> teardown.
+    │   │                                         Dev-only: a developer drags the modules
     │   │                                         on the real outpost panel with ?editlayout=1 and
     │   │                                         downloads baseLayout.json. Loaded by a dynamic
     │   │                                         import in main.ts, so it is compiled out of a
@@ -676,8 +676,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `clamp`, `clampSpot`, `roundSpot` | pull a number or a whole spot into the band, and round to one decimal so the toolbar and the file quote the same numbers |
 | | `buildLayoutJson` | `(spots) -> string`; the layout file, in catalogue order, two-space indented |
 | | `pointToPercent` | `(point, panelRect) -> {left, bottom}`; where a pointer is inside the outpost panel |
-| `ui/baseLayoutEditor` | `isLayoutEditing` | `() -> boolean`; true in a dev build with `?editlayout=1` in the address bar |
-| | `startLayoutEditor` | `(root) -> teardown`; the placement editor (D-049). Draggable handles for all eight kinds on the real outpost panel, a toolbar with the numbers and the JSON, and Download / Copy / Reset / Done. Dev-only: `main.ts` loads it with a dynamic import behind `import.meta.env.DEV`, so it never reaches a production bundle |
+| `ui/baseLayoutEditor` | `startLayoutEditor` | `(root) -> teardown`; the placement editor (D-049). Draggable handles for all eight kinds on the real outpost panel, a toolbar with the numbers and the JSON, and Download / Copy / Reset / Done. Dev-only: `main.ts` loads it with a dynamic import behind `import.meta.env.DEV`, so it never reaches a production bundle. The flag check lives in `main.ts`, which cannot import this module statically without pulling it into the bundle |
 | `features/base/model` | `BUILDABLE`, `canPlace`, `addModule`, `removeModule`, `pointsLeft` | build rules over the `sim/modules.ts` catalogue (D-032) |
 | | `previewFor`, `previewSummary`, `upkeepFor`, `upcomingWarnings` | the calm-sol projection. `previewSummary` gives the five resource cards one number each, from the same projection as the sentences |
 | `features/base/view` | `mountBase` | `(root, run, setRun) -> teardown`; the outpost on Mars, the catalogue steppers, and Land & start sol 1 → `startOutpost` then `act`. Holds a mutable local `extras` so a second build is not applied to stale data; it also shows a rotating NASA fact beside the build panel from `factFor` |

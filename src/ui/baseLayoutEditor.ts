@@ -46,11 +46,6 @@ const NUDGE = 0.5;
 /** How far a shift and an arrow key nudges a module, in percent. */
 const NUDGE_FAR = 5;
 
-/** Is the placement editor switched on? */
-export function isLayoutEditing(): boolean {
-  return import.meta.env.DEV && new URLSearchParams(window.location.search).has('editlayout');
-}
-
 /** One number field in the toolbar. */
 interface NumberField {
   readonly input: HTMLInputElement;
