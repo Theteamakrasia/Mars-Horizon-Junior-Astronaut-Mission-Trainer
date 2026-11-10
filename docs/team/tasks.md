@@ -7,6 +7,7 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 
 | id | task | goal | owner | status | blocked by | notes |
 | --- | --- | --- | --- | --- | --- | --- |
+| TASK-073 | Name the five science goals, show them live on every sol and report how each fared | G-7 | agent | done | — | D-055. `sim/goals.ts`; the act screen and the debrief |
 | TASK-071 | Make the ration check ask a different question every run, with options derived from it | G-4 | agent | done | — | D-054. The answer was always 80; the mission length, the answer and the button order now move |
 | TASK-072 | Guarantee the forecast never puts two events back to back | G-4 | agent | done | — | D-053. The sols are worked out from a schedule, with a quiet sol between every pair |
 | TASK-070 | Cover the run state with `src/sim/run.test.ts` and correct AGENTS.md's test counts | G-3 | agent | done | — | ISS-047. The activity loop changes `RunState`, so the run state gets covered |

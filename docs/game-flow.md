@@ -138,8 +138,24 @@ batteries, and whatever power could not be found slows life support.** Power is 
 **not** a life store: a flat battery causes a blackout, and the blackout is what runs oxygen,
 water and food down.
 
-### 3a. The day's activity
+### 3a. The five science goals
 
+Everything in the game is one of five things, and the game says so on every sol (D-055).
+The rules live in `src/sim/goals.ts`; the act screen shows the five rows and the debrief
+reports how each ended.
+
+| Goal | What it is about | The rule that owns it | The player's decision |
+| --- | --- | --- | --- |
+| **Martian Dust Storm** | Dust cuts the sunlight reaching the solar panels and can affect the equipment | `stormOpacity`, `panelHealth` | Fold the panels away, or leave them out and lose a quarter of their output for good |
+| **Life Support** | Keeping oxygen, water and a safe living environment | `oxygenGenerated`, `waterRecycling`, `electrolysisWater` | `air-check`, `recycle-tune`, `dig-ice`, `ice-store` |
+| **Radiation Exposure** | Protecting the crew from harmful space radiation | `shieldingChange`, `FLARE_DRAIN` | `shelter`, `shield-up` or `carry-on`; and `stack-shielding`, `mend-suits` |
+| **Power Shortage** | Keeping enough electricity for the systems that matter | `extraPowerCost`, the blackout | Every activity costs power, and so does every crisis choice |
+| **Food Production** | Making sure the crew has food they can count on | `foodGrown`, `GREENHOUSE_FOOD` | `grow-extra`, and building a greenhouse at all |
+
+Each goal carries a NASA fact filed under a topic of its own, so the dust goal never
+shows the same fact as the power goal.
+
+### 3b. The day's activity
 Every sol has a main activity (D-048). On the eight calm sols `act` offers three and the
 player picks one; on a crisis sol the crisis replaces the activity panel, so the crisis *is*
 that day's activity. The catalogue and the twelve sol plans live in `src/sim/activities.ts`.

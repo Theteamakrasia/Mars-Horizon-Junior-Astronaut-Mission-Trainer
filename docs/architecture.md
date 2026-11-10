@@ -185,6 +185,11 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   ├── science.ts                  complete   ScienceRank, SCIENCE_RANKS, SOL_LOG_POINTS,
     │   │                                         rankFor, rankProgress. The score and the rank
     │   │                                         ladder (D-049). 9 tests.
+    │   ├── goals.ts                    complete   ScienceGoal, GoalSpec, GoalReading,
+    │   │                                         GoalStatus, SCIENCE_GOALS, goalById,
+    │   │                                         goalReadings. The five science goals the
+    │   │                                         mission is about, and how each is doing
+    │   │                                         right now (D-055). 17 tests.
     │   ├── topics.ts                   complete   ScienceTopic, SCIENCE_TOPICS, TOPIC_LABEL,
     │   │                                         isScienceTopic. The vocabulary the activities and
     │   │                                         the NASA facts share.
@@ -195,6 +200,7 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         region can be played.
     │   ├── activities.test.ts          complete   17 tests
     │   ├── science.test.ts             complete   9 tests
+    │   ├── goals.test.ts               complete   17 tests
     │   ├── modules.ts                  complete   ModuleKind, ModuleSpec, MODULE_CATALOGUE,
     │   │                                         CORE_MODULES, specOf, countOf, systemsFor, extrasOf,
     │   │                                         pointsSpent, extraSlots, extraModuleCount. Catalogue
@@ -649,15 +655,18 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `crisisForEvent`, `pendingCrisis` | the crisis for a forecast event, and the one waiting before the next sol |
 | | `optionOf` | `(crisis, optionId) -> CrisisOption \| null` |
 | | `earthIsInTime`, `earthAdvice` | the "Earth cannot answer in time" copy, and what Mission Control would suggest |
-| `sim/activities` | `ActivitySpec`, `ActivityOffer`, `ActivityStores`, `ActivityRequirement`, `SolPlan` | one activity the crew can spend a sol on, and the shape of a sol plan |
-| | `ACTIVITY_CATALOGUE` | the twelve activities: cost, gain, science points, topic, and the build gate that can lock one |
+| `sim/activities` | `ActivitySpec`, `ActivityOffer`, `ActivityStores`, `ActivityStoreName`, `ActivityRequirement`, `SolPlan` | one activity the crew can spend a sol on, and the shape of a sol plan |
+| | `ACTIVITY_CATALOGUE` | the twelve activities: cost, gain, science points, topic, the science goal it serves, and the build gate that can lock one |
 | | `SOL_PLANS` | the twelve sol plans: headline, subtitle, and the three activity ids offered. The schedule is fixed, so a demo repeats |
 | | `activityById`, `planForSol` | lookups; both return `null` for something unknown |
 | | `lockedReason`, `offerForSpec`, `offerFor` | whether the outpost is ready for an activity today, and the three offered on a sol (D-048) |
 | `sim/science` | `ScienceRank`, `SCIENCE_RANKS`, `SOL_LOG_POINTS` | the rank ladder and the point for a sol log |
 | | `rankFor` | `(points) -> ScienceRank`; never throws, a broken score is the bottom rank |
 | | `rankProgress` | `(points) -> { current, next, percent, toNext }`; the road to the next rank, with no NaN at the top (D-049) |
-| `sim/topics` | `ScienceTopic`, `SCIENCE_TOPICS`, `TOPIC_LABEL`, `isScienceTopic` | the vocabulary the activities and the NASA facts share, so a screen can show the fact about the system it is teaching |
+| `sim/topics` | `ScienceTopic`, `SCIENCE_TOPICS`, `TOPIC_LABEL`, `isScienceTopic` | the vocabulary the activities and the NASA facts share, so a screen can show the fact about the system it is teaching. One topic per science goal, plus `missions` for the science that is not about a system |
+| `sim/goals` | `ScienceGoal`, `GoalSpec`, `GoalReading`, `GoalStatus` | the five science goals and one reading of each |
+| | `SCIENCE_GOALS`, `goalById` | the five goals in the order they are shown: dust storm, life support, radiation, power, food. Each carries its own question and its own NASA fact topic (D-055) |
+| | `goalReadings` | `(run) => GoalReading[]`; how each goal is doing right now, worked out from the sim — the storm actually running, the panels' real output, the stores as they stand, the last sol's blackout |
 | `sim/comms` | `REAL_MIN_ONE_WAY_MINUTES`, `REAL_MAX_ONE_WAY_MINUTES` | the real 3-22 minute range, for the approximation note |
 | | `oneWayMinutes`, `roundTripMinutes`, `earthCanAnswerInTime` | a simplified rising delay over the run; labelled approximate in the UI |
 | `sim/sol` | `advanceSol` | `(run) -> RunState`; solar generation, module draw + night drain, crew use, forecast events, the chosen activity, science points, clamp/cap, status. **Turn-based: one sol per call** (D-030) |

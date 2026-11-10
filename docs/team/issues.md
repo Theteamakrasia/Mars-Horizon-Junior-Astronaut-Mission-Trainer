@@ -11,6 +11,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
+| ISS-052 | The game never named the five science goals it is about | medium | agent | fixed | 4199bd5 |
 | ISS-051 | The ration check asked the same question every run, so the answer was always 80 | medium | agent | fixed | 9f0fabb |
 | ISS-050 | `architecture.md`'s module-contract table lists exports that do not exist | medium | agent | open | — |
 | ISS-049 | NASA's Astronomy Picture of the Day rejects the shared `DEMO_KEY` with a 429 | medium | agent | fixed | this branch |
@@ -958,6 +959,25 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
+## ISS-052 — The game never named the five science goals it is about
+
+- **Reported by:** agent, 2026-11-11, while checking that the gameplay matched the five science
+  goals the project is about.
+- **Where:** `src/sim/goals.ts` (new), `src/features/act/`, `src/features/debrief/`.
+- **Problem:** every number in the game was real and every number was about one of five things —
+  Martian dust storms, life support, radiation exposure, power shortages and food production — but
+  nowhere did the game say so. A player saw five resource bars falling and had to work out for
+  themselves that the dust was what was blocking the Sun and that a flat battery was what was
+  slowing the air makers. The science was all there and none of it was legible.
+- **Cause:** the goals were implicit in the model rather than named anywhere, and no screen had a
+  reason to ask.
+- **Fix:** `src/sim/goals.ts` names the five goals and reads each one against the run, so every line
+  is a fact about the outpost ("the greenhouse grows 12 food a sol and the crew eat 10"). `act` shows
+  them with a NASA fact each, and `debrief` reports how each fared. Fixed in 4199bd5.
+- **Pre-existing:** yes; the model has always been about these five things.
+
+---
+
 ## ISS-051 — The ration check asked the same question every run, so the answer was always 80
 
 - **Reported by:** agent, 2026-11-10, while reviewing the supply screen.
@@ -1059,4 +1079,4 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-**Next free id: ISS-052.**
+**Next free id: ISS-053.**

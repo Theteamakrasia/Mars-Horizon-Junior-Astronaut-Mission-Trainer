@@ -227,6 +227,9 @@ Everything in the plan landed, with three changes made along the way.
 | 10 | `fix(sim): guarantee the forecast never puts two events back to back` | the event sols are worked out from a schedule, with a quiet sol between every pair (D-053) |
 | 11 | `feat(supply): make the ration question change every run` | the mission length, the answer and the button order all vary now (D-054) |
 | 12 | `test(sim): guard the balance after the activity loop` | `sim/balance.test.ts` and the crisis rule made explicit in the sim |
+| 13 | `feat(sim): name the five science goals and read their state` | `sim/goals.ts`; the five goals and their live state |
+| 14 | `feat(act): show the five science goals on every sol` | the five rows on the act panel, each with its own NASA fact |
+| 15 | `feat(debrief): report how each science goal fared` | the run read back as science rather than as numbers |
 
 **The three changes from the plan as written:**
 

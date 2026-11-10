@@ -8,6 +8,63 @@ than a documented one.
 
 ---
 
+## 2026-11-11 — Name the five science goals, and show them on every sol
+
+**Did**
+
+- The game now **says what it is about**. Every number in it was always about one of five
+  things — Martian dust storms, life support, radiation exposure, power shortages and food
+  production — but nothing said so, so a player saw five bars falling and had to work out
+  for themselves that the dust was what was blocking the Sun.
+- New pure module `src/sim/goals.ts` names the five goals and reads each one against the
+  run as it stands. Every line is worked out from the sim: the storm that is actually
+  running, the panels' real output, the stores as they are, the last sol's blackout. So
+  "the greenhouse grows 12 food a sol and the crew eat 10" is a fact about the machine the
+  player is running, not a number to panic at.
+- The **act screen** carries the five goals under the day's activity, each with a coloured
+  dot so the state reads at a glance and a NASA fact about that goal's own system
+  underneath.
+- The **debrief** reports how each goal fared: the dust took so much off the panels, the
+  shielding fell so far, the greenhouse grew less than the crew ate, the batteries ran
+  flat on which sols.
+- Each goal files its NASA fact under a **topic of its own**, so the dust storm and the
+  power shortage never show the same fact. `sim/topics.ts` gains a `dust` topic and five
+  facts move to it.
+- Each activity now says **which goal it is working on**, so the seven that serve a goal
+  are visibly the mission and the five pure-science ones are visibly the science.
+- The suite went from 542 tests in 25 files to **568 tests in 26 files**.
+
+**Files**
+
+- New: `src/sim/goals.ts`, `src/sim/goals.test.ts`
+- Changed: `src/sim/activities.ts`, `src/sim/topics.ts`, `src/data/nasaGallery.ts`,
+  `src/features/act/{model,view}.ts`, `src/features/act/act.css`,
+  `src/features/debrief/{model,view}.ts`, `src/features/debrief/debrief.css`,
+  `docs/architecture.md`, `README.md`, `AGENTS.md`, `docs/team/{decisions,issues,tasks}.md`
+
+**Problems**
+
+- **Two goals had a decision and three did not.** The dust storm and the flare are crises
+  the player answers; life support, power and food were only numbers falling. The activity
+  loop (D-048) is what fixed that — `grow-extra`, `dig-ice`, `recycle-tune`, `air-check`
+  and `stack-shielding` are decisions about the three quieter goals — and naming the goals
+  is what makes it obvious that they are decisions *about* something.
+- The dust facts had been filed under `power`, because dust and panels are the same
+  problem. That meant the dust goal and the power goal would have shown the same fact on
+  the same screen. Hence the new `dust` topic.
+- The activity `topic` and the activity `goal` are not the same thing: `sweep-panels` is
+  filed under `dust` but serves the dust goal, while `air-check` is filed under `missions`
+  but serves life support. Two fields, because one is "what this teaches about" and the
+  other is "which goal this works on".
+- Not yet verified in a browser. The five goal rows are the densest thing on the act panel
+  and nobody has looked at them on a phone yet.
+
+**Next**
+
+- A human browser pass, especially the five goal rows on a small screen (TASK-049).
+
+---
+
 ## 2026-11-10 — Never double up the events, and make the ration question change every run
 
 **Did**

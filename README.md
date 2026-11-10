@@ -356,6 +356,20 @@ a player takes away without ever being told a lesson:
 | **Reading real space-weather data** | Solar-flare strength comes from live NASA data, with NOAA as a backup, not made-up numbers |
 | **Second attempts** | Losing teaches more than winning, because the debrief explains exactly *why* |
 
+### The five science goals
+
+Everything in the game is one of five things, and the game says so on every sol. The
+act screen carries all five with their live state and a NASA fact about each, and the
+debrief reports how each one fared:
+
+| Goal | What it is about | How the game makes it real |
+| --- | --- | --- |
+| ☪️ **Martian Dust Storm** | Dust cuts the sunlight reaching the solar panels and can affect the equipment | A real dust storm on sol 7 buries the panels for two sols. Leaving them out costs power; leaving them out *in a storm* costs a fifth of their output, for good |
+| 🫁 **Life Support** | Keeping oxygen, water and a safe living environment | Oxygen and water are made from power. When the batteries run flat, the makers slow down and the stores start falling |
+| ☢️ **Radiation Exposure** | Protecting the crew from harmful space radiation | Mars has no global magnetic field, so shielding is the only protection. A flare takes a third of it, or two thirds if nobody took cover |
+| ⚡ **Power Shortage** | Keeping enough electricity for the systems that matter | The panels make nothing for twelve hours of night. Every activity you pick draws from the same batteries life support needs |
+| 🍞 **Food Production** | Making sure the crew has food they can count on | The greenhouse grows 12 food a sol and four astronauts eat 10 — but only while the power holds and the greenhouse is not paused |
+
 <a id="the-science-is-real"></a>
 ### The Science Is Real
 
@@ -507,7 +521,7 @@ player decision, the sol loop, what is built and where a new event plugs in are 
 | Crisis decisions and debrief verdicts | **Built** — flare, storm and supply pod |
 | Live flare strength | **Built** — NASA DONKI → NOAA SWPC → baked fallback |
 | Live NASA daily pictures | **Built** — Astronomy Picture of the Day → the saved gallery |
-| Tests | **542 tests in 25 files** (`npm test`, 2026-11-10) |
+| Tests | **568 tests in 26 files** (`npm test`, 2026-11-11) |
 | Checks | **Clean** — import layers, banned APIs, markup, strict typecheck |
 | Save / resume | **Not built** — in-memory only (D-003) |
 | Login before `naming` | **Not built** — Supabase deferred (D-003, TASK-022) |
@@ -526,7 +540,7 @@ player decision, the sol loop, what is built and where a new event plugs in are 
 ### The one invariant
 
 `sim/` and each feature's `model.ts` are pure: no `document`, no `window`, no network. That
-is what lets 542 tests run in a few seconds with no browser and no mocks. It is enforced by
+is what lets 568 tests run in a few seconds with no browser and no mocks. It is enforced by
 `npm run check` (`scripts/check-imports.mjs`), not left to good intentions.
 
 ---
@@ -538,7 +552,7 @@ is what lets 542 tests run in a few seconds with no browser and no mocks. It is 
 npm install       # dev dependencies only — the game ships no runtime dependencies
 npm run dev       # Vite dev server, http://localhost:5173
 npm run check     # import-layer + banned-API + markup checks, then tsc --noEmit
-npm test          # Vitest, 542 tests in 25 files
+npm test          # Vitest, 568 tests in 26 files
 npm run build     # production bundle in dist/
 npm run preview   # serve the built bundle locally
 ```
