@@ -21,7 +21,8 @@ export type Route =
   | 'landing-site'
   | 'base'
   | 'act'
-  | 'debrief';
+  | 'debrief'
+  | 'encyclopedia';
 
 /**
  * The journey, in play order.
@@ -66,7 +67,7 @@ export const DEFAULT_ROUTE: Route = 'naming';
  * so a player can reach it directly by URL. Keeping the two lists separate is
  * what lets the journey order stay free of duplicates.
  */
-export const ALL_ROUTES: readonly Route[] = [...ROUTE_ORDER, 'landing'];
+export const ALL_ROUTES: readonly Route[] = [...ROUTE_ORDER, 'landing', 'encyclopedia'];
 
 function isRoute(value: string): value is Route {
   return (ALL_ROUTES as readonly string[]).includes(value);
