@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { createForecast } from '../../sim/forecast';
+
 import {
   addModule,
   allModules,
@@ -105,11 +107,16 @@ describe('base model', () => {
     expect(lines.find((line) => line.label === 'Food')?.tone).toBe('ok');
   });
 
-  it('puts the nearest forecast event first, even before the forecast has loaded', () => {
-    const warnings = upcomingWarnings([]);
+  it('shows nothing before the forecast has loaded', () => {
+    expect(upcomingWarnings([])).toEqual([]);
+  });
 
-    expect(warnings[0].kind).toBe('flare');
-    expect(warnings[0].sol).toBeLessThanOrEqual(warnings[1].sol);
+  it('never shows a flare at landing: flares give almost no warning', () => {
+    for (let seed = 1; seed <= 50; seed += 1) {
+      const warnings = upcomingWarnings(createForecast([], seed));
+
+      expect(warnings.some((event) => event.kind === 'flare')).toBe(false);
+    }
   });
 
   it('summarises a build in the four numbers the resource cards show', () => {

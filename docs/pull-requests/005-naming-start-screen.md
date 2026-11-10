@@ -45,8 +45,8 @@ and `naming-astronaut-float` is still 9s. Only the geometry around them moved.
   Lanczos resample followed by a light unsharp mask, because Lanczos alone leaves the
   enlarged crater rims soft. A dev tool like the other three in `tools/`; it adds
   nothing to the bundle.
-- `docs/team/` — D-048 (the decision, with the alternatives that were rejected),
-  TASK-062 and TASK-063, and the progress log.
+- `docs/team/` — D-049 (the decision, with the alternatives that were rejected),
+  TASK-063 and TASK-064, and the progress log.
 
 `src/features/naming/view.ts` and `model.ts` are **not** touched, so the name rules,
 their 21 tests and the whole form behaviour are exactly as they were.
@@ -54,7 +54,7 @@ their 21 tests and the whole form behaviour are exactly as they were.
 ## Validation
 
 - `npm run check` — passed (import layers, banned APIs, markup, typecheck).
-- `npm test` — passed (424 tests, 19 files).
+- `npm test` — passed (434 tests, 19 files).
 - `npm run build` — passed, warning-free.
 - Rendered the real app in headless Chrome at 946x538 (the reference's own size),
   1366x768, 1920x1080 and 390x844, and compared 1:1 crops of the planet before and

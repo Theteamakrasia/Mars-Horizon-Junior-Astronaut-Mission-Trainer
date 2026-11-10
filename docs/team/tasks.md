@@ -7,8 +7,9 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 
 | id | task | goal | owner | status | blocked by | notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| TASK-063 | Enlarge the start screen's planet and astronaut so they stay sharp full-screen | G-4 | agent | done | - | `tools/upscale-naming-assets.py`; originals kept in `Assets/images/naming/source/`; Mars 3x, astronaut 2x |
-| TASK-062 | Redesign the naming start screen as a full-bleed scene | G-4 | agent | done | - | D-048. Stage moved out of the body to be the window backdrop; menu column on the right over Mars; Outfit type, translucent panels, scrim. Mars rotation untouched. Owner checking on their device |
+| TASK-064 | Enlarge the start screen's planet and astronaut so they stay sharp full-screen | G-4 | agent | done | - | `tools/upscale-naming-assets.py`; originals kept in `Assets/images/naming/source/`; Mars 3x, astronaut 2x |
+| TASK-063 | Redesign the naming start screen as a full-bleed scene | G-4 | agent | done | - | D-049. Stage moved out of the body to be the window backdrop; menu column on the right over Mars; Outfit type, translucent panels, scrim. Mars rotation untouched. Owner checking on their device |
+| TASK-062 | Roll each mission's hazards from a seed instead of a fixed schedule | G-4 | agent | done | - | D-048; `sim/forecast.ts`, `dom/forecastLoader.ts`, `data/spaceweather.ts`, base + act wiring; 434 tests |
 | TASK-061 | Add rotating NASA facts to the supply and launch screens | G-7 | agent | done | - | D-045 follow-up; `factFor`, `[data-supply-fact]`, `[data-launch-parts-fact]` |
 | TASK-060 | Add a real NASA photo to every landing region and rotating NASA facts to base and debrief | G-7 | agent | done | - | D-045; `REGION_CARDS`, `FACTS`, `factFor`; five region cards and ten new tests |
 | TASK-059 | Document the NASA learning layer and read-aloud in the architecture tree and contracts | G-6 | agent | done | - | D-042, D-043, D-044; `nasaGallery`, `nasaCard`, `readAloud`, `readButton` |

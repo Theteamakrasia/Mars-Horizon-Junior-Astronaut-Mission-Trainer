@@ -253,12 +253,12 @@ no perfect landing spot.
 
 ## 10. Adding a new event
 
-The forecast is fixed and authored. Adding an event touches six places, in this order.
-Nothing here needs a network call; only flare *size* is live.
+The forecast's timetable is rolled per run (D-048); adding a new event *kind* touches
+six places, in this order. Nothing here needs a network call; only flare *size* is live.
 
 | Step | File | What to add |
 | --- | --- | --- |
-| 1 | `src/sim/forecast.ts` | A `ForecastKind` member, a `*_SOL` constant, one entry in `createForecast()` |
+| 1 | `src/sim/forecast.ts` | A `ForecastKind` member, a branch in `planEvents()` and a warning window in `WARNING_SOLS`, plus a builder in `createForecast()` |
 | 2 | `src/sim/run.ts` | The `SolEvent['kind']` union member, so the timeline and debrief accept it |
 | 3 | `src/sim/crises.ts` | A branch in `crisisForEvent()`: title, prompt, `urgent`, `countdownSeconds`, `windowMinutes`, `options`, `defaultOptionId`, `science` |
 | 4 | `src/sim/sol.ts` | Read `chosen(run, event.id)` in the `eventsStartingOn` loop and change `net`, `panelHealth` or `greenhousePaused` |

@@ -200,15 +200,17 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         buildPreview, upkeepFor, extraBatteryCount.
     │   │                                         Catalogue in `sim/` because `act` needs it and
     │   │                                         cannot import `base` (D-032). 25 tests.
-    │   ├── forecast.ts                 complete   ForecastEvent, FlareInput, DEFAULT_FLARE,
-    │   │                                         flareIntensity, createForecast, eventsStartingOn,
-    │   │                                         stormOn, stormOpacity. The schedule is baked
-    │   │                                         (flare 3, pod 5, storm 7, flare 10); only the
-    │   │                                         flare size comes from data/.
+    │   ├── forecast.ts                 complete   ForecastEvent, FlareInput, ForecastKind,
+    │   │                                         flareIntensity, createForecast(flares, seed?,
+    │   │                                         dustScore?), createSeededRandom, planEvents,
+    │   │                                         randomSolBetween, stormChance, visibleForecast,
+    │   │                                         eventsStartingOn, stormOn, stormOpacity.
+    │   │                                         The timetable is seeded per run (D-048); only
+    │   │                                         the flare size comes from data/.
     │   ├── crises.ts                   complete   Crisis, CrisisOption, crisisForEvent,
     │   │                                         pendingCrisis, optionOf, decide, earthIsInTime,
-    │   │                                         earthAdvice. Three forecast events stop the
-    │   │                                         clock and ask for a choice (D-029).
+    │   │                                         earthAdvice. Each forecast event stops the
+    │   │                                         clock and asks for a choice (D-029).
     │   ├── comms.ts                    complete   REAL_MIN/MAX_ONE_WAY_MINUTES, oneWayMinutes,
     │   │                                         roundTripMinutes, earthCanAnswerInTime. A
     │   │                                         simplified rising delay over the real range.
@@ -284,10 +286,11 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         resize handler, the grab lifecycle. Exports
     │   │                                         startFloatingAstronaut -> teardown. Discards deltas
     │   │                                         over 50ms.
-    │   ├── forecastLoader.ts           complete   LoadedForecast; loadForecast(signal) fetches the
-    │   │                                         flares and runs createForecast. The join between
-    │   │                                         data/ and sim/, shared by base and act without a
-    │   │                                         cross-feature import. Never rejects.
+    │   ├── forecastLoader.ts           complete   LoadedForecast; loadForecast(signal?, seed?,
+    │   │                                         dustScore?) fetches the flares and runs
+    │   │                                         createForecast. The join between data/ and sim/,
+    │   │                                         shared by base and act without a cross-feature
+    │   │                                         import. Never rejects.
     │   ├── pointerGrab.ts              complete   207 lines. Exports attachGrab -> teardown.
     │   │                                         Velocity is a 100ms windowed average, EMA smoothed.
     │   └── starfield.ts                complete   63 lines. 140 stars across three depth layers.
@@ -298,11 +301,12 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   ├── README.md                   the quarantine rules and the live-source chain
     │   ├── spaceweather.ts             complete   SpaceWeatherEvent, SpaceWeatherSource
     │   │                                         ('donki' | 'noaa' | 'fallback'),
-    │   │                                         parseFlares, parseNoaaFlares, flareRank,
-    │   │                                         strongest, fetchSpaceWeather, lastSource,
-    │   │                                         lastDetail, describeWhen. NASA DONKI ->
-    │   │                                         NOAA SWPC -> baked, in that order.
-    │   └── spaceweather.test.ts        complete   26 tests; every fetch is injected
+    │   │                                         parseFlares, parseNoaaFlares,
+    │   │                                         fetchSpaceWeather, lastSource, lastDetail,
+    │   │                                         describeWhen. NASA DONKI -> NOAA SWPC ->
+    │   │                                         an empty fallback, in that order; every
+    │   │                                         flare is kept, not just the strongest.
+    │   └── spaceweather.test.ts        complete   25 tests; every fetch is injected
     │   ├── nasaGallery.ts             complete   Twelve sol cards plus a closing card,
     │   │                                         five real region photos and a rotating
     │   │                                         fact list. Static by choice (D-042):
@@ -333,7 +337,7 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         type, translucent panels, a radial scrim
     │   │                                         for legibility. naming-mars-turn (150s) and
     │   │                                         naming-astronaut-float (9s), both removed
-    │   │                                         under prefers-reduced-motion. D-048
+    │   │                                         under prefers-reduced-motion. D-049
     │   ├── briefing/                   COMPLETE   The mission briefing.
     │   │   ├── README.md                           the contract
     │   │   ├── model.ts                 complete   BEATS, beatsThrough, greetingFor. Pure.
@@ -510,7 +514,7 @@ to leak on navigation and the menu needs no teardown for them.
 The stage is the backdrop for the whole screen, not a panel inside the menu: it is the
 first child of the `naming` section and covers the window, so the planet runs off the
 top and right edges and the header sits on top of it. The menu column sits on the right
-over the planet (D-048).
+over the planet (D-049).
 
 The planet rotates **in the image plane** (`rotate()`), not on a 3D axis. This is
 forced by the asset: a sphere spun about its own axis looks identical, so a `rotateY`
@@ -522,8 +526,8 @@ because persistence is deferred (D-003).
 
 The one network path outside the landing page is space weather. `base` and `act` call
 `dom/forecastLoader` → `data/spaceweather`, which tries NASA DONKI, then NOAA SWPC, then
-baked history. The event *schedule* is still baked in `sim/forecast.ts` (D-033); only the
-flare *size* is live.
+an empty fallback. The event *schedule* is seeded per run in `sim/forecast.ts` (D-048);
+the flare *size* is the part that comes from the network.
 
 ## Boot order
 
@@ -554,11 +558,10 @@ returns to `landing`, which keeps running behind the mounted screen.
 | module | exports | contract |
 | --- | --- | --- |
 | `main.ts` | none (side effects) | composition root; throws on a missing element id |
-| `dom/forecastLoader` | `LoadedForecast`, `loadForecast` | `(signal?) -> Promise<LoadedForecast>`; never rejects. Fetches flares through `data/spaceweather`, then runs `sim/forecast.createForecast`. Sits in `dom/` because it joins `data/` and `sim/`, and both `base` and `act` need it without importing each other (R-5) |
+| `dom/forecastLoader` | `LoadedForecast`, `loadForecast` | `(signal?, seed = Date.now(), dustScore = NEUTRAL_SCORE.dust) -> Promise<LoadedForecast>`; never rejects. Fetches flares through `data/spaceweather`, then runs `sim/forecast.createForecast`. Sits in `dom/` because it joins `data/` and `sim/`, and both `base` and `act` need it without importing each other (R-5) |
 | `data/spaceweather` | `SpaceWeatherEvent`, `SpaceWeatherSource` | a flare as the game uses it; source is `'donki' \| 'noaa' \| 'fallback'` |
-| | `fetchSpaceWeather` | `(options?) -> Promise<SpaceWeatherEvent[]>`; never rejects. Tries NASA DONKI, then NOAA SWPC, then `FALLBACK_FLARES`. Remembers one answer so two screens cost one request; an answer abandoned by its caller is not remembered |
+| | `fetchSpaceWeather` | `(options?) -> Promise<SpaceWeatherEvent[]>`; never rejects. Tries NASA DONKI, then NOAA SWPC, then the empty `FALLBACK_FLARES`. Every flare is kept, not just the strongest. Remembers one answer so two screens cost one request; an answer abandoned by its caller is not remembered |
 | | `parseFlares`, `parseNoaaFlares` | `(json) -> SpaceWeatherEvent[]`; validate every field and drop anything malformed rather than trusting the wire |
-| | `flareRank`, `strongest` | class ranking (X > M > C, bigger number first) and the strongest N |
 | | `lastSource`, `lastDetail`, `resetSpaceWeather` | what the UI reports; reset is for tests |
 | | `describeWhen` | `(peakTime) -> string`, e.g. `11 May 2024`; `'recently'` on a bad date |
 | `data/nasaGallery` | `NasaFigure`, `NasaCard`, `RegionCard`, `NASA_CARDS`, `NEXT_HORIZON_CARD`, `REGION_CARDS`, `NasaFact`, `FACTS`, `cardForSol`, `regionCard`, `factFor` | twelve curated sol cards plus one closing artist concept; five region photos; a rotating fact list. Every card carries an id, alt text, caption, fact, credit and source link. `cardForSol(sol)` and `regionCard(id)` return the card or `null`; `factFor(seed)` wraps deterministically so a screen can rotate facts without `Math.random` |
@@ -601,9 +604,11 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `buildPreview` | `(kind, modules, stores, terrain) -> preview \| null`; null for an unknown kind |
 | | `upkeepFor` | `(modules) -> {powerDraw, solarArrays}` |
 | | `extraBatteryCount` | `(modules) -> number` |
-| `sim/forecast` | `ForecastEvent`, `FlareInput`, `ForecastKind` | the four forecast events; `intensity` is 1-3 for a flare and 0 for the pod and storm |
+| `sim/forecast` | `ForecastEvent`, `FlareInput`, `ForecastKind` | the run's forecast events; `intensity` is 1-3 for a flare and 0 for the pod and storm |
 | | `flareIntensity` | `(classType) -> 1 \| 2 \| 3`; X = 3, M = 2, C and below = 1 |
-| | `createForecast` | `(flares) -> ForecastEvent[]`; schedule is fixed at sols 3 / 5 / 7 / 10. A missing flare uses `DEFAULT_FLARE`, marked approximate. Only the size is live |
+| | `createForecast` | `(flares, seed = DEFAULT_SEED, dustScore = NEUTRAL_SCORE.dust) -> ForecastEvent[]`; the timetable is seeded, sols 2-10, one event at a time, at least one flare and two events. Flare sizes come from the M/X pool, or from the long-run NOAA mix when it is empty |
+| | `createSeededRandom`, `planEvents`, `randomSolBetween`, `stormChance` | the pure sampler; `planEvents(random, dustScore)` decides the storm, pod and flare sols |
+| | `visibleForecast`, `WARNING_SOLS` | what the crew can see on a given sol: pod always, storm 3 sols ahead, flare 1 sol ahead |
 | | `eventsStartingOn`, `stormOn`, `stormOpacity` | lookups over the forecast; opacity is a calm-site curve, 0.2-0.95 |
 | `sim/crises` | `Crisis`, `CrisisOption`, `crisisForEvent`, `pendingCrisis` | the moment a forecast event stops the clock and what is asked |
 | | `optionOf`, `decide`, `earthIsInTime`, `earthAdvice` | option lookup, the recorded choice, and the "Earth cannot answer in time" copy |
@@ -702,10 +707,10 @@ Deliberate shortcuts, and why each was accepted.
    (`forecast.ts`), crisis choices (`crises.ts`), comms delay (`comms.ts`), sol advance and
    win/loss (`sol.ts`), and `RunState` (`run.ts`). The earlier version of this file said
    there was no game state; that stopped being true when the loop was built (D-030-D-035).
-2. **The data layer is live; the forecast's timing is still baked.** `data/spaceweather.ts`
-   supplies live flare sizes, and the sols they land on (3, 5, 7, 10) are fixed in
-   `sim/forecast.ts` (D-033). All nine journey screens are built. The old "data is a stub"
-   entry applied to the pre-loop tree and is no longer accurate.
+2. **The data layer is live; the forecast's timing is seeded, not fixed.** `data/spaceweather.ts`
+   supplies live flare sizes, and `sim/forecast.ts` rolls which sols the events land on from a
+   seed (D-048). All nine journey screens are built. The old "data is a stub" entry applied to
+   the pre-loop tree and is no longer accurate.
 3. **`ui/router.ts` is wired into `main.ts`.** Its DOM half still cannot be tested without
    jsdom (ISS-013), so the pure half (`routes.ts`) carries the tests. The browser
    behaviour is unverified (TASK-049).

@@ -39,7 +39,7 @@ than a documented one.
 
 **Problems**
 
-- None blocking. `npm run check` clean, `npm test` still 424 in 19 files, `npm run build`
+- None blocking. `npm run check` clean, `npm test` 434 in 19 files, `npm run build`
   warning-free. The composition was verified by rendering the real app in headless Chrome
   at 946x538 (the reference's own size), 1366x768, 1920x1080 and 390x844, and by driving
   the form: typing enables START MISSION, submitting reaches the briefing, and Start over
@@ -50,6 +50,9 @@ than a documented one.
   viewport override instead.
 - The title is capped at 4rem because "ASTRONAUT" is one line: uncapped, it ran off the
   right edge of the screen at 1366px wide.
+- `main` moved under this branch (PR #21, the seeded hazards) and both sides had claimed
+  D-048 and TASK-062, so this branch's decision is **D-049** and its tasks **TASK-063**
+  and **TASK-064**. The merge kept both entries; the ids were the only thing renumbered.
 
 **Next**
 
@@ -83,7 +86,7 @@ than a documented one.
 
 **Problems**
 
-- None blocking. `npm run check` clean, `npm test` still 424 in 19 files. The difference was
+- None blocking. `npm run check` clean, `npm test` 434 in 19 files. The difference was
   verified by rendering the real app at 1920x1080 and 946x538 in headless Chrome and
   comparing 1:1 crops of the planet before and after.
 - Pillow is not installed by default here; `py -3 -m pip install Pillow` puts it there. It
@@ -92,6 +95,47 @@ than a documented one.
 **Next**
 
 - The owner checks the screen on their own device.
+
+---
+
+## 2026-11-10 — Roll each mission's hazards from a seed
+
+**Did**
+
+- `sim/forecast.ts` no longer hardcodes sols 3/5/7/10. A seeded generator
+  (`createSeededRandom`) now decides per run whether a dust storm happens, how many
+  flares (1-4), whether a supply pod is scheduled, and which sols (2-10, one event at
+  a time). Flare sizes are drawn from the real M/X pool; with no live data they come
+  from the NOAA long-run M:X mix, marked `approximate`.
+- `visibleForecast` replaces "show the next three events": the pod is always visible,
+  a storm three sols ahead and a flare only one. `base`'s read-ahead card and `act`'s
+  "Coming up" panel both use it.
+- `dom/forecastLoader.loadForecast(signal?, seed?, dustScore?)` passes `Date.now()` and
+  the site's dust score, so every new mission differs.
+- `data/spaceweather.ts` returns every flare it parsed (not just the strongest two) and
+  `FALLBACK_FLARES` is empty, so an offline run draws from the long-run record instead
+  of the same two baked flares.
+
+**Files**
+
+- `src/sim/forecast.ts`, `src/dom/forecastLoader.ts`, `src/data/spaceweather.ts`,
+  `src/features/base/{model.ts,model.test.ts,view.ts}`, `src/features/act/view.ts`,
+  `src/sim/sol.test.ts`, `src/features/debrief/model.test.ts`,
+  `src/data/spaceweather.test.ts`, `docs/team/{decisions,progress-log,tasks}.md`,
+  `docs/architecture.md`, `docs/game-flow.md`, `AGENTS.md`, `README.md`,
+  `src/data/README.md`
+
+**Problems**
+
+- None blocking. `npm run check` clean; `npm test` 434 passed in 19 files. The base
+  forecast card can be empty for seeds with no pod and no storm on sols 2-3 (seed 4,
+  for example); the source project added an empty-state line, but the instruction was
+  to keep this project's copy, so it is left as-is. Not yet verified in a browser.
+
+**Next**
+
+- Human browser pass (`TASK-049`) of the new forecast, then the production build check.
+
 
 ---
 
