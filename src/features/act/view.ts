@@ -24,6 +24,7 @@ import { siteScore, regionById, SITE_AXES } from '../../sim/regions';
 import { advanceSol, decide, powerPicture, WIN_SOL } from '../../sim/sol';
 import { gamePanel, gameScreen, gameSection, gameWorld, moduleArt, moduleFigures, type HudStat } from '../../ui/gameLoop';
 import { nasaCard } from '../../ui/nasaCard';
+import { stopReading } from '../../ui/readAloud';
 import { nextStop } from '../../ui/registry';
 import { navigate } from '../../ui/router';
 
@@ -364,6 +365,10 @@ export function mountAct(
   }
 
   function render(): void {
+    /* The panel is about to be replaced. Any card being read aloud belongs to
+       the old panel, so stop it before its DOM disappears. */
+    stopReading();
+
     if (run === null || run.regionId === '') {
       notice('Pick a landing site first.', 'Choose a landing site', 'landing-site');
 

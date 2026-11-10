@@ -67,11 +67,40 @@
   font-weight: 900;
 }
 
+.nasa-card__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
 .nasa-card__credit {
   margin: 0;
   color: var(--gl-muted);
   font-size: clamp(0.52rem, 0.65vw, 0.72rem);
   font-weight: 700;
+}
+
+.nasa-card__read {
+  padding: 0.3rem 0.55rem;
+  border: 1px solid var(--gl-line);
+  border-radius: 999px;
+  background: var(--gl-card);
+  color: var(--gl-ink);
+  font-family: var(--gl-body);
+  font-size: clamp(0.55rem, 0.7vw, 0.78rem);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.nasa-card__read:hover {
+  background: var(--gl-card-strong);
+}
+
+.nasa-card__read[aria-pressed='true'] {
+  background: var(--gl-peach);
+  color: var(--gl-orange-deep);
 }
 
 .nasa-card__source {
