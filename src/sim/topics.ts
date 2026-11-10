@@ -14,16 +14,19 @@
  * What a lesson is about.
  *
  * `missions` is the catch-all for the science that is not about a system:
- * rovers, experiments, and looking at the sky.
+ * rovers, experiments, and looking at the sky. The other five are the five
+ * science goals the game is about, one topic each, so a screen teaching about
+ * dust never shows a fact about food.
  */
-export type ScienceTopic = 'power' | 'water' | 'food' | 'radiation' | 'missions';
+export type ScienceTopic = 'power' | 'dust' | 'water' | 'food' | 'radiation' | 'missions';
 
 /** Every topic, in a fixed order so a screen can lay them out. */
-export const SCIENCE_TOPICS: readonly ScienceTopic[] = ['power', 'water', 'food', 'radiation', 'missions'];
+export const SCIENCE_TOPICS: readonly ScienceTopic[] = ['power', 'dust', 'water', 'food', 'radiation', 'missions'];
 
 /** The name a child reads on a card. */
 export const TOPIC_LABEL: Readonly<Record<ScienceTopic, string>> = {
   power: 'Power',
+  dust: 'Dust',
   water: 'Water',
   food: 'Food',
   radiation: 'Radiation',

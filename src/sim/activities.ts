@@ -14,6 +14,7 @@
  * same three activities, so a demo repeats and a test can pin them.
  */
 
+import type { ScienceGoal } from './goals';
 import type { ModuleKind } from './modules';
 import type { ResourceStores } from './resources';
 import type { RunState } from './run';
@@ -53,6 +54,15 @@ export interface ActivitySpec {
   readonly icon: string;
   /** What the activity is about, so the right NASA fact can sit beside it. */
   readonly topic: ScienceTopic;
+  /**
+   * Which of the five science goals this activity works on, if any.
+   *
+   * The pure-science activities — a survey, an experiment, a rock sample — serve
+   * no goal: they are the reason a player earns science points. The other seven
+   * are the work of the five goals, and saying which one is what turns a list of
+   * activities into a mission.
+   */
+  readonly goal?: ScienceGoal;
   /** Science points earned for doing this. */
   readonly science: number;
   /** Extra power the activity draws from the batteries, in kWh. */
@@ -142,7 +152,8 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     title: 'Clean the solar panels',
     detail: 'You wipe the dust off the panels so they catch more sun.',
     icon: '🧹',
-    topic: 'power',
+    topic: 'dust',
+    goal: 'dust-storm',
     science: 2,
     powerCostKwh: 10,
     storeDelta: {},
@@ -155,6 +166,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     detail: 'You plant an extra batch of food. Growing food uses water.',
     icon: '🌱',
     topic: 'food',
+    goal: 'food',
     science: 2,
     powerCostKwh: 8,
     storeDelta: { food: 6, water: -5 },
@@ -176,6 +188,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     detail: 'You dig up buried ice and melt it into water.',
     icon: '⛏️',
     topic: 'water',
+    goal: 'life-support',
     science: 3,
     powerCostKwh: 20,
     storeDelta: { water: 6 },
@@ -187,6 +200,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     detail: 'You tune the recycler so less of the water is wasted.',
     icon: '♻️',
     topic: 'water',
+    goal: 'life-support',
     science: 2,
     powerCostKwh: 10,
     storeDelta: { water: 3 },
@@ -197,6 +211,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     detail: 'You pile Martian soil over the habitat to block radiation.',
     icon: '🛡️',
     topic: 'radiation',
+    goal: 'radiation',
     science: 3,
     powerCostKwh: 18,
     storeDelta: { shielding: 8 },
@@ -207,6 +222,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     detail: 'You mend and patch the spacesuits so they keep their cover.',
     icon: '🧑‍🚀',
     topic: 'radiation',
+    goal: 'radiation',
     science: 2,
     powerCostKwh: 8,
     storeDelta: { shielding: 6 },
@@ -217,6 +233,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     detail: 'You test the airlock and every suit, before they need it.',
     icon: '🫁',
     topic: 'missions',
+    goal: 'life-support',
     science: 2,
     powerCostKwh: 12,
     storeDelta: { oxygen: 8 },
