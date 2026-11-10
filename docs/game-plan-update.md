@@ -1,7 +1,7 @@
 # Game plan update — activities, science score and NASA facts
 
 **Written:** 2026-11-10 · **Branch:** `feat/daily-activities` · **Status:** shipped
-**Decisions:** D-049 … D-053 · **Issues:** ISS-047 … ISS-050 · **Tasks:** TASK-066 … TASK-074
+**Decisions:** D-051 … D-055 · **Issues:** ISS-047 … ISS-050 · **Tasks:** TASK-066 … TASK-074
 
 > **What actually shipped** is in §8 at the bottom. The plan below is the plan as it was
 > written, so the difference between the two is visible rather than buried.
@@ -46,7 +46,7 @@ decision.
 
 ### The catalogue
 
-Twelve activities. Points are the science score (D-050). Costs are applied to
+Twelve activities. Points are the science score (D-052). Costs are applied to
 the sol: `powerCostKwh` joins the existing `extraPowerCost` path, so **an
 activity can cause a blackout** — spend 25 kWh on a rover survey with a flat
 battery and life support slows down. That is the existing sim model, not new
@@ -69,7 +69,7 @@ machinery.
 
 ### The twelve sol plans
 
-`SOL_PLANS` replaces the cosmetic `MISSIONS` array (D-052).
+`SOL_PLANS` replaces the cosmetic `MISSIONS` array (D-054).
 
 | Sol | Headline | Activities |
 | --- | --- | --- |
@@ -158,11 +158,11 @@ picture service is busy.
 
 | id | Choice |
 | --- | --- |
-| **D-049** | Every sol has a main activity: three offered, one chosen, cost and gain applied by `advanceSol`. On a crisis sol the crisis is the activity. |
-| **D-050** | Activities award science points; `RunState.science` totals them; the debrief shows a score and a rank. |
-| **D-051** | A live NASA APOD layer **on top of** the curated gallery, never replacing it, falling back and labelled. |
-| **D-052** | The cosmetic `MISSIONS` array becomes `SOL_PLANS` in `sim/activities.ts` — twelve real headlines aligned with the baked crisis sols. |
-| **D-053** | **Post-freeze scope exception.** The Nov 8 freeze allowed only bug fixes; this is new gameplay, taken as an explicit recorded exception so the demo has a game in it. |
+| **D-051** | Every sol has a main activity: three offered, one chosen, cost and gain applied by `advanceSol`. On a crisis sol the crisis is the activity. |
+| **D-052** | Activities award science points; `RunState.science` totals them; the debrief shows a score and a rank. |
+| **D-053** | A live NASA APOD layer **on top of** the curated gallery, never replacing it, falling back and labelled. |
+| **D-054** | The cosmetic `MISSIONS` array becomes `SOL_PLANS` in `sim/activities.ts` — twelve real headlines aligned with the baked crisis sols. |
+| **D-055** | **Post-freeze scope exception.** The Nov 8 freeze allowed only bug fixes; this is new gameplay, taken as an explicit recorded exception so the demo has a game in it. |
 
 The full entries, with the **Rejected** lines the repo requires, live in
 `docs/team/decisions.md`.
@@ -215,7 +215,7 @@ Everything in the plan landed, with three changes made along the way.
 
 | # | Commit | What |
 | --- | --- | --- |
-| 1 | `docs(team): record the activity loop, science score and NASA fact layer` | D-049 … D-053, ISS-047 … ISS-050, TASK-066 … TASK-074 |
+| 1 | `docs(team): record the activity loop, science score and NASA fact layer` | D-051 … D-055, ISS-047 … ISS-050, TASK-066 … TASK-074 |
 | 2 | `feat(sim): add the activity catalogue and the twelve sol plans` | `sim/activities.ts`, `sim/topics.ts` |
 | 3 | `feat(sim): score science points and apply the chosen activity` | `sim/science.ts`, `RunState.science` and `chosenActivity`, `advanceSol` |
 | 4 | `fix(sim): replace the weak ice activity and let growing food cost water` | `ice-store` → `sample-rock`; `grow-extra` now costs water |
@@ -224,8 +224,8 @@ Everything in the plan landed, with three changes made along the way.
 | 7 | `feat(act): show NASA's daily picture and fact` | `ui/nasaFeedCard.ts`, the live picture on every sol |
 | 8 | `feat(debrief): add the science report and the rank` | the score, the rank and every activity the crew chose |
 | 9 | `docs(architecture): update the tree, the contracts and the game flow` | architecture, game flow, AGENTS, README, the team records |
-| 10 | `fix(sim): guarantee the forecast never puts two events back to back` | the event sols are worked out from a schedule, with a quiet sol between every pair (D-054) |
-| 11 | `feat(supply): make the ration question change every run` | the mission length, the answer and the button order all vary now (D-055) |
+| 10 | `fix(sim): guarantee the forecast never puts two events back to back` | the event sols are worked out from a schedule, with a quiet sol between every pair (D-056) |
+| 11 | `feat(supply): make the ration question change every run` | the mission length, the answer and the button order all vary now (D-057) |
 | 12 | `test(sim): guard the balance after the activity loop` | `sim/balance.test.ts` and the crisis rule made explicit in the sim |
 | 13 | `feat(sim): name the five science goals and read their state` | `sim/goals.ts`; the five goals and their live state |
 | 14 | `feat(act): show the five science goals on every sol` | the five rows on the act panel, each with its own NASA fact |

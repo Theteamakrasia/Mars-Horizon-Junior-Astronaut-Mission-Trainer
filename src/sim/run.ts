@@ -87,7 +87,7 @@ export interface RunState {
   readonly modules: readonly ModuleKind[];
   /** 0-1: how much of the panels' output survives. Dust damage lowers it for good. */
   readonly panelHealth: number;
-  /** Science points earned so far. Activities award them (D-049). */
+  /** Science points earned so far. Activities award them (D-051). */
   readonly science: number;
   /** The activity picked for the next sol, or null when none has been picked. */
   readonly chosenActivity: string | null;

@@ -4,7 +4,7 @@
  * Deliberately thin: every simulation rule — drain, events, loss — lives in
  * `src/sim/sol.ts`, where it is tested. This file only decides how a run is
  * worded, which meters look worrying, and what the day's three activities
- * say on the screen (D-049).
+ * say on the screen (D-051).
  */
 
 import { offerFor, planForSol, type ActivitySpec, type ActivityStoreName } from '../../sim/activities';

@@ -24,6 +24,33 @@ than a documented one.
 
 - `src/features/supply/{model.ts,model.test.ts,view.ts}`,
   `docs/team/{issues,decisions,progress-log,tasks}.md`, `docs/architecture.md`,
+## 2026-11-10 — Redesign the start screen as a full-bleed scene
+
+**Did**
+
+- The naming screen is now one picture edge to edge: the astronaut stands on the left,
+  Mars fills the right and runs off the top and right of the window, and the menu (title,
+  name field, buttons, trainer card) sits on the right over the planet.
+- The stage moved out of `.naming__body` and became the first child of the section, so it
+  is the backdrop for the whole window and the header sits on top of it. The card frame
+  (`naming__card`) is gone.
+- The title, greeting and form moved into a `.naming__content` wrapper, so the block can
+  be centred in the space above the trainer card, and the panel sits on the right at 44%
+  of the width.
+- START MISSION carries the accent fill every other screen's primary button uses, and
+  "Start over" is the quiet one beside it. The way forward is the bright button.
+- Typography now uses Outfit, the geometric sans the site already loads for the rest of
+  its screens. Panels are translucent and a radial scrim over the planet keeps the menu
+  legible on top of it.
+- The Mars rotation is unchanged: `naming-mars-turn` is still 150s, linear, infinite, and
+  `naming-astronaut-float` is still 9s. Only the geometry around them moved.
+- `view.ts` and `model.ts` are untouched, so the name rules, the 21 model tests and the
+  whole form behaviour are exactly as they were.
+
+**Files**
+
+- `index.html`, `src/features/naming/naming.css`,
+  `docs/team/{decisions,tasks,progress-log}.md`, `docs/architecture.md`,
   `docs/CHANGELOG.md`
 
 **Problems**
@@ -46,6 +73,62 @@ than a documented one.
 **Next**
 
 - The owner checks the screen on their own device. The branch is not pushed yet.
+- None blocking. `npm run check` clean, `npm test` 434 in 19 files, `npm run build`
+  warning-free. The composition was verified by rendering the real app in headless Chrome
+  at 946x538 (the reference's own size), 1366x768, 1920x1080 and 390x844, and by driving
+  the form: typing enables START MISSION, submitting reaches the briefing, and Start over
+  clears the field again.
+- One thing that bit twice: `--window-size` in headless Chrome subtracts the window
+  chrome, so the viewport came out 928x442 and the short-screen media query hid the
+  backdrop. The screenshots were taken through the DevTools Protocol with an explicit
+  viewport override instead.
+- The title is capped at 4rem because "ASTRONAUT" is one line: uncapped, it ran off the
+  right edge of the screen at 1366px wide.
+- `main` moved under this branch (PR #21, the seeded hazards) and both sides had claimed
+  D-048 and TASK-062, so this branch's decision is **D-049** and its tasks **TASK-063**
+  and **TASK-064**. The merge kept both entries; the ids were the only thing renumbered.
+
+**Next**
+
+- The owner checks the screen on their own device; the planet in the reference mockup is
+  darker than the game's own asset, so if they want the mood of the mockup rather than
+  the real planet, a filter on `.naming__mars` is the one-line change.
+
+---
+
+## 2026-11-10 — Enlarge the start screen's planet and astronaut
+
+**Did**
+
+- The planet and the astronaut on the start screen are now enlarged: Mars went from 606x620
+  to 1818x1860 and the astronaut from 620x618 to 1240x1236, both as WebP.
+- They are drawn full-screen — the planet is the width of the window — so the 606px
+  originals were being stretched about three times over on a 1920px screen, which turned the
+  craters to mush and made the planet read as a broken image rather than a planet.
+- The originals are kept untouched in `Assets/images/naming/source/`, and
+  `tools/upscale-naming-assets.py` rebuilds the shipped files from them: a Lanczos resample
+  followed by a light unsharp mask, because Lanczos alone leaves the enlarged crater rims
+  soft. The planet is enlarged 3x (it carries the fine texture); the astronaut 2x (it is a
+  smooth illustration, and 2x is indistinguishable at the size it is drawn).
+- The entry screen's image weight goes from 125 KB to 488 KB, downloaded once on the first
+  screen.
+
+**Files**
+
+- `Assets/images/naming/{mars,astronaut}.webp`, `Assets/images/naming/source/`,
+  `tools/upscale-naming-assets.py`, `docs/architecture.md`, `docs/CHANGELOG.md`
+
+**Problems**
+
+- None blocking. `npm run check` clean, `npm test` 434 in 19 files. The difference was
+  verified by rendering the real app at 1920x1080 and 946x538 in headless Chrome and
+  comparing 1:1 crops of the planet before and after.
+- Pillow is not installed by default here; `py -3 -m pip install Pillow` puts it there. It
+  is a dev-only tool dependency and adds nothing to the shipped bundle.
+
+**Next**
+
+- The owner checks the screen on their own device.
 
 ---
 
@@ -87,6 +170,7 @@ than a documented one.
 
 - Human browser pass (`TASK-049`) of the new forecast, then the production build check.
 
+
 ---
 
 ## 2026-11-11 — Name the five science goals, and show them on every sol
@@ -127,7 +211,7 @@ than a documented one.
 
 - **Two goals had a decision and three did not.** The dust storm and the flare are crises
   the player answers; life support, power and food were only numbers falling. The activity
-  loop (D-049) is what fixed that — `grow-extra`, `dig-ice`, `recycle-tune`, `air-check`
+  loop (D-051) is what fixed that — `grow-extra`, `dig-ice`, `recycle-tune`, `air-check`
   and `stack-shielding` are decisions about the three quieter goals — and naming the goals
   is what makes it obvious that they are decisions *about* something.
 - The dust facts had been filed under `power`, because dust and panels are the same
@@ -150,7 +234,7 @@ than a documented one.
 
 **Did**
 
-- **Two forecast events can never happen back to back** (D-054). The event sols used to be
+- **Two forecast events can never happen back to back** (D-056). The event sols used to be
   four typed-in constants that happened to be spaced right, so the rule was a comment rather
   than a rule. They are now worked out from a schedule: each event starts `MIN_CLEAR_SOLS`
   sols after the previous one has *ended*, so there is always a quiet sol between any two of
@@ -160,7 +244,7 @@ than a documented one.
 - `forecastIsSpaced(forecast)` is exported so the rule can be asserted, and
   `src/sim/forecast.test.ts` is new — one of the four `sim/` modules ISS-047 recorded as
   having no test file at all.
-- **The ration question changes every run** (D-055). It was fixed — two months, four crew,
+- **The ration question changes every run** (D-057). It was fixed — two months, four crew,
   three days per packet — so the answer was always 80 and the buttons were always 20, 80,
   240 and 720. A child who played twice learned the number instead of the calculation.
   The mission length now varies between six authored values, the answer moves with it, and
@@ -205,7 +289,7 @@ than a documented one.
 
 **Did**
 
-- **Every sol now has a main activity** (D-049). On the eight calm sols `act` offers three
+- **Every sol now has a main activity** (D-051). On the eight calm sols `act` offers three
   activities and the player picks one; on a crisis sol the crisis replaces the activity
   panel, so the crisis *is* that day's activity. Twelve activities, each with a real cost,
   in the new pure module `src/sim/activities.ts` alongside the twelve sol plans.
@@ -213,12 +297,12 @@ than a documented one.
   so **an activity competes with life support for the same energy**: spend 25 kWh on a
   rover survey with a flat battery and that sol runs in a blackout. No new machinery was
   needed for this — it fell out of the model that was already there.
-- **Science points and a rank** (D-050). `RunState.science` totals the points, and the new
+- **Science points and a rank** (D-052). `RunState.science` totals the points, and the new
   `src/sim/science.ts` turns the total into a rank: Explorer, Field Scientist, Research
   Lead, Senior Scientist, Chief Martian Scientist. The bands are set by what a run can
   actually earn, so a player who chose nothing is still an Explorer and the top rank is one
   good run away. The debrief reports the score, the rank and every activity the crew chose.
-- **A live NASA picture per sol** (D-051). The new `src/data/nasaDaily.ts` reads NASA's
+- **A live NASA picture per sol** (D-053). The new `src/data/nasaDaily.ts` reads NASA's
   Astronomy Picture of the Day, filtered to Mars, and falls back to the saved gallery when
   NASA is busy — an enrichment layer on top of the curated gallery, never a replacement,
   exactly as D-037 established for space weather. The static facts grew from 15 to 40 and

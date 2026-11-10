@@ -145,7 +145,7 @@ export function mountAct(
   }
 
   /**
-   * Take the day's activity (D-049).
+   * Take the day's activity (D-051).
    *
    * The choice is kept on the run so the sim can apply it when the sol runs,
    * and the screen redraws so the picked card can show itself.
@@ -215,7 +215,7 @@ export function mountAct(
   }
 
   /**
-   * Today's three activities, and the one the player has picked (D-049).
+   * Today's three activities, and the one the player has picked (D-051).
    *
    * A locked activity is shown greyed out with the reason on it, because
    * hiding it would teach nothing: "you have no greenhouse" is the lesson.
@@ -288,7 +288,7 @@ export function mountAct(
    * The NASA picture for the sol about to run, and the fact about the system
    * the day's activity touches.
    *
-   * The live feed is enrichment (D-051): when NASA did not answer, the screen
+   * The live feed is enrichment (D-053): when NASA did not answer, the screen
    * shows the saved NASA card instead and says why, rather than pretending.
    */
   function nasaFeedSection(state: RunState): Node | false {

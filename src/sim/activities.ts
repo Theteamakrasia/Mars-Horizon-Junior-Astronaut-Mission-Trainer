@@ -1,7 +1,7 @@
 /**
  * The main activity for each sol, and the twelve activities the crew can pick.
  *
- * Decision D-049: every sol has a main activity. On the eight calm sols `act`
+ * Decision D-051: every sol has a main activity. On the eight calm sols `act`
  * offers three and the player chooses one; on a crisis sol the crisis replaces
  * the activity panel (D-040), so the crisis *is* that day's activity.
  *
@@ -99,7 +99,7 @@ export interface ActivityOffer {
  * The twelve activities.
  *
  * Every one of them costs something, because a choice with no price is not a
- * decision (D-049). `rest` is the one that costs nothing, and it is always
+ * decision (D-051). `rest` is the one that costs nothing, and it is always
  * available, so a player is never stuck with nothing they can afford.
  *
  * The costs are tuned so that a power-hungry activity on a flat battery

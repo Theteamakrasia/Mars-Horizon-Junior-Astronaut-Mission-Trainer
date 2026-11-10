@@ -13,6 +13,10 @@ Versions will be assigned when the project begins publishing releases.
 
 - The supply screen now answers the Enter key exactly as NEXT does. It ignored Enter until NEXT had been clicked with a mouse, and even then it worked only because the click left the focus on the button.
 - Returning to the supply screen now starts it cleanly. Its markup is static, so a second visit used to come back with no way to advance and eight answer buttons instead of four.
+### Changed
+
+- Redraw the start screen as a full-bleed scene: the astronaut stands on the left, Mars fills the right and runs off the edges of the window, and the menu — title, name field, buttons and trainer card — sits on the right over the planet. The menu now uses the site's geometric sans, its panels are translucent so the planet shows through, and a soft scrim keeps the text readable. START MISSION is the highlighted button, the way the other screens treat their primary action, and "Start over" is quiet beside it. The rotating planet is unchanged.
+- Enlarge the start screen's planet and astronaut so they stay sharp on a large screen. They are drawn at roughly the width of the window, so the 606px originals were being stretched three times over and the craters turned to mush.
 
 ### Added
 

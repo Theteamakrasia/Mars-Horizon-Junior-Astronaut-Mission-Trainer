@@ -58,6 +58,16 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
 │   ├── images/docking/                 complete   3 WebP stills, ~150 KB each: the separated
 │   │                                             spacecraft, the docked craft and the assembled
 │   │                                             station. Read by tools/render-docking.py.
+│   ├── images/naming/                  complete   mars.webp (358 KB, 1818x1860) and
+│   │                                             astronaut.webp (130 KB, 1240x1236): the
+│   │                                             planet and the astronaut of the start
+│   │                                             screen. Both are drawn full-screen, so both
+│   │                                             are enlarged from the originals by
+│   │                                             tools/upscale-naming-assets.py.
+│   │   └── source/                     complete   the untouched originals (606x620 and
+│   │                                             620x618), kept so the enlargement can be
+│   │                                             re-run at any size. Read by
+│   │                                             tools/upscale-naming-assets.py.
 │   ├── images/parts/                   complete   5 WebP stills: the all-parts overview and one
 │   │                                             per part (propulsion, habitat, logistics,
 │   │                                             Orion), each with a different part outlined and a
@@ -91,11 +101,17 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
 │   │                                             of the separated frame, rebuilds the black space
 │   │                                             behind it, and moves the sprite across a headless
 │   │                                             background while the camera pushes in.
-│   └── render-parts.py                 complete   300+ lines. PIL + numpy + OpenCV + PyAV. Cross-dissolves the
-│                                                 four part stills under a push-in, with staggered
-│                                                 description bars and fade-through-black bookends.
+│   ├── render-parts.py                 complete   300+ lines. PIL + numpy + OpenCV + PyAV. Cross-dissolves the
+│   │                                                 four part stills under a push-in, with staggered
+│   │                                                 description bars and fade-through-black bookends.
+│   └── upscale-naming-assets.py        complete   ~85 lines. PIL. Enlarges the start screen's planet and
+│   │                                             astronaut with a Lanczos resample and a light
+│   │                                             unsharp mask, from the untouched originals in
+│   │                                             Assets/images/naming/source/. They are drawn
+│   │                                             full-screen, so the 606px originals turned to
+│   │                                             mush at 1920px wide.
 │
-│   All three are dev tools: not scanned by `npm run check`, and they add no runtime dependency.
+│   All four are dev tools: not scanned by `npm run check`, and they add no runtime dependency.
 │
 ├── scripts/
 │   └── check-imports.mjs               complete   Zone + banned-API checker, 9 rule ids.
@@ -181,15 +197,15 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         ActivityRequirement, SolPlan, ACTIVITY_CATALOGUE,
     │   │                                         SOL_PLANS, activityById, planForSol, lockedReason,
     │   │                                         offerFor, offerForSpec. The twelve activities and
-    │   │                                         the twelve sol plans (D-049, D-052). 17 tests.
+    │   │                                         the twelve sol plans (D-051, D-054). 17 tests.
     │   ├── science.ts                  complete   ScienceRank, SCIENCE_RANKS, SOL_LOG_POINTS,
     │   │                                         rankFor, rankProgress. The score and the rank
-    │   │                                         ladder (D-050). 9 tests.
+    │   │                                         ladder (D-052). 9 tests.
     │   ├── goals.ts                    complete   ScienceGoal, GoalSpec, GoalReading,
     │   │                                         GoalStatus, SCIENCE_GOALS, goalById,
     │   │                                         goalReadings. The five science goals the
     │   │                                         mission is about, and how each is doing
-    │   │                                         right now (D-056). 17 tests.
+    │   │                                         right now (D-058). 17 tests.
     │   ├── topics.ts                   complete   ScienceTopic, SCIENCE_TOPICS, TOPIC_LABEL,
     │   │                                         isScienceTopic. The vocabulary the activities and
     │   │                                         the NASA facts share.
@@ -213,7 +229,7 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         eventsStartingOn, stormOn, stormOpacity,
     │   │                                         MIN_CLEAR_SOLS, forecastIsSpaced. The timetable
     │   │                                         is seeded per run (D-048) and two events can
-    │   │                                         never touch (D-054); only the flare size comes
+    │   │                                         never touch (D-056); only the flare size comes
     │   │                                         from data/.
     │   ├── forecast.test.ts            complete   15 tests; the event spacing is asserted here
     │   ├── crises.ts                   complete   Crisis, CrisisOption, COUNTDOWN_SECONDS,
@@ -335,7 +351,7 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         lastDailyDetail, resetDailyFacts, savedFactFor.
     │   │                                         NASA's Astronomy Picture of the Day, filtered to
     │   │                                         Mars. An enrichment layer on top of the saved
-    │   │                                         gallery, never a replacement (D-051). 17 tests.
+    │   │                                         gallery, never a replacement (D-053). 17 tests.
     │   ├── nasaGallery.test.ts         complete   25 tests; ids resolve, credits and links
     │   │                                         present, length caps enforced, facts wrap
     │   │                                         deterministically, every topic has facts.
@@ -354,9 +370,14 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │   ├── view.ts                  complete   mountNaming(root, run, setRun) -> teardown.
     │   │   │                                     Validates on every keystroke; START MISSION
     │   │   │                                     disabled until the name is usable.
-    │   │   └── naming.css               complete   measured palette + naming-mars-turn (150s) and
-    │   │                                         naming-astronaut-float (9s), both removed under
-    │   │                                         prefers-reduced-motion
+    │   │   └── naming.css               complete   the full-bleed scene: the stage is the
+    │   │                                         backdrop for the whole window, the
+    │   │                                         astronaut stands left, Mars fills the right
+    │   │                                         and the menu column sits over it. Outfit
+    │   │                                         type, translucent panels, a radial scrim
+    │   │                                         for legibility. naming-mars-turn (150s) and
+    │   │                                         naming-astronaut-float (9s), both removed
+    │   │                                         under prefers-reduced-motion. D-049
     │   ├── briefing/                   COMPLETE   The mission briefing.
     │   │   ├── README.md                           the contract
     │   │   ├── model.ts                 complete   BEATS, beatsThrough, greetingFor. Pure.
@@ -373,7 +394,7 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │   │                                     puzzleFor, isPlainEnter, focusHandlesEnter.
     │   │   │                                     The question and its four options change
     │   │   │                                     every run, seeded from the astronaut name
-    │   │   │                                     (D-055); the keyboard rules are here so they
+    │   │   │                                     (D-057); the keyboard rules are here so they
     │   │   │                                     can be asserted. 71 tests.
     │   │   ├── model.test.ts            complete   71 literal-input tests
     │   │   ├── view.ts                  complete   mountSupply(root, run, setRun) -> teardown.
@@ -424,7 +445,7 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │   │                                     scienceSentence. Pure, 20 tests.
     │   │   ├── model.test.ts            complete   20 literal-input tests
     │   │   ├── view.ts                  complete   mountAct(root, run, setRun) -> teardown.
-    │   │   │                                     Three activity cards per calm sol (D-049),
+    │   │   │                                     Three activity cards per calm sol (D-051),
     │   │   │                                     a science card in the world panel, and
     │   │   │                                     the live NASA daily picture. Run sol ->
     │   │   │                                     advanceSol; on a finished run, setRun then
@@ -545,6 +566,11 @@ The rotation behind the menu is **CSS keyframes**, not JavaScript: `naming-mars-
 `prefers-reduced-motion`. No `requestAnimationFrame` is involved, so there is no loop
 to leak on navigation and the menu needs no teardown for them.
 
+The stage is the backdrop for the whole screen, not a panel inside the menu: it is the
+first child of the `naming` section and covers the window, so the planet runs off the
+top and right edges and the header sits on top of it. The menu column sits on the right
+over the planet (D-049).
+
 The planet rotates **in the image plane** (`rotate()`), not on a 3D axis. This is
 forced by the asset: a sphere spun about its own axis looks identical, so a `rotateY`
 would appear to do nothing (D-020).
@@ -562,7 +588,7 @@ network.
 
 **NASA's daily pictures.** `act` calls `dom/dailyFactLoader` → `data/nasaDaily`, which asks
 NASA's Astronomy Picture of the Day for Mars pictures and falls back to the saved gallery
-when NASA is busy (D-051). This is an **enrichment layer on top of** the saved gallery,
+when NASA is busy (D-053). This is an **enrichment layer on top of** the saved gallery,
 never a replacement: the game is complete without a network, and the screen always says
 which of the two it is showing.
 
@@ -605,11 +631,11 @@ returns to `landing`, which keeps running behind the mounted screen.
 | `data/nasaGallery` | `NasaFigure`, `NasaCard`, `RegionCard`, `NASA_CARDS`, `NEXT_HORIZON_CARD`, `REGION_CARDS`, `NasaFact`, `FACTS` | twelve curated sol cards plus one closing artist concept; five region photos; forty tagged facts. Every card carries an id, alt text, caption, fact, credit and source link |
 | | `cardForSol`, `regionCard` | the card for a sol or a region, or `null` for one outside the run |
 | | `factFor` | `(seed) -> NasaFact`; wraps deterministically so a screen can rotate facts without `Math.random` |
-| | `factForTopic` | `(topic, seed) -> NasaFact`; the fact about one system, so an activity can show the fact about its own subject (D-051) |
+| | `factForTopic` | `(topic, seed) -> NasaFact`; the fact about one system, so an activity can show the fact about its own subject (D-053) |
 | `data/nasaDaily` | `DailyFact`, `DailyFactSource` | one live NASA picture and its story; source is `'apod' \| 'saved'` |
 | | `parseApod` | `(json) -> DailyFact[]`; every field validated, a malformed entry dropped rather than trusted |
 | | `cleanExplanation` | `(text) -> string`; flattens the whitespace, drops tomorrow's teaser, and cuts on a sentence or a word — never mid-word |
-| | `fetchDailyFacts` | `(options?) => Promise<DailyFact[]>`; never rejects, one request per session, and an empty list when NASA is busy. The enrichment layer on top of the saved gallery (D-051) |
+| | `fetchDailyFacts` | `(options?) => Promise<DailyFact[]>`; never rejects, one request per session, and an empty list when NASA is busy. The enrichment layer on top of the saved gallery (D-053) |
 | | `lastDailySource`, `lastDailyDetail`, `resetDailyFacts` | what the UI reports, and the reset for tests |
 | | `savedFactFor` | `(sol) -> DailyFact`; the saved fact to fall back on |
 | `ui/readAloud` | `canReadAloud`, `readAloud`, `stopReading` | `(text, onDone?) -> boolean`; false when unsupported or the text is empty. Starts cancel any current passage first, and `stopReading()` is safe when nothing plays. Browser speech only (D-043) |
@@ -659,7 +685,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `createForecast` | `(flares, seed = DEFAULT_SEED, dustScore = NEUTRAL_SCORE.dust) -> ForecastEvent[]`; the timetable is seeded, sols 2-10, one event at a time, at least one flare and two events. Flare sizes come from the M/X pool, or from the long-run NOAA mix when it is empty |
 | | `createSeededRandom`, `planEvents`, `randomSolBetween`, `stormChance` | the pure sampler; `planEvents(random, dustScore)` decides the storm, pod and flare sols |
 | | `visibleForecast`, `WARNING_SOLS` | what the crew can see on a given sol: pod always, storm 3 sols ahead, flare 1 sol ahead |
-| | `MIN_CLEAR_SOLS`, `forecastIsSpaced` | the quiet sols required between two events, and the check that a timetable honours it (D-054) |
+| | `MIN_CLEAR_SOLS`, `forecastIsSpaced` | the quiet sols required between two events, and the check that a timetable honours it (D-056) |
 | | `eventsStartingOn`, `stormOn`, `stormOpacity` | lookups over the forecast; opacity is a calm-site curve, 0.2-0.95 |
 | `sim/crises` | `Crisis`, `CrisisOption`, `COUNTDOWN_SECONDS` | the moment a forecast event stops the clock and what is asked |
 | | `crisisForEvent`, `pendingCrisis` | the crisis for a forecast event, and the one waiting before the next sol |
@@ -669,13 +695,13 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `ACTIVITY_CATALOGUE` | the twelve activities: cost, gain, science points, topic, the science goal it serves, and the build gate that can lock one |
 | | `SOL_PLANS` | the twelve sol plans: headline, subtitle, and the three activity ids offered. The schedule is fixed, so a demo repeats |
 | | `activityById`, `planForSol` | lookups; both return `null` for something unknown |
-| | `lockedReason`, `offerForSpec`, `offerFor` | whether the outpost is ready for an activity today, and the three offered on a sol (D-049) |
+| | `lockedReason`, `offerForSpec`, `offerFor` | whether the outpost is ready for an activity today, and the three offered on a sol (D-051) |
 | `sim/science` | `ScienceRank`, `SCIENCE_RANKS`, `SOL_LOG_POINTS` | the rank ladder and the point for a sol log |
 | | `rankFor` | `(points) -> ScienceRank`; never throws, a broken score is the bottom rank |
-| | `rankProgress` | `(points) -> { current, next, percent, toNext }`; the road to the next rank, with no NaN at the top (D-050) |
+| | `rankProgress` | `(points) -> { current, next, percent, toNext }`; the road to the next rank, with no NaN at the top (D-052) |
 | `sim/topics` | `ScienceTopic`, `SCIENCE_TOPICS`, `TOPIC_LABEL`, `isScienceTopic` | the vocabulary the activities and the NASA facts share, so a screen can show the fact about the system it is teaching. One topic per science goal, plus `missions` for the science that is not about a system |
 | `sim/goals` | `ScienceGoal`, `GoalSpec`, `GoalReading`, `GoalStatus` | the five science goals and one reading of each |
-| | `SCIENCE_GOALS`, `goalById` | the five goals in the order they are shown: dust storm, life support, radiation, power, food. Each carries its own question and its own NASA fact topic (D-056) |
+| | `SCIENCE_GOALS`, `goalById` | the five goals in the order they are shown: dust storm, life support, radiation, power, food. Each carries its own question and its own NASA fact topic (D-058) |
 | | `goalReadings` | `(run) => GoalReading[]`; how each goal is doing right now, worked out from the sim — the storm actually running, the panels' real output, the stores as they stand, the last sol's blackout |
 | `sim/comms` | `REAL_MIN_ONE_WAY_MINUTES`, `REAL_MAX_ONE_WAY_MINUTES` | the real 3-22 minute range, for the approximation note |
 | | `oneWayMinutes`, `roundTripMinutes`, `earthCanAnswerInTime` | a simplified rising delay over the run; labelled approximate in the UI |
@@ -714,7 +740,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `packsFor`, `judge`, `hintFor` | the ration arithmetic and what to say about a wrong pick; no answer in the working until it is earned |
 | | `isPlainEnter` | `(key, modifiers) -> boolean`; an unmodified Enter is the one key the screen answers |
 | | `focusHandlesEnter` | `(tagName) -> boolean`; a focused button, link or field deals with Enter itself, so the screen must not answer it as well |
-| `features/supply/view` | `mountSupply` | `(root, run, setRun) -> teardown`; one `window` keydown listener advances the beats while NEXT is visible, and the screen resets its state on mount because its markup is static (D-050) |
+| `features/supply/view` | `mountSupply` | `(root, run, setRun) -> teardown`; one `window` keydown listener advances the beats while NEXT is visible, and the screen resets its state on mount because its markup is static (D-052) |
 | `features/landing-site/model` | `REGIONS` | the five authored regions, re-exported from `sim/regions` |
 | | `scoreRegion` | `(regionId) -> SiteScore`; all-zero safe score for an unknown id, never throws |
 | | `tradeoffSummary` | `(score) -> string`; names strongest and weakest axis, never "recommended" |
@@ -730,13 +756,13 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `previewFor`, `previewSummary`, `upkeepFor`, `upcomingWarnings` | the calm-sol projection. `previewSummary` gives the five resource cards one number each, from the same projection as the sentences |
 | `features/base/view` | `mountBase` | `(root, run, setRun) -> teardown`; the outpost on Mars, the catalogue steppers, and Land & start sol 1 → `startOutpost` then `act`. Holds a mutable local `extras` so a second build is not applied to stale data; it also shows a rotating NASA fact beside the build panel from `factFor` |
 | `features/supply/model` | `SUPPLY_BEATS`, `packsFor`, `judge`, `hintFor`, `workingSentence`, `approximateTotalKg` | the ration check over `sim/modules.ts`; the crew size is read from the sim, not typed in, so it agrees with the briefing (ISS-044) |
-| | `seedFrom`, `questionFor`, `choicesFor`, `promptFor`, `puzzleFor` | the question and its four options for one run. The mission length, the answer and the button order all vary, seeded from the astronaut name so a demo repeats and a test can pin it (D-055) |
+| | `seedFrom`, `questionFor`, `choicesFor`, `promptFor`, `puzzleFor` | the question and its four options for one run. The mission length, the answer and the button order all vary, seeded from the astronaut name so a demo repeats and a test can pin it (D-057) |
 | `features/act/model` | `missionHeadline`, `meterRows`, `changeRows`, `toneFor`, `secondsLeft`, `powerSentence` | presentation helpers over `sim/sol`; `meterRows` carries `percent`, `tone` and `emoji` for the HUD |
 | | `activityRows`, `activityCosts` | the three activities offered on a sol, and what each costs and gives |
 | | `scienceSummary`, `scienceSentence` | the score, the rank, and the road to the next one |
-| `features/act/view` | `mountAct` | `(root, run, setRun) -> teardown`; three activity cards per calm sol (D-049), a science card in the world panel, and the live NASA daily picture. Run sol calls `advanceSol`, then `setRun`; a finished run navigates to `debrief`. A crisis replaces the mission panel in place, with its countdown and "take your time" switch (D-040) |
+| `features/act/view` | `mountAct` | `(root, run, setRun) -> teardown`; three activity cards per calm sol (D-051), a science card in the world panel, and the live NASA daily picture. Run sol calls `advanceSol`, then `setRun`; a finished run navigates to `debrief`. A crisis replaces the mission panel in place, with its countdown and "take your time" switch (D-040) |
 | `features/debrief/model` | `explainOutcome` | `(run) -> {headline, detail, confident}`; conservative ledger attribution — only claims a cause when a logged fact establishes it, otherwise `confident: false` and the screen points at the timeline |
-| | `scienceReport`, `scienceHeadline`, `scienceDetail`, `scienceSentence` | what science the run did, the rank it earned, and every activity the crew chose. Measures the science, not the outcome (D-050) |
+| | `scienceReport`, `scienceHeadline`, `scienceDetail`, `scienceSentence` | what science the run did, the rank it earned, and every activity the crew chose. Measures the science, not the outcome (D-052) |
 | | `consumptionSummary`, `lowestPoints`, `blackoutSols`, `reviewDecisions`, `timeline` | arithmetic over the log; per-decision verdicts from fixed option rules; one row per sol |
 | | `nextSteps`, `wentEmpty`, `usedApproximateData` | what to try next, each step tied to a fact from this run and carrying an `art` hint; the store that ended the run; whether any flare size was approximate |
 | `features/debrief/view` | `mountDebrief` | `(root, run, setRun) -> teardown`; the results panel with the Mars Science Score, and the journal as a mode reached from "View my Mars story" (D-039). "Try a new outpost" calls `newRun` then `landing-site`; it shows a rotating NASA fact next to the closing card from `factFor` |
@@ -779,7 +805,7 @@ returns a sentence naming what happened, and `lastSource()` drives the approxima
 `.env*` is git-ignored (ISS-006) and `.env.example` documents the key name without storing
 a value.
 
-`fetchDailyFacts()` is the same shape, one source shorter (D-051):
+`fetchDailyFacts()` is the same shape, one source shorter (D-053):
 
 1. **NASA's Astronomy Picture of the Day**, `api.nasa.gov/planetary/apod?search=Mars` — a
    real NASA picture and story, dated, with NASA's own credit line.

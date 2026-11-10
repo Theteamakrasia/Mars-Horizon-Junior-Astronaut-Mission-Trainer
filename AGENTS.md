@@ -24,11 +24,11 @@ the outpost (build modules, read the storm warning), `act` advances one sol per 
 `debrief` explains a win or loss from the per-sol ledger. The polished landing page still
 works behind it and is what BACK TO MAIN MENU returns to.
 
-**Every sol now has a main activity** (D-049). On the eight calm sols `act` offers three
+**Every sol now has a main activity** (D-051). On the eight calm sols `act` offers three
 and the player picks one; on a crisis sol the crisis replaces the activity panel, so the
 crisis *is* that day's activity. The rules are in `sim/activities.ts`, the cost and gain
 are applied by `sim/sol.ts`, and the science points they earn give the run a score and a
-rank (D-050) that the debrief reports.
+rank (D-052) that the debrief reports.
 
 What is still a **stub**: nothing in the journey. `data/spaceweather.ts` is implemented and
 live: it reads solar flares from NASA DONKI, falls through to NOAA SWPC when DONKI is
@@ -37,7 +37,7 @@ draws typical flares marked `approximate`. `data/nasaDaily.ts` is live too: it r
 NASA's Astronomy Picture of the Day and falls back to the saved gallery. There is **no
 save** — the run lives in memory only — and the forecast's *timing* is rolled per run
 from a seed (`sim/forecast.ts`, D-048), so only the flare *size* comes from the network
-(D-033, D-037, D-051).
+(D-033, D-037, D-053).
 
 **A stub is not an implementation.** If a file says STUB, calling it throws. That is
 deliberate: it fails loudly instead of silently returning `undefined`.
@@ -109,7 +109,7 @@ The two requests outside the landing page are both in `data/`:
   rolled per run from a seed in `sim/forecast.ts` (D-048); only the flare size is live.
 - **NASA's daily pictures.** `act` calls `dom/dailyFactLoader` → `data/nasaDaily.ts`, which
   asks NASA's Astronomy Picture of the Day for Mars pictures and falls back to the saved
-  gallery in `data/nasaGallery.ts` (D-051). This is an **enrichment layer on top of** the
+  gallery in `data/nasaGallery.ts` (D-053). This is an **enrichment layer on top of** the
   saved gallery, never a replacement — the game is complete without a network, and the
   screen says which of the two it is showing.
 
