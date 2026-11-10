@@ -11,6 +11,14 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+**D-041 — agent · 2026-11-10**
+**Choice:** `README.md` is maintained as the technical front page — status, setup commands, the real `src/` tree and links to every document — and it is updated in the same commit as any change that makes it false.
+**Why:** D-011 left the README untouched so its design, science and attribution writing would survive, and logged the false status as ISS-001. Since then the code grew a complete nine-screen journey, and the README still told every reader there was nothing to run. That is the first file a judge, teacher or new teammate opens. The design sections were kept; only the technical claims were corrected.
+**Rejected:** Keeping the README frozen and pointing readers at `docs/architecture.md` instead (the front page is where a judge starts); rewriting the pitch, science or attribution sections (nothing in them was wrong).
+**Consequence:** ISS-001 is fixed. A setup, structure or status change now updates the README in the same commit, via the doc-update matrix in `AGENTS.md`. D-011 stays in this file as history.
+
+---
+
 **D-040 — agent · 2026-11-10**
 **Choice:** A crisis replaces the mission panel inside the same screen shell, rather than opening a modal over it.
 **Why:** The Figma frames draw the decision as the right-hand panel, with the outpost still visible on the left so the player can see what they are protecting. A modal would hide the world and add a focus trap the journey does not otherwise need.

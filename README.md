@@ -29,7 +29,7 @@ save it for the greenhouse? When a dust storm is three sols away, what do you fi
 | 📚 **Subjects** | Space Exploration, Games, Planets & Moons, Software, The Sun |
 | 🎯 **Difficulty** | Beginner / Youth · Intermediate |
 | 👦 **Audience** | Ages ~8–16, families, classrooms |
-| 🛠 **Status** | Design & prototype stage |
+| 🛠 **Status** | Playable prototype — all nine journey screens built |
 
 > **Attribution.** This project is a student entry in the 2026 NASA Space Apps Challenge.
 > It is **not** produced, endorsed, or operated by NASA. NASA, the NASA insignia, and the
@@ -45,14 +45,18 @@ save it for the greenhouse? When a dust storm is three sols away, what do you fi
   - [The Design Promise](#the-design-promise)
 - [The Challenge We're Answering](#the-challenge-were-answering)
 - [Your Mission](#your-mission)
+  - [The Journey, Screen by Screen](#the-journey-screen-by-screen)
   - [The Ten Missions](#the-ten-missions)
 - [Gameplay Walkthrough](#gameplay-walkthrough)
+  - [Name Your Astronaut](#name-your-astronaut)
+  - [Mission Briefing](#mission-briefing)
+  - [Supply Check — The Ration Gate](#supply-check--the-ration-gate)
+  - [Launch and Spacecraft Tour](#launch-and-spacecraft-tour)
+  - [Spacecraft Interior](#spacecraft-interior)
   - [Choose Your Landing Site](#choose-your-landing-site)
   - [Establish Your Base](#establish-your-base)
-  - [Plan Phase — Read the Situation](#plan-phase-read-the-situation)
-  - [Act Phase — Make Your Move](#act-phase-make-your-move)
+  - [Run the Sols](#run-the-sols)
   - [Debrief — Learn From What Happened](#debrief-learn-from-what-happened)
-  - [Final — A Self-Sustaining Outpost](#final-a-self-sustaining-outpost)
 - [What You Learn](#what-you-learn)
   - [The Science Is Real](#the-science-is-real)
   - [On the International Space Station](#on-the-international-space-station)
@@ -60,6 +64,9 @@ save it for the greenhouse? When a dust storm is three sols away, what do you fi
 - [NASA Data Sources](#nasa-data-sources)
 - [Kid-Friendly by Design](#kid-friendly-by-design)
 - [Project Status](#project-status)
+- [Setup and Running](#setup-and-running)
+- [Project Structure](#project-structure)
+- [Documentation](#documentation)
 - [Game Flow and Decisions](docs/game-flow.md)
 - [Screenshot Index](#screenshot-index)
 - [Keep Exploring](#keep-exploring)
@@ -123,28 +130,41 @@ who succeed do it by thinking like engineers — building margin before they nee
 <a id="your-mission"></a>
 ## 🗺 Your Mission
 
-From rocket touchdown to a self-sustaining outpost, the game follows one clear arc:
+<a id="the-journey-screen-by-screen"></a>
+### The Journey, Screen by Screen
+
+From rocket touchdown to a self-sustaining outpost, the game follows one clear arc. Every
+step below is a real screen you can reach, in this order:
 
 ```
-🚀 MARS ARRIVAL
+🚀 NAMING                     → name your astronaut (the main menu)
       ↓
-🗺  CHOOSE YOUR REGION          ← your first real decision
+📋 BRIEFING                   → why we go, and the five resources
       ↓
-🛬 LANDING
+🍱 SUPPLY CHECK               → the ration maths gate
       ↓
-🏠 ESTABLISH YOUR BASE
+🎬 LAUNCH + SPACECRAFT TOUR   → the film, then the parts tour
       ↓
-🔄 THE SURVIVAL LOOP            ← power · O₂ · water · food · radiation · maintenance
+🚪 INTERIOR                   → walk all six rooms of the transit habitat
       ↓
-📋 TEN MISSIONS                 ← the outpost grows in stages
+🗺  LANDING SITE              → pick one of five regions
       ↓
-🏠 SELF-SUSTAINING OUTPOST
+🏠 BASE                       → spend 14 build points on modules
       ↓
-📝 DEBRIEF                     ← what worked, what didn't, and why
+🔄 SOL LOOP (`act`)           → run sols 1-12, answer the crises
+      ↓
+📝 DEBRIEF                    → what worked, what didn't, and why
 ```
+
+The route table lives in [`src/ui/routes.ts`](src/ui/routes.ts); the journey and every gate
+are drawn in [`docs/game-flow.md`](docs/game-flow.md).
 
 <a id="the-ten-missions"></a>
 ### The Ten Missions
+
+The design has a ten-mission arc. **The prototype implements the survival loop, not ten
+separate missions:** you build an outpost, run twelve sols, and meet four scheduled events.
+The missions below are the shape the loop is meant to grow into.
 
 | # | Mission | What you're learning |
 | --- | --- | --- |
@@ -169,15 +189,57 @@ From rocket touchdown to a self-sustaining outpost, the game follows one clear a
 <a id="gameplay-walkthrough"></a>
 ## 🎬 Gameplay Walkthrough
 
-Every screenshot below is a real screen from the game, placed in the order you'll meet it.
+The images below are the UI design mockups the screens were built from, in the order you
+meet the screens. Where a mockup and the build differ, the build wins — the differences are
+called out. The whole flow is one route chain:
+`naming → briefing → supply → launch → interior → landing-site → base → act → debrief`.
+
+<a id="name-your-astronaut"></a>
+### 1. Name Your Astronaut
+
+`#/naming` is both the entry screen and the main menu. The greeting updates as you type, the
+name is capped at 24 characters, and **Start Mission** stays disabled until the name contains
+something that is not whitespace. The name is stored in the run, and later screens use it.
+
+There is no login in front of this screen and no save behind it: the run lives in memory only
+and is lost on refresh (D-003).
+
+<a id="mission-briefing"></a>
+### 2. Mission Briefing
+
+`#/briefing` explains why the mission goes to Mars and what the five resources are. It is a
+sequence of beats advanced with **YES**; the last beat hands you on automatically. There is
+no skip and no CONTINUE, because the briefing is not optional.
+
+<a id="supply-check--the-ration-gate"></a>
+### 3. Supply Check — The Ration Gate
+
+`#/supply` is a hard gate: a ration maths question — two months, four crew, three days per
+packet. The correct answer reveals **CONTINUE**. A wrong answer asks you to try again instead
+of ending the attempt (ISS-034, ISS-035). Nothing from this screen is stored in the run.
+
+<a id="launch-and-spacecraft-tour"></a>
+### 4. Launch and Spacecraft Tour
+
+`#/launch` plays the launch film, then a spacecraft parts tour. The tour is a full-viewport
+panel rather than part of the letterboxed 16:9 stage, so its name, image, description and
+three controls cannot be clipped on a short window (D-036). **Continue** is the only exit.
+
+<a id="spacecraft-interior"></a>
+### 5. Spacecraft Interior
+
+`#/interior` is a walkable tour of the transit habitat: cabin, galley, lab, sleep, logistics
+and safe haven. You move with the arrow keys (or the on-screen pad), press **N** for the next
+room and **R** to hear a brief again. The landing-site screen unlocks only once every room has
+been visited.
 
 <a id="choose-your-landing-site"></a>
-### 1. Choose Your Landing Site
+### 6. Choose Your Landing Site
 
 Your rocket is in orbit. Five regions are marked on the map — and **there is no perfect
 choice.** Each one is strong in some ways and dangerous in others.
 
-![Landing site selection screen showing a map of Mars with five candidate regions — Arcadia Planitia, Jezero Crater, Olympus Mons, Valles Marineris and Argyre Basin — and a Site Analysis panel scoring the selected site on water, sunlight, terrain, dust and temperature out of five](Assets/README_ref/choose%20landing.png)
+![Design mockup of the landing-site screen showing a map of Mars with five candidate regions — Arcadia Planitia, Jezero Crater, Olympus Mons, Valles Marineris and Argyre Basin — and a Site Analysis panel scoring the selected site on water, sunlight, terrain, dust and temperature out of five](Assets/README_ref/choose%20landing.png)
 
 The **Site Analysis** panel scores the region you have selected across five axes, out of 5 each:
 
@@ -189,85 +251,78 @@ The **Site Analysis** panel scores the region you have selected across five axes
 | 🌪️ **Dust** | Will storms bury your equipment? |
 | 🌡️ **Temp** | How much energy will you burn just staying warm? |
 
+Select a pin and press **Land here** to commit; the choice sets your starting stores and the
+site rules that apply to the build screen.
+
 **The lesson:** a site with perfect water and terrible sun will kill you just as surely as
 one with great sun and no water. Real landing-site selection is exactly this — NASA picked
 Jezero Crater not because it's the *best* place, but because its combination of ancient
 river deposits and workable terrain makes it the most **interesting** place to explore.
 
 <a id="establish-your-base"></a>
-### 2. Establish Your Base
+### 7. Establish Your Base
 
-You touch down and lay out your first modules: habitat, life support, solar array, and
-batteries. This screen is your home base for the whole run.
+`#/base` is the outpost. The habitat and life support are core modules; on top of them you
+spend **14 build points** across eight module kinds — solar arrays, battery banks, a nuclear
+unit, a greenhouse, an ice miner and regolith shielding — subject to slot limits and two hard
+site rules (the ice miner needs water ≥ 3; the regolith shield needs terrain ≥ 2). You are
+allowed to launch with nothing extra. That is a choice, and usually a bad one.
 
-![Outpost overview screen showing the deployed base with a Habitat, Life Support unit, Solar Array and Battery module on the Martian surface, alongside a Life Support and Resources panel listing food at 80 percent, water at 90 percent, oxygen at 100 percent, power cells at 60 percent and radiation shielding at 20 percent](Assets/README_ref/survival%20loop.png)
+![Design mockup of the outpost overview showing a deployed Habitat, Life Support unit, Solar Array and Battery module on the Martian surface, alongside a Life Support and Resources panel listing food, water, oxygen, power and radiation shielding levels](Assets/README_ref/survival%20loop.png)
 
-Notice the **warning at the bottom right**: *solar storm approaching in sol 2.* You just
-landed, and you already have a problem. That warning is the game teaching you to read ahead.
+The run's clock is fixed before you land: a flare on sol 3, a supply pod on sol 5, a dust
+storm on sol 7 and a second flare on sol 10 (D-033). The mockup above shows an earlier,
+illustrative forecast; the build uses that four-event schedule. This screen is where you
+prepare for it. Press **Land & start sol 1** when you are ready.
 
-The button at the bottom — **Build New Module** — is the core of the whole strategy layer.
-Every module you add improves one system and increases what every other system has to support.
+<a id="run-the-sols"></a>
+### 8. Run the Sols
 
-<a id="plan-phase-read-the-situation"></a>
-### 3. Plan Phase — Read the Situation
+`#/act` advances exactly one sol per press of **Run sol N**. Nothing in the outpost is on a
+timer: the game waits for you. Each sol resolves in the same order — cargo arrives, the Sun
+comes up, the night drains the batteries, and whatever power cannot be found slows life
+support and the greenhouse.
 
-At the start of each sol you get a planning screen. Nothing is decided yet. This is where
-you look at what's coming and choose what to do about it.
+When an event is due, the crisis panel replaces the mission panel inside the same screen shell
+(D-040). A flare or a storm gives you ten seconds and one of three choices; the supply pod
+does not. If the countdown runs out, the default option is applied and recorded as timed out,
+so the debrief can say exactly what that cost.
 
-![Plan phase screen with four panels: Weather Radar warning of an approaching storm with 84 km per hour wind and 67 percent high dust opacity, Resource Stores showing food, water, oxygen, battery and shielding levels, an Upcoming Sols calendar listing a peak storm on Sol 28 and a supply pod arriving on Sol 30, and a Crew Roster with two astronauts and their assigned tasks](Assets/README_ref/survival%20loop-1.png)
+![Design mockup of the act screen showing a battery capacity bar, a Location Conditions panel and a Power Trade-off Visualizer with arrays generating 45 kilowatts, 12 kilowatts stored and a 30 kilowatt night drain](Assets/README_ref/survival%20loop-2.png)
 
-This is the heart of the game, and it teaches four ideas at once:
-
-- **Forecast before you act.** A storm on Sol 28 means you have 28 sols to prepare. Players who
-  wait until Sol 28 are already too late.
-- **Everything is finite.** You can see exactly how much of everything you have left.
-- **The crew is people, not numbers.** Dr. Chen is a botanist growing food. Cmdr. Kelly is
-  running maintenance. Assign them where they're actually needed.
-- **You get deliveries, but you can't count on them.** A supply pod arriving on Sol 30 is a
-  *scheduled* event. Survive until it lands and you can breathe again.
-
-<a id="act-phase-make-your-move"></a>
-### 4. Act Phase — Make Your Move
-
-Now you commit. This is where a good plan meets a real constraint.
-
-![Act phase screen showing the active mission Power Surplus with a battery capacity bar at 2 of 5 units, a Location Conditions panel showing excellent solar irradiance, minus 20 degrees Celsius, low wind and flat plains, and a Power Trade-off Visualizer showing the sun, arrays generating 45 kilowatts, 12 kilowatts stored, and a 30 kilowatt night drain](Assets/README_ref/survival%20loop-2.png)
-
-This mission explains the single most important idea in the game, using a picture instead
-of a paragraph:
+The mockup is the power trade-off the loop is built around:
 
 > ☀️ Sun → 📡 Arrays → **+45 kW/h** → 🔋 Storing 12 kW/h → 🌙 **−30 kW/h night drain**
 
-You have **excellent sunlight** and you still can't win, because Mars night lasts about
-12 hours and your panels make nothing the whole time. The 45 kW you collect by day has to
-survive a night that costs 30 kW — *and* charge the batteries to get you through the next
-night, *and* power the life support, the greenhouse, and everything else.
+Its numbers are illustrative. In the build, one array makes 25 kW while the Sun is up, scaled
+by the site's sun score, panel health and the storm factor; one battery bank stores 100 kWh;
+the nuclear unit makes 10 kW day and night. Night is 12 hours, and the panels make nothing
+during it. You can have excellent sunlight and still lose, because the power you collect by
+day has to survive the night *and* run the habitat, life support and greenhouse.
 
 That's not a made-up puzzle. It's the exact reason NASA's rovers and habitats rely heavily
 on **nuclear power** rather than solar alone. The trade-off is real, and the game makes a
 child feel it.
 
 <a id="debrief-learn-from-what-happened"></a>
-### 5. Debrief — Learn From What Happened
+### 9. Debrief — Learn From What Happened
 
-![Debrief screen summarising the mission outcome with a breakdown of resources consumed, tasks completed and lessons learned for the astronaut to review](Assets/README_ref/debrief.png)
+You win by reaching **sol 12** with every life store — oxygen, water, food, shielding — above
+zero. You lose the moment any one of them hits zero. Both endings route here; there is no
+third state and no separate "Final" screen (D-035).
 
-The debrief is where the learning actually lands. You see:
+![Design mockup of the debrief screen summarising the mission outcome with a breakdown of resources consumed, tasks completed and lessons learned](Assets/README_ref/debrief.png)
+
+The debrief is where the learning actually lands. It reviews every crisis choice as **solved**,
+**mixed** or **caught**, and shows the per-sol ledger:
 
 - What you **used** and what you **wasted**
 - Which problems you solved early and which ones caught you
 - The **real science** behind whatever went wrong
 
-A run that ends badly is the most educational run in the game.
-
-<a id="final-a-self-sustaining-outpost"></a>
-### 6. Final — A Self-Sustaining Outpost
-
-![Final screen celebrating the creation of a fully self-sustaining Mars outpost, showing the crew and the astronaut's final achievement summary](Assets/README_ref/Final.png)
-
-You win by reaching a place where the outpost genuinely runs itself: food is grown on site,
-water is recycled, power is balanced day and night, and the crew needs nothing shipped from
-Earth.
+**View my Mars story** opens the journal mode of the same screen (D-039); **Try a different
+outpost** and **Main menu** leave the run. A run that ends badly is the most educational run
+in the game.
 
 <a id="what-you-learn"></a>
 ## 🎓 What You Learn
@@ -281,7 +336,7 @@ a player takes away without ever being told a lesson:
 | **Systems thinking** | Changing one thing ripples through everything else — more modules means more power draw *and* more oxygen to recycle |
 | **Energy balance** | Day/night cycles, storage capacity, and the gap between generating and surviving until sunrise |
 | **Closed-loop living** | Recycling water, regenerating air, and growing food instead of resupplying — the core of real off-world life support |
-| **Reading data** | Weather radar, resource stores, and forecasts are how you make decisions, not decoration |
+| **Reading data** | Storm warnings, resource stores and the fixed forecast are how you make decisions, not decoration |
 | **Preparation & margin** | Winners build reserves *before* the crisis. This is a life skill, not just a game one |
 | **Reading real space-weather data** | Solar-flare strength comes from live NASA data, with NOAA as a backup, not made-up numbers |
 | **Second attempts** | Losing teaches more than winning, because the debrief explains exactly *why* |
@@ -340,8 +395,8 @@ reliable power are becoming the defining global challenges of this century — a
 systems environmental engineers are trying to build *here*. Learning to waste less is a
 planetary-scale habit, and Mars is a good place to practise it.
 
-**Climate and space weather share a root cause.** The same solar activity that powers the
-coronal mass ejections in our game's weather radar also drives the auroras on Earth — and
+**Climate and space weather share a root cause.** The same solar activity that drives the
+coronal mass ejections behind our game's storm warnings also drives the auroras on Earth — and
 can disrupt satellites, GPS, radio and power grids. Understanding that the Sun matters to
 both planets is a genuinely important idea.
 
@@ -403,51 +458,174 @@ This game is built for young players first, and every decision follows from that
   they made the choices they did — without reading a manual.
 - **Losing is informative.** There's no game-over screen that just says "you failed." You get a
   debrief explaining the real cause, which is the point.
-- **A gentle difficulty curve.** The first missions teach one idea at a time. Complexity is
-  added only as the player is ready for it.
+- **A gentle difficulty curve.** The journey teaches one idea at a time — the resources, then
+  the site, then the build, then the sol loop. Complexity is added only as the player is ready.
 
 ---
 
 <a id="project-status"></a>
 ## 🛠 Project Status
 
-Release and deployment updates are tracked in the [changelog](docs/CHANGELOG.md).
+**Mars Horizon is a playable prototype.** The whole journey is built and playable in the
+browser: `naming → briefing → supply → launch → interior → landing-site → base → act →
+debrief`. A run starts when the player names their astronaut and ends at the debrief with a
+win (reaching sol 12) or a loss (any life store hits zero). The run lives in memory; there is
+no save.
 
-Every player decision, the sol loop, what is built, and where a new event plugs in are mapped
-in [docs/game-flow.md](docs/game-flow.md).
+Release and deployment updates are tracked in the [changelog](docs/CHANGELOG.md). Every
+player decision, the sol loop, what is built and where a new event plugs in are mapped in
+[`docs/game-flow.md`](docs/game-flow.md).
 
-**Mars Horizon is currently in the design and prototype stage.** This repository holds the
-project documentation, the game design notes and the UI mockups.
+| Area | State |
+| --- | --- |
+| The nine-screen journey | **Built** and routed |
+| Resource simulation and sol loop | **Built** — 12 sols, four scheduled events |
+| Crisis decisions and debrief verdicts | **Built** — flare, storm and supply pod |
+| Live flare strength | **Built** — NASA DONKI → NOAA SWPC → baked fallback |
+| Tests | **401 tests in 18 files** (`npm test`, 2026-11-10) |
+| Checks | **Clean** — import layers, banned APIs, markup, strict typecheck |
+| Save / resume | **Not built** — in-memory only (D-003) |
+| Login before `naming` | **Not built** — Supabase deferred (D-003, TASK-022) |
+| Plan phase | **Deliberately not built** — do not add unasked (D-029) |
+| New forecast event kinds | **Not built** — extension steps in `docs/game-flow.md` |
 
-There is no installable build or playable release at this time — when one is ready, this
-section will be replaced with setup and run instructions.
+### Tech stack
 
+- **TypeScript 5.9**, `strict` and `noUnusedLocals`; `npm run check` must pass.
+- **Vite 7** for the dev server and the production build; **Vitest 3** for the tests.
+- **Vanilla DOM.** No framework, no state library, **zero runtime dependencies**. Adding one
+  is an architecture change, not a convenience.
+- **Plain CSS**, one stylesheet per feature, imported by that feature's own `view.ts`.
+- **Node 22**, which is what CI runs.
+
+### The one invariant
+
+`sim/` and each feature's `model.ts` are pure: no `document`, no `window`, no network. That
+is what lets 401 tests run in a few seconds with no browser and no mocks. It is enforced by
+`npm run check` (`scripts/check-imports.mjs`), not left to good intentions.
+
+---
+
+<a id="setup-and-running"></a>
+## ⚙️ Setup and Running
+
+```bash
+npm install       # dev dependencies only — the game ships no runtime dependencies
+npm run dev       # Vite dev server, http://localhost:5173
+npm run check     # import-layer + banned-API + markup checks, then tsc --noEmit
+npm test          # Vitest, 401 tests in 18 files
+npm run build     # production bundle in dist/
+npm run preview   # serve the built bundle locally
 ```
+
+Open the dev server and the default route is `#/naming`, the entry screen. Every screen has a
+hash of its own (`#/base`, `#/act`, `#/debrief`, …), but a run should start at `naming`.
+`?motion=force` and `?motion=reduce` override the OS reduced-motion setting for the landing
+page.
+
+There is nothing to configure and no API key to provide. Space weather uses the public
+`DEMO_KEY` path and falls through on its own (ISS-009).
+
+---
+
+<a id="project-structure"></a>
+## 📁 Project Structure
+
+```text
 Mars-Horizon-Junior-Astronaut-Mission-Trainer/
-├── README.md
-└── Assets/
-    └── README_ref/              ← screenshots used in this document
-        ├── choose landing.png    ← landing site selection screen
-        ├── survival loop.png     ← outpost / base overview screen
-        ├── survival loop-1.png   ← plan phase screen
-        ├── survival loop-2.png   ← act phase screen
-        ├── debrief.png           ← mission debrief screen
-        └── Final.png             ← self-sustaining outpost screen
+├── README.md                    ← this file
+├── AGENTS.md                    ← working rules, enforced checks, doc-update matrix
+├── index.html                   ← page shell and every screen mount point
+├── package.json                 ← scripts; devDependencies only
+├── tsconfig.json · vite.config.ts · vercel.json
+├── GAME_LOOP_PLAN.md            ← gameplay design plan
+├── Landing_site_selection_implementation_plan.md
+├── .github/workflows/           ← ci.yml (checks) and deploy.yml (Vercel)
+├── Assets/
+│   ├── images/                  ← landing page, screens, interior sprites
+│   ├── video/                   ← launch, docking and parts clips
+│   └── README_ref/              ← the design mockups linked in this document
+├── scripts/
+│   ├── check-imports.mjs        ← layering and banned-API checks
+│   └── check-markup.mjs         ← mount-point and hook-scoping checks
+├── docs/                        ← architecture, game flow, changelog, team records
+└── src/
+    ├── main.ts                  ← boot, element lookup, screen mounting
+    ├── style.css                ← landing-page stylesheet entry
+    ├── sim/                     ← pure rules: no DOM, no network
+    │   ├── resources.ts         ← drain and stores
+    │   ├── sol.ts               ← advance one sol, win/lose
+    │   ├── run.ts               ← RunState and progression
+    │   ├── modules.ts           ← catalogue, costs, upkeep, every tuning number
+    │   ├── regions.ts           ← the five landing regions
+    │   ├── forecast.ts          ← the fixed event schedule
+    │   ├── crises.ts            ← crisis copy, options, defaults
+    │   └── comms.ts             ← Earth–Mars delay
+    ├── data/
+    │   └── spaceweather.ts      ← NASA DONKI → NOAA SWPC → baked fallback
+    ├── dom/                     ← landing page and browser glue
+    │   ├── floatAstronaut.ts · pointerGrab.ts · starfield.ts
+    │   ├── forecastLoader.ts    ← joins live flares to the forecast
+    │   └── h.ts                 ← element helper
+    ├── ui/
+    │   ├── routes.ts · router.ts ← hash routing and the journey order
+    │   ├── registry.ts          ← route → screen; the only file importing a view
+    │   ├── gameLoop.ts          ← shared outpost screen shell
+    │   └── button-strip.ts · button-strip.css
+    ├── features/                ← one folder per screen
+    │   ├── naming/ · briefing/ · supply/
+    │   ├── launch/ · interior/ · landing-site/
+    │   ├── base/ · act/ · debrief/
+    │   └── README.md            ← the four-files-per-feature contract
+    └── styles/                  ← landing page: base, astronaut, message, starfield, game-loop
 ```
+
+Every feature folder is built from the same four files: `model.ts` (pure rules),
+`model.test.ts`, `view.ts` (DOM only) and `<name>.css`. A feature may also carry a
+`README.md` describing its screen. Depth never exceeds two levels.
+
+---
+
+<a id="documentation"></a>
+## 📚 Documentation
+
+The rules are in `AGENTS.md`; the reasoning is in `docs/`. Start with these:
+
+| Document | What it answers |
+| --- | --- |
+| [`AGENTS.md`](AGENTS.md) | Working rules, the enforced checks, the doc-update matrix, what is out of scope |
+| [`docs/architecture.md`](docs/architecture.md) | Annotated file tree, layering, module contracts, known simplifications |
+| [`docs/game-flow.md`](docs/game-flow.md) | Every player decision, the sol loop, what is built, how to add an event |
+| [`docs/team/decisions.md`](docs/team/decisions.md) | Why things are the way they are, including what was rejected |
+| [`docs/team/issues.md`](docs/team/issues.md) | Every known problem, its severity and status |
+| [`docs/team/goals.md`](docs/team/goals.md) | What "done" means for this project |
+| [`docs/team/tasks.md`](docs/team/tasks.md) | Who owns what, and what is finished |
+| [`docs/team/progress-log.md`](docs/team/progress-log.md) | What happened last and what went wrong |
+| [`docs/CHANGELOG.md`](docs/CHANGELOG.md) | User-visible and deployment changes |
+| [`docs/codebase/`](docs/codebase/) | Stack, structure, conventions, testing, integrations, concerns |
+| [`docs/pull-requests/`](docs/pull-requests/) | Written records for the CI, deployment and retry pull requests |
+
+Each screen also has a `README.md` inside its feature folder describing what that screen is
+meant to contain. New contributors should read `AGENTS.md` first and
+[`docs/game-flow.md`](docs/game-flow.md) second.
 
 ---
 
 <a id="screenshot-index"></a>
 ## 🖼 Screenshot Index
 
+These are **design mockups**, not screen captures; the notes column says where each one is
+used. The retired plan-phase and "Final" mockups are kept in `Assets/README_ref/` for
+history, but neither screen exists in the build (D-029, D-035).
+
 | # | Screen | File | Shown in |
 | --- | --- | --- | --- |
-| 1 | Landing site selection | [`Assets/README_ref/choose landing.png`](Assets/README_ref/choose%20landing.png) | Walkthrough step 1 |
-| 2 | Outpost overview | [`Assets/README_ref/survival loop.png`](Assets/README_ref/survival%20loop.png) | Walkthrough step 2 |
-| 3 | Plan phase | [`Assets/README_ref/survival loop-1.png`](Assets/README_ref/survival%20loop-1.png) | Walkthrough step 3 |
-| 4 | Act phase | [`Assets/README_ref/survival loop-2.png`](Assets/README_ref/survival%20loop-2.png) | Walkthrough step 4 |
-| 5 | Debrief | [`Assets/README_ref/debrief.png`](Assets/README_ref/debrief.png) | Walkthrough step 5 |
-| 6 | Self-sustaining outpost | [`Assets/README_ref/Final.png`](Assets/README_ref/Final.png) | Walkthrough step 6 |
+| 1 | Landing site selection | [`Assets/README_ref/choose landing.png`](Assets/README_ref/choose%20landing.png) | Walkthrough step 6 |
+| 2 | Outpost overview | [`Assets/README_ref/survival loop.png`](Assets/README_ref/survival%20loop.png) | Walkthrough step 7 |
+| 3 | Power trade-off (act) | [`Assets/README_ref/survival loop-2.png`](Assets/README_ref/survival%20loop-2.png) | Walkthrough step 8 |
+| 4 | Debrief | [`Assets/README_ref/debrief.png`](Assets/README_ref/debrief.png) | Walkthrough step 9 |
+| — | Plan phase *(retired mockup)* | [`Assets/README_ref/survival loop-1.png`](Assets/README_ref/survival%20loop-1.png) | Not in the build — D-029 |
+| — | Final *(retired mockup)* | [`Assets/README_ref/Final.png`](Assets/README_ref/Final.png) | Not in the build — D-035 |
 
 ---
 

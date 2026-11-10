@@ -8,6 +8,47 @@ than a documented one.
 
 ---
 
+## 2026-11-10 — Make the README describe the project that actually exists
+
+**Did**
+
+- Rewrote the README's technical half against the code: the status row, the real route chain,
+  a nine-step walkthrough of the nine built screens, a project-status table, setup commands,
+  the real `src/` tree, and a documentation table linking `AGENTS.md`, `docs/architecture.md`,
+  `docs/game-flow.md` and the team records.
+- Corrected the walkthrough where it described screens that do not exist: there is no plan
+  phase (D-029), no separate "Final" screen (D-035), no **Build New Module** button, and the
+  images are design mockups rather than captures.
+- Closed ISS-001 and recorded D-041: the README is now maintained as a technical document, not
+  frozen.
+
+**Files**
+
+- `README.md`, `docs/architecture.md`, `docs/team/decisions.md`, `docs/team/issues.md`,
+  `docs/team/tasks.md`, `docs/team/progress-log.md`
+
+**Problems**
+
+- The README had drifted for five weeks because D-011 froze it deliberately. Rewriting it
+  uncovered smaller disagreements: the "Ten Missions" table describes an arc that is not
+  implemented, and the plan-phase mockup shows a screen the build never had. Both are now
+  labelled as design intent rather than current behaviour.
+- `src/features/README.md` is stale in the same way — it says the folder is empty and that
+  `sim/` "does not exist yet". It was outside this change and needs its own pass.
+- `index.html` still calls the page "Under Construction" in its `<title>` and meta
+  description. That predates the build and was not touched here; it is a one-line fix for
+  the next pass.
+- No gameplay code changed. `npm run check` passes and the unit suite is green; the test
+  count in the README was updated from a real run, not from memory.
+
+**Next**
+
+- Rewrite `src/features/README.md` against the nine built features and the four-file contract.
+- Keep the README's status table and test count current in the same commit as any change that
+  invalidates them (D-041).
+
+---
+
 ## 2026-11-10 — Map the decisions so new events have somewhere to land
 
 **Did**

@@ -7,6 +7,7 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 
 | id | task | goal | owner | status | blocked by | notes |
 | --- | --- | --- | --- | --- | --- | --- |
+| TASK-054 | Bring the README up to date with the built project and link every doc | G-6 | agent | done | — | ISS-001, D-041. Real status, setup commands, `src/` tree, doc table |
 | TASK-053 | Map every player decision and the event extension points in Mermaid | G-4 | agent | done | — | `docs/game-flow.md`; 4 diagrams (GitHub times out on many); linked from README; no gameplay change |
 | TASK-042 | Record D-030 to D-035, log ISS-040, fix task id hygiene | G-4 | agent | done | — | decisions, issues, task ids |
 | TASK-041 | Give no directional hint on the first wrong answer on the ration check | G-7 | agent | done | — | D-028, ISS-035. The bubble keeps the question on the first wrong pick; the hint appears from the second on. Browser check outstanding |
@@ -80,7 +81,7 @@ state) explicitly deferred (D-003) with nothing scheduled against the Nov 8 free
 is in the demo, the current plan does not contain it.
 
 **TASK-015 is done.** `sim/resources.ts`, `sim/modules.ts`, `sim/events.ts`, `sim/sol.ts`
-and `sim/run.ts` are implemented and tested; the suite is 410 tests.
+and `sim/run.ts` are implemented and tested; the suite is 401 tests.
 
 **TASK-007 blocks TASK-020**, and TASK-020 is most of G-5. One browser session answers
 ISS-008 and unblocks a sprint's worth of work.

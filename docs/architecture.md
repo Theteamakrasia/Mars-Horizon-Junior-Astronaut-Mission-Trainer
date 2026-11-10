@@ -19,7 +19,7 @@ than eyeballed, and it is what `npm run check` protects.
 
 ## The invariant, and why it is enforced
 
-410 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
+401 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
 reference it would still work, and the cost would surface later as an untestable bug.
 Enforced as `no-dom-in-pure-zone`.
 
@@ -123,8 +123,8 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
 ├── .htmlvalidate.json                  HTML rules; inline CSS is allowed
 │
 ├── AGENTS.md                           complete   the orientation file
-├── README.md                           STALE      accurate about the game, WRONG about the
-│                                                 code — see ISS-001. Not rewritten (D-011).
+├── README.md                           complete   front page: pitch, science, setup, structure
+│                                                 and links to every doc
 │
 └── src/
     ├── main.ts                         complete   composition root. Resolves the landing elements

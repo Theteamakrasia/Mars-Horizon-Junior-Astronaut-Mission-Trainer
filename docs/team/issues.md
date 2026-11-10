@@ -37,7 +37,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | ISS-018 | Seven cinematic PNGs committed, 12 MB, never referenced | medium | unassigned | open | — |
 | ISS-019 | Cinematics mix three visual styles | low | unassigned | open | — |
 | ISS-020 | NASA insignia appears on children's suits and props | low | unassigned | open | — |
-| ISS-001 | README claims no installable build exists | high | unassigned | open | — |
+| ISS-001 | README claims no installable build exists | high | agent | fixed | this branch |
 | ISS-006 | `.gitignore` omits `.env*`, leaking API keys | high | agent | fixed | this branch |
 | ISS-008 | DONKI CORS and reachability unverified | high | agent | fixed | this branch |
 | ISS-002 | Starfield layers drift out and never refill | medium | unassigned | open | — |
@@ -586,9 +586,11 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 - **Risk:** A judge, teacher or new teammate reads this and concludes there is nothing
   to run. It is the single most expensive kind of documentation rot, because it makes
   working work look absent. NASA Space Apps judging starts from exactly this file.
-- **Fix:** Rewrite the "Project Status" section to the measured state and point it at
-  `docs/architecture.md` and `AGENTS.md`. **Deliberately not done in this pass** — see
-  decisions D-009.
+- **Fix:** Rewritten against the code on 2026-11-10. The project-status section now says the
+  journey is built, gives `npm run dev` / `check` / `test` / `build` instructions, replaces
+  the mock tree with the real `src/` layout, and links `docs/architecture.md`,
+  `docs/game-flow.md`, `AGENTS.md` and the team records. D-011 is superseded by D-041; fixed
+  in the commit that closes this row.
 
 ## ISS-006 — `.gitignore` omits `.env*`, leaking API keys
 
