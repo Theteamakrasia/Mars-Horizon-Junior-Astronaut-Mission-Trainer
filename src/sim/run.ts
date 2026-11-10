@@ -37,6 +37,20 @@ export interface DecisionRecord {
   readonly timedOut: boolean;
 }
 
+/**
+ * What the crew spent a sol on.
+ *
+ * The id, the title and the points are copied onto the record rather than
+ * looked up later, so the debrief can name the activity without needing the
+ * catalogue — and so a record still reads correctly if the catalogue changes.
+ */
+export interface SolActivity {
+  readonly id: string;
+  readonly title: string;
+  /** The science points the activity earned. */
+  readonly science: number;
+}
+
 /** What one sol did, kept so the debrief can reason over the whole run. */
 export interface SolRecord {
   readonly sol: number;
@@ -53,6 +67,8 @@ export interface SolRecord {
   readonly greenhousePaused: boolean;
   /** What the crew breathed, drank and ate this sol. */
   readonly used: { readonly oxygen: number; readonly water: number; readonly food: number };
+  /** The main activity for this sol, or null when the sol was spent on a crisis. */
+  readonly activity: SolActivity | null;
   readonly events: readonly SolEvent[];
   /** Plain-language things worth knowing about this sol. */
   readonly notes: readonly string[];
@@ -71,6 +87,10 @@ export interface RunState {
   readonly modules: readonly ModuleKind[];
   /** 0-1: how much of the panels' output survives. Dust damage lowers it for good. */
   readonly panelHealth: number;
+  /** Science points earned so far. Activities award them (D-049). */
+  readonly science: number;
+  /** The activity picked for the next sol, or null when none has been picked. */
+  readonly chosenActivity: string | null;
   readonly forecast: readonly ForecastEvent[];
   readonly log: readonly SolRecord[];
   readonly decisions: readonly DecisionRecord[];
@@ -91,6 +111,8 @@ export function newRun(regionId: string, astronautName = ''): RunState {
     status: 'active',
     modules: [],
     panelHealth: 1,
+    science: 0,
+    chosenActivity: null,
     forecast: [],
     log: [],
     decisions: [],
@@ -130,6 +152,8 @@ export function startOutpost(state: RunState, modules: readonly ModuleKind[]): R
     status: 'active',
     modules,
     panelHealth: 1,
+    science: 0,
+    chosenActivity: null,
     log: [],
     decisions: [],
     stores: createInitialStores({

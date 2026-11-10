@@ -5,6 +5,7 @@ import { crisisForEvent, earthAdvice, earthIsInTime, pendingCrisis } from './cri
 import { createForecast, flareIntensity, stormOn, stormOpacity } from './forecast';
 import { CORE_MODULES, type ModuleKind } from './modules';
 import { newRun, startOutpost, withState, type RunState } from './run';
+import { SOL_LOG_POINTS } from './science';
 import {
   advanceSol,
   decide,
@@ -169,6 +170,63 @@ describe('advancing a sol', () => {
     for (let i = 0; i < 7; i += 1) run = advanceSol(run);
 
     expect(run.panelHealth).toBeLessThan(1);
+  });
+});
+
+describe('the main activity', () => {
+  it('spends the chosen activity on the sol and records it', () => {
+    const run = withState(outpost('jezero', SOLAR_FIRST), { chosenActivity: 'survey' });
+    const next = advanceSol(run);
+
+    expect(next.log[0].activity?.id).toBe('survey');
+    expect(next.log[0].activity?.title).toBe('Send the rover out to survey');
+  });
+
+  it('awards the activity its science points, plus the point for the day', () => {
+    const run = withState(outpost('jezero', SOLAR_FIRST), { chosenActivity: 'experiment' });
+
+    expect(advanceSol(run).science).toBe(SOL_LOG_POINTS + 6);
+  });
+
+  it('gives a point for the day even when the sol was spent on a crisis', () => {
+    expect(advanceSol(outpost('jezero', SOLAR_FIRST)).science).toBe(SOL_LOG_POINTS);
+  });
+
+  it('clears the choice once the sol has run, so it is never paid for twice', () => {
+    const run = withState(outpost('jezero', SOLAR_FIRST), { chosenActivity: 'survey' });
+
+    expect(advanceSol(run).chosenActivity).toBeNull();
+  });
+
+  it('adds what the activity makes to the stores', () => {
+    const plain = advanceSol(outpost('jezero', SOLAR_FIRST)).stores.water;
+    const tuned = advanceSol(withState(outpost('jezero', SOLAR_FIRST), { chosenActivity: 'recycle-tune' })).stores.water;
+
+    expect(tuned).toBeGreaterThan(plain);
+  });
+
+  it('spends the activity power, so a flat battery runs that sol in a blackout', () => {
+    const bare = outpost('jezero', []);
+    const flat = withState(bare, { stores: { ...bare.stores, power: 0 } });
+
+    const quiet = advanceSol(flat).log[0].blackout;
+    const busy = advanceSol(withState(flat, { chosenActivity: 'survey' })).log[0].blackout;
+
+    expect(busy).toBeGreaterThan(quiet);
+  });
+
+  it('restores the panels when the crew sweeps them, and never past full', () => {
+    const dusty = withState(outpost('jezero', SOLAR_FIRST), { panelHealth: 0.5 });
+    const swept = advanceSol(withState(dusty, { chosenActivity: 'sweep-panels' }));
+
+    expect(swept.panelHealth).toBeGreaterThan(0.5);
+    expect(swept.panelHealth).toBeLessThanOrEqual(1);
+  });
+
+  it('throws on an activity that does not exist', () => {
+    const run = withState(outpost('jezero', SOLAR_FIRST), { chosenActivity: 'teleport' });
+
+    expect(() => advanceSol(run)).toThrow(RangeError);
   });
 });
 
