@@ -19,7 +19,8 @@
  *
  * What the player is promised: the screen is told where the numbers came from.
  * Every failure — slow, throttled, offline, malformed, or a quiet month with no
- * flares — resolves to famous flares from the record, marked `approximate`.
+ * flares — resolves to an empty list, and `sim/forecast.ts` then draws typical
+ * flares from the long-run NOAA record, marked `approximate`.
  *
  * The DONKI success shape is written from NASA's published schema and has NOT
  * been seen on the wire from this project. The NOAA shape HAS been seen and is
@@ -41,13 +42,13 @@ export interface SpaceWeatherEvent {
 export type SpaceWeatherSource = 'donki' | 'noaa' | 'fallback';
 
 /**
- * Famous flares, from the public record. Used when neither live source can
- * supply any, and marked approximate so the debrief says so.
+ * What the live call returns when it cannot supply any flares.
+ *
+ * Empty on purpose. A short baked-in list would hand every offline player the same
+ * two flares. An empty list makes the forecast draw from the long-run record of
+ * how often M and X flares really happen, and mark them approximate.
  */
-export const FALLBACK_FLARES: readonly SpaceWeatherEvent[] = [
-  { kind: 'flare', classType: 'X5.8', peakTime: '2024-05-11T01:23:00Z', approximate: true },
-  { kind: 'flare', classType: 'X9.3', peakTime: '2017-09-06T12:02:00Z', approximate: true },
-];
+export const FALLBACK_FLARES: readonly SpaceWeatherEvent[] = [];
 
 const DONKI_FLARES_URL = 'https://api.nasa.gov/DONKI/FLR';
 const NOAA_FLARES_URL = 'https://services.swpc.noaa.gov/json/goes/primary/xray-flares-7-day.json';
@@ -106,16 +107,6 @@ export function resetSpaceWeather(): void {
   pending = null;
   source = 'fallback';
   detail = 'No space-weather request has been made yet.';
-}
-
-/** The rank of a flare class, so the strongest can be picked. X beats M beats C. */
-export function flareRank(classType: string): number {
-  const letters = 'ABCMX';
-  const letter = classType.trim().charAt(0).toUpperCase();
-  const index = letters.indexOf(letter);
-  const magnitude = Number.parseFloat(classType.trim().slice(1));
-
-  return (index < 0 ? -1 : index) * 1000 + (Number.isFinite(magnitude) ? magnitude : 0);
 }
 
 /**
@@ -181,23 +172,21 @@ export function parseNoaaFlares(json: unknown): readonly SpaceWeatherEvent[] {
   return events;
 }
 
-/** The strongest `count` flares, strongest first. */
-export function strongest(events: readonly SpaceWeatherEvent[], count: number): readonly SpaceWeatherEvent[] {
-  return [...events].sort((a, b) => flareRank(b.classType) - flareRank(a.classType)).slice(0, count);
-}
-
 function isoDate(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
 /**
- * Fetch the strongest recent flares.
+ * Fetch every flare from the last 30 days.
  *
  * Returns parsed data, never a `Response`, so callers stay testable. Rejects
- * nothing: NASA, then NOAA, then the fallback flares marked approximate. The
- * result is remembered so two screens asking cost one request — unless the
- * caller aborted, in which case nothing is remembered and the next screen gets
- * a real answer.
+ * nothing: NASA, then NOAA, then the (empty) fallback. The result is remembered
+ * so two screens asking cost one request — unless the caller aborted, in which
+ * case nothing is remembered and the next screen gets a real answer.
+ *
+ * All of them are kept, not just the strongest: the forecast draws each mission's
+ * flares from this list, so an active month gives harder missions and a quiet one
+ * gives gentler missions, which is what the real Sun is doing.
  */
 export function fetchSpaceWeather(options: FetchOptions = {}): Promise<readonly SpaceWeatherEvent[]> {
   if (pending !== null) return pending;
@@ -241,7 +230,7 @@ async function load(options: FetchOptions): Promise<readonly SpaceWeatherEvent[]
   return useFallback(explain(nasa, noaa));
 }
 
-/** Ask one source, parse what comes back, and keep the strongest two. */
+/** Ask one source, parse what comes back, and keep every flare it reported. */
 async function trySource(
   fetchFn: typeof fetch,
   url: string,
@@ -252,7 +241,7 @@ async function trySource(
 
   if (!result.ok) return result;
 
-  const events = strongest(parse(result.json), 2);
+  const events = parse(result.json);
 
   if (events.length === 0) return { ok: false, reason: 'empty' };
 
@@ -294,10 +283,10 @@ async function requestJson(
 /** Turn two failed sources into one child-readable sentence. */
 function explain(nasa: Fail, noaa: Fail): string {
   if (nasa.reason === 'empty' && noaa.reason === 'empty') {
-    return 'No flares were reported by NASA or NOAA, so we used famous past flares.';
+    return 'No flares were reported by NASA or NOAA, so we used the long-run flare record.';
   }
 
-  return `${describeFailure('NASA', nasa)}, and ${describeFailure('NOAA', noaa)}, so we used famous past flares.`;
+  return `${describeFailure('NASA', nasa)}, and ${describeFailure('NOAA', noaa)}, so we used the long-run flare record.`;
 }
 
 /** What went wrong, in the words the debrief shows. */

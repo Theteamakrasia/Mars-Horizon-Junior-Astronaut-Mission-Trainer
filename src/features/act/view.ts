@@ -20,6 +20,7 @@ import { h } from '../../dom/h';
 import { earthAdvice, earthIsInTime, optionOf, pendingCrisis, type Crisis } from '../../sim/crises';
 import { oneWayMinutes, roundTripMinutes } from '../../sim/comms';
 import { withState, type RunState } from '../../sim/run';
+import { visibleForecast } from '../../sim/forecast';
 import { siteScore, regionById, SITE_AXES } from '../../sim/regions';
 import { advanceSol, decide, powerPicture, WIN_SOL } from '../../sim/sol';
 import { gamePanel, gameScreen, gameSection, gameWorld, moduleArt, moduleFigures, type HudStat } from '../../ui/gameLoop';
@@ -150,7 +151,7 @@ export function mountAct(
   }
 
   function forecastSection(state: RunState): HTMLElement {
-    const upcoming = state.forecast.filter((event) => event.sol > state.sol).slice(0, 3);
+    const upcoming = visibleForecast(state.forecast, state.sol);
     const triple = h('div', { class: 'gl__triple' });
 
     for (const event of upcoming) {
@@ -451,7 +452,7 @@ export function mountAct(
     loadingForecast = true;
     render();
 
-    void loadForecast(controller.signal).then((result) => {
+    void loadForecast(controller.signal, Date.now(), siteScore(run.regionId).dust).then((result) => {
       if (disposed || run === null) return;
 
       loadingForecast = false;

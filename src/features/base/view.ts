@@ -19,7 +19,7 @@ import { h } from '../../dom/h';
 import { factFor } from '../../data/nasaGallery';
 import { createForecast, type ForecastEvent } from '../../sim/forecast';
 import { newRun, startOutpost, withState, type RunState } from '../../sim/run';
-import { regionById } from '../../sim/regions';
+import { regionById, siteScore } from '../../sim/regions';
 import { gamePanel, gameScreen, gameWorld, moduleArt, moduleFigures, type SignalCard } from '../../ui/gameLoop';
 import { nextStop } from '../../ui/registry';
 import { navigate } from '../../ui/router';
@@ -74,7 +74,7 @@ export function mountBase(
 
   /** The world's forecast card: the next few things that will happen. */
   function forecastSignal(): SignalCard {
-    const events = upcomingWarnings(forecast(), 3);
+    const events = upcomingWarnings(forecast());
 
     if (loaded === null && start.forecast.length === 0) {
       return { icon: '🌤', kicker: 'Forecast', text: 'Reading live space weather…' };
@@ -180,7 +180,9 @@ export function mountBase(
 
     launch.addEventListener('click', () => {
       const forecastNow = forecast();
-      const prepared = withState(start, { forecast: forecastNow.length > 0 ? forecastNow : createForecast([]) });
+      const prepared = withState(start, {
+        forecast: forecastNow.length > 0 ? forecastNow : createForecast([], Date.now(), siteScore(regionId).dust),
+      });
       const landed = startOutpost(prepared, [...CORE_MODULES, ...extras]);
 
       setRun(landed);
@@ -206,7 +208,7 @@ export function mountBase(
 
   render();
 
-  void loadForecast(controller.signal).then((result) => {
+  void loadForecast(controller.signal, Date.now(), siteScore(regionId).dust).then((result) => {
     if (disposed) return;
 
     loaded = result;

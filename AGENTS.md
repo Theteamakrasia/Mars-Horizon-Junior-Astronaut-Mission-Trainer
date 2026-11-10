@@ -26,9 +26,10 @@ works behind it and is what BACK TO MAIN MENU returns to.
 
 What is still a **stub**: nothing in the journey. `data/spaceweather.ts` is implemented and
 live: it reads solar flares from NASA DONKI, falls through to NOAA SWPC when DONKI is
-unreachable or throttled, and finally to famous past flares marked `approximate`. There is
-**no save** — the run lives in memory only — and the forecast's *timing* is baked
-(`sim/forecast.ts`), so only the flare *size* comes from the network (D-033, D-037).
+unreachable or throttled, and finally to an empty list, from which `sim/forecast.ts`
+draws typical flares marked `approximate`. There is **no save** — the run lives in
+memory only — and the forecast's *timing* is rolled per run from a seed
+(`sim/forecast.ts`, D-048), so only the flare *size* comes from the network.
 
 **A stub is not an implementation.** If a file says STUB, calling it throws. That is
 deliberate: it fails loudly instead of silently returning `undefined`.
@@ -92,8 +93,8 @@ loop to leak when you navigate away.
 the per-sol ledger — lives in `main.ts` memory only and is lost on refresh. The only
 request outside the landing page is space weather: `base` and `act` call
 `dom/forecastLoader` → `data/spaceweather.ts`, which tries NASA DONKI, then NOAA SWPC,
-then famous past flares marked approximate. The event *schedule* is still baked in
-`sim/forecast.ts` (D-033); only the flare size is live.
+then an empty list. The event *schedule* is rolled per run from a seed in
+`sim/forecast.ts` (D-048); only the flare size is live.
 
 ## 4. Boot order
 
@@ -178,7 +179,7 @@ opening its folder — that is the whole point of the layout.
 | Advancing a sol, resolving events, detecting loss | `src/sim/sol.ts` — complete, 12 tests |
 | Run state shape and progression | `src/sim/run.ts` — complete, 19 tests |
 | Module catalogue, build costs, upkeep | `src/sim/modules.ts` — complete, 25 tests |
-| The forecast, its fixed sols, flare intensity | `src/sim/forecast.ts` |
+| The forecast, its seeded timetable, flare intensity | `src/sim/forecast.ts` |
 | Crisis choices and what each one costs | `src/sim/crises.ts` |
 | Earth-Mars delay, "can Earth answer in time" | `src/sim/comms.ts` |
 | Every tuning number | `src/sim/modules.ts` — edit here to retune |
