@@ -19,7 +19,7 @@ than eyeballed, and it is what `npm run check` protects.
 
 ## The invariant, and why it is enforced
 
-517 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
+621 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
 reference it would still work, and the cost would surface later as an untestable bug.
 Enforced as `no-dom-in-pure-zone`.
 
@@ -72,6 +72,13 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
 │   │                                             per part (propulsion, habitat, logistics,
 │   │                                             Orion), each with a different part outlined and a
 │   │                                             baked label card. Read by tools/render-parts.py.
+│   ├── images/rover/                    complete   rbutton.webp (58 KB, 512x512) and
+│   │                                             mars_rover_seamless_loop.webp (21 KB, 380x250,
+│   │                                             animated): the rover's button and its loop. Both
+│   │                                             imported from TS so Vite fingerprints them.
+│   ├── images/rover/source/             complete   the untouched originals (a 1254x1254 PNG and a
+│   │                                             GIF), kept so the conversion can be re-run. Read
+│   │                                             by tools/compress-rover-assets.py.
 │   └── README_ref/*.png                complete   6 UI mockups, ~2.4 MB. Never bundled
 │                                                 (publicDir:false exists to exclude them).
 ├── Assets/video/
@@ -104,14 +111,25 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
 │   ├── render-parts.py                 complete   300+ lines. PIL + numpy + OpenCV + PyAV. Cross-dissolves the
 │   │                                                 four part stills under a push-in, with staggered
 │   │                                                 description bars and fade-through-black bookends.
-│   └── upscale-naming-assets.py        complete   ~85 lines. PIL. Enlarges the start screen's planet and
+│   ├── upscale-naming-assets.py        complete   ~85 lines. PIL. Enlarges the start screen's planet and
 │   │                                             astronaut with a Lanczos resample and a light
 │   │                                             unsharp mask, from the untouched originals in
 │   │                                             Assets/images/naming/source/. They are drawn
 │   │                                             full-screen, so the 606px originals turned to
 │   │                                             mush at 1920px wide.
+│   ├── compress-rover-assets.py        complete   ~90 lines. PIL. Rewrites the rover's button and
+│   │                                             animation as WebP from the untouched originals in
+│   │                                             Assets/images/rover/source/. The button was a 1.4 MB
+│   │                                             PNG for a 56-84px circle, and the animation a 790 KB
+│   │                                             GIF; they are now 58 KB and 21 KB.
+│   └── browser-check-rover.mjs         complete   ~170 lines. Node only. Drives the real game in
+│                                                 headless Chrome over the DevTools Protocol: names the
+│                                                 astronaut, walks to the outpost, deploys the rover
+│                                                 and checks that the NASA picture really loads. A
+│                                                 check, not a test - `npm test` stays free of a
+│                                                 browser. Needs `npm run build && npm run preview`.
 │
-│   All four are dev tools: not scanned by `npm run check`, and they add no runtime dependency.
+│   All five are dev tools: not scanned by `npm run check`, and they add no runtime dependency.
 │
 ├── scripts/
 │   └── check-imports.mjs               complete   Zone + banned-API checker, 9 rule ids.
