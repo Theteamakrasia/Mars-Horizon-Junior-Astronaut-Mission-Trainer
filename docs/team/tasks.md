@@ -7,7 +7,15 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 
 | id | task | goal | owner | status | blocked by | notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| TASK-078 | Add the rover: a button on the outpost screens that finds real NASA places and rare rocks | G-7 | agent | done | — | D-059. `sim/rover.ts`, `data/roverFinds.ts`, `ui/roverWidget.ts`; 28 tests |
+| TASK-086 | Update the docs for the balance, the desk loop, the rover and the guide, and merge to `main` | G-6 | agent | done | — | AGENTS.md, `docs/architecture.md`, `docs/game-flow.md`, README, `src/data/README.md`, and the team docs; D-060…D-064, ISS-054…063 |
+| TASK-085 | Fix what play testing turned up: the power card, the goal scroll, the build feedback, the limits, the recap and the word count | G-7 | agent | done | — | ISS-054…058, ISS-060, ISS-062. Six of the ten complaints in one pass |
+| TASK-084 | Add `npm run balance` and the browser checks for the build screen, the rover and the whole journey | G-3 | agent | done | — | D-064. `tools/balance-check.mts` fails when a site cannot hold all five systems; three headless-Chrome checks |
+| TASK-083 | Add a how-to-play guide and say what a day is in the briefing | G-7 | agent | done | — | ISS-059. `sim/guide.ts` (ten steps), `ui/guide.ts`, the mission bar's `?` button, and two new briefing beats |
+| TASK-082 | Put the rover in the run: sol time, a work order to send it, and a document on the desk | G-7 | agent | done | — | D-062. `RunState.rover`; the catalogue moved from `data/` into `sim/rover.ts`; `ui/roverWidget.ts` deleted. Supersedes TASK-078's shape |
+| TASK-081 | Make the five goals the learning outcomes rather than a score, and the standing orders the rule book | G-4 | agent | done | — | D-061. `GOAL_TARGETS`, `goalScore` and `goalsEarned` are gone; `sim/standingOrders.ts` holds twenty-four rules |
+| TASK-080 | Turn the sol into a Papers Please desk: three work orders, two readings each, a tool, and one approval | G-4 | agent | done | — | D-060, D-063. `sim/activities.ts`, `sim/minigames.ts` (six tools), `ui/activityPlayer.ts`; stars multiply science only |
+| TASK-079 | Make the game winnable: the balance made every build lose | G-4 | agent | done | — | ISS-061. Five constants in `sim/modules.ts`; win rate 20% → 43%; every site can hold all five systems |
+| TASK-078 | Add the rover: a button on the outpost screens that finds real NASA places and rare rocks | G-7 | agent | done | — | D-059. `sim/rover.ts`, `data/roverFinds.ts`, `ui/roverWidget.ts`; 28 tests. **Superseded by TASK-082** — the rover is in the run now |
 | TASK-077 | Name the five science goals, show them live on every sol and report how each fared | G-7 | agent | done | — | D-058. `sim/goals.ts`; the act screen and the debrief |
 | TASK-076 | Guarantee the forecast never puts two events back to back | G-4 | agent | done | — | D-056. The quiet sol between every pair, whatever the dice roll |
 | TASK-075 | Make the ration check ask a different question every run, with options derived from it | G-4 | agent | done | — | D-057. The answer was always 80; the mission length, the answer and the button order now move |
@@ -120,6 +128,18 @@ only bug fixes. This pass adds a main activity to every sol, a science score wit
 and a live NASA daily-fact layer. `docs/game-flow.md` is the document of record, the
 work is on branch `feat/daily-activities`, and the exception is recorded in
 `docs/team/decisions.md` rather than taken quietly.
+
+**TASK-079 to TASK-086 are the second post-freeze exception (D-060 to D-064).** The game
+was unwinnable and unfollowable: 0 of 3,558 measured runs won, and a child could play
+twelve sols without ever being told what a sol was. The exception covers the balance
+fix, the Papers Please desk loop, the goals becoming learning outcomes, the rover
+moving into the run, the how-to-play guide, the browser checks and `npm run balance`.
+The branch is `feat/goal-objectives`; the decisions are recorded rather than taken
+quietly.
+
+**The five goals are not a score (D-061).** Any task that wants to "grade" them, count
+them, or put a number on the player's progress against them is a task that contradicts
+the decision. The goals are what the game is *about*; the run is how you show it.
 
 **Task ids were duplicated before this pass.** TASK-035/036/037 each appeared twice
 (CI/deploy work and the naming/routing/cutout work). The older naming/routing/cutout rows

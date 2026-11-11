@@ -8,6 +8,42 @@ than a documented one.
 
 ---
 
+## 2026-11-11 — Make the game playable, and make it follow
+
+**Did**
+
+- **Fixed the balance.** The game was unwinnable: at fourteen build points no legal build at any of the five landing sites was self-sustaining, and **zero of 3,558 measured runs** ended with all five science goals satisfied. Five constants in `sim/modules.ts` moved — budget 14→18, greenhouse water 5→3, greenhouse load 8→6, shielding base 20→30, shielding erosion 1→0.5 — and the win rate is now **41–45%**.
+- **Made the goals the learning outcomes rather than a score.** `GOAL_TARGETS`, `goalScore` and `goalsEarned` are gone. `sim/goals.ts` now reports what the player kept running and for how long. The debrief prints the standing orders the player worked under as the keepsake.
+- **Turned the sol into a desk.** Three work orders, each with two readings to check, some with a tool to work them with, and the player approves one. Twenty-four standing orders grow two a sol. The science points and the rank stay; the stars from a tool now multiply the science an order is worth, and touch no store.
+- **Put the rover in the run.** Its state is `RunState.rover`, it is sent out by a work order, it drives on sol time, and it comes back with a document on the desk. `sim/rover.ts` now holds the rules *and* the catalogue of real finds.
+- **Made it follow.** A guide of ten steps, each saying where it happens and what to do about it, which opens by itself the first time the player reaches the build screen and comes back from a button in the mission bar. The briefing now says what a day is before the player has to live one.
+- **Fixed the things a play-test turned up**: the power card read 0% while the game let the player spend power; clicking a goal threw the player back to the top of the panel; building a module moved no number on the HUD; the build card counted the extras while the limit counted everything; the sol recap sat below the fold; the play screens carried 85 to 139 words.
+- **`npm run balance` exists now** and fails the build when a site cannot hold all five systems. It is the only thing that catches the game becoming unwinnable, and the game was unwinnable for a long time before it existed.
+
+**Files**
+
+- New: `src/sim/{standingOrders,minigames,guide,patches,deskNotes}.ts` and their tests, `src/ui/{activityPlayer,guide}.ts`, `tools/balance-check.mts`, `tools/browser-check-{build,rover,journey}.mjs`.
+- Rewritten: `src/sim/goals.ts`, `src/sim/activities.ts`, `src/sim/modules.ts`, `src/features/{act,base,debrief,briefing}/`, `src/ui/gameLoop.ts`, `src/styles/game-loop.css`.
+- Deleted: `src/data/roverFinds.ts` and its test, `src/ui/roverWidget.ts`, `src/ui/rover.css` — the rover's catalogue moved into `sim/rover.ts` because the simulation now owns the whole lifecycle of it.
+- Docs: `AGENTS.md`, `docs/architecture.md`, `docs/game-flow.md`, `docs/team/{decisions,issues,progress-log,tasks}.md`, `README.md`, `src/data/README.md`.
+
+**Problems**
+
+- **The game was unwinnable and nothing said so.** Every unit test passed, every browser check passed, and a sensible build still lost every run. The tests checked that the arithmetic was *correct*, not that it was *playable* — the balance lived in five constants that nothing read against each other. This is why `npm run balance` now exists (D-064): a check that only lives in a human's head is a check that stops being run.
+- **The power card and the rules contradicted each other.** The batteries drain through the night, so the level left at dawn is near zero even for a healthy outpost; the card showed that level, so it read 0% while the game happily let the player approve a 25 kWh activity. The card now shows what is left *after* the panels have filled the batteries and the systems have taken their share — which is exactly the number the activity prices come out of.
+- **Two different counts for the same limit.** The build card counted the modules the player had added; the limit counted the module the lander brought as well. Solar Array has a limit of four and the lander brings one, so the card read `3` with a dead button and no sign that three was the most. `sim/modules.ts` grew `extraLimitOf()` and the card reads `3/3`.
+- **A stale module in the Vite dev server.** The guide's `?` button would not render and it was not the code: the server was serving a cached `gameLoop.ts`. Restarting Vite fixed it. If a change is "not there", restart the dev server before debugging the code.
+- **`act` rebuilds its whole screen on every press.** That is why the rover could not live in the DOM (D-062) and why clicking a goal threw the player back to the top of the panel — both are fixed by not re-rendering the whole thing for a small change.
+- **The words.** The act panel carried 85 words before a sol and 139 after one, and the five goals alone were about 100 of them, all below the decision the player had come to make. It is now 64 and 97, the recap is the first thing on the panel, and the science behind each order is one tap away.
+- `npm run check` clean; `npm test` **699 passed** in 32 files; `npm run balance` PASS at every site; production build succeeds. `tools/browser-check-build.mjs` passed 25/25, `tools/browser-check-rover.mjs` 9/9, and `tools/browser-check-journey.mjs` drove the whole journey with no console errors.
+
+**Next**
+
+- Play it again from the naming menu with a child, and watch the **second** sol. The first one has the guide and the notes; by sol three the board has six rules and the desk has a letter on it, and that is where the thread is easiest to lose.
+- Decide what the rover's finds are *worth* in the debrief — they are recorded now, but a player cannot yet tell whether a find changed anything.
+
+---
+
 ## 2026-11-11 — Add the rover
 
 **Did**
