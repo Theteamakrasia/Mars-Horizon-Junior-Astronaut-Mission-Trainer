@@ -9,6 +9,13 @@ under Rejected below, read that entry first.
 Format: number · who decided · **Choice** · **Why** · **Rejected** · **Consequence**.
 
 
+**D-071 — agent — 2026-11-12**
+**Choice:** The day tracker is **built to the reference strip, not just labelled like it**. Four things are fixed by the reference rather than left to taste: the pips are **filled** circles in slate blue rather than hollow rings; the rail runs behind all twelve of them so the track reads as one path with twelve stations on it; the path is lit in amber **up to the day in play** and dark ahead of it; and the words **DAY** and **OF 12 DAYS** are white and bold, sitting **on the number's baseline** rather than floating beside it. The whole group is lifted half the brand subtitle's height so it lines up with the **MARS HORIZON** word instead of the middle of the two-line brand block. The day in play is a slightly larger gold dot with a ring around it.
+**Why:** The first version was built from the numbers rather than the picture: hollow rings, broken segments between them, pale grey words centred against the number. It was correct and it did not look like the thing the player had been shown, and a child comparing the two would see two different games. The reference earns three decisions in particular. A filled pip is a **station**; a hollow ring is a **hole**, and the track should read as a journey. The lit path is what turns twelve dots into **progress** without the child having to count them. And the words on the number's baseline are what make "DAY 2 OF 12 DAYS" read as one phrase instead of three floating pieces; measured, the number's baseline and MARS HORIZON's now agree to within half a pixel.
+**Rejected:** (a) Keeping hollow rings — they read as holes rather than stops, and the lit path could not be drawn behind them. (b) A single continuous rail with the fill done as a gradient — the fill would have to be computed from the pip positions, and it drifts as the pips resize. (c) Leaving the words centred against the number — they float at half the number's height and the phrase falls apart. (d) Aligning the group to the middle of the two-line brand block — it put DAY 2 level with the gap between MARS HORIZON and its subtitle. (e) Dropping the pips entirely when the bar gets narrow — they are the point of the tracker, so they shrink first and only go below 44rem, which is where the bar really has no room.
+**Consequence:** `src/ui/day-tracker.css` carries the reference treatment, and `src/styles/game-loop.css` gains three tokens for it — `--gl-day-idle`, `--gl-day-idle-ring` and `--gl-day-rail` — so the pips and the path are named rather than repeated.
+
+---
 ---
 
 **D-070 — agent — 2026-11-12**

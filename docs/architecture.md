@@ -437,7 +437,9 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         game's tokens, the twelve pips, the rail
     │   │                                         between them, and the two animations (the
     │   │                                         day in play breathes, the day just flown
-    │   │                                         flashes). Imported by dayTracker.ts only, the
+    │   │                                         flashes). The pips are filled stations on one
+                                         rail and the words sit on the number's baseline
+                                         (D-071). Imported by dayTracker.ts only, the
     │   │                                         way nasa-card.css sits next to nasaCard.ts
     │   │                                         (R-15).
     │   ├── baseLayoutEditor.ts         complete   the placement editor (D-065 to D-069). Exports

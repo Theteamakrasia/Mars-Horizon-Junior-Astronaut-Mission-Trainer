@@ -7,6 +7,7 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 
 | id | task | goal | owner | status | blocked by | notes |
 | --- | --- | --- | --- | --- | --- | --- |
+| TASK-094 | Match the day tracker to the reference strip: filled pips, a lit path, and the words on the number's baseline | G-4 | agent | done | — | D-071. `src/ui/day-tracker.css` rebuilt to the reference; three `--gl-day-*` tokens in `styles/game-loop.css`; the pips shrink at 68rem and go at 44rem |
 | TASK-093 | Put the mission day in the header: the day in play, the total, and twelve pips | G-4 | agent | done | — | D-070. `ui/dayTracker.ts` — a pure model off the run and the tracker itself; `ui/day-tracker.css`; 10 model tests; `tools/browser-check-day.mjs` checks all five landing regions and that the day moves on when a sol runs |
 | TASK-092 | A fixed stacking order for the outpost modules, and the NASA button beside the region name | G-4 | agent | done | — | D-069; `DEPTH_ORDER` and `depthFor`; `z` out of the layout file; the NASA button moved and given the game's orange; 503 tests |
 | TASK-091 | Warn when the layout file has a problem, and stop the editor from overwriting it | G-4 | agent | done | — | D-068; console warning + editor banner; the editor now opens from the file on disk; two bugs fixed. 492 tests |

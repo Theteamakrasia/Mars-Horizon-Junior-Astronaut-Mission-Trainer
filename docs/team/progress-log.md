@@ -6,6 +6,50 @@ Newest entry on top. Four bullets: **Did**, **Files**, **Problems**, **Next**.
 say so and say why - a clean change with an unexplained problem underneath is worse
 than a documented one.
 
+## 2026-11-12 — The day tracker, built to the reference strip
+
+**Did**
+
+- **Rebuilt the tracker to the reference.** The pips are now **filled** slate-blue
+  stations rather than hollow rings, and one rail runs behind all twelve so the track
+  reads as a path with stops on it. The path is lit in amber up to the day in play and
+  dark ahead of it, so twelve dots become progress the child can see without counting.
+- **Put the words on the number's baseline.** "DAY" and "OF 12 DAYS" were floating
+  against the middle of the big numeral; they now sit on its baseline, in white and
+  bold as the reference shows them. Measured in a real browser, the number's baseline
+  and MARS HORIZON's now agree to within half a pixel, so the tracker reads as part of
+  the brand rather than a thing floating in the middle of the bar.
+- **Made it survive a narrow window.** The pips shrink first and only disappear below
+  44rem, so the day number is on the bar at every width the game runs at.
+
+**Files**
+
+- `src/ui/day-tracker.css` — the reference treatment: filled pips, the lit path, the
+  baseline alignment, and the shrink-then-hide breakpoints.
+- `src/styles/game-loop.css` — `--gl-day-idle`, `--gl-day-idle-ring` and
+  `--gl-day-rail`, so the pips and the path are named rather than repeated.
+
+**Problems**
+
+- **The first version was built from the numbers, not the picture.** It had hollow
+  rings, segments that stopped short of the next ring, and pale grey words centred
+  against the number. Every measurement was correct and it still did not look like the
+  thing the player had been shown. The fix was to go back to the reference and take
+  its decisions literally — filled stations, one continuous path, a lit path up to
+  the day in play — rather than inventing a look of my own.
+- **Aligning the tracker took a measurement, not an eyeball.** "Align it with the brand"
+  is three different instructions. Centring the group in the header put DAY 2 level
+  with the gap between MARS HORIZON and its subtitle; aligning it to the brand's
+  middle was no better. A zero-height baseline strut in the live DOM settled it: the
+  number's baseline now matches MARS HORIZON's to 0.43px.
+
+**Next**
+
+- The tracker is now built to the reference, so it should be looked at once more in a
+  browser at 1920 and at a laptop width before the demo. The narrow case has been
+  measured at 1920, 1000, 760 and 640px, but nobody has watched it move yet.
+
+---
 ---
 
 ## 2026-11-12 — The mission day, in the header, for all five landing sites
