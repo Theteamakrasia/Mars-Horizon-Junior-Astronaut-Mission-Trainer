@@ -749,8 +749,15 @@ to leak on navigation and the menu needs no teardown for them.
 
 The stage is the backdrop for the whole screen, not a panel inside the menu: it is the
 first child of the `naming` section and covers the window, so the planet runs off the
-top and right edges and the header sits on top of it. The menu column sits on the right
-over the planet (D-049).
+top and right edges. The menu column sits on the right over the planet (D-049).
+
+There is **no navigation bar on the entry screen**. The app has one navigation bar, the
+shared `.gl__header` drawn by `gameHeader()` in `ui/gameLoop.ts`, and it appears on
+exactly the four screens a player reaches once they are under way: `landing-site`,
+`base`, `act` and `debrief`. `naming` and `briefing` carry none, and neither do
+`supply`, `launch` or `interior`. Before this pass the app had four separate headers
+(`naming__header`, `briefing__header`, `landing-site__header` and `.gl__header`), each
+sized and drawn differently.
 
 The planet rotates **in the image plane** (`rotate()`), not on a 3D axis. This is
 forced by the asset: a sphere spun about its own axis looks identical, so a `rotateY`
@@ -956,7 +963,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `tradeoffSummary` | `(score) -> string`; names strongest and weakest axis, never "recommended" |
 | | `totalScore` | `(score) -> number`, 0-25 |
 | | `strengthAndWeakness` | `(score) -> {strength, weakness}` axes |
-| `features/landing-site/view` | `mountLandingSite` | `(root, run, setRun) -> teardown`; map + five pins + Site Analysis panel, LAND HERE calls `landAt` then navigates to `nextStop('landing-site')`. Selecting a pin also shows that region's real NASA photo and fact (`regionCard`) |
+| `features/landing-site/view` | `mountLandingSite` | `(root, run, setRun) -> teardown`; map + five pins + Site Analysis panel, LAND HERE calls `landAt` then navigates to `nextStop('landing-site')`. Selecting a pin also shows that region's real NASA photo and fact (`regionCard`). It also prepends the shared navigation bar (`gameHeader('LANDING SITE', …)`) and removes it on teardown, so this screen carries the same bar as `base`, `act` and `debrief` |
 | `ui/gameLoop` | `gameScreen`, `gameWorld`, `gamePanel`, `gameSection`, `gameHeader`, `gameHud` | the shared frame from the Figma frames (D-038): one `.gl` root, the illustrated world panel, and the scrolling right-hand panel. Every word, number and variant arrives in an options object; no `sim/` rule is applied here |
 | | `moduleFigures`, `moduleArt`, `MODULE_ART`, `WORLD_BACKGROUND`, `ASTRONAUT_SPRITE` | the artwork the world panel draws, owned here so `base`, `act` and `debrief` do not copy the imports |
 | | `gameHeader`, `gameHud`, `gameDock` | `gameHeader(sub?, onLeave?)`: without `onLeave` the right-hand label is plain decorative text; with it, it is a Menu button opening an in-screen leave dialog with Keep playing / Leave mission (D-044). `gameHud` draws the five resource cards (`HudStat`) and `gameDock` the three-tab dock. The pause/settings/BUILD pills and the dock are `aria-hidden` spans, not buttons (D-038) |

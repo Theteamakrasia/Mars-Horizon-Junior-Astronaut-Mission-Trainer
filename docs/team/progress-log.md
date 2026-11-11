@@ -8,6 +8,76 @@ than a documented one.
 
 ---
 
+## 2026-11-11 — One navigation bar, a stable launch image, and a screen that scales
+
+**Did**
+
+- **Reduced the app to ONE navigation bar.** It had four: `naming__header` (32px, a
+  floating bar inset into the page), `briefing__header` (50px, the same idea),
+  `landing-site__header` (60px, its own full-bleed design) and `.gl__header`, the shared
+  one from `ui/gameLoop.ts` that `base`, `act` and `debrief` already used. The shared
+  bar is now the only one: `landing-site` draws it through `gameHeader()` like the
+  other three, and the entry screens (`naming`, `briefing`) carry none at all. To make
+  that possible the `--gl-*` design tokens moved from `.gl` to `:root`, because a rule
+  like `.gl__brand-mark { background: var(--gl-orange) }` resolved to nothing on a
+  screen that is not inside `.gl`.
+- **Stopped the launch parts-tour image shaking.** It carried an endless one-pixel,
+  0.15-degree wobble (`launch-parts-shake`), and `launch.css` held the whole parts
+  panel TWICE — the panel, the card, the header, the image and the controls, once from
+  line 314 and again from 446, which is why the shake rule appeared twice. Both copies
+  of the block are gone. The cinematic's slow camera push is untouched: that one is
+  model-driven and is the shot the reel is built around.
+- **Made the launch stage fill the screen.** It was locked to 16:9 and centred, so on
+  any window that was not 16:9 the cinematic sat in a letterbox with black bars. It is
+  now the viewport, and the stills and films are `object-fit: cover` — they grow to
+  meet the window and crop a little on the long axis, never stretch.
+- **Gave the launch controls their own bar.** Prev / Next / Continue were inside the
+  card, below the artwork, so their position depended on the card's height and they
+  were pushed off the bottom of the panel on a short window (ISS-041). They are now a
+  sibling of the card, pinned along the bottom of the screen, always in the same place
+  and never over the picture.
+- **Swapped the launch button colours.** NEXT is the orange one — the same `#FA6200`
+  fill, `#150800` text and `#ff7b33` hover as the naming page's START MISSION — and
+  CONTINUE is the quiet dark button. Two orange buttons on one row was one too many.
+- **Made the landing-site screen scale.** Every size on it was fixed rem and px, so
+  nothing grew with the window: a pin label was 13.33px at 1024, 1600 and 1920 alike,
+  while the rest of the app scaled. They are now `clamp()`s against the viewport, the
+  way the naming page and the game-loop screens write theirs.
+
+**Files**
+
+- `index.html` — the three bespoke headers removed; the launch parts panel restructured
+- `src/styles/game-loop.css` — the `--gl-*` tokens moved to `:root`
+- `src/features/naming/naming.css`, `src/features/briefing/briefing.css` — the dead
+  header rules deleted
+- `src/features/landing-site/landing-site.css`, `src/features/landing-site/view.ts`
+- `src/features/launch/launch.css`
+- `docs/architecture.md`, `docs/team/issues.md`, `docs/team/progress-log.md`
+
+**Problems**
+
+- The branch this started from, `feat/five-mars-locations`, had **diverged from
+  `origin/main`**: main had gained the encyclopedia, the placement editor, the
+  minigames and the guide, while the branch had the rover, the region events and the
+  per-region world art. The reference design the owner asked for — the orange
+  rocket badge in the navy header — only exists on `main`, and the branch had already
+  replaced it with a Mars planet in a circle. The work was rebased onto `origin/main`
+  so the pull request is small and matches what is deployed. **`feat/five-mars-locations`
+  is untouched** and still holds the rover work.
+- `launch.css` is a CRLF file and the editor could not match multi-line blocks in it,
+  so the parts-panel rewrite was done by writing the whole stylesheet and copying it
+  back with its line endings intact (R-16).
+- The journey check (`tools/browser-check-journey.mjs`) still fails — and it fails
+  **identically on `origin/main`**, checked in a clean worktree. It is main's own
+  pre-existing failure, not something this work caused.
+
+**Next**
+
+- Open the pull request against `main` and demo the four screens that carry the bar
+  next to the two that do not.
+
+---
+
 ## 2026-11-11 — Merge main, and put the how-to-play panel above the outpost
 
 **Did**
