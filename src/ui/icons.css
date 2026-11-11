@@ -1,0 +1,13 @@
+/* ICONS — imported by ui/icons.ts only (R-15).
+   Every pictogram is a stroked 24×24 drawing, sized in `em` so it follows the
+   text it sits beside and coloured by `currentColor` so it follows the tone of
+   the card it is on. */
+
+.ico {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.14em;
+  overflow: visible;
+}

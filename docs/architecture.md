@@ -395,6 +395,27 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   ├── guide.ts                  complete   guidePanel(onClose), guideButton(onOpen). The
     │   │                                         how-to-play panel and the ? button in the mission
     │   │                                         bar. The words come from sim/guide.ts.
+    │   ├── icons.ts                  complete   IconName, ICON_PATHS, RESOURCE_ICON, RANK_ICON,
+    │   │                                         icon(name, label?). The game's whole pictogram
+    │   │                                         set: 34 stroked 24×24 line drawings, coloured
+    │   │                                         by currentColor, drawn into the SVG namespace
+    │   │                                         by dom/svg.ts. The data and the drawing live in
+    │   │                                         one file so a test can read the paths without
+    │   │                                         a browser (D-070).
+    │   ├── icons.css                 complete   one rule: an icon is 1em square and follows
+    │   │                                         the text. Imported by icons.ts only.
+    │   ├── icons.test.ts             complete   6 tests: every name draws something, no shape
+    │   │                                         holds an emoji, the five stores and the five
+    │   │                                         ranks each get their own pictogram.
+    │   ├── sheet.ts                  complete   sheet(options) -> backdrop, sheetCloseButton.
+    │   │                                         One section of a screen, opened as a dialog over
+    │   │                                         it: a header bar, a scrolling body, a closing
+    │   │                                         button, plus Escape, backdrop-click and a Tab
+    │   │                                         trap. The act desk's six buttons open into it
+    │   │                                         (D-070).
+    │   ├── sheet.css                 complete   the backdrop and the card. `position: fixed`, so
+    │   │                                         a sheet is not affected by the panel's own
+    │   │                                         scroll or its one-column collapse.
     │   ├── registry.ts                 complete   the one composition seam. Exports ScreenFactory,
     │   │                                         screenMount, resolveScreen, nextStop,
     │   │                                         allScreenMounts. Maps all nine built routes onto
@@ -463,6 +484,11 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         cross-feature import. Never rejects.
     │   ├── pointerGrab.ts              complete   207 lines. Exports attachGrab -> teardown.
     │   │                                         Velocity is a 100ms windowed average, EMA smoothed.
+    │   ├── svg.ts                     complete   svg(shapes, attrs?). The one place that knows
+    │   │                                         the SVG namespace: an `<svg>` holding one path
+    │   │                                         per shape, built as nodes rather than parsed,
+    │   │                                         so an icon can never carry a string a player
+    │   │                                         typed. Used by ui/icons.ts only.
     │   └── starfield.ts                complete   63 lines. 140 stars across three depth layers.
     │                                             Suspect: layers animate with no looping copy —
     │                                             ISS-002, unverified in a browser.
@@ -809,6 +835,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 | `main.ts` | none (side effects) | composition root; throws on a missing element id |
 | `dom/forecastLoader` | `LoadedForecast`, `loadForecast` | `(signal?, seed = Date.now(), dustScore = NEUTRAL_SCORE.dust) -> Promise<LoadedForecast>`; never rejects. Fetches flares through `data/spaceweather`, then runs `sim/forecast.createForecast`. Sits in `dom/` because it joins `data/` and `sim/`, and both `base` and `act` need it without importing each other (R-5) |
 | `dom/dailyFactLoader` | `LoadedDailyFacts`, `loadDailyFacts` | `(signal?) -> Promise<LoadedDailyFacts>`; never rejects. Fetches NASA's daily pictures through `data/nasaDaily` and reports the source. In `dom/` for the same reason as the forecast loader: `act` and `debrief` both want it and R-5 stops them importing each other |
+| `dom/svg` | `svg` | `(shapes, attrs = {}) -> SVGSVGElement`; an `<svg>` holding one `<path>` per shape, with `stroke`/`fill` set to `currentColor`. Built as nodes rather than parsed from a string, so the one place that knows the SVG namespace can never be handed markup. Used by `ui/icons.ts` only |
 | `data/spaceweather` | `SpaceWeatherEvent`, `SpaceWeatherSource` | a flare as the game uses it; source is `'donki' \| 'noaa' \| 'fallback'` |
 | | `fetchSpaceWeather` | `(options?) -> Promise<SpaceWeatherEvent[]>`; never rejects. Tries NASA DONKI, then NOAA SWPC, then the empty `FALLBACK_FLARES`. Every flare is kept, not just the strongest. Remembers one answer so two screens cost one request; an answer abandoned by its caller is not remembered |
 | | `parseFlares`, `parseNoaaFlares` | `(json) -> SpaceWeatherEvent[]`; validate every field and drop anything malformed rather than trusting the wire |
@@ -837,6 +864,8 @@ returns to `landing`, which keeps running behind the mounted screen.
 | `ui/nasaFeedCard` | `nasaFeedCard` | `(fact: DailyFact, kicker?) -> figure`; the live NASA picture in the same card as the curated one. The picture is optional — a video day keeps its words |
 | `ui/activityPlayer` | `Inspection`, `InspectionResult`, `makeInspection` | `(engine, sol) -> Inspection`; the work-order player for one order: which tool it uses, what the two readings ask for, and how it is graded. The grading itself is in `sim/minigames.ts`, so the rules stay pure (D-060). `Inspection.done()` reports whether the player has finished; nothing gates on it yet, so the Finish button is always there |
 | `ui/guide` | `guidePanel`, `guideButton` | `guidePanel(onClose) -> HTMLElement`; the how-to-play panel, with each step saying where it happens. `guideButton(onOpen) -> HTMLButtonElement`; the `?` in the mission bar. The words are in `sim/guide.ts` (D-060) |
+| `ui/icons` | `IconName`, `ICON_PATHS`, `RESOURCE_ICON`, `RANK_ICON`, `icon` | `ICON_PATHS: Record<IconName, readonly Shape[]>` — the game's 34 stroked 24×24 line drawings, drawn through `dom/svg.svg`. `icon(name, label?) -> SVGSVGElement`: decorative and hidden from a screen reader unless `label` is given, in which case it becomes an `img` with that name. `RESOURCE_ICON` maps the five stores, `RANK_ICON` the five science ranks. Pure data plus one DOM builder, so a test can read every path without a browser (D-070) |
+| `ui/sheet` | `SheetOptions`, `sheet`, `sheetCloseButton` | `(options: {icon, kicker?, title, body, footer?, doneLabel?, onClose}) -> HTMLElement`; one section of a screen as a dialog over it: backdrop, card, header bar, scrolling `.sheet__body`, closing button, and one `onClose` for the close button, the done button, the backdrop and `Escape`. A Tab trap keeps focus inside. `sheetCloseButton(mounted) -> HTMLElement \| null` finds the button to focus once it is in the document. The act hub's five or six tiles open into it (D-070) |
 | `sim/drift` | `stepDrift` | `(state, dt, size, viewport) -> DriftResult`; reflects off walls, returns the fastest `Impact` or null |
 | | `createInitialDrift` | `(size, viewport, speed) -> DriftState`; random 30-45 degree diagonal. **5 `Math.random()` calls** |
 | | `driftSpeedForViewport` | `(width) -> number`, clamped 96..176 px/s |
