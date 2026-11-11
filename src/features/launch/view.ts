@@ -36,6 +36,7 @@ import { nextStop } from '../../ui/registry';
 import { navigate } from '../../ui/router';
 import type { RunState } from '../../sim/run';
 import { factFor } from '../../data/nasaGallery';
+import { focusHandlesEnter, isPlainEnter } from '../../dom/keys';
 
 import './launch.css';
 
@@ -65,6 +66,7 @@ import {
   VIDEO_DESCRIPTION,
   VIDEO_DURATION_MS,
   resolveBeatStart,
+  tourActionFor,
   type Shot,
 } from './model';
 
@@ -329,6 +331,8 @@ export function mountLaunch(
   let partsPrevHandler: (() => void) | null = null;
   let partsNextHandler: (() => void) | null = null;
   let partsContinueHandler: (() => void) | null = null;
+  /** The Enter key listener, so teardown can remove it. */
+  let partsKeyHandler: ((event: KeyboardEvent) => void) | null = null;
 
   /** The screen's only exit: the next stop, once and only once. */
   const handOff = (): void => {
@@ -509,13 +513,44 @@ export function mountLaunch(
       handOff();
     };
 
+    /*
+      Enter moves the tour on, the same way it moves the ration check on: a
+      plain Enter, and only when the focus is not already on something that
+      deals with Enter itself - a focused button already fires a click, and
+      answering that here as well would move the tour twice on one press.
+
+      On the last slide there is nothing left to look at, so the same key that
+      moves the tour along is the one that carries the player out of it. That is
+      what CONTINUE does, and it is why CONTINUE is the orange button there.
+    */
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (!isPlainEnter(event.key, { alt: event.altKey, ctrl: event.ctrlKey, meta: event.metaKey })) return;
+
+      const target = event.target as HTMLElement | null;
+      if (target !== null && focusHandlesEnter(target.tagName)) return;
+
+      event.preventDefault();
+
+      if (tourActionFor(partsIndex) === 'continue') {
+        onContinue();
+        return;
+      }
+
+      onNext();
+    };
+
     partsPrev.addEventListener('click', onPrev);
     partsNext.addEventListener('click', onNext);
     partsContinue.addEventListener('click', onContinue);
 
+    // The key is only answered once the tour is open: the cinematic has no skip,
+    // and Enter must not be a way out of it.
+    window.addEventListener('keydown', onKeyDown);
+
     partsPrevHandler = onPrev;
     partsNextHandler = onNext;
     partsContinueHandler = onContinue;
+    partsKeyHandler = onKeyDown;
   };
 
   /**
@@ -635,6 +670,15 @@ export function mountLaunch(
     if (partsPrevHandler !== null) partsPrev.removeEventListener('click', partsPrevHandler);
     if (partsNextHandler !== null) partsNext.removeEventListener('click', partsNextHandler);
     if (partsContinueHandler !== null) partsContinue.removeEventListener('click', partsContinueHandler);
+
+    // The key listener lives on the window, so it has to come off again here:
+    // left in place it would keep answering Enter for the launch screen after
+    // the player had left it, and fight the next screen's own Enter handler.
+    if (partsKeyHandler !== null) {
+      window.removeEventListener('keydown', partsKeyHandler);
+      partsKeyHandler = null;
+    }
+
     root.classList.remove('launch__cinematic-dimmed');
     partsPanel.hidden = true;
   };

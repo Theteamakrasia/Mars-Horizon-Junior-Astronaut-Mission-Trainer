@@ -12,6 +12,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
 | ISS-067 | The launch parts-tour image shook forever, and launch.css held the panel twice | medium | agent | fixed | this branch |
+| ISS-070 | The launch parts tour could only be moved through with the mouse | medium | agent | fixed | this branch |
 | ISS-069 | The parts tour showed the assembled-craft picture twice, and opened with it | medium | agent | fixed | this branch |
 | ISS-068 | Four different navigation bars, and only one of them was the shared one | medium | agent | fixed | this branch |
 | ISS-066 | The `drag-editor` placement WIP was unreachable, failed `tsc` and failed `check-markup`, and copies of it sat at the repo root | high | agent | fixed | c9b8904 |
@@ -81,7 +82,32 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-## ISS-069 — The parts tour showed the assembled-craft picture twice, and opened with it
+## ISS-070 — The launch parts tour could only be moved through with the mouse
+
+- **Reported by:** the owner, 2026-11-11: "if i press enter it should work and at the
+  end when the assembled craft is done showing if then i press enter it should work
+  in the continue part".
+- **Where:** `src/features/launch/view.ts`, `src/features/launch/model.ts`,
+  `src/dom/keys.ts` (new), `src/features/supply/model.ts`, `src/features/supply/view.ts`.
+- **Problem:** the parts tour had three buttons and no keyboard. A player using a
+  keyboard had to tab to the buttons and press Space, while the ration check
+  answered Enter (ISS-047). The rules for answering Enter - a plain Enter, and not
+  when a focused button already deals with it - lived in the ration check's own
+  model, and the launch screen could not have them: a feature never imports
+  another feature (R-5).
+- **Fix:** the parts tour now answers Enter the same way the ration check does.
+  While there are parts left it moves to the next one; on the last slide - the
+  assembled craft - there is nothing left to look at, so the same key carries the
+  player out of the tour, which is what CONTINUE does and why CONTINUE is the
+  orange button there. The cinematic still has no skip: the key is only answered
+  once the tour is open.
+  The two rules moved to `src/dom/keys.ts` so there is one copy of them rather
+  than one per screen, and their tests moved with them to `src/dom/keys.test.ts`.
+  `launch/model.ts` gained `tourActionFor(index)`, the pure decision of what Enter
+  does on a slide, so it can be tested without a browser.
+- **Pre-existing:** yes. The ration check answered Enter; nothing else did.
+
+---## ISS-069 — The parts tour showed the assembled-craft picture twice, and opened with it
 
 - **Reported by:** the owner, 2026-11-11: "this image should be shown to the last
   part, why it is showing twice? remove it from the first part".

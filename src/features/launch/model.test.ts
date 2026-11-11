@@ -11,6 +11,7 @@ import {
   PARTS,
   PRESS_SHOT,
   resolveBeatStart,
+  tourActionFor,
   SHOTS,
   TITLE,
   TITLE_DURATION_MS,
@@ -287,5 +288,23 @@ describe('the camera flashes', () => {
   it('finishes each flash before the shot does', () => {
     const lastEnd = FLASH_TIMES[FLASH_TIMES.length - 1] + FLASH_RISE_PCT + FLASH_FALL_PCT;
     expect(lastEnd).toBeLessThan(100);
+  });
+});
+describe('tourActionFor', () => {
+  it('advances while there are parts left', () => {
+    for (let index = 0; index < PARTS.length - 1; index += 1) {
+      expect(tourActionFor(index)).toBe('advance');
+    }
+  });
+
+  it('continues on the last slide, where the tour ends', () => {
+    // The assembled craft is the last slide, so this is where the tour ends and
+    // where Enter carries the player out of it.
+    expect(tourActionFor(PARTS.length - 1)).toBe('continue');
+    expect(PARTS[PARTS.length - 1].id).toBe('overview');
+  });
+
+  it('treats a slide past the end as the end too', () => {
+    expect(tourActionFor(PARTS.length)).toBe('continue');
   });
 });

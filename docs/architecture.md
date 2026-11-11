@@ -447,7 +447,13 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │                                             leave dialog (D-044); without it the old plain
     │                                             label stays.
     │
-    ├── dom/                            landing-page side effects only. Untested (ISS-011).
+    ├── dom/                            landing-page side effects, and the keyboard rules the
+    │                                   screens share. Mostly untested (ISS-011).
+    │   ├── keys.ts                     complete   The keyboard rules more than one screen needs:
+    │   │                                         KeyModifiers; isPlainEnter(key, modifiers);
+    │   │                                         focusHandlesEnter(tagName). Pure. They used to
+    │   │                                         live in features/supply/model.ts, where the launch
+    │   │                                         parts tour could not have them (R-5).
     │   ├── floatAstronaut.ts           complete   218 lines. The rAF loop, the two transforms, the
     │   │                                         resize handler, the grab lifecycle. Exports
     │   │                                         startFloatingAstronaut -> teardown. Discards deltas
@@ -1001,6 +1007,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `resolveBeatStart` | `(earliestMs, readyAtMs) -> ms`; a beat starts at the later of its slot and its clip's readiness |
 | `features/launch/view` | `mountLaunch` | `(root, run) -> teardown`; plays the stills, then the launch film and the docking clip, then opens the interactive parts tour. Beats are media-driven: only the launch film loads up front, the docking clip loads when the film's beat starts, each has a poster, and a beat waits for its clip rather than being skipped. Reduced motion holds the stills and both films. The parts tour is static images and text — Prev / Next move between parts, disabled at the boundaries, Continue hands off. The parts tour also shows a rotating NASA fact per part from `factFor(index)` into `[data-launch-parts-fact]`, so the tour teaches while it shows. |
 | `dom/floatAstronaut` | `startFloatingAstronaut` | `(wrapper, {deformLayer, reducedMotion}) -> teardown`; cancels rAF, removes the resize listener, detaches the grab, clears the transform |
+| `dom/keys` | `KeyModifiers`, `isPlainEnter`, `focusHandlesEnter` | `(key, modifiers) -> boolean` and `(tagName) -> boolean`. The shared keyboard rules: a plain Enter is the only key a screen answers, and a focused button, link or field keeps Enter for itself. Pure, and shared because a feature never imports another feature (R-5) |
 | `dom/pointerGrab` | `attachGrab` | `(target, handlers, options) -> teardown` |
 | `dom/starfield` | `createStarfield` | `(container) => void`; appends, never clears |
 | `ui/button-strip` | `createButtonStrip` | `(root, options) -> ButtonStripSpec`; full-width fixed-height bottom strip holding Next / Prev / action buttons; teardown is mandatory |

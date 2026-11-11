@@ -59,6 +59,18 @@ than a documented one.
   below the picture. The artwork is left with nothing over it but its own name,
   on a plate at the top, and every word of the caption is on its own ground where
   nothing can cover it.
+- **Made the parts tour answer the Enter key.** It could only be moved through
+  with the mouse. It now answers Enter the same way the ration check does: while
+  there are parts left it moves to the next one, and on the last slide — the
+  assembled craft — the same key carries the player out of the tour, which is
+  what CONTINUE does and why CONTINUE is the orange button there. The cinematic
+  still has no skip: the key is only answered once the tour is open.
+  The two rules that decide this — a plain Enter, and not when a focused button
+  already deals with Enter itself — moved out of the ration check's model into
+  `src/dom/keys.ts`, because the launch screen could not have had them where they
+  were (R-5). Their tests moved with them. The decision itself, what Enter does
+  on a given slide, is `tourActionFor` in `launch/model.ts`, so it is tested
+  without a browser.
 - **Stopped the parts tour showing the assembled-craft picture twice.** The tour
   opened on the whole spacecraft and then **wrapped** back to it at the end, so
   the same picture was on screen at the start and the finish with the four parts

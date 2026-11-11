@@ -239,6 +239,28 @@ export const PARTS: readonly Part[] = [
 ];
 
 /**
+ * What the Enter key does on a slide of the parts tour.
+ *
+ * Enter moves the player on, whichever way "on" happens to be: to the next part
+ * while there are parts left, and out of the tour on the last one.
+ */
+export type TourAction = 'advance' | 'continue';
+
+/**
+ * What Enter does on the slide at `index`.
+ *
+ * The tour is a straight walk, so the last slide is the end of it: there is
+ * nothing left to look at, and CONTINUE is the only way forward. That is why
+ * CONTINUE takes the orange accent there, and why the same key that moves the
+ * tour along moves the player out of it when the tour is done.
+ *
+ * Pure, so the rule can be tested without a browser.
+ */
+export function tourActionFor(index: number): TourAction {
+  return index < PARTS.length - 1 ? 'advance' : 'continue';
+}
+
+/**
  * The launch film, in milliseconds.
  *
  * Matches the rendered MP4 frame-for-frame: 150 frames at 30fps. If the film is
