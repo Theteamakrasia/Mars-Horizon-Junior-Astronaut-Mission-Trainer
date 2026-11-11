@@ -6,6 +6,13 @@ falls back to famous past flares, labelled approximate, when neither answers.
 gallery when NASA is busy. `nasaGallery.ts` holds the saved gallery: it makes no
 request at all.
 
+**What is *not* here any more.** The rover's catalogue of real NASA finds used to live in
+`data/roverFinds.ts`. It is now in `src/sim/rover.ts`, because the simulation owns the
+rover's whole lifecycle — it is sent out by a work order, it drives on sol time, and it
+comes back with a document on the desk (D-062). `data/` is for things fetched from a
+network; the rover's finds are static data the game already had, and putting them in
+`sim/` keeps the rover's rules and its catalogue in one place.
+
 ## Why this folder is quarantined
 
 `npm run check` **fails the build** on any `fetch`, `XMLHttpRequest`, `WebSocket`,

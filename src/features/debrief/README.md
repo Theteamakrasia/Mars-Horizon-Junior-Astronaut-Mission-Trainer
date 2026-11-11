@@ -59,6 +59,18 @@ kids to trust data that is not real.
 The outcome, the breakdown of resources consumed, completed tasks, the lessons, and a way
 back to replay.
 
+**And the keepsake** (D-060, D-061):
+
+- the **certificate** — the run, the rank, the five learning goals as a *record* of what
+  the player kept running and for how long
+- the **patches** the run earned (`src/sim/patches.ts`)
+- the **standing orders** the player worked under, printed as the manual they take home
+  with them — the twenty-four rules
+
+The goals are printed as a record, **not as a grade**. There is no counter, no target and
+no "you did well at" — the goals are the project's learning outcomes, and surviving twelve
+sols is the only outcome (D-061).
+
 ## Honesty about approximations
 
 Where the game uses an estimated value rather than a measured one, **the UI must say so.**
