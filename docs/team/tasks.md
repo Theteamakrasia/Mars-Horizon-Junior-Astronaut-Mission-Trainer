@@ -7,6 +7,7 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 
 | id | task | goal | owner | status | blocked by | notes |
 | --- | --- | --- | --- | --- | --- | --- |
+| TASK-068 | A fixed stacking order for the outpost modules, and the NASA button beside the region name | G-4 | agent | done | - | D-053; `DEPTH_ORDER` and `depthFor`; `z` out of the layout file; the NASA button moved and given the game's orange; 503 tests |
 | TASK-067 | Warn when the layout file has a problem, and stop the editor from overwriting it | G-4 | agent | done | - | D-052; console warning + editor banner; the editor now opens from the file on disk; two bugs fixed. 492 tests |
 | TASK-066 | Mirror a module in the placement editor | G-4 | agent | done | - | D-051; optional `flip` on a pose; Mirror button and F key; first tests for `ui/gameLoop.ts`; 492 tests |
 | TASK-065 | A pose per module copy, and a way to resize a module | G-4 | agent | done | - | D-050; `baseLayout.json` holds a list per kind; the editor places and scales all 15 copies; crewmate sprite off the build screen; 480 tests |

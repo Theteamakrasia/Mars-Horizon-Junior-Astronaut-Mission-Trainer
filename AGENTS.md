@@ -13,7 +13,7 @@ demo **Nov 14-15**.
 **The one invariant: `sim/` and each feature's `model.ts` are pure — no `document`, no
 `window`, no network.**
 
-That is what lets 492 tests run in a few seconds with no browser and no mocks, so the game
+That is what lets 503 tests run in a few seconds with no browser and no mocks, so the game
 can be asserted on rather than eyeballed. Everything else here exists to protect it. If
 you are unsure where code goes: if it touches the DOM it is not pure.
 
@@ -54,7 +54,7 @@ human upholds it and nothing catches you.
 | R-10 | No `on*="..."` inline handlers in markup | **enforced** | `no-inline-handler` |
 | R-11 | A relative import that resolves to nothing is an error | **enforced** | `unresolved-import` |
 | R-12 | Typecheck clean; `strict`, `noUnusedLocals` | **enforced** | `npm run check` |
-| R-13 | Tests pass (492 today) | **enforced** | `npm test`, watch ISS-015 |
+| R-13 | Tests pass (503 today) | **enforced** | `npm test`, watch ISS-015 |
 | R-14 | No `index.ts` barrel files — import concrete paths | convention | nothing |
 | R-15 | Feature CSS is imported by its own `view.ts`, never added to `style.css` | convention | nothing |
 | R-16 | Files are UTF-8, LF, no BOM. Preserve a file's existing endings | convention | **nothing** — ISS-005 |
@@ -199,7 +199,7 @@ opening its folder — that is the whole point of the layout.
 | **Advancing a sol** | `src/features/act/` — **built**, 7 tests |
 | **Why the run was won or lost** | `src/features/debrief/` — **built**, 12 tests |
 | **Reading what each module does, with NASA facts** | `src/features/encyclopedia/` — **built** |
-| **Where each copy of a module stands on the outpost panel** | `src/ui/baseLayout.json` — a pose list per kind; drag them on the real screen with `?editlayout=1` (D-049, D-050). A pose may be mirrored (`flip`). The editor opens showing the file on disk, and a file with problems is listed in the console (D-052) |
+| **Where each copy of a module stands on the outpost panel** | `src/ui/baseLayout.json` — a pose list per kind; drag them on the real screen with `?editlayout=1` (D-049, D-050). A pose may be mirrored (`flip`). The stacking order is a rule in `ui/baseLayout.ts` (D-053), not a number in the file. The editor opens showing the file on disk, and a file with problems is listed in the console (D-052) |
 | The placement editor itself | `src/ui/baseLayoutEditor.ts` — dev-only, compiled out of a production build |
 | Where START MISSION goes | `onSubmit` in `src/features/naming/view.ts` — flows to `briefing` |
 | Boot, element lookup, `?motion=`, mounting screens | `src/main.ts` |

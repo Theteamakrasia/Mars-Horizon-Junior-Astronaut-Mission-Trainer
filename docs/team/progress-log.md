@@ -8,6 +8,60 @@ than a documented one.
 
 ---
 
+## 2026-11-11 — A fixed stacking order, and the NASA button where it belongs
+
+**Did**
+
+- Gave the outpost a **fixed stacking order**: shields, ice miner, solar arrays,
+  greenhouse, nuclear unit, battery banks, life support, habitat — farthest to nearest. The
+  copies of a kind step towards the camera where that reads right (solar array 1 < 2 < 3 <
+  4) and the two regolith shields share one depth.
+- **`z` is gone from the layout file.** A pose is now where it is, how big, and which way
+  round. The order is a rule in code, so the game cannot draw the outpost wrong whatever
+  the file says.
+- The editor stacks its handles by the same rule, so it is a picture of the outpost rather
+  than a different one. Its depth field stopped being editable and now says where a module
+  sits — *farthest*, *nearest*, or *3 of 8*.
+- **Put the NASA data button beside the region name** on the landing-site screen, and
+  filled it with the game's orange so it reads as something to press. It had been landing
+  on its own line under the name the whole time: the panel is a flex column, so the `<h3>`
+  and the `<button>` were separate flex children, and the `margin-left` on the button only
+  indented it.
+- Kept the developer's own layout in full: every position, every width, and the mirrored
+  regolith shield.
+
+**Files**
+
+- `src/ui/baseLayout.ts`, `src/ui/baseLayout.json`, `src/ui/baseLayout.test.ts`
+- `src/ui/gameLoop.ts`, `src/ui/gameLoop.test.ts`
+- `src/ui/baseLayoutEditor.ts`, `src/ui/base-layout-editor.css`
+- `index.html`, `src/features/landing-site/landing-site.css`, `src/features/landing-site/view.ts`
+- `docs/architecture.md`, `docs/team/decisions.md`, `docs/team/tasks.md`, `AGENTS.md`, `README.md`
+
+**Problems**
+
+- The NASA button's colour did not apply at first: `.landing-site__button--nasa-data` sat
+  **above** the plain `.landing-site__button` rule, and with the same specificity the later
+  rule wins. The `--land` modifier was already after the base rule; this one was not, and
+  had been left where the old inline NASA picture used to be.
+- The NASA button and its modal were both still uncommitted work, so the markup and the
+  logic had to land together — the markup on its own is a dead button. That commit carries
+  the developer's landing-site work; the `#encyclopedia` hunk in `index.html` was staged out
+  with a patch and stays uncommitted with the rest of the encyclopedia.
+- Verified in headless Chrome: a new harness reads the **computed z-index** of every
+  rendered module and asserts the order is exactly the one asked for — 9 checks, including
+  that all fifteen copies in the editor stack correctly. That is the check that would have
+  caught the original problem, rather than a screenshot. `npm run check` clean; `npm test`
+  503 passed in 22 files (was 492; +7 layout tests and +4 for the stacking order).
+
+**Next**
+
+- The layout is one arrangement for every landing region. If the outpost should look
+  different on different ground, that is a second file and a rule for choosing between
+  them.
+
+---
+
 ## 2026-11-11 — Say so when the layout file is not clean
 
 **Did**

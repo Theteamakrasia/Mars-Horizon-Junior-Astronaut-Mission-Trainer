@@ -19,7 +19,7 @@ than eyeballed, and it is what `npm run check` protects.
 
 ## The invariant, and why it is enforced
 
-492 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
+503 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
 reference it would still work, and the cost would surface later as an untestable bug.
 Enforced as `no-dom-in-pure-zone`.
 
@@ -255,10 +255,12 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         built, so the router can fall through.
     │   ├── baseLayout.json             complete   where every copy of every module stands on
     │   │                                         the outpost panel: a list of poses per kind,
-    │   │                                         {left, bottom, width, z} each, in percent.
-    │   │                                         The nth entry is where the nth copy of that
-    │   │                                         kind stands. The file a developer produces with
-    │   │                                         the placement editor (D-049, D-050).
+    │   │                                         {left, bottom, width, flip?} each, in
+    │   │                                         percent. The nth entry is where the nth copy of
+    │   │                                         that kind stands. The file a developer produces
+    │   │                                         with the placement editor (D-049, D-050). The
+    │   │                                         stacking order is not here — it is a rule
+    │   │                                         (D-053).
     │   ├── baseLayout.ts               complete   loads and validates baseLayout.json. Exports
     │   │                                         ModuleSpot, ModulePoses, SPOT_BAND,
     │   │                                         PANEL_RIGHT_EDGE, DEFAULT_POSES, MODULE_POSES,
@@ -268,10 +270,10 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         kind the file cannot supply falls back to
     │   │                                         DEFAULT_POSES; an out-of-range number is
     │   │                                         clamped, not discarded.
-    │   ├── baseLayout.test.ts          complete   47 tests. Every input literal.
-    │   ├── gameLoop.test.ts            complete   5 tests — the first for this file. Where each
-    │   │                                         copy of a module stands, and which way round it
-    │   │                                         faces.
+    │   ├── baseLayout.test.ts          complete   54 tests. Every input literal.
+    │   ├── gameLoop.test.ts            complete   9 tests — the first for this file. Where each
+    │   │                                         copy of a module stands, which way round it
+    │   │                                         faces, and the order they are stacked in.
     │   ├── baseLayoutEditor.ts         complete   the placement editor (D-049, D-050, D-051,
     │   │                                         D-052). Exports startLayoutEditor(root) ->
     │   │                                         teardown. Dev-only: a developer drags the
@@ -680,8 +682,9 @@ returns to `landing`, which keeps running behind the mounted screen.
 | `ui/gameLoop` | `gameScreen`, `gameWorld`, `gamePanel` | the shared frame from the Figma frames (D-038): one `.gl` root, the illustrated world panel, and the scrolling right-hand panel. Every word, number and variant arrives in an options object; no `sim/` rule is applied here |
 | | `gameHeader`, `gameHud`, `gameDock` | `gameHeader(sub?, onLeave?)`: without `onLeave` the right-hand label is plain decorative text; with it, it is a Menu button opening an in-screen leave dialog with Keep playing / Leave mission (D-044). `gameHud` draws the five resource cards (`HudStat`) and `gameDock` the three-tab dock. The pause/settings/BUILD pills and the dock are `aria-hidden` spans, not buttons (D-038) |
 | | `gameSection` | `(label, ...content) -> section`; an uppercase label and its body |
-| | `moduleFigures`, `moduleArt`, `MODULE_ART`, `WORLD_BACKGROUND`, `ASTRONAUT_SPRITE` | artwork placement and the bundled asset URLs; the only import site for the figures base, act and debrief share. The module layout comes from `ui/baseLayout` (D-049), one pose per copy (D-050), and a pose may be mirrored (D-051) |
-| `ui/baseLayout` | `ModuleSpot`, `ModulePoses` | `{left, bottom, width, z, flip?}` for one module; and where every copy of every kind stands — one list per kind, in build order. `flip` is optional and means mirrored left to right |
+| | `moduleFigures`, `moduleArt`, `MODULE_ART`, `WORLD_BACKGROUND`, `ASTRONAUT_SPRITE` | artwork placement and the bundled asset URLs; the only import site for the figures base, act and debrief share. The module layout comes from `ui/baseLayout` (D-049), one pose per copy (D-050), a pose may be mirrored (D-051), and the stacking order is a rule (D-053) |
+| `ui/baseLayout` | `ModuleSpot`, `ModulePoses` | `{left, bottom, width, flip?}` for one module; and where every copy of every kind stands — one list per kind, in build order. `flip` is optional and means mirrored left to right |
+| | `DEPTH_ORDER`, `depthFor` | what stands in front of what, farthest first, and the stacking level of one module copy (D-053). A rule in code, not a number in the file: the order is a property of the outpost, and a file of fifteen positions cannot be trusted to keep a stacking order straight |
 | | `SPOT_BAND` | how far a module may be placed: left 2-92, bottom 2-32, width 6-24. The single source of truth; `styles/game-loop.css` clamps with the same numbers and `check-markup` Rule 11 fails the build if the two ever disagree |
 | | `PANEL_RIGHT_EDGE` | 100 — a module is never wider than the gap between where it starts and the right-hand edge of the panel |
 | | `DEFAULT_POSES` | the authored layout, used when `baseLayout.json` cannot supply one. One pose per copy the player can build |

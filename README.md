@@ -486,7 +486,7 @@ player decision, the sol loop, what is built and where a new event plugs in are 
 | Resource simulation and sol loop | **Built** — 12 sols, four scheduled events |
 | Crisis decisions and debrief verdicts | **Built** — flare, storm and supply pod |
 | Live flare strength | **Built** — NASA DONKI → NOAA SWPC → baked fallback |
-| Tests | **492 tests in 22 files** (`npm test`, 2026-11-11) |
+| Tests | **503 tests in 22 files** (`npm test`, 2026-11-11) |
 | Checks | **Clean** — import layers, banned APIs, markup, strict typecheck |
 | Save / resume | **Not built** — in-memory only (D-003) |
 | Login before `naming` | **Not built** — Supabase deferred (D-003, TASK-022) |
@@ -505,7 +505,7 @@ player decision, the sol loop, what is built and where a new event plugs in are 
 ### The one invariant
 
 `sim/` and each feature's `model.ts` are pure: no `document`, no `window`, no network. That
-is what lets 492 tests run in a few seconds with no browser and no mocks. It is enforced by
+is what lets 503 tests run in a few seconds with no browser and no mocks. It is enforced by
 `npm run check` (`scripts/check-imports.mjs`), not left to good intentions.
 
 ---
@@ -517,7 +517,7 @@ is what lets 492 tests run in a few seconds with no browser and no mocks. It is 
 npm install       # dev dependencies only — the game ships no runtime dependencies
 npm run dev       # Vite dev server, http://localhost:5173
 npm run check     # import-layer + banned-API + markup checks, then tsc --noEmit
-npm test          # Vitest, 492 tests in 22 files
+npm test          # Vitest, 503 tests in 22 files
 npm run build     # production bundle in dist/
 npm run preview   # serve the built bundle locally
 ```
@@ -558,6 +558,12 @@ If the file has a problem — a number out of range, a list too short, a kind th
 a module — the game falls back to what it can and says so: a warning in the console, and
 a banner at the top of the editor. The editor always opens showing the layout as it is on
 disk, and **Reset** puts it back the way it was.
+
+The file does not hold the stacking order. That is a rule in
+[`src/ui/baseLayout.ts`](src/ui/baseLayout.ts) — the regolith shields are the furthest
+thing away and the habitat is the nearest, with the solar arrays and the battery banks
+stepping towards the camera — so the outpost cannot be drawn in the wrong order by
+accident.
 
 This is a developer tool. It only exists in a dev build and is compiled out of a
 production bundle, so a player can never reach it.
