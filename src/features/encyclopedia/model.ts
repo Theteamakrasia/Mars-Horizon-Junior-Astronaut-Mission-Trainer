@@ -29,14 +29,14 @@ export interface EncyclopediaEntry {
 
 /** NASA fact index per module kind, matched to the system it serves. */
 const NASA_FACT_INDEX: Readonly<Record<ModuleKind, number>> = {
-  'solar-array': 4, // dust fine enough to turn sunsets blue — dust buries panels
+  'solar-array': 15, // panels get dusty, so rovers tilt to shake the dust off
   habitat: 13, // no global magnetic field, so crews need shielding
-  'life-support': 11, // the air is 95% carbon dioxide, so crews bring oxygen
-  batteries: 0, // a sol is 24h 39m — energy must last the night
-  greenhouse: 6, // Curiosity found evidence Mars once had rivers and lakes
-  'ice-miner': 7, // almost all Martian water is frozen, underground
-  'regolith-shield': 13, // crews need shielding from space radiation
-  'nuclear-unit': 0, // power day and night, whatever the weather
+  'life-support': 26, // recycling water is essential on a long trip
+  batteries: 19, // a panel only makes power while the Sun is up, so you need them
+  greenhouse: 30, // growing food gives the crew something to look after
+  'ice-miner': 22, // the Phoenix lander found water ice in the soil
+  'regolith-shield': 32, // Curiosity measured radiation for years, to work out how much
+  'nuclear-unit': 17, // a nuclear unit keeps working in the dark and in a dust storm
 };
 
 /** Every equipment entry, in catalogue order. */
