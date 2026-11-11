@@ -28,7 +28,7 @@ import {
   type ResourceName,
   type ResourceStores,
 } from './resources';
-import type { DecisionRecord, RunState, SolActivity, SolEvent, SolRecord } from './run';
+import { inspectionStars, type DecisionRecord, type RunState, type SolActivity, type SolEvent, type SolRecord } from './run';
 import { deployRover, discover, pickForSol, remainingFinds, ROVER_FINDS } from './rover';
 import { siteScore } from './regions';
 import { crisisForEvent, optionOf } from './crises';
@@ -236,7 +236,10 @@ export function advanceSol(run: RunState): RunState {
       panelHealth = Math.min(1, panelHealth + activity.panelRepair);
     }
 
-    scienceEarned += activity.science;
+    /* The stars an inspection won multiply the science the order is worth.
+       That is the whole effect: an inspection never touches a store, so the
+       balance of a run does not depend on how well the player did it. */
+    scienceEarned += activity.science * inspectionStars(run, sol, activity.id);
     notes.push(`Today's activity: ${activity.title}.`);
   }
 

@@ -21,7 +21,9 @@ import { loadForecast } from '../../dom/forecastLoader';
 import { h } from '../../dom/h';
 import { earthAdvice, earthIsInTime, optionOf, pendingCrisis, type Crisis } from '../../sim/crises';
 import { oneWayMinutes, roundTripMinutes } from '../../sim/comms';
-import { answerRoverFind, withState, type RunState } from '../../sim/run';
+import { answerRoverFind, recordInspection, withState, type RunState } from '../../sim/run';
+import { makeInspection, type Inspection } from '../../ui/activityPlayer';
+import { ENGINE_NAME, engineUnlocked, type EngineKind } from '../../sim/minigames';
 import { visibleForecast } from '../../sim/forecast';
 import { siteScore, regionById, SITE_AXES } from '../../sim/regions';
 import { advanceSol, decide, powerPicture, WIN_SOL } from '../../sim/sol';
@@ -78,6 +80,8 @@ export function mountAct(
   let calmMode = false;
   let loadingForecast = false;
   let focusedCrisis: string | null = null;
+  /** The tool open on the desk, if any. */
+  let openTool: { activityId: string; tool: Inspection } | null = null;
   let clockNodes: { readonly bar: HTMLElement; readonly text: HTMLElement } | null = null;
   let pendingFocus: HTMLElement | null = null;
   /* NASA's live daily pictures. Empty when NASA did not answer, and the screen
@@ -234,6 +238,55 @@ export function mountAct(
   }
 
   /**
+   * The tool on the desk, and the order it works.
+   *
+   * The stars it wins are the only thing an inspection changes: they
+   * multiply the science the order is worth. Nothing else about the outpost
+   * moves, so the balance of a run does not depend on how well the player
+   * did it.
+   */
+  function inspectionSection(state: RunState): HTMLElement | false {
+    if (openTool === null) return false;
+
+    const { tool, activityId } = openTool;
+    const stars = state.inspections.find((entry) => entry.sol === state.sol + 1 && entry.activityId === activityId)?.stars ?? null;
+
+    const finish = h('button', { class: 'gl__btn gl__btn--primary insp__finish', type: 'button' }, stars === null ? 'Finish' : 'Done');
+
+    finish.addEventListener('click', () => {
+      if (run === null) return;
+
+      /* The first press scores the work and keeps the tool open so the player
+         can see the stars; the second closes it. Closing on the first press
+         meant the player finished the tool and was shown nothing at all. */
+      if (stars === null) {
+        const grade = tool.result();
+
+        run = recordInspection(run, state.sol + 1, activityId, grade.stars);
+        setRun(run);
+      } else {
+        openTool = null;
+      }
+
+      render();
+    });
+
+    const result =
+      stars === null
+        ? null
+        : h(
+            'p',
+            { class: 'insp__result', 'data-stars': String(stars) },
+            `${'★'.repeat(stars)}${'☆'.repeat(3 - stars)} ${tool.result().message}`,
+          );
+
+    return gameSection(
+      `Working the order · ${tool.name}`,
+      h('div', { class: 'insp' }, tool.element, result, finish),
+    );
+  }
+
+  /**
    * The work orders for today.
    *
    * A document, not a menu: what is asked, what it costs, and the two things
@@ -297,6 +350,24 @@ export function mountAct(
       if (row.available) button.addEventListener('click', () => pickActivity(row.id));
 
       list.append(button);
+
+      /* The tool this order can be worked with, if it has unlocked yet. */
+      if (row.available && row.engine !== null && engineUnlocked(row.engine, state.sol + 1)) {
+        const worked = state.inspections.some((entry) => entry.sol === state.sol + 1 && entry.activityId === row.id);
+
+        const inspect = h(
+          'button',
+          { class: 'insp__open', type: 'button' },
+          worked ? '★ Worked' : `${ENGINE_NAME[row.engine]} · inspect`,
+        );
+
+        inspect.addEventListener('click', () => {
+          openTool = { activityId: row.id, tool: makeInspection(row.engine as EngineKind, state.sol + 1) };
+          render();
+        });
+
+        list.append(h('div', { class: 'insp__slot' }, inspect));
+      }
     }
 
     const picked = rows.some((row) => row.chosen);
@@ -554,6 +625,7 @@ export function mountAct(
       recapSection(state),
       callout,
       noteSection(state),
+      inspectionSection(state),
       roverSection(state),
       orderSection(state),
       boardSection(state),

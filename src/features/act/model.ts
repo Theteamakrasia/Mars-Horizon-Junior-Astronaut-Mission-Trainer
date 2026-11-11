@@ -13,6 +13,7 @@ import { DUST_SPOTLESS, LIFE_STORE_FLOOR, type ScienceGoal } from '../../sim/goa
 import { oneWayMinutes } from '../../sim/comms';
 import { noteForSol } from '../../sim/deskNotes';
 import type { FindAnswer, FindKind } from '../../sim/rover';
+import type { EngineKind } from '../../sim/minigames';
 import { ordersThrough, type StandingOrder } from '../../sim/standingOrders';
 import { RESOURCE_NAMES, percentOf, type ResourceName, type ResourceStores } from '../../sim/resources';
 import type { RunState } from '../../sim/run';
@@ -241,6 +242,8 @@ export interface ActivityRow {
   readonly chosen: boolean;
   /** The system this order looks after, or null for a science-only order. */
   readonly system: ActivitySystem | null;
+  /** The tool this order can be worked with, or null when it has none. */
+  readonly engine: EngineKind | null;
 }
 
 /** The system an activity looks after, and the reading it is checked against. */
@@ -374,6 +377,7 @@ export function activityRows(run: RunState, sol: number): readonly ActivityRow[]
       lockedReason: offer.lockedReason,
       chosen: run.chosenActivity === offer.spec.id,
       system: offer.spec.system ?? null,
+      engine: offer.spec.engine ?? null,
     };
   });
 }

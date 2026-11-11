@@ -286,6 +286,33 @@ try {
     note('the recap is the first thing on the act panel', (after?.first ?? '').includes('in review'), after?.first ?? '');
   }
 
+  // 9. The tool on the order: work it, and the stars are the reward.
+  const opened = await evaluate(`(() => {
+    const b = document.querySelector('#act .insp__open');
+    if (!b) return 'missing';
+    b.click();
+    return 'clicked';
+  })()`);
+  note('an order can be worked with a tool', opened === 'clicked', opened);
+
+  if (opened === 'clicked') {
+    await sleep(500);
+
+    const steps = await evaluate(`[...document.querySelectorAll('#act .insp__step')].map((n) => n.textContent)`);
+
+    for (const step of steps) {
+      await evaluate(`(() => { const b = [...document.querySelectorAll('#act .insp__step')].find((n) => n.textContent === ${JSON.stringify(step)}); if (b) b.click(); })()`);
+      await sleep(150);
+    }
+
+    await evaluate(`(() => { const b = document.querySelector('#act .insp__finish'); if (b) b.click(); })()`);
+    await sleep(700);
+
+    const stars = await evaluate(`document.querySelector('#act .insp__result')?.textContent ?? ''`);
+
+    note('working the tool shows the stars', stars.includes('★'), stars);
+  }
+
   note('no console errors', consoleErrors.length === 0, consoleErrors.slice(0, 3).join(' | '));
 
   const failed = results.filter((r) => !r.ok);

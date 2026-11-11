@@ -15,6 +15,7 @@
  */
 
 import type { ScienceGoal } from './goals';
+import type { EngineKind } from './minigames';
 import type { ModuleKind } from './modules';
 import type { ResourceStores } from './resources';
 import type { RunState } from './run';
@@ -85,6 +86,14 @@ export interface ActivitySpec {
   /** Extra power the activity draws from the batteries, in kWh. */
   readonly powerCostKwh: number;
   /**
+   * The tool this order is inspected with, and the stars it can win.
+   *
+   * The stars are the only thing an inspection changes: an inspection is
+   * never worth a resource, because the balance of the run is not the
+   * inspection's business.
+   */
+  readonly engine?: EngineKind;
+  /**
    * True when this activity sends the rover out to explore.
    *
    * The rover drives on sol time, so it comes back with a document on the desk
@@ -133,6 +142,7 @@ export interface ActivityOffer {
 export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
   {
     id: 'rest',
+    engine: 'sequence',
     title: 'Rest and watch the sunset',
     detail: 'The crew rests and looks at the sky. Nothing breaks.',
     icon: '🌅',
@@ -143,6 +153,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
   },
   {
     id: 'survey',
+    engine: 'radar',
     title: 'Send the rover out to survey',
     detail: 'The rover drives out and maps the ground around the outpost.',
     icon: '🤖',
@@ -154,6 +165,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
   },
   {
     id: 'experiment',
+    engine: 'pack',
     title: 'Run a science experiment',
     detail: 'A real experiment, run by real people, on real Mars.',
     icon: '🔬',
@@ -164,6 +176,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
   },
   {
     id: 'map-site',
+    engine: 'sort',
     title: 'Map the ground around the outpost',
     detail: 'You chart the ground so nothing gets lost out there.',
     icon: '🗺',
@@ -174,6 +187,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
   },
   {
     id: 'sweep-panels',
+    engine: 'timing',
     title: 'Clean the solar panels',
     detail: 'You wipe the dust off the panels so they catch more sun.',
     icon: '🧹',
@@ -188,6 +202,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
   },
   {
     id: 'grow-extra',
+    engine: 'pack',
     title: 'Grow an extra crop',
     detail: 'You plant an extra batch of food. Growing food uses water.',
     icon: '🌱',
@@ -201,6 +216,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
   },
   {
     id: 'sample-rock',
+    engine: 'sort',
     title: 'Collect a rock sample',
     detail: 'You pick up a rock and study it. Mars rocks are full of surprises.',
     icon: '🪨',
@@ -211,6 +227,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
   },
   {
     id: 'dig-ice',
+    engine: 'radar',
     title: 'Dig for water ice',
     detail: 'You dig up buried ice and melt it into water.',
     icon: '⛏️',
@@ -224,6 +241,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
   },
   {
     id: 'recycle-tune',
+    engine: 'match',
     title: 'Tune the water recycler',
     detail: 'You tune the recycler so less of the water is wasted.',
     icon: '♻️',
@@ -236,6 +254,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
   },
   {
     id: 'stack-shielding',
+    engine: 'timing',
     title: 'Pile soil on the habitat',
     detail: 'You pile Martian soil over the habitat to block radiation.',
     icon: '🛡️',
@@ -248,6 +267,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
   },
   {
     id: 'mend-suits',
+    engine: 'sequence',
     title: 'Mend the spacesuits',
     detail: 'You mend and patch the spacesuits so they keep their cover.',
     icon: '🧑‍🚀',
@@ -260,6 +280,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
   },
   {
     id: 'air-check',
+    engine: 'match',
     title: 'Test the airlock and the suits',
     detail: 'You test the airlock and every suit, before they need it.',
     icon: '🫁',

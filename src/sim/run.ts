@@ -95,6 +95,14 @@ export interface RunState {
   /** The activity picked for the next sol, or null when none has been picked. */
   readonly chosenActivity: string | null;
   /**
+   * What the player won on each inspection, in the order they did them.
+   *
+   * An inspection is a way of working an order, not a resource: it never
+   * changes a store. It changes the science the order is worth, which is the
+   * only thing it is allowed to touch.
+   */
+  readonly inspections: readonly Inspection[];
+  /**
    * What the rover has been up to.
    *
    * The rover is part of the run, not a window floating over it: it is sent out
@@ -124,6 +132,7 @@ export function newRun(regionId: string, astronautName = ''): RunState {
     panelHealth: 1,
     science: 0,
     chosenActivity: null,
+    inspections: [],
     rover: newRover(),
     forecast: [],
     log: [],
@@ -169,6 +178,48 @@ export function answerRoverFind(state: RunState, answer: FindAnswer): RunState {
 }
 
 /**
+ * One inspection, and what it won.
+ *
+ * The stars are 0 to 3, and they multiply the science the order is worth.
+ * Nothing else about the outpost changes.
+ */
+export interface Inspection {
+  /** The sol the inspection was done on. */
+  readonly sol: number;
+  /** The order it was done on. */
+  readonly activityId: string;
+  /** 0 to 3 stars. */
+  readonly stars: number;
+}
+
+/**
+ * Record an inspection.
+ *
+ * Doing the same order twice on the same sol keeps the better result, so a
+ * player who wants three stars can go again.
+ */
+export function recordInspection(state: RunState, sol: number, activityId: string, stars: number): RunState {
+  const clamped = Math.max(0, Math.min(3, Math.round(stars)));
+  const existing = state.inspections.find((entry) => entry.sol === sol && entry.activityId === activityId);
+
+  if (existing !== undefined && existing.stars >= clamped) return state;
+
+  const inspections = [
+    ...state.inspections.filter((entry) => !(entry.sol === sol && entry.activityId === activityId)),
+    { sol, activityId, stars: clamped },
+  ];
+
+  return { ...state, inspections };
+}
+
+/** The stars won on an order on a sol, or 1 when it was never inspected. */
+export function inspectionStars(state: RunState, sol: number, activityId: string): number {
+  const found = state.inspections.find((entry) => entry.sol === sol && entry.activityId === activityId);
+
+  return found?.stars ?? 1;
+}
+
+/**
  * Replace some fields, returning new state.
  *
  * Shallow rather than a merge helper: stores and sol change one at a time, and a
@@ -193,6 +244,7 @@ export function startOutpost(state: RunState, modules: readonly ModuleKind[]): R
     panelHealth: 1,
     science: 0,
     chosenActivity: null,
+    inspections: [],
     rover: newRover(),
     log: [],
     decisions: [],
