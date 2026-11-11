@@ -52,33 +52,45 @@ export interface ModuleSpot {
  * a number in the layout file — a file of fifteen positions cannot be trusted
  * to keep a stacking order straight.
  *
- * Each entry says whether the copies of that kind each stand a little nearer
+ * Each entry says whether the copies of that kind each stand further back
  * than the last. A row of solar arrays is a row of panels leaning towards you,
- * so the second array is in front of the first; two regolith shields are the
- * same distance away, so they share a depth.
+ * and the first one — the one that comes with the lander — is the nearest; two
+ * regolith shields are the same distance away, so they share a depth.
  */
-export const DEPTH_ORDER: readonly { readonly kind: ModuleKind; readonly steps: boolean }[] = [
-  { kind: 'regolith-shield', steps: false },
-  { kind: 'ice-miner', steps: false },
-  { kind: 'solar-array', steps: true },
-  { kind: 'greenhouse', steps: false },
-  { kind: 'nuclear-unit', steps: false },
-  { kind: 'batteries', steps: true },
-  { kind: 'life-support', steps: false },
-  { kind: 'habitat', steps: false },
+export const DEPTH_ORDER: readonly { readonly kind: ModuleKind; readonly recedes: boolean }[] = [
+  { kind: 'regolith-shield', recedes: false },
+  { kind: 'ice-miner', recedes: false },
+  { kind: 'solar-array', recedes: true },
+  { kind: 'greenhouse', recedes: false },
+  { kind: 'nuclear-unit', recedes: false },
+  { kind: 'batteries', recedes: true },
+  { kind: 'life-support', recedes: false },
+  { kind: 'habitat', recedes: false },
 ];
+
+/**
+ * How much room each kind's copies have in the stacking order.
+ *
+ * Every kind gets a band of ten levels, so the copies of one kind can never
+ * pass the copies of the next however many of them there are.
+ */
+const DEPTH_BAND = 10;
 
 /**
  * The stacking level of one module copy. Higher is nearer the camera.
  *
- * Every copy of a kind is behind every copy of the kind after it, and the
- * copies of one kind step forward among themselves when the rule says so.
+ * Every copy of a kind is behind every copy of the kind after it. Within a
+ * kind, the copies either share one depth or recede from the camera as they
+ * are added, so the first copy of a kind is always the nearest of them.
  */
 export function depthFor(kind: ModuleKind, copy: number): number {
   const rank = DEPTH_ORDER.findIndex((entry) => entry.kind === kind);
   const place = rank < 0 ? DEPTH_ORDER.length : rank;
+  const recedes = DEPTH_ORDER[rank]?.recedes === true;
 
-  return place * 10 + (DEPTH_ORDER[rank]?.steps === true ? copy : 0);
+  /* A receding kind runs backwards through its band: the first copy the player
+   * builds is the nearest one, and each later copy stands further back. */
+  return place * DEPTH_BAND + (recedes ? DEPTH_BAND - 1 - copy : 0);
 }
 
 /**

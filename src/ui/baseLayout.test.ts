@@ -287,14 +287,14 @@ describe('the stacking order', () => {
     expect(depthFor('regolith-shield', 0)).toBeLessThan(depthFor('ice-miner', 0));
   });
 
-  it('steps the copies of a solar array towards the camera', () => {
-    expect(depthFor('solar-array', 0)).toBeLessThan(depthFor('solar-array', 1));
-    expect(depthFor('solar-array', 1)).toBeLessThan(depthFor('solar-array', 2));
-    expect(depthFor('solar-array', 2)).toBeLessThan(depthFor('solar-array', 3));
+  it('puts the first solar array nearest and the last one furthest back', () => {
+    expect(depthFor('solar-array', 0)).toBeGreaterThan(depthFor('solar-array', 1));
+    expect(depthFor('solar-array', 1)).toBeGreaterThan(depthFor('solar-array', 2));
+    expect(depthFor('solar-array', 2)).toBeGreaterThan(depthFor('solar-array', 3));
   });
 
-  it('steps the copies of a battery bank too', () => {
-    expect(depthFor('batteries', 0)).toBeLessThan(depthFor('batteries', 1));
+  it('puts the first battery bank nearest too', () => {
+    expect(depthFor('batteries', 0)).toBeGreaterThan(depthFor('batteries', 1));
     expect(depthFor('batteries', 3)).toBeLessThan(depthFor('life-support', 0));
   });
 
@@ -311,6 +311,30 @@ describe('the stacking order', () => {
         expect(depth).toBeGreaterThanOrEqual(rank * 10);
         expect(depth).toBeLessThan((rank + 1) * 10);
       }
+    }
+  });
+
+  it('puts the first copy of a receding kind nearer than the last', () => {
+    for (const entry of DEPTH_ORDER) {
+      if (!entry.recedes) continue;
+
+      const spec = MODULE_CATALOGUE.find((s) => s.kind === entry.kind);
+
+      if (spec === undefined || spec.maxCount < 2) continue;
+
+      expect(depthFor(entry.kind, 0)).toBeGreaterThan(depthFor(entry.kind, spec.maxCount - 1));
+    }
+  });
+
+  it('gives the copies of a kind that does not recede one shared depth', () => {
+    for (const entry of DEPTH_ORDER) {
+      if (entry.recedes) continue;
+
+      const spec = MODULE_CATALOGUE.find((s) => s.kind === entry.kind);
+
+      if (spec === undefined || spec.maxCount < 2) continue;
+
+      expect(depthFor(entry.kind, 0)).toBe(depthFor(entry.kind, spec.maxCount - 1));
     }
   });
 });
