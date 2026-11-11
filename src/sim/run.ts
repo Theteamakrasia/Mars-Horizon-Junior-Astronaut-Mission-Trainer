@@ -64,6 +64,8 @@ export interface SolRecord {
   readonly powerWasted: number;
   /** 0-1: the share of the sol's power demand that could not be met. */
   readonly blackout: number;
+  /** 0-1: how clean the panels were at the end of the sol. Dust only ever goes down. */
+  readonly panelHealth: number;
   readonly greenhousePaused: boolean;
   /** What the crew breathed, drank and ate this sol. */
   readonly used: { readonly oxygen: number; readonly water: number; readonly food: number };

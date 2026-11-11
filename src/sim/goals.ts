@@ -98,6 +98,160 @@ export function goalById(id: ScienceGoal): GoalSpec | null {
   return SCIENCE_GOALS.find((goal) => goal.id === id) ?? null;
 }
 
+/* ------------------------------------------------------------ the objectives -- */
+
+/**
+ * What each goal asks of the outpost, and how many sols earn it.
+ *
+ * A goal here is not a bar to watch: it is something to *earn*. The old
+ * reading was a live status — ok, watch, critical — which flickered with every
+ * sol and could be lost by one bad afternoon. Seven sols of holding all five
+ * goals was worth nothing, because the screen only ever showed the latest
+ * sol. These counters are cumulative, so that work is visible.
+ *
+ * Every number here is on the screen. A child can see the target, see the
+ * count, and see which goal is going wrong.
+ */
+
+/** Below this the panels are wrecked, and the goal is in trouble now. */
+export const DUST_PANEL_FLOOR = 0.7;
+/**
+ * The panels have to be spotless for the sol to count towards the dust goal.
+ *
+ * Dust only settles when the crew chooses to leave the panels out in a storm,
+ * so this goal is really the decision about whether to fold them away. It is
+ * a trade-off, not a chore: folding them away means no power from the Sun for
+ * a sol or two.
+ */
+export const DUST_SPOTLESS = 1;
+/** The level air and water have to stay above, out of 100. */
+export const LIFE_STORE_FLOOR = 40;
+/** The level the radiation shield has to stay above, out of 100. */
+export const SHIELDING_FLOOR = 40;
+/** The level the food store has to stay above, out of 100. */
+export const FOOD_FLOOR = 40;
+/**
+ * The share of a sol's power that may be missing and still count as "on".
+ *
+ * A sol can end a few percent short just because the batteries were a hair
+ * too small for the night. That is not the same as running flat, and losing a
+ * whole sol's credit for it would punish a build that was working.
+ */
+export const POWER_BLACKOUT_FLOOR = 0.05;
+
+/**
+ * How many sols each goal needs to be held for to be earned.
+ *
+ * A twelve-sol run, so ten of twelve is a good run and eight is a fair one.
+ * The dust goal is easier because a storm costs a sol whatever the player does.
+ */
+export const GOAL_TARGETS: Readonly<Record<ScienceGoal, number>> = {
+  'dust-storm': 12,
+  'life-support': 10,
+  radiation: 10,
+  power: 10,
+  food: 9,
+};
+
+/** What earning each goal means, in one short line. */
+export const GOAL_AIMS: Readonly<Record<ScienceGoal, string>> = {
+  'dust-storm': 'Keep the panels spotless',
+  'life-support': 'Keep air and water safe',
+  radiation: 'Keep the crew behind the shield',
+  power: 'Keep the power on',
+  food: 'Keep the crew fed',
+};
+
+/**
+ * One goal, read as something the crew is working towards.
+ *
+ * `held` counts the sols that counted. `needed` is the target. `earned` is
+ * what the debrief counts.
+ */
+export interface GoalObjective {
+  readonly id: ScienceGoal;
+  readonly title: string;
+  /** What earning it means, in one short line. */
+  readonly aim: string;
+  /** Sols that counted so far. */
+  readonly held: number;
+  /** Sols needed to earn it. */
+  readonly needed: number;
+  /** True once `held` reaches `needed`. */
+  readonly earned: boolean;
+  /** True when it is going wrong right now. */
+  readonly slipping: boolean;
+  /** One short line about it right now. */
+  readonly detail: string;
+}
+
+/** The one line under a goal row: short enough to read at a glance. */
+function shortDetail(id: ScienceGoal, run: RunState, reading: GoalReading | undefined): string {
+  const stores = run.stores;
+
+  switch (id) {
+    case 'dust-storm':
+      return `Panels at ${Math.round(run.panelHealth * 100)}%`;
+    case 'life-support':
+      return `Air ${Math.round(stores.oxygen)}% · Water ${Math.round(stores.water)}%`;
+    case 'radiation':
+      return `Shield ${Math.round(stores.shielding)} of 100`;
+    case 'power':
+      return reading !== undefined && reading.status === 'critical' ? 'The batteries ran flat' : 'Batteries holding';
+    case 'food':
+      return stores.food >= FOOD_FLOOR ? `Food ${Math.round(stores.food)}%` : `Food ${Math.round(stores.food)}% and falling`;
+  }
+}
+
+/**
+ * How each of the five goals is doing over the run so far.
+ *
+ * The counters come from the log, so they are a fact about what happened and
+ * not a number kept alongside the run. Replaying the same log gives the same
+ * answer, which is what makes the debrief and the act screen agree.
+ */
+export function goalProgress(run: RunState): readonly GoalObjective[] {
+  const held: Record<ScienceGoal, number> = {
+    'dust-storm': 0,
+    'life-support': 0,
+    radiation: 0,
+    power: 0,
+    food: 0,
+  };
+
+  for (const record of run.log) {
+    if (record.panelHealth >= DUST_SPOTLESS) held['dust-storm'] += 1;
+    if (record.stores.oxygen >= LIFE_STORE_FLOOR && record.stores.water >= LIFE_STORE_FLOOR) held['life-support'] += 1;
+    if (record.stores.shielding >= SHIELDING_FLOOR) held.radiation += 1;
+    if (record.blackout <= POWER_BLACKOUT_FLOOR) held.power += 1;
+    if (record.stores.food >= FOOD_FLOOR) held.food += 1;
+  }
+
+  const readings = goalReadings(run);
+
+  return SCIENCE_GOALS.map((spec) => {
+    const reading = readings.find((entry) => entry.spec.id === spec.id);
+    const count = held[spec.id];
+    const needed = GOAL_TARGETS[spec.id];
+
+    return {
+      id: spec.id,
+      title: spec.title,
+      aim: GOAL_AIMS[spec.id],
+      held: count,
+      needed,
+      earned: count >= needed,
+      slipping: reading !== undefined && reading.status !== 'ok',
+      detail: shortDetail(spec.id, run, reading),
+    };
+  });
+}
+
+/** How many of the five goals the crew has earned. */
+export function goalsEarned(run: RunState): number {
+  return goalProgress(run).filter((objective) => objective.earned).length;
+}
+
 /**
  * How each of the five goals is doing.
  *
@@ -119,19 +273,24 @@ export function goalReadings(run: RunState): readonly GoalReading[] {
 
   const dust: GoalReading['detail'] = (() => {
     if (storm !== null) {
-      const blocked = stormOpacity(site.dust);
-
-      return `A dust storm is over the panels. They are making ${Math.round(panelKw * (1 - blocked))} kW instead of ${Math.round(panelKw)}.`;
+      return `A dust storm is on the way. The panels would make ${Math.round(panelKw * (1 - stormOpacity(site.dust)))} kW instead of ${Math.round(panelKw)}.`;
     }
 
     if (run.panelHealth < 1) {
-      return `Dust has settled on the panels. They make ${Math.round(panelKw)} kW — ${Math.round(run.panelHealth * 100)}% of what they should — and the damage is for good.`;
+      const lost = Math.round((1 - run.panelHealth) * 100);
+
+      return `Dust has taken ${lost}% off the panels, and the damage is for good.`;
     }
 
     return `The panels are clean: ${Math.round(panelKw)} kW whenever the Sun is up.`;
   })();
 
-  const dustStatus: GoalStatus = storm !== null ? 'critical' : run.panelHealth < 1 ? 'watch' : 'ok';
+  /* A storm on the way is a warning, not a failure. `critical` is reserved for
+     the panels failing now, which is a different thing and the one that
+     matters: the crew can prepare for a storm, but they cannot un-dust a
+     panel. */
+  const dustStatus: GoalStatus =
+    run.panelHealth < DUST_PANEL_FLOOR ? 'critical' : storm !== null || run.panelHealth < 1 ? 'watch' : 'ok';
 
   /* -- 2. Life Support -------------------------------------------------- */
   const oxygen = percentOf('oxygen', run.stores, capacity);
@@ -139,8 +298,8 @@ export function goalReadings(run: RunState): readonly GoalReading[] {
   const blackout = last?.blackout ?? 0;
 
   const life: GoalReading['detail'] = (() => {
-    if (blackout > 0) {
-      return `The batteries ran flat for ${Math.round(blackout * 100)}% of the last sol, so the air and water makers slowed down. Air ${oxygen}%, water ${water}%.`;
+    if (blackout > POWER_BLACKOUT_FLOOR) {
+      return `Batteries ran flat for ${Math.round(blackout * 100)}% of the last sol, so the air and water makers slowed down. Air ${oxygen}%, water ${water}%.`;
     }
 
     if (oxygen < 40 || water < 40) {
@@ -150,7 +309,8 @@ export function goalReadings(run: RunState): readonly GoalReading[] {
     return `Air at ${oxygen}% and water at ${water}%. The recycler and the oxygen maker are running.`;
   })();
 
-  const lifeStatus: GoalStatus = blackout > 0 ? 'critical' : oxygen < 40 || water < 40 ? 'watch' : 'ok';
+  const lifeStatus: GoalStatus =
+    blackout > POWER_BLACKOUT_FLOOR ? 'critical' : oxygen < 40 || water < 40 ? 'watch' : 'ok';
 
   /* -- 3. Radiation Exposure ------------------------------------------- */
   const shielding = Math.round(run.stores.shielding);
@@ -174,7 +334,7 @@ export function goalReadings(run: RunState): readonly GoalReading[] {
   const stored = Math.round(run.stores.power);
 
   const power: GoalReading['detail'] = (() => {
-    if (blackout > 0.05) {
+    if (blackout > POWER_BLACKOUT_FLOOR) {
       return `The batteries ran flat for ${Math.round(blackout * 100)}% of the last sol. ${stored} of ${capacity} kWh in store now.`;
     }
 
@@ -185,7 +345,8 @@ export function goalReadings(run: RunState): readonly GoalReading[] {
     return `${stored} of ${capacity} kWh in the batteries, and the arrays make ${Math.round(panelKw)} kW by day.`;
   })();
 
-  const powerStatus: GoalStatus = blackout > 0.05 ? 'critical' : capacity > 0 && stored < capacity * 0.35 ? 'watch' : 'ok';
+  const powerStatus: GoalStatus =
+    blackout > POWER_BLACKOUT_FLOOR ? 'critical' : capacity > 0 && stored < capacity * 0.35 ? 'watch' : 'ok';
 
   /* -- 5. Food Production ---------------------------------------------- */
   const eaten = FOOD_PER_CREW * CREW_SIZE;

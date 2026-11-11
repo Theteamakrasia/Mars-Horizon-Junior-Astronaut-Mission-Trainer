@@ -283,9 +283,17 @@ export function pointsSpent(modules: readonly ModuleKind[]): number {
   return extrasOf(modules).reduce((sum, kind) => sum + specOf(kind).cost, 0);
 }
 
-/** How many extra modules a site's terrain lets the crew build: flat ground, more room. */
+/**
+ * How many extra modules a site's terrain lets the crew build: flat ground, more room.
+ *
+ * Four, not three. The outpost that reaches all five science goals needs
+ * seven extras — panels, batteries, a greenhouse, an ice miner, a shield and a
+ * nuclear unit — and at three extras per point of terrain three of the five
+ * landing sites had no room for it. The rule still holds: flat ground gives
+ * more room.
+ */
 export function extraSlots(regionId: string): number {
-  return siteScore(regionId).terrain + 3;
+  return siteScore(regionId).terrain + 4;
 }
 
 /** Modules beyond the four core ones. */

@@ -318,6 +318,7 @@ export function advanceSol(run: RunState): RunState {
     powerUsed: demand,
     powerWasted: wasted,
     blackout,
+    panelHealth,
     greenhousePaused,
     used: { oxygen: crewOxygen, water: crewWater, food: crewFood },
     activity: done,

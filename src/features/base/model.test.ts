@@ -66,10 +66,21 @@ describe('base model', () => {
   });
 
   it('runs out of room sooner on steep ground than on a plain', () => {
+    /* Enough modules that the room runs out before the budget does. */
     const fill = (region: string): number => {
       let extras: readonly ModuleKind[] = [];
 
-      for (const kind of ['solar-array', 'batteries', 'solar-array', 'batteries', 'solar-array', 'batteries'] as const) {
+      for (const kind of [
+        'solar-array',
+        'batteries',
+        'solar-array',
+        'batteries',
+        'solar-array',
+        'batteries',
+        'greenhouse',
+        'ice-miner',
+        'regolith-shield',
+      ] as const) {
         extras = addModule(extras, kind, region);
       }
 
