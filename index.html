@@ -404,64 +404,79 @@
            Next / Continue controls, leaving the player stuck with no way forward
            (ISS-041). As a child of .launch it covers the whole viewport.
 
-           The Prev / Next / Continue row is a sibling of the card rather than a
-           child of it, so it is a bar along the bottom of the screen in one
-           fixed place instead of riding up and down with the artwork. -->
+           THE ARTWORK IS THE SCREEN. The picture is the full-bleed backdrop and
+           the words sit on top of it.
+
+           The words are NOT over the picture, though. The description and the
+           NASA fact used to be laid out over the lower half of the artwork,
+           where they ran straight through the "LOGISTICS / SAFE HAVEN" callout
+           and the fact was clipped by the button bar. They now live in a solid
+           dock along the bottom, above the controls, so the picture is never
+           covered by text and the text is never covered by the picture.
+
+           The part name stays at the top of the picture, on its own plate. -->
       <div
         class="launch__parts-panel"
         data-launch-parts-panel
         hidden
       >
+        <img
+          class="launch__parts-image"
+          data-launch-parts-image
+          alt=""
+          aria-hidden="true"
+          decoding="async"
+        />
+
         <div class="launch__parts-card">
           <div class="launch__parts-header">
             <span class="launch__parts-dot" aria-hidden="true"></span>
             <h2 class="launch__parts-name" data-launch-parts-name></h2>
           </div>
-          <img
-            class="launch__parts-image"
-            data-launch-parts-image
-            alt=""
-            aria-hidden="true"
-            decoding="async"
-          />
-          <p class="launch__parts-description" data-launch-parts-description></p>
-
-          <!-- A short NASA fact per part, so the tour teaches while it shows. -->
-          <p class="launch__parts-fact" data-launch-parts-fact></p>
         </div>
 
-        <!-- The controls are a sibling of the card, not a child of it, so they
-             sit in a bar along the bottom of the screen whatever the artwork
-             above is doing. Inside the card they were pushed off the bottom of
-             the panel on a short window and clipped away (ISS-041).
+        <!-- The dock: what is being said, and the controls to move on. One
+             solid bar along the bottom of the screen, in one fixed place, so
+             nothing is ever over the picture and nothing is ever clipped.
+             Inside the card they were pushed off the bottom of the panel on a
+             short window and clipped away (ISS-041).
 
              NEXT is the orange one, the same accent fill as the naming page's
-             START MISSION. CONTINUE is the quiet one: only one button on a row
-             should be the orange action. -->
-        <div class="launch__parts-controls">
-          <button
-            class="launch__parts-button launch__parts-button--prev"
-            type="button"
-            data-launch-parts-prev
-            aria-label="Previous part"
-          >
-            ◀ Prev
-          </button>
-          <button
-            class="launch__parts-button launch__parts-button--next"
-            type="button"
-            data-launch-parts-next
-            aria-label="Next part"
-          >
-            Next ▶
-          </button>
-          <button
-            class="launch__parts-button launch__parts-button--continue"
-            type="button"
-            data-launch-parts-continue
-          >
-            Continue
-          </button>
+             START MISSION. CONTINUE is the quiet one until the tour is over:
+             only one button on a row should be the orange action. -->
+        <div class="launch__parts-dock">
+          <div class="launch__parts-caption">
+            <p class="launch__parts-description" data-launch-parts-description></p>
+
+            <!-- A short NASA fact per part, so the tour teaches while it shows. -->
+            <p class="launch__parts-fact" data-launch-parts-fact></p>
+          </div>
+
+          <div class="launch__parts-controls">
+            <button
+              class="launch__parts-button launch__parts-button--prev"
+              type="button"
+              data-launch-parts-prev
+              aria-label="Previous part"
+            >
+              ◀ Prev
+            </button>
+            <button
+              class="launch__parts-button launch__parts-button--next"
+              type="button"
+              data-launch-parts-next
+              aria-label="Next part"
+            >
+              Next ▶
+            </button>
+            <button
+              class="launch__parts-button launch__parts-button--continue"
+              type="button"
+              data-launch-parts-continue
+            >
+              Continue
+            </button>
+          </div>
         </div>
       </div>
 

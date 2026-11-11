@@ -147,13 +147,18 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
   card floating in the middle of a black page, and the Prev / Next / Continue row
   was cut off at the bottom of the window. The picture is now the full-bleed
   backdrop - `position: absolute; inset: 0` against the panel, `object-fit: cover`
-  so it fills edge to edge - with the part name over the top of it and the
-  description and the NASA fact over the bottom. The controls are pinned to the
-  bottom of the viewport (`position: absolute; bottom: 0`) instead of riding on the
-  card's height, so they are always wholly on screen. A screen narrower than 16:9
-  falls back to `object-fit: contain`, because a horizontal crop there would take
-  the callout labels off the picture, and a label that names the part is the whole
-  point of it.
+  so it fills edge to edge - with the part name over the top of it on its own
+  plate. The controls are pinned to the bottom of the viewport
+  (`position: absolute; bottom: 0`) instead of riding on the card's height, so
+  they are always wholly on screen. A screen narrower than 16:9 falls back to
+  `object-fit: contain`, because a horizontal crop there would take the callout
+  labels off the picture, and a label that names the part is the whole point of it.
+- **And again, on the third pass:** with the picture full-bleed, the description
+  and the NASA fact were laid out over the lower half of it - straight through the
+  "LOGISTICS / SAFE HAVEN" callout - and the fact was clipped by the button bar.
+  They now live in a solid dock along the bottom, with the controls, below the
+  artwork. The picture is left with nothing on top of it but its own name, and the
+  words are on their own ground where nothing can cover them.
 - **Also in the parts tour:** NEXT is the orange button while there are slides left,
   and CONTINUE takes the orange accent the moment NEXT is greyed out - that is,
   once the player has been all the way round the five parts and there is nothing

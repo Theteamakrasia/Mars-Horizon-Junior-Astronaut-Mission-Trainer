@@ -373,32 +373,32 @@
 }
 
 /*
-  The words, over the artwork: the part name at the top, the description and
-  the NASA fact along the bottom.
+  The part name, on its own plate at the top of the picture.
 
-  The bottom padding is the height of the controls bar, so the fact is never
-  hidden behind it.
+  It carries a solid plate behind it so it reads as a label rather than as
+  letters tangled up with the artwork behind them - the solar array of the
+  assembled craft runs straight through the middle of the title otherwise.
 */
 .launch__parts-card {
+  position: relative;
+  z-index: 2;
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  /* The bottom padding is the height of the controls bar plus room to read,
-     so the NASA fact is never crowded against it. */
-  padding: clamp(1rem, 3vmin, 2rem) 1rem clamp(5.5rem, 11vh, 7.5rem);
+  padding: clamp(0.75rem, 2vmin, 1.5rem) 1rem;
   text-align: center;
 }
 
 .launch__parts-header {
-  position: relative;
-  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
-  margin-bottom: 0.5rem;
+  padding: 0.35rem 1.1rem;
+  border-radius: 999px;
+  background: rgba(5, 7, 13, 0.72);
 }
 
 .launch__parts-dot {
@@ -409,11 +409,10 @@
 
 .launch__parts-name {
   margin: 0;
-  font-size: clamp(1.75rem, 6vmin, 2.5rem);
+  font-size: clamp(1.4rem, 5vmin, 2.5rem);
   font-weight: 700;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  /* The name sits over the artwork, so it carries its own shadow. */
   text-shadow: 0 2px 18px rgba(0, 0, 0, 0.9);
 }
 
@@ -456,52 +455,59 @@
   }
 }
 
-/*
-  The description and the NASA fact, along the bottom of the artwork.
+/* ---------- THE DOCK ----------
+   One solid bar along the bottom of the viewport: what is being said, and the
+   controls to move on.
 
-  `auto` on the description's top margin pushes it and the fact down to the
-  bottom of the card, under the name.
-*/
-.launch__parts-description {
-  position: relative;
-  z-index: 2;
-  margin: auto 0 0;
-  max-width: min(90%, 46rem);
-  font-size: clamp(1rem, 3vmin, 1.25rem);
-  line-height: 1.6;
-  color: #9FB0BA;
-  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.95), 0 0 28px rgba(0, 0, 0, 0.85);
-}
+   The description and the NASA fact used to be laid out over the lower half of
+   the artwork, where they ran straight through the "LOGISTICS / SAFE HAVEN"
+   callout, and the fact was clipped by the button bar. Here they are on their
+   own solid ground, below the picture, and the picture is left alone.
 
-.launch__parts-fact {
-  position: relative;
-  z-index: 2;
-  margin: 0.5rem 0 0;
-  max-width: min(90%, 46rem);
-  font-size: clamp(0.72rem, 1.5vmin, 0.9rem);
-  line-height: 1.5;
-  color: #c3ced6;
-  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.95), 0 0 28px rgba(0, 0, 0, 0.85);
-}
-
-/* ---------- THE CONTROLS ----------
-   A bar pinned to the bottom of the viewport. Fixed in one place, whatever the
-   artwork above it is doing, so Prev, Next and Continue are always in the same
-   spot, always fully on screen, and never over the picture's labels.
+   The dock is pinned to the bottom of the viewport, so it is always in the
+   same place and always wholly on screen, whatever the artwork above is doing.
  */
-.launch__parts-controls {
+.launch__parts-dock {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
   z-index: 3;
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(0.5rem, 1.2vmin, 0.9rem);
+  padding: clamp(0.75rem, 2vmin, 1.25rem) 1rem;
+  border-top: 1px solid #2E3C45;
+  background: rgba(5, 7, 13, 0.95);
+}
+
+.launch__parts-caption {
+  width: 100%;
+  text-align: center;
+}
+
+.launch__parts-description {
+  margin: 0 auto;
+  max-width: min(92%, 48rem);
+  font-size: clamp(0.9rem, 2.4vmin, 1.15rem);
+  line-height: 1.5;
+  color: #c3ced6;
+}
+
+.launch__parts-fact {
+  margin: 0.3rem auto 0;
+  max-width: min(92%, 48rem);
+  font-size: clamp(0.68rem, 1.4vmin, 0.85rem);
+  line-height: 1.45;
+  color: #8a99a6;
+}
+
+.launch__parts-controls {
+  display: flex;
   align-items: center;
   justify-content: center;
   gap: clamp(0.5rem, 1.2vmin, 1rem);
-  padding: clamp(0.75rem, 2vmin, 1.4rem) 1rem;
-  border-top: 1px solid #2E3C45;
-  background: rgba(5, 7, 13, 0.94);
   flex-wrap: wrap;
 }
 
@@ -616,16 +622,20 @@
 }
 
 /* ---------- SHORT VIEWPORTS ----------
-   On a short window the card has less room for its words. Tighten the padding
-   and the type, and keep the space under the words clear of the controls bar,
-   so the fact is never hidden behind it - the same failure as ISS-041 at the
-   other end of the size range. */
+   On a short window the dock has less room. Tighten its padding and the type,
+   so the controls and the caption both stay on screen — the same failure as
+   ISS-041 at the other end of the size range. */
 @media (max-height: 560px) {
-  .launch__parts-card {
-    padding: 0.75rem 1rem clamp(5rem, 13vh, 6rem);
+  .launch__parts-dock {
+    gap: 0.4rem;
+    padding: 0.6rem 1rem;
   }
 
   .launch__parts-description {
-    font-size: clamp(0.9rem, 2.6vmin, 1.1rem);
+    font-size: clamp(0.8rem, 2.2vmin, 1rem);
+  }
+
+  .launch__parts-fact {
+    font-size: clamp(0.62rem, 1.3vmin, 0.78rem);
   }
 }

@@ -52,6 +52,13 @@ than a documented one.
   all the way round the five parts — CONTINUE becomes the orange one, because it is
   then the only way forward. One orange button on the row at a time, always the one
   that moves the player on: stepping back with PREV hands the accent back to NEXT.
+- **Put the words in a dock, off the picture.** With the artwork full-bleed, the
+  description and the NASA fact were laid out over the lower half of it, straight
+  through the "LOGISTICS / SAFE HAVEN" callout, and the fact was clipped by the
+  button bar. They now sit in a solid dock along the bottom with the controls,
+  below the picture. The artwork is left with nothing over it but its own name,
+  on a plate at the top, and every word of the caption is on its own ground where
+  nothing can cover it.
 - **Made the landing-site screen scale.** Every size on it was fixed rem and px, so
   nothing grew with the window: a pin label was 13.33px at 1024, 1600 and 1920 alike,
   while the rest of the app scaled. They are now `clamp()`s against the viewport, the
