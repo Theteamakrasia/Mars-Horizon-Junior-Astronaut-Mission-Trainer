@@ -11,6 +11,8 @@ Versions will be assigned when the project begins publishing releases.
 
 ### Fixed
 
+- **Sol 3 had no tool to work at all.** The six tools unlocked one every second sol while the twelve-sol plan is a fixed curriculum, and sol 3's three orders all carried tools that were still locked — so the desk was three buttons and nothing else. The tools now unlock one a sol for the first six, so every sol leaves at least one order the player can work, and a test over the whole plan holds the rule.
+- The sorting tool could never earn three stars: it reported itself unfinished until every item was chosen, while its own grading wanted only the good ones.
 - **The game is winnable again.** At fourteen build points no legal build at any of the five landing sites was self-sustaining, and no run could satisfy all five systems. The build budget is now 18 and the greenhouse, shielding and load numbers have been rebalanced; the win rate went from 20% to 43%, and every site can hold all five systems. `npm run balance` now checks this and fails the build when it breaks.
 - The power card no longer reads 0% while the game lets the player spend power. It shows what the crew can actually spend today, which is the number the order prices come out of.
 - Clicking a learning goal no longer throws the player back to the top of the panel. The detail opens and closes in place.
@@ -22,7 +24,7 @@ Versions will be assigned when the project begins publishing releases.
 
 ### Changed
 
-- **The game is now a Papers Please game about Mars.** Each sol the player is the duty officer at the outpost: three work orders land on the desk, each carries two readings to check and some have a tool to work them with, and the player approves one.
+- **The game is now a Papers Please game about Mars.** Each sol the player is the duty officer at the outpost: three work orders land on the desk, each carries two readings to check and some have a tool to work them with, and the player approves one. Six tools, one new one every sol for the first six days.
 - **The five science goals are the learning outcomes, not a score.** The counters that graded them are gone. The goals now arrive as the standing orders — a rule book that grows two rules a sol until there are twenty-four — and the debrief prints them as a record of what the player kept running.
 - **The rover is part of the run.** It is sent out by a work order, it drives on sol time, and it comes back with a document on the desk: a real NASA picture, a place from the past, or a rare rock to log, take or leave. It still touches no resource.
 - Working an order with a tool now multiplies the science that order is worth. It never gives back a kWh, so the balance of a run does not depend on how well the minigame was played.

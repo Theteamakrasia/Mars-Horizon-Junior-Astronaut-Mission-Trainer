@@ -213,6 +213,22 @@ logs — scores 52.
 `timing`, `sort`, `match` and `pack`. Each is unlocked on its own sol (`ENGINE_UNLOCK_SOL`),
 each is graded into **stars**, and each is a pure function over literal inputs.
 
+| Tool | What the player does | Unlocks on |
+| --- | --- | --- |
+| **Checklist** (`sequence`) | presses the five systems in the order they have to be checked | sol 1 |
+| **Timing** (`timing`) | stops the sweeping marker inside the safe band | sol 2 |
+| **Radar** (`radar`) | pings squares until one of them is hot | sol 3 |
+| **Sorting** (`sort`) | keeps the ones worth keeping and leaves the rest | sol 4 |
+| **Matching** (`match`) | gives every tool its job | sol 5 |
+| **Packing** (`pack`) | fills the pod within its mass limit | sol 6 |
+
+**Every sol has at least one order the player can work.** The unlock schedule and the sol
+plan are two separate lists, and they once drifted apart: sol 3 offered the rover survey,
+the site map and the experiment, whose tools were all still locked, so that sol was three
+buttons and nothing else (ISS-065). The rule is now checked over the whole plan by
+`src/sim/minigames.test.ts`, and it is the rule the schedule is designed around — one new
+tool a sol for the first six, and then the whole toolbox.
+
 ### 3c. The science score
 
 `RunState.science` totals the points; `src/sim/science.ts` turns the total into a rank.
@@ -491,6 +507,11 @@ field on `ActivitySpec` and one more line in `sim/sol.ts`.
 literal inputs and returns a `Grade`, an entry in `ENGINE_UNLOCK_SOL` and one in
 `ENGINE_NAME`, and a player in `src/ui/activityPlayer.ts` that drives it. The rule that
 matters: **stars multiply science and touch no store** (D-063).
+
+The other rule that matters: **the unlock schedule has to leave every sol with at least one
+order the player can work.** Check that before you add an engine or change a sol plan —
+`src/sim/minigames.test.ts` says so over the whole plan, and it will tell you which sol
+broke (ISS-065).
 
 Keep the costs honest. An order that gives more for less than another one on the same
 sol makes the other one pointless — that is how `ice-store` was removed in favour of

@@ -33,14 +33,29 @@ export interface Grade {
 /** The tools, in the order they unlock. */
 export const ENGINE_ORDER: readonly EngineKind[] = ['sequence', 'timing', 'radar', 'sort', 'match', 'pack'];
 
-/** The sol each tool becomes available on. */
+/**
+ * The sol each tool becomes available on.
+ *
+ * One new tool a sol for the first six sols, and then the whole toolbox.
+ *
+ * The spacing used to be every second sol, which was slower and looked
+ * tidier - and left sol 3 with nothing to work at all. The sol plan is a
+ * curriculum and the two had drifted apart: sol 3 offered the rover
+ * survey, the site map and the experiment, and their tools (radar, sort,
+ * pack) were all still locked. A sol where the player cannot work
+ * anything is a sol where the desk is just three buttons.
+ *
+ * So the rule is now the one that matters: **every sol has at least one
+ * order the player can work.** The unlock order is a floor of one a sol
+ * and the test in `minigames.test.ts` says so over the whole plan.
+ */
 export const ENGINE_UNLOCK_SOL: Readonly<Record<EngineKind, number>> = {
   sequence: 1,
-  timing: 3,
-  radar: 5,
-  sort: 7,
-  match: 9,
-  pack: 11,
+  timing: 2,
+  radar: 3,
+  sort: 4,
+  match: 5,
+  pack: 6,
 };
 
 /** True when the tool is available on this sol. */

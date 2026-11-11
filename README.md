@@ -307,6 +307,10 @@ stars, and the stars make the order worth more science. Working an order well ne
 you back a single kWh; it only ever buys science (D-063), so how well you play cannot decide
 whether you survive.
 
+There are **six tools** — a checklist, a radar, a stopwatch, a sorting bench, a matching
+board and a packing list — and **one new one arrives every sol for the first six days**, so
+every sol has something to work and no two days feel the same.
+
 **The standing orders are the rule book.** Two new rules arrive every sol, on a board beside
 the desk, until there are twenty-four of them. They are the five learning goals in the
 order you meet them, and they are also the keepsake: the debrief prints the standing orders
@@ -573,7 +577,7 @@ player decision, the sol loop, what is built and where a new event plugs in are 
 | The rover | **Built** — part of the run: sent out by an order, comes back with a document (D-062) |
 | The how-to-play guide | **Built** — ten steps; it opens by itself at the build screen |
 | The balance | **Checked, not assumed** — `npm run balance` fails if a site cannot hold all five systems (D-064) |
-| Tests | **699 tests in 32 files** (`npm test`, 2026-11-11) |
+| Tests | **701 tests in 32 files** (`npm test`, 2026-11-11) |
 | Checks | **Clean** — import layers, banned APIs, markup, strict typecheck |
 | Browser checks | **Green** — build 25/25, rover 9/9, the whole journey with no console errors |
 | Save / resume | **Not built** — in-memory only (D-003) |
@@ -593,7 +597,7 @@ player decision, the sol loop, what is built and where a new event plugs in are 
 ### The one invariant
 
 `sim/` and each feature's `model.ts` are pure: no `document`, no `window`, no network. That
-is what lets 699 tests run in a few seconds with no browser, no mocks, and no jsdom. It is enforced by
+is what lets 701 tests run in a few seconds with no browser, no mocks, and no jsdom. It is enforced by
 `npm run check` (`scripts/check-imports.mjs`), not left to good intentions.
 
 ---
@@ -605,7 +609,7 @@ is what lets 699 tests run in a few seconds with no browser, no mocks, and no js
 npm install       # dev dependencies only — the game ships no runtime dependencies
 npm run dev       # Vite dev server, http://localhost:5173
 npm run check     # import-layer + banned-API + markup checks, then tsc --noEmit
-npm test          # Vitest, 699 tests in 32 files
+npm test          # Vitest, 701 tests in 32 files
 npm run balance   # is the game still winnable? run this after touching sim/
 npm run build     # production bundle in dist/
 npm run preview   # serve the built bundle locally

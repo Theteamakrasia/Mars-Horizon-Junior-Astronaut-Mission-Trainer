@@ -7,6 +7,7 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 
 | id | task | goal | owner | status | blocked by | notes |
 | --- | --- | --- | --- | --- | --- | --- |
+| TASK-087 | Fix the tools: every sol has one to work, the sorting tool can earn three stars, and the browser check can drive any of them | G-4 | agent | done | — | ISS-064, ISS-065. The tools unlock one a sol for the first six; a test over the plan holds the rule |
 | TASK-086 | Update the docs for the balance, the desk loop, the rover and the guide, and merge to `main` | G-6 | agent | done | — | AGENTS.md, `docs/architecture.md`, `docs/game-flow.md`, README, `src/data/README.md`, and the team docs; D-060…D-064, ISS-054…063 |
 | TASK-085 | Fix what play testing turned up: the power card, the goal scroll, the build feedback, the limits, the recap and the word count | G-7 | agent | done | — | ISS-054…058, ISS-060, ISS-062. Six of the ten complaints in one pass |
 | TASK-084 | Add `npm run balance` and the browser checks for the build screen, the rover and the whole journey | G-3 | agent | done | — | D-064. `tools/balance-check.mts` fails when a site cannot hold all five systems; three headless-Chrome checks |

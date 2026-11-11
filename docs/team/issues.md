@@ -11,6 +11,8 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
+| ISS-065 | Sol 3 had no tool to work at all, and the sorting tool could never earn three stars | medium | agent | fixed | this branch |
+| ISS-064 | The build screen's browser check failed on a third of runs, because it assumed a desk that was always there | low | agent | fixed | this branch |
 | ISS-061 | The game was unwinnable: 14 build points could not buy a night of power at any landing site | high | agent | fixed | this branch |
 | ISS-060 | The power card showed the level left at dawn, so it read 0% while the game let the player spend power | high | agent | fixed | this branch |
 | ISS-059 | Nothing told the player what the game was, or what to do on a sol | high | agent | fixed | this branch |
@@ -1294,3 +1296,55 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
   and the card reads `3/3`. A MAX badge says the module is done, and the budget row already
   read `3 / 9 extras`.
 - **Pre-existing:** yes; the two counts have always disagreed.
+---
+
+## ISS-064 - The build screen's browser check failed on a third of runs, because it assumed a desk that was always there
+
+- **Reported by:** agent, 2026-11-11, while verifying the merge to `main`: the check passed
+  25/25, then 22/23, then 25/25 twice, then failed three times out of five.
+- **Where:** `tools/browser-check-build.mjs`.
+- **Problem:** the check's last step looks for `.insp__open`, the button that opens the tool on
+  an order, and reports the check as failed when there is none. Two things could cause that.
+  A **crisis replaces the desk** (D-040), and the forecast's timetable is rolled from a seed
+  taken from the clock (D-048) - so every page load puts its flares, its storm and its pod on
+  different sols, and a crisis on sol 2 left no desk to look at. And the check assumed the
+  tool it found was always the checklist, so it drove `.insp__step` buttons; on a sol where a
+  different tool was on the desk, it worked nothing and graded an empty attempt.
+- **Cause:** the check was written against a desk that is always there and a tool that is
+  always the same. The recap check a few lines above already knew about the crisis and
+  guarded itself; the tool check did not.
+- **Fix:** the check resolves the crisis when one is showing - clicking the first option,
+  which is what a player does - and then works **whichever** tool the desk gave it: the
+  checklist, the timing, the radar, the sorting, the matching or the packing. Each is played
+  as well as it can be, so the check now proves the whole loop - open, work, finish, stars -
+  and not only the first step of it.
+- **Pre-existing:** yes; the forecast became seeded in D-048 and the check was written before
+  that.
+
+---
+
+## ISS-065 - Sol 3 had no tool to work at all, and the sorting tool could never earn three stars
+
+- **Reported by:** agent, 2026-11-11, while chasing ISS-064. The browser check failed on a
+  sol where the desk had three orders and not one of them could be worked.
+- **Where:** `src/sim/minigames.ts` (`ENGINE_UNLOCK_SOL`), `src/ui/activityPlayer.ts`
+  (`sortInspection`).
+- **Problem:** two halves of the same mistake. The tools unlocked one every second sol -
+  checklist on 1, timing on 3, radar on 5, sorting on 7, matching on 9, packing on 11 - while
+  the sol plan is a fixed curriculum. Sol 3 offers the rover survey, the site map and the
+  experiment, and their tools were radar (sol 5), sorting (sol 7) and packing (sol 11). **All
+  three were still locked, so sol 3 had nothing the player could work** - the desk was three
+  buttons. And separately, the sorting tool's `done()` said "finished when all six items are
+  chosen", while its grading says "three stars when the three good ones are chosen and the
+  other three are not" - so the tool as described could never earn three stars.
+- **Cause:** the unlock schedule and the sol plan are two separate lists, and nothing checked
+  that they agreed. `done()` was never called by anything, so its wrong version sat there
+  unread.
+- **Fix:** the tools now unlock one a sol for the first six - 1, 2, 3, 4, 5, 6 - so **every sol
+  has at least one order the player can work**, and the player has something new to learn
+  every day of the first week. The sorting tool's `done()` says "the player has decided",
+  which is how the tool is actually played. And `src/sim/minigames.test.ts` now holds the
+  rule that was missing: over the whole twelve-sol plan, every sol has an order with an
+  unlocked tool and no build gate. That test is what stops it happening again.
+- **Pre-existing:** yes; the tools arrived with the desk loop and the schedule was never
+  checked against the plan.

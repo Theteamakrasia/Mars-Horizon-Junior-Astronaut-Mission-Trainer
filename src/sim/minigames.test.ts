@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { ACTIVITY_CATALOGUE, SOL_PLANS } from './activities';
 import {
   ENGINE_ORDER,
   ENGINE_UNLOCK_SOL,
@@ -158,7 +159,34 @@ describe('the tools', () => {
 
   it('are locked before their sol', () => {
     expect(engineUnlocked('sequence', 1)).toBe(true);
-    expect(engineUnlocked('radar', 4)).toBe(false);
-    expect(engineUnlocked('radar', 5)).toBe(true);
+    expect(engineUnlocked('radar', 2)).toBe(false);
+    expect(engineUnlocked('radar', 3)).toBe(true);
+  });
+
+  /*
+   * The rule that matters: a sol where the player cannot work anything is
+   * a sol where the desk is just three buttons. The unlock schedule and the
+   * sol plan are two separate lists, and they drifted apart - sol 3 used to
+   * offer the rover survey, the site map and the experiment, whose tools
+   * (radar, sort, pack) were all still locked.
+   */
+  it('leave every sol with at least one order the player can work', () => {
+    for (const plan of SOL_PLANS) {
+      const workable = plan.activityIds.filter((id) => {
+        const activity = ACTIVITY_CATALOGUE.find((entry) => entry.id === id);
+
+        /* An order with a build gate is not always on the desk, so only the
+           unconditional ones count towards the guarantee. */
+        return activity !== undefined && activity.requires === undefined && activity.engine !== undefined && engineUnlocked(activity.engine, plan.sol);
+      });
+
+      expect(workable.length, `sol ${plan.sol} has no workable order`).toBeGreaterThan(0);
+    }
+  });
+
+  it('have a new tool to learn on every one of the first six sols', () => {
+    const unlockSols = ENGINE_ORDER.map((engine) => ENGINE_UNLOCK_SOL[engine]);
+
+    expect(unlockSols).toEqual([1, 2, 3, 4, 5, 6]);
   });
 });

@@ -72,6 +72,134 @@ async function clickIn(screenId, text) {
   return clicked;
 }
 
+/**
+ * Play whichever tool the desk gave us.
+ *
+ * There are six of them and they are six different tasks, so the check has
+ * to work the one it was handed rather than assume the first: the checklist
+ * (press the steps in order), the timing (stop the marker in the safe band),
+ * the radar (ping until one square is hot), the sorting (keep the good
+ * ones), the matching (give every tool its job) and the packing (fill the
+ * pod).
+ *
+ * Each is played as well as it can be, so the check proves the whole loop -
+ * open, work, finish, stars - and not only the first step of it.
+ */
+async function workTheTool() {
+  /* The checklist: press the steps in the order they are shown. */
+  const steps = await evaluate(`[...document.querySelectorAll('#act .insp__step')].map((n) => n.textContent)`);
+
+  if (steps.length > 0) {
+    for (const step of steps) {
+      await evaluate(`(() => { const b = [...document.querySelectorAll('#act .insp__step')].find((n) => n.textContent === ${JSON.stringify(step)}); if (b) b.click(); })()`);
+      await sleep(120);
+    }
+
+    return 'checklist';
+  }
+
+  /* The radar: ping squares until one of them is hot. */
+  const cells = await evaluate(`document.querySelectorAll('#act .insp__cell').length`);
+
+  if (cells > 0) {
+    for (let index = 0; index < cells; index += 1) {
+      const hot = await evaluate(`(() => {
+        const cell = document.querySelectorAll('#act .insp__cell')[${index}];
+        if (!cell) return true;
+        cell.click();
+        return cell.textContent === '★';
+      })()`);
+
+      await sleep(90);
+
+      if (hot) break;
+    }
+
+    return 'radar';
+  }
+
+  /* The timing: stop the marker while it is inside the safe band. */
+  const hasStop = await evaluate(`!!document.querySelector('#act .insp__stop')`);
+
+  if (hasStop) {
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      const inBand = await evaluate(`(() => {
+        const marker = document.querySelector('#act .insp__marker');
+        const band = document.querySelector('#act .insp__band');
+        const stop = document.querySelector('#act .insp__stop');
+        if (!marker || !band || !stop) return true;
+        const at = parseFloat(marker.style.left);
+        const from = parseFloat(band.style.left);
+        const wide = parseFloat(band.style.width);
+        if (!Number.isNaN(at) && at >= from && at <= from + wide) {
+          stop.click();
+          return true;
+        }
+        return false;
+      })()`);
+
+      if (inBand) break;
+
+      await sleep(30);
+    }
+
+    return 'timing';
+  }
+
+  /* The matching: give every tool its job. */
+  const selects = await evaluate(`document.querySelectorAll('#act .insp__select').length`);
+
+  if (selects > 0) {
+    await evaluate(`(() => {
+      const wanted = { Radar: 'ice', Drill: 'samples', Generator: 'electricity', Greenhouse: 'food' };
+      for (const select of document.querySelectorAll('#act .insp__select')) {
+        const row = select.closest('.insp__pair');
+        const left = row?.querySelector('.insp__pair-left')?.textContent ?? '';
+        const key = Object.keys(wanted).find((name) => left.includes(name));
+        if (key === undefined) continue;
+        const option = [...select.options].find((o) => o.value !== '' && o.value.toLowerCase().includes(wanted[key]));
+        if (option) {
+          select.value = option.value;
+          select.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      }
+    })()`);
+    await sleep(200);
+
+    return 'matching';
+  }
+
+  /* The sorting and the packing both use a list of items, so the question
+     on screen is what tells them apart. */
+  const items = await evaluate(`[...document.querySelectorAll('#act .insp__item')].map((n) => n.textContent)`);
+
+  if (items.length > 0) {
+    const ask = await evaluate(`document.querySelector('#act .insp__ask')?.textContent ?? ''`);
+
+    if (ask.includes('pod')) {
+      /* The packing: one light, useful thing. The pod can take 12 kg and the
+         best possible load is worth about 20, so one seed is a light pod -
+         enough to prove the tool was worked and graded. */
+      await evaluate(`(() => { const b = [...document.querySelectorAll('#act .insp__item')].find((n) => n.textContent.includes('Seeds')); if (b) b.click(); })()`);
+      await sleep(150);
+
+      return 'packing';
+    }
+
+    /* The sorting: keep the three worth keeping and leave the rest. */
+    const keep = ['Ice under the soil', 'Piled regolith', 'sealed rock core'];
+
+    for (const label of keep) {
+      await evaluate(`(() => { const b = [...document.querySelectorAll('#act .insp__item')].find((n) => n.textContent.includes(${JSON.stringify(label)})); if (b) b.click(); })()`);
+      await sleep(100);
+    }
+
+    return 'sorting';
+  }
+
+  return 'none';
+}
+
 const results = [];
 function note(name, ok, detail = '') {
   results.push({ name, ok });
@@ -298,6 +426,15 @@ try {
   const crisis = await evaluate(`!!document.querySelector('#act .gl__choices')`);
   note('the sol ran', crisis || (await evaluate(`!!document.querySelector('#act .act-order')`)));
 
+  /* The forecast's timetable is rolled per page load (D-048), so a crisis
+     lands on the next sol some of the time and the desk is not there. The
+     player resolves the crisis and the desk comes back, so the check does
+     the same rather than failing on the runs that had one. */
+  if (crisis) {
+    await evaluate(`(() => { const b = document.querySelector('#act .gl__choice'); if (b) b.click(); })()`);
+    await sleep(700);
+  }
+
   if (!crisis) {
     const after = await evaluate(`(() => {
       const body = document.querySelector('#act .gl__scroll');
@@ -321,19 +458,16 @@ try {
   if (opened === 'clicked') {
     await sleep(500);
 
-    const steps = await evaluate(`[...document.querySelectorAll('#act .insp__step')].map((n) => n.textContent)`);
-
-    for (const step of steps) {
-      await evaluate(`(() => { const b = [...document.querySelectorAll('#act .insp__step')].find((n) => n.textContent === ${JSON.stringify(step)}); if (b) b.click(); })()`);
-      await sleep(150);
-    }
+    const tool = await workTheTool();
 
     await evaluate(`(() => { const b = document.querySelector('#act .insp__finish'); if (b) b.click(); })()`);
     await sleep(700);
 
     const stars = await evaluate(`document.querySelector('#act .insp__result')?.textContent ?? ''`);
+    const count = await evaluate(`document.querySelector('#act .insp__result')?.dataset.stars ?? ''`);
 
-    note('working the tool shows the stars', stars.includes('★'), stars);
+    note('working the tool shows the stars', stars.includes('★'), `${tool}: ${stars}`);
+    note('and the stars are counted', ['0', '1', '2', '3'].includes(count), count);
   }
 
   note('no console errors', consoleErrors.length === 0, consoleErrors.slice(0, 3).join(' | '));

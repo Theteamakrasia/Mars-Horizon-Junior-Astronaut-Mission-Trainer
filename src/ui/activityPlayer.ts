@@ -40,7 +40,13 @@ export interface Inspection {
   readonly name: string;
   /** The element to put on the screen. */
   readonly element: HTMLElement;
-  /** True once the player has finished and the result is known. */
+  /**
+   * True once the player has finished and the result is known.
+   *
+   * Nothing gates on this yet - the Finish button is always there, because
+   * the player decides when they are done. It is here so a screen can use it
+   * if it ever wants to.
+   */
   readonly done: () => boolean;
   /** The result, once it is done. */
   readonly result: () => Grade;
@@ -269,7 +275,11 @@ function sortInspection(): Inspection {
   return {
     name: ENGINE_NAME.sort,
     element: h('div', { class: 'insp__body' }, h('p', { class: 'insp__ask', text: 'Pick the ones worth keeping.' }), list),
-    done: () => chosen.length === items.length,
+    /* The player keeps the good ones and leaves the rest, so "finished" is
+       "the player has decided", not "the player has decided about all
+       six". The old version asked for every item, which would have made the
+       three stars unreachable. */
+    done: () => chosen.length > 0,
     result: () => gradeSort(chosen, good),
   };
 }

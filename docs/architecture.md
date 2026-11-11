@@ -24,7 +24,7 @@ than eyeballed, and it is what `npm run check` protects.
 
 ## The invariant, and why it is enforced
 
-699 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
+701 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
 reference it would still work, and the cost would surface later as an untestable bug.
 Enforced as `no-dom-in-pure-zone`.
 
@@ -260,7 +260,9 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         gradeRadar, gradeTiming, gradeSort, PackItem,
     │   │                                         gradePack, gradeMatch. The six tools and how each
     │   │                                         is graded. Stars multiply science and never a
-    │   │                                         store (D-063). 23 tests.
+    │   │                                         store (D-063). The tools unlock one a sol for the
+    │   │                                         first six, so every sol has at least one order
+    │   │                                         the player can work (ISS-065). 25 tests.
     │   ├── guide.ts                    complete   GuideWhere, GuideStep, GUIDE_STEPS, guideStep.
     │   │                                         The how-to-play guide: ten steps, each saying
     │   │                                         where it happens. The words live here so they can
@@ -293,7 +295,8 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   ├── science.test.ts             complete   11 tests
     │   ├── goals.test.ts               complete   23 tests
     │   ├── standingOrders.test.ts      complete   7 tests
-    │   ├── minigames.test.ts           complete   23 tests
+    │   ├── minigames.test.ts           complete   25 tests, including the rule that every sol has
+    │   │                                         an order the player can work
     │   ├── guide.test.ts               complete   6 tests
     │   ├── patches.test.ts             complete   7 tests
     │   ├── deskNotes.test.ts           complete   8 tests
@@ -787,7 +790,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 | `ui/readButton` | `readButton` | `(getText, options?) -> HTMLButtonElement \| null`; a toggle whose label, `aria-pressed` and pause hooks (`onStart`, `onStop`) are shared by every screen that reads aloud. Returns null where speech is unavailable |
 | `ui/nasaCard` | `nasaCard` | `(card: NasaFigure, kicker?) -> figure`; picture, alt, caption, "Did you know?", credit and source link, plus the shared read-aloud control only when `canReadAloud()` is true. The kicker defaults to the sol for a `NasaCard` and to a plain NASA label otherwise |
 | `ui/nasaFeedCard` | `nasaFeedCard` | `(fact: DailyFact, kicker?) -> figure`; the live NASA picture in the same card as the curated one. The picture is optional — a video day keeps its words |
-| `ui/activityPlayer` | `Inspection`, `InspectionResult`, `makeInspection` | `(engine, sol) -> Inspection`; the work-order player for one order: which tool it uses, what the two readings ask for, and how it is graded. The grading itself is in `sim/minigames.ts`, so the rules stay pure (D-060) |
+| `ui/activityPlayer` | `Inspection`, `InspectionResult`, `makeInspection` | `(engine, sol) -> Inspection`; the work-order player for one order: which tool it uses, what the two readings ask for, and how it is graded. The grading itself is in `sim/minigames.ts`, so the rules stay pure (D-060). `Inspection.done()` reports whether the player has finished; nothing gates on it yet, so the Finish button is always there |
 | `ui/guide` | `guidePanel`, `guideButton` | `guidePanel(onClose) -> HTMLElement`; the how-to-play panel, with each step saying where it happens. `guideButton(onOpen) -> HTMLButtonElement`; the `?` in the mission bar. The words are in `sim/guide.ts` (D-060) |
 | `sim/drift` | `stepDrift` | `(state, dt, size, viewport) -> DriftResult`; reflects off walls, returns the fastest `Impact` or null |
 | | `createInitialDrift` | `(size, viewport, speed) -> DriftState`; random 30-45 degree diagonal. **5 `Math.random()` calls** |
@@ -857,7 +860,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 | `sim/standingOrders` | `StandingOrder`, `STANDING_ORDERS` | the twenty-four rules the player works to, two arriving every sol. They are the five learning goals in the order the player meets them (D-060, D-061) |
 | | `ordersThrough`, `ordersForSol` | `(sol) => readonly StandingOrder[]`; the whole board so far, and the two that are new today |
 | | `orderById` | `(id) => StandingOrder \| null` |
-| `sim/minigames` | `EngineKind`, `Grade`, `ENGINE_ORDER`, `ENGINE_UNLOCK_SOL`, `ENGINE_NAME` | the six tools and when each becomes available |
+| `sim/minigames` | `EngineKind`, `Grade`, `ENGINE_ORDER`, `ENGINE_UNLOCK_SOL`, `ENGINE_NAME` | the six tools and when each becomes available: one a sol for the first six sols. The rule that matters is that **every sol has at least one order the player can work** (ISS-065) |
 | | `engineUnlocked` | `(engine, sol) => boolean` |
 | | `gradeSequence`, `gradeRadar`, `gradeTiming`, `gradeSort`, `gradePack`, `gradeMatch` | how each tool is graded, and how many stars it won. The stars multiply the science an order is worth and never touch a store (D-063) |
 | `sim/guide` | `GuideWhere`, `GuideStep`, `GUIDE_STEPS`, `guideStep` | the how-to-play guide: ten steps, each saying where it happens and what to do about it. The words live here so they can be read and tested without a browser (D-060) |
