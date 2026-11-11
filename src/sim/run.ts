@@ -11,6 +11,7 @@ import type { ForecastEvent } from './forecast';
 import { type ModuleKind, systemsFor } from './modules';
 import { newRover, collectMaterial, leaveMaterial, logSite, FIND_SCIENCE, type FindAnswer, type RoverState } from './rover';
 import { createInitialStores, type ResourceStores } from './resources';
+import { emptyTraining, type TrainingState } from './training';
 
 /** A run is active, or ended one way or the other. No third state. */
 export type RunStatus = 'active' | 'lost' | 'won';
@@ -113,6 +114,14 @@ export interface RunState {
   readonly forecast: readonly ForecastEvent[];
   readonly log: readonly SolRecord[];
   readonly decisions: readonly DecisionRecord[];
+  /**
+   * What the crew has done in astronaut training today.
+   *
+   * Two games a sol, and the day's work orders stay locked until they are
+   * done. The record belongs to one sol, so a new sol starts a new one: the
+   * rules are in `sim/training.ts`.
+   */
+  readonly training: TrainingState;
 }
 
 /**
@@ -137,6 +146,7 @@ export function newRun(regionId: string, astronautName = ''): RunState {
     forecast: [],
     log: [],
     decisions: [],
+    training: emptyTraining(1),
   };
 }
 
@@ -248,6 +258,7 @@ export function startOutpost(state: RunState, modules: readonly ModuleKind[]): R
     rover: newRover(),
     log: [],
     decisions: [],
+    training: emptyTraining(1),
     stores: createInitialStores({
       power: systems.batteryKwh,
       shielding: systems.shieldingStart,
