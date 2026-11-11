@@ -1,0 +1,360 @@
+/* BASE-LAYOUT-EDITOR — the developer's placement tool.
+ *
+ * Imported by ./baseLayoutEditor.ts only. It lives in ui/ rather than in a
+ * feature folder because it is not part of the journey: no route, no mount
+ * point, no registry entry, and it is compiled out of a production build.
+ *
+ * The overlay sits on document.body, outside the .gl screen, so the colours
+ * below are declared here rather than borrowed from the game-loop theme.
+ */
+
+/*
+ * The screen's own module pictures are hidden while the editor is on. The
+ * handles show the same artwork in the same place, so leaving both would
+ * draw every module twice.
+ *
+ * The rule is written with two classes on purpose: it must beat `.gl__figure`
+ * from game-loop.css whatever order the two stylesheets load in.
+ */
+.gl__world--editing .gl__figure {
+  visibility: hidden;
+}
+
+.ble__box {
+  position: fixed;
+  overflow: hidden;
+  z-index: 9990;
+  /* The panel behind still takes clicks; only the handles take them. */
+  pointer-events: none;
+  border: 1px dashed rgba(223, 84, 43, 0.5);
+}
+
+/* The band a module may be placed in, so the limits are visible. */
+.ble__guide {
+  position: absolute;
+  left: var(--ble-band-left, 2%);
+  right: var(--ble-band-right, 8%);
+  bottom: var(--ble-band-bottom, 2%);
+  top: var(--ble-band-top, 68%);
+  border: 1px dashed rgba(36, 110, 91, 0.55);
+  background: rgba(36, 110, 91, 0.07);
+}
+
+.ble__handle {
+  position: absolute;
+  left: var(--ble-left, 50%);
+  bottom: var(--ble-bottom, 0%);
+  width: var(--ble-width, 20%);
+  height: auto;
+  z-index: var(--ble-z, 2);
+  cursor: grab;
+  /* The browser must not pan the page instead of dragging the module. */
+  touch-action: none;
+  pointer-events: auto;
+  outline: none;
+}
+
+.ble__handle:active {
+  cursor: grabbing;
+}
+
+.ble__handle img {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 6px 10px rgba(120, 60, 20, 0.18));
+
+  /* The artwork alone is mirrored, never the handle: the resize grip has to
+     stay on the bottom-right and the label has to stay readable. */
+  transform: scaleX(var(--ble-flip, 1));
+}
+
+/*
+ * The marker on a mirrored module.
+ *
+ * Always visible, unlike the name tag: whether a module is turned around is
+ * a state of the outpost, not a label you are reading.
+ */
+.ble__mark {
+  display: none;
+  position: absolute;
+  left: -8px;
+  top: -8px;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  border: 2px solid #fff9ec;
+  background: #347ba2;
+  color: #fff9ec;
+  font: 700 10px/13px 'Nunito', 'Segoe UI', system-ui, sans-serif;
+  text-align: center;
+  pointer-events: none;
+}
+
+.ble__handle--mirrored .ble__mark {
+  display: block;
+}
+
+.ble__handle--selected img {
+  outline: 2px solid #df542b;
+  outline-offset: 2px;
+}
+
+.ble__handle:focus-visible img {
+  outline: 2px solid #f5f0e3;
+  outline-offset: 2px;
+}
+
+/*
+ * The corner you drag to change the size.
+ *
+ * It sits on the bottom-right of the module, so dragging it sideways widens
+ * the picture and the left edge stays where it was. The height follows the
+ * artwork's own proportions, so width is the only dimension to change.
+ */
+.ble__grip {
+  position: absolute;
+  right: -8px;
+  bottom: -8px;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  border: 2px solid #fff9ec;
+  border-radius: 50%;
+  background: #df542b;
+  cursor: ew-resize;
+  touch-action: none;
+  pointer-events: auto;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.ble__handle:hover .ble__grip,
+.ble__handle--selected .ble__grip {
+  background: #cf4726;
+}
+
+/*
+ * The name of a module, shown on hover and on the selected one.
+ *
+ * Every copy of every module is on the panel at once, so a permanent label
+ * on each would be noise.
+ */
+.ble__tag {
+  position: absolute;
+  left: 50%;
+  bottom: -20px;
+  transform: translateX(-50%);
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(11, 16, 21, 0.88);
+  color: #f5f0e3;
+  font: 700 11px/1.4 'Nunito', 'Segoe UI', system-ui, sans-serif;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ble__handle:hover .ble__tag,
+.ble__handle--selected .ble__tag {
+  opacity: 1;
+}
+
+/* ------------------------------------------------------------- toolbar -- */
+
+.ble__toolbar {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 9999;
+  width: 330px;
+  max-height: calc(100vh - 24px);
+  overflow: auto;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(29, 45, 70, 0.96);
+  color: #f5f0e3;
+  font: 600 13px/1.45 'Nunito', 'Segoe UI', system-ui, sans-serif;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+}
+
+/*
+ * What is wrong with the layout file the editor opened.
+ *
+ * The game copes with a broken file rather than refusing to start, so this is
+ * the only place a developer finds out that the game quietly fixed something.
+ */
+.ble__problems {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border: 1px solid #e8a33d;
+  border-radius: 8px;
+  background: rgba(255, 214, 138, 0.12);
+  color: #ffd79a;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.ble__problems-title {
+  margin: 0 0 4px;
+  font-weight: 800;
+}
+
+.ble__problems-line {
+  margin: 0 0 2px;
+  padding-left: 10px;
+  text-indent: -10px;
+}
+
+.ble__problems-note {
+  margin: 6px 0 0;
+  opacity: 0.75;
+  font-style: italic;
+}
+
+.ble__title {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.ble__hint {
+  margin: 0 0 8px;
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.ble__readout {
+  margin: 0 0 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.28);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/*
+ * Which module is selected.
+ *
+ * Copies of a kind overlap in the default layout, so clicking the one you
+ * want is not always possible. This is the way to pick the one underneath.
+ */
+.ble__pick {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 8px;
+  padding: 5px 6px;
+  border: 1px solid rgba(245, 240, 227, 0.25);
+  border-radius: 6px;
+  background: #0b1015;
+  color: #f5f0e3;
+  font: 600 12px/1.4 'Nunito', 'Segoe UI', system-ui, sans-serif;
+}
+
+.ble__fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 10px;
+  margin-bottom: 10px;
+}
+
+.ble__field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.ble__field-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.7;
+}
+
+.ble__num {
+  width: 74px;
+  padding: 4px 6px;
+  border: 1px solid rgba(245, 240, 227, 0.25);
+  border-radius: 6px;
+  background: #0b1015;
+  color: #f5f0e3;
+  font: 12px/1.3 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+}
+
+/*
+ * A value the developer cannot change.
+ *
+ * The stacking order is fixed, so the toolbar says where a module sits in it
+ * rather than offering a number that could only be wrong.
+ */
+.ble__num--fixed {
+  display: inline-block;
+  box-sizing: border-box;
+  border-style: dashed;
+  border-color: rgba(245, 240, 227, 0.2);
+  background: rgba(0, 0, 0, 0.28);
+  color: rgba(245, 240, 227, 0.7);
+  text-align: center;
+}
+
+.ble__label {
+  margin: 0 0 4px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.7;
+}
+
+.ble__json {
+  display: block;
+  width: 100%;
+  height: 170px;
+  box-sizing: border-box;
+  padding: 8px;
+  resize: vertical;
+  border: 1px solid rgba(245, 240, 227, 0.2);
+  border-radius: 8px;
+  background: #0b1015;
+  color: #9fe6a4;
+  font: 12px/1.45 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+}
+
+.ble__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.ble__btn {
+  padding: 6px 10px;
+  border: 1px solid rgba(245, 240, 227, 0.25);
+  border-radius: 8px;
+  background: rgba(245, 240, 227, 0.08);
+  color: #f5f0e3;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ble__btn:hover {
+  background: rgba(245, 240, 227, 0.18);
+}
+
+.ble__btn--primary {
+  background: #df542b;
+  border-color: #df542b;
+}
+
+.ble__btn--primary:hover {
+  background: #cf4726;
+}
+
+/* A toggle that is on: the Mirror button, and nothing else. */
+.ble__btn[aria-pressed='true'] {
+  background: #347ba2;
+  border-color: #347ba2;
+}

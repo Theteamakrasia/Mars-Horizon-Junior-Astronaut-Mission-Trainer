@@ -7,6 +7,11 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 
 | id | task | goal | owner | status | blocked by | notes |
 | --- | --- | --- | --- | --- | --- | --- |
+| TASK-092 | A fixed stacking order for the outpost modules, and the NASA button beside the region name | G-4 | agent | done | - | D-069; `DEPTH_ORDER` and `depthFor`; `z` out of the layout file; the NASA button moved and given the game's orange; 503 tests |
+| TASK-091 | Warn when the layout file has a problem, and stop the editor from overwriting it | G-4 | agent | done | - | D-068; console warning + editor banner; the editor now opens from the file on disk; two bugs fixed. 492 tests |
+| TASK-090 | Mirror a module in the placement editor | G-4 | agent | done | - | D-067; optional `flip` on a pose; Mirror button and F key; first tests for `ui/gameLoop.ts`; 492 tests |
+| TASK-089 | A pose per module copy, and a way to resize a module | G-4 | agent | done | - | D-066; `baseLayout.json` holds a list per kind; the editor places and scales all 15 copies; crewmate sprite off the build screen; 480 tests |
+| TASK-088 | Move the outpost module layout out of source into a JSON file, with a developer placement editor | G-4 | agent | done | - | D-065; `src/ui/baseLayout.json`, `baseLayout.ts`, `baseLayoutEditor.ts`; `?editlayout=1`; 471 tests. Verified in headless Chrome, including the file round trip |
 | TASK-087 | Fix the tools: every sol has one to work, the sorting tool can earn three stars, and the browser check can drive any of them | G-4 | agent | done | — | ISS-064, ISS-065. The tools unlock one a sol for the first six; a test over the plan holds the rule |
 | TASK-086 | Update the docs for the balance, the desk loop, the rover and the guide, and merge to `main` | G-6 | agent | done | — | AGENTS.md, `docs/architecture.md`, `docs/game-flow.md`, README, `src/data/README.md`, and the team docs; D-060…D-064, ISS-054…063 |
 | TASK-085 | Fix what play testing turned up: the power card, the goal scroll, the build feedback, the limits, the recap and the word count | G-7 | agent | done | — | ISS-054…058, ISS-060, ISS-062. Six of the ten complaints in one pass |

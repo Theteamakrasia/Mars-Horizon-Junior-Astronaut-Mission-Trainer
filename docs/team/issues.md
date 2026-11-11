@@ -11,6 +11,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
+| ISS-066 | The `drag-editor` placement WIP was unreachable, failed `tsc` and failed `check-markup`, and copies of it sat at the repo root | high | agent | fixed | c9b8904 |
 | ISS-065 | Sol 3 had no tool to work at all, and the sorting tool could never earn three stars | medium | agent | fixed | this branch |
 | ISS-064 | The build screen's browser check failed on a third of runs, because it assumed a desk that was always there | low | agent | fixed | this branch |
 | ISS-061 | The game was unwinnable: 14 build points could not buy a night of power at any landing site | high | agent | fixed | this branch |
@@ -77,6 +78,30 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
+## ISS-066 — The `drag-editor` placement WIP was unreachable, failed `tsc` and failed `check-markup`, and copies of it sat at the repo root
+
+- **Reported by:** agent, 2026-11-11, while planning the developer placement editor.
+- **Where:** `src/features/drag-editor/` (all four files), `src/ui/routes.ts`, repo root.
+- **Problem:** the work-in-progress placement editor could not run at all. `view.ts` had
+  eight TypeScript errors (`sprite` was not defined at line 160, `Touch` was used where
+  `TouchEvent` was meant, and `h()` was given a number), so `tsc --noEmit` failed and
+  `npm run check` stopped before it. `drag-editor.css` set `pointer-events: none` on the
+  drag ghost, which `check-markup` Rule 8 bans in any `src/features/*/` stylesheet. The
+  screen was also unreachable: `'drag-editor'` was in the `Route` union but not in
+  `ALL_ROUTES`, so `parseRoute` rejected it; it was absent from `src/ui/registry.ts`; and
+  `index.html` had no `#drag-editor` element. Stray copies of two of its files sat at the
+  repo root (`view.ts`, `drag-editor.css`) beside `src/ui/registry.ts.bak`.
+- **Cause:** the feature was started and abandoned without ever being wired to a route, so
+  nothing exercised it. `npm run check` was the only thing that would have caught it, and
+  it had not been run since the folder was added.
+- **Fix:** deleted the folder, the three stray files and the dead `'drag-editor'` route
+  (`c9b8904`). The placement editor was rebuilt as a developer tool rather than a game
+  screen — it lives in `src/ui/`, needs no route, no mount point and no registry entry,
+  and is compiled out of a production build, so it cannot half-exist the way this one
+  did (`1cdba9f`, `ecd9d27`). `npm run check` passes again.
+- **Pre-existing:** no; introduced by uncommitted work on `game-loop-ui`.
+
+---
 ## ISS-043 — Space weather had one live source, so a DONKI outage silently replaced every run's flares with baked history
 
 - **Reported by:** agent, 2026-11-09, while verifying the live NASA flare path.
@@ -1117,7 +1142,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-**Next free id: ISS-054.**
+**Next free id: ISS-067.**
 
 
 ---

@@ -24,7 +24,7 @@ than eyeballed, and it is what `npm run check` protects.
 
 ## The invariant, and why it is enforced
 
-701 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
+772 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
 reference it would still work, and the cost would surface later as an untestable bug.
 Enforced as `no-dom-in-pure-zone`.
 
@@ -402,6 +402,37 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         them. `ScreenFactory` is (root, run, setRun) ->
     │   │                                         teardown. Returns null for routes with nothing
     │   │                                         built, so the router can fall through.
+    │   ├── baseLayout.json             complete   where every copy of every module stands on
+    │   │                                         the outpost panel: a list of poses per kind,
+    │   │                                         {left, bottom, width, flip?} each, in percent.
+    │   │                                         The nth entry is where the nth copy of that
+    │   │                                         kind stands. The file a developer produces with
+    │   │                                         the placement editor (D-065, D-066). The
+    │   │                                         stacking order is not here — it is a rule
+    │   │                                         (D-069).
+    │   ├── baseLayout.ts               complete   loads and validates baseLayout.json. Exports
+    │   │                                         ModuleSpot, ModulePoses, SPOT_BAND,
+    │   │                                         PANEL_RIGHT_EDGE, DEFAULT_POSES, MODULE_POSES,
+    │   │                                         LAYOUT_PROBLEMS, DEPTH_ORDER, depthFor, clamp,
+    │   │                                         clampSpot, roundSpot, resolvePoses,
+    │   │                                         describeLayoutProblems, buildLayoutJson,
+    │   │                                         pointToPercent, poseFor. A kind the file cannot
+    │   │                                         supply falls back to DEFAULT_POSES; an
+    │   │                                         out-of-range number is clamped, not discarded.
+    │   ├── baseLayout.test.ts          complete   55 tests. Every input literal.
+    │   ├── baseLayoutEditor.ts         complete   the placement editor (D-065 to D-069). Exports
+    │   │                                         startLayoutEditor(root) -> teardown. Dev-only:
+    │   │                                         a developer drags the fifteen copies of the
+    │   │                                         modules on the real outpost panel with
+    │   │                                         ?editlayout=1, resizes them with the corner
+    │   │                                         grip, mirrors them, and downloads
+    │   │                                         baseLayout.json. It opens showing the layout on
+    │   │                                         disk, and warns about a file with problems in
+    │   │                                         it. Loaded by a dynamic import in main.ts, so it
+    │   │                                         is compiled out of a production build entirely.
+    │   ├── base-layout-editor.css      complete   the editor's overlay: the drag handles, the
+    │   │                                         guide band and the toolbar. Imported by
+    │   │                                         baseLayoutEditor.ts only.
     │   └── gameLoop.ts                 complete   the shared game-loop chrome from the Figma
     │                                             frames (D-038): gameHeader, gameHud,
     │                                             gameWorld, gamePanel, gameScreen,
@@ -687,7 +718,16 @@ startFloatingAstronaut → rAF tick → stepAstronaut (pure) → render transfor
 
 ui/router.ts → location.hash → parseRoute (pure) → onRoute(route) → main.ts
              → registry.resolveScreen → features/*/view.ts → teardown on navigate away
+             → (dev build, ?editlayout=1) ui/baseLayoutEditor overlays the outpost panel
 ```
+
+Where the modules stand on the outpost panel is **data, not code**. `ui/baseLayout.json`
+holds it — a pose list per kind, one entry per copy the player could build — and
+`ui/baseLayout.ts` validates it; `ui/gameLoop.ts` places the modules with it. A developer
+produces that file by dragging the modules on the real screen with `?editlayout=1`
+(D-065 to D-069). The editor is a developer tool, not a screen: it has no route, no mount
+point and no registry entry, and `main.ts` loads it with a dynamic import behind
+`import.meta.env.DEV`, so it is compiled out of a production build entirely.
 
 **The day's loop** — the part a player lives, and where each piece of it lives:
 
@@ -753,6 +793,11 @@ which of the two it is showing.
 13. `main.ts` collects the landing page's own layers into `landingLayers`, then
     `startScreenRouter()` calls `startRouter`, which resolves the hash — defaulting to
     `naming` — and mounts that screen, hiding the landing layers behind it.
+14. In a dev build with `?editlayout=1`, `main.ts` loads `ui/baseLayoutEditor` with a
+    dynamic import. The editor is attached to whichever screen is mounted, and to
+    nothing in a production build (D-065).
+15. In a dev build, a layout file with problems in it is listed in the console
+    (D-068). The game still starts: it falls back to what it can.
 
 Routing is last so every screen it can mount is already defined. `BACK TO MAIN MENU`
 returns to `landing`, which keeps running behind the mounted screen.
@@ -952,6 +997,19 @@ returns to `landing`, which keeps running behind the mounted screen.
 | `dom/pointerGrab` | `attachGrab` | `(target, handlers, options) -> teardown` |
 | `dom/starfield` | `createStarfield` | `(container) => void`; appends, never clears |
 | `ui/button-strip` | `createButtonStrip` | `(root, options) -> ButtonStripSpec`; full-width fixed-height bottom strip holding Next / Prev / action buttons; teardown is mandatory |
+| `ui/baseLayout` | `ModuleSpot`, `ModulePoses` | `{left, bottom, width, flip?}` for one module; and where every copy of every kind stands — one list per kind, in build order. `flip` is optional and means mirrored left to right |
+| | `SPOT_BAND` | how far a module may be placed: left 2-92, bottom 2-32, width 6-24. The single source of truth; `styles/game-loop.css` clamps with the same numbers and `check-markup` Rule 11 fails the build if the two ever disagree |
+| | `PANEL_RIGHT_EDGE` | 100 — a module is never wider than the gap between where it starts and the right-hand edge of the panel |
+| | `DEFAULT_POSES` | the authored layout, used when `baseLayout.json` cannot supply one. One pose per copy the player can build |
+| | `MODULE_POSES` | the validated layout the game places modules with; every kind has one pose per copy, and every pose is inside the band |
+| | `LAYOUT_PROBLEMS` | what is wrong with the layout file, in words; empty when the file is good. Printed at boot behind `import.meta.env.DEV`, and shown in a banner at the top of the placement editor's toolbar (D-068) |
+| | `DEPTH_ORDER`, `depthFor` | what stands in front of what, farthest first, and the stacking level of one module copy (D-069). A rule in code, not a number in the file: the order is a property of the outpost, and a file of fifteen positions cannot be trusted to keep a stacking order straight. The copies of a kind recede from the camera as they are added, so the first copy is the nearest; the two regolith shields share one depth |
+| | `resolvePoses`, `describeLayoutProblems` | `(source) -> ModulePoses` and `(source) -> string[]`; the old single-pose shape reads as a list of one, a short list is padded by derivation, a long one is cut, and a kind the file cannot supply falls back to the default |
+| | `poseFor` | `(poses, kind, copy) -> ModuleSpot`; where the nth copy of a kind stands, derived from the last pose when the file has no entry for it |
+| | `clamp`, `clampSpot`, `roundSpot` | pull a number or a whole spot into the band, and round to one decimal so the toolbar and the file quote the same numbers |
+| | `buildLayoutJson` | `(poses) -> string`; the layout file, in catalogue order, one list per kind, two-space indented. `flip` is written only for a module that is mirrored |
+| | `pointToPercent` | `(point, panelRect) -> {left, bottom}`; where a pointer is inside the outpost panel |
+| `ui/baseLayoutEditor` | `startLayoutEditor` | `(root) -> teardown`; the placement editor (D-065 to D-069). Fifteen draggable handles — one per copy of every module — a corner grip on each that changes its width, a toolbar with the numbers and the JSON, and Download / Copy / Reset / Done. Dev-only: `main.ts` loads it with a dynamic import behind `import.meta.env.DEV`, so it never reaches a production bundle. The flag check lives in `main.ts`, which cannot import this module statically without pulling it into the bundle |
 
 ## The data layer
 

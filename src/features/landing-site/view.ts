@@ -22,8 +22,8 @@ import { landAt, newRun, type RunState } from '../../sim/run';
 import { nextStop } from '../../ui/registry';
 import { navigate } from '../../ui/router';
 import { nasaCard } from '../../ui/nasaCard';
+import { h } from '../../dom/h';
 import { regionCard } from '../../data/nasaGallery';
-import { stopReading } from '../../ui/readAloud';
 
 import { REGIONS, SITE_AXES, scoreRegion, tradeoffSummary } from './model';
 
@@ -91,7 +91,7 @@ export function mountLandingSite(
   const summary = require<HTMLParagraphElement>(root, '[data-landing-summary]');
   const landButton = require<HTMLButtonElement>(root, '[data-landing-land]');
   const hint = require<HTMLParagraphElement>(root, '[data-landing-hint]');
-  const nasa = require<HTMLElement>(root, '[data-landing-nasa]');
+  const nasaDataButton = require<HTMLButtonElement>(root, '[data-landing-nasa-data]');
 
   const pins = [...root.querySelectorAll<HTMLButtonElement>('[data-landing-pin]')];
 
@@ -147,6 +147,8 @@ export function mountLandingSite(
   let selectedRegionId: string | null = null;
   let selectedPin: HTMLButtonElement | null = null;
   let landFirstSelection = true;
+  let nasaDataOpen = false;
+  let nasaDataOverlay: HTMLElement | null = null;
 
   const cleanups: Array<() => void> = [];
   const timers: number[] = [];
@@ -252,21 +254,51 @@ export function mountLandingSite(
    * The figure is rebuilt only when the region changes; a comparison between
    * two regions swaps the whole card rather than re-requesting the image.
    */
-  function setNasaCard(regionId: string): void {
-    const card = regionCard(regionId);
+  /** Modal popup showing the real NASA data card for the selected region. */
+  function buildNasaDataModal(): HTMLElement {
+    const card = selectedRegionId ? regionCard(selectedRegionId) : null;
+    const overlay = h('div', { class: 'landing-site__nasa-modal-overlay' });
 
     if (card === null) {
-      nasa.hidden = true;
-      nasa.replaceChildren();
-
-      return;
+      overlay.appendChild(
+        h('div', { class: 'landing-site__nasa-modal' }, h('p', { text: 'No NASA data available for this region.' })),
+      );
+      return overlay;
     }
 
-    /* The old card is about to be removed, and its read-aloud button goes with
-       it. Stop the voice rather than leaving it reading a detached figure. */
-    stopReading();
-    nasa.replaceChildren(nasaCard(card, `A real NASA picture · ${card.title}`));
-    nasa.hidden = false;
+    const modal = h(
+      'div',
+      { class: 'landing-site__nasa-modal' },
+      h('button', {
+        class: 'landing-site__nasa-modal-close',
+        type: 'button',
+        'aria-label': 'Close NASA data',
+        text: '✕',
+      }),
+      nasaCard(card, 'A real NASA picture'),
+    );
+    overlay.appendChild(modal);
+
+    const close = (): void => {
+      nasaDataOpen = false;
+      overlay.remove();
+      nasaDataOverlay = null;
+    };
+
+    modal.querySelector('.landing-site__nasa-modal-close')!.addEventListener('click', close);
+    overlay.addEventListener('click', (event: MouseEvent) => {
+      if (event.target === overlay) close();
+    });
+
+    return overlay;
+  }
+
+  function onNasaDataClick(): void {
+    if (nasaDataOpen) return;
+    nasaDataOpen = true;
+    nasaDataOverlay = buildNasaDataModal();
+    root.appendChild(nasaDataOverlay);
+    (nasaDataOverlay.querySelector('.landing-site__nasa-modal-close') as HTMLElement).focus();
   }
 
   /**
@@ -300,7 +332,6 @@ export function mountLandingSite(
 
       revealSummary(tradeoffSummary(score));
       setThumbnail(regionId);
-      setNasaCard(regionId);
 
       setHint(`Selected ${region.name}. Press Land here to commit.`);
     }
@@ -432,10 +463,21 @@ export function mountLandingSite(
     landButton.removeEventListener('click', onLandClick);
   });
 
+  nasaDataButton.addEventListener('click', onNasaDataClick);
+  cleanups.push(() => {
+    nasaDataButton.removeEventListener('click', onNasaDataClick);
+  });
+
   setHint('Choose a landing site.');
 
   return () => {
     clearTimers();
+
+    if (nasaDataOverlay !== null) {
+      nasaDataOverlay.remove();
+      nasaDataOverlay = null;
+      nasaDataOpen = false;
+    }
 
     if (selectedPin !== null) {
       selectedPin.setAttribute('aria-pressed', 'false');

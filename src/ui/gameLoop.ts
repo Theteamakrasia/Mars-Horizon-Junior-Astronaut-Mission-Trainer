@@ -13,7 +13,9 @@
  */
 
 import { h } from '../dom/h';
+import { navigate } from './router';
 import type { ModuleKind } from '../sim/modules';
+import { MODULE_POSES, depthFor, poseFor } from './baseLayout';
 
 /* The artwork is bundled by Vite, never fetched: the Figma asset URLs expire. */
 import astronautUrl from '../../Assets/images/interior/sprite/interact-alt.webp';
@@ -50,17 +52,23 @@ export function moduleArt(kind: ModuleKind): string {
   return MODULE_ART[kind];
 }
 
-/** Where each module stands in the world, in percent of the panel. */
-const MODULE_SPOT: Readonly<Record<ModuleKind, { readonly left: number; readonly bottom: number; readonly width: number; readonly z: number }>> = {
-  'solar-array': { left: 16, bottom: 20, width: 20, z: 3 },
-  habitat: { left: 33, bottom: 23, width: 21, z: 4 },
-  'life-support': { left: 27, bottom: 6, width: 11, z: 5 },
-  batteries: { left: 46, bottom: 5, width: 9, z: 5 },
-  greenhouse: { left: 56, bottom: 22, width: 19, z: 4 },
-  'ice-miner': { left: 76, bottom: 7, width: 11, z: 5 },
-  'regolith-shield': { left: 80, bottom: 25, width: 13, z: 3 },
-  'nuclear-unit': { left: 89, bottom: 8, width: 10, z: 5 },
-};
+/**
+ * Where each module stands in the world, in percent of the panel.
+ *
+ * The table itself lives in `baseLayout.json`, and `baseLayout.ts` loads it,
+ * validates every number and clamps it into the band. A developer places the
+ * modules by dragging them on the real base screen (`?editlayout=1`) rather
+ * than editing a literal here, and that file is the record of what they chose.
+ *
+ * The file holds a pose **per copy**, not per kind: a player can build four
+ * solar arrays and each one can stand somewhere different, so each one has its
+ * own entry and the nth entry is where the nth copy stands.
+ *
+ * Modules sit in four dedicated zones so the outpost looks established rather
+ * than scattered: Power (solar + batteries), Habitat (home + life support),
+ * Food (greenhouse + ice miner), and Shielding/Energy (regolith shield +
+ * nuclear).
+ */
 
 /** A figure standing in the world. */
 export interface WorldFigure {
@@ -72,33 +80,41 @@ export interface WorldFigure {
   /** Percent of the panel's width. */
   readonly width: number;
   readonly z?: number;
+  /**
+   * Mirrored left to right.
+   *
+   * The mirror is about the picture's centre, so a turned-around module keeps
+   * the place it was put.
+   */
+  readonly flip?: boolean;
 }
 
 /**
  * Lay out the modules the outpost actually has.
  *
- * A second and third copy of the same module step to the right and shrink a
- * little, so four solar arrays read as a row of panels rather than one picture
- * drawn four times on top of itself.
+ * Each copy of a kind stands where the layout file says that copy stands: the
+ * second solar array goes on the second `solar-array` pose. A file that is
+ * missing a pose for a copy falls back to deriving one, so a module is never
+ * simply absent.
  */
 export function moduleFigures(kinds: readonly ModuleKind[]): readonly WorldFigure[] {
   const placed = new Map<ModuleKind, number>();
   const figures: WorldFigure[] = [];
 
   for (const kind of kinds) {
-    const spot = MODULE_SPOT[kind];
     const copy = placed.get(kind) ?? 0;
 
     placed.set(kind, copy + 1);
 
-    const width = Math.max(6, spot.width - copy * 1.5);
+    const spot = poseFor(MODULE_POSES, kind, copy);
 
     figures.push({
       src: moduleArt(kind),
-      left: Math.min(92 - width, spot.left + copy * (spot.width * 0.36)),
-      bottom: Math.min(34, spot.bottom + copy * 3),
-      width,
-      z: spot.z + copy,
+      left: spot.left,
+      bottom: spot.bottom,
+      width: spot.width,
+      z: depthFor(kind, copy),
+      flip: spot.flip === true,
     });
   }
 
@@ -141,6 +157,10 @@ export interface WorldOptions {
   readonly signals?: readonly SignalCard[];
   readonly figures?: readonly WorldFigure[];
   readonly hint?: string;
+  /** Show the Mars landscape behind the figures. Default true; set false for reference screens. */
+  readonly showBackground?: boolean;
+  /** Show the crewmate sprite in the world panel. Default true; set false where it should not appear. */
+  readonly showAstronaut?: boolean;
 }
 
 /** Everything the right-hand panel needs. */
@@ -186,10 +206,13 @@ export function missionBar(options: MissionBarOptions): HTMLElement {
 /** The whole screen: header, HUD, world, panel. */
 export interface ScreenOptions {
   readonly hud: readonly HudStat[];
-  readonly world: HTMLElement;
+  /** The world panel (Mars background + figures). Omitted when fullWidth is true. */
+  readonly world?: HTMLElement;
   readonly panel: HTMLElement;
   /** Text under the MARS HORIZON brand, naming this screen. */
   readonly headerSub?: string;
+  /** When true, the panel spans the full page width and no world column is shown. */
+  readonly fullWidth?: boolean;
   /** A screen-specific modifier on the root, for that feature's own CSS. */
   readonly variant?: string;
   /**
@@ -236,6 +259,7 @@ export function gameHeader(sub?: string, onLeave?: () => void): HTMLElement {
   }
 
   const keep = h('button', { class: 'gl__btn gl__btn--primary', type: 'button' }, 'Keep playing');
+  const encyclopedia = h('button', { class: 'gl__btn', type: 'button' }, '📖 Encyclopedia');
   const leave = h('button', { class: 'gl__btn gl__btn--navy', type: 'button' }, 'Leave mission');
   const button = h(
     'button',
@@ -252,7 +276,7 @@ export function gameHeader(sub?: string, onLeave?: () => void): HTMLElement {
       class: 'gl__menu-text',
       text: 'Your run is not saved. Leaving now returns to the main menu, and the next mission starts again from sol 1.',
     }),
-    h('div', { class: 'gl__menu-actions' }, keep, leave),
+    h('div', { class: 'gl__menu-actions' }, keep, encyclopedia, leave),
   );
 
   const backdrop = h('div', { class: 'gl__menu-backdrop', hidden: true }, card);
@@ -262,6 +286,11 @@ export function gameHeader(sub?: string, onLeave?: () => void): HTMLElement {
     button.setAttribute('aria-expanded', 'false');
     button.focus();
   };
+
+  encyclopedia.addEventListener('click', () => {
+    close();
+    navigate('encyclopedia');
+  });
 
   const open = (): void => {
     backdrop.hidden = false;
@@ -378,7 +407,11 @@ export function gameWorld(options: WorldOptions): HTMLElement {
 
   const world = h(
     'section',
-    { class: 'gl__world', 'aria-label': 'Your outpost on Mars', style: `background-image:url(${WORLD_BACKGROUND})` },
+    {
+      class: 'gl__world',
+      'aria-label': 'Your outpost on Mars',
+      style: options.showBackground === false ? 'background:transparent' : `background-image:url(${WORLD_BACKGROUND})`,
+    },
     h('div', { class: 'gl__world-top' }, left, right),
   );
 
@@ -388,13 +421,15 @@ export function gameWorld(options: WorldOptions): HTMLElement {
         class: 'gl__figure',
         src: figure.src,
         alt: '',
-        style: `--gl-x:${figure.left}%;--gl-y:${figure.bottom}%;--gl-w:${figure.width}%;--gl-z:${figure.z ?? 2}`,
+        style: `--gl-x:${figure.left}%;--gl-y:${figure.bottom}%;--gl-w:${figure.width}%;--gl-z:${figure.z ?? 2};--gl-flip:${figure.flip === true ? -1 : 1}`,
       }),
     );
   }
 
   if (options.hint !== undefined) world.append(h('p', { class: 'gl__hint', text: options.hint }));
-  world.append(h('span', { class: 'gl__astronaut', 'aria-hidden': 'true', style: `background-image:url(${ASTRONAUT_SPRITE})` }));
+  if (options.showAstronaut !== false) {
+    world.append(h('span', { class: 'gl__astronaut', 'aria-hidden': 'true', style: `background-image:url(${ASTRONAUT_SPRITE})` }));
+  }
 
   return world;
 }
@@ -417,13 +452,20 @@ export function gamePanel(options: PanelOptions): HTMLElement {
 
 /** Assemble a screen. Always one `.gl` root, so the fixed layout is one rule. */
 export function gameScreen(options: ScreenOptions): HTMLElement {
+  const main = h(
+    'div',
+    { class: 'gl__main' },
+    ...(options.world === undefined || options.fullWidth ? [] : [options.world]),
+    options.panel,
+  );
+
   return h(
     'div',
     { class: options.variant === undefined ? 'gl' : `gl ${options.variant}` },
     gameHeader(options.headerSub, options.onLeave),
     options.mission === undefined ? null : missionBar(options.mission),
     gameHud(options.hud),
-    h('div', { class: 'gl__main' }, options.world, options.panel),
+    main,
   );
 }
 

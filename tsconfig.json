@@ -13,6 +13,10 @@
     "moduleDetection": "force",
     "noEmit": true,
 
+    /* The outpost layout is a JSON file, so it can be produced by the
+     * placement editor instead of hand-edited. See src/ui/baseLayout.ts. */
+    "resolveJsonModule": true,
+
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,

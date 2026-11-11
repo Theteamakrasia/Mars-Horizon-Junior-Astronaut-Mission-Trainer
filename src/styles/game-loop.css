@@ -11,6 +11,26 @@
    the layout keeps its proportions on a laptop without becoming unreadable on a
    small screen. Sizes that must not exceed the design value (a 104px header)
    are capped; sizes that must not collapse (a 12px gap) keep a floor.
+
+   THE STACKING LADDER
+   Every screen draws in one stacking context: the `.gl` root below. So the
+   order of what is on top is decided by the z-indexes here, and they have to
+   be read as a ladder:
+
+     0 - 79   the modules on the Mars panel. Each kind gets a band of ten, so
+              the copies of one kind can order themselves without ever
+              passing the copies of the next kind (see `depthFor` in
+              ui/baseLayout.ts).
+     90       the crewmate sprite, on the panel.
+     95       the hint line, on the panel.
+     98       the bubbles over the panel: the place, the weather, the speech.
+    100       the how-to-play panel.
+    110       the leave-mission dialog, over everything.
+
+   The gap at 80 is deliberate. A module may reach 79, and nothing the
+   screen draws over the panel may sit below it — which is exactly what
+   happened when the modules grew their depth bands and the guide stayed at
+   40: the battery bank painted over the how-to-play panel.
    ========================================================================== */
 
 .gl {
@@ -155,7 +175,7 @@
 .gl__menu-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 60;
+  z-index: 110;
   display: grid;
   place-items: center;
   padding: 1.2rem;
@@ -254,7 +274,7 @@
  */
 .gl__guide {
   position: absolute;
-  z-index: 40;
+  z-index: 100;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
@@ -458,6 +478,11 @@
   padding: clamp(8px, 0.83vw, 16px) clamp(12px, 1.25vw, 24px) clamp(12px, 1.25vw, 24px);
 }
 
+/* Full-width reference screens (encyclopedia): panel spans the whole page. */
+.gl--encyclopedia .gl__main {
+  grid-template-columns: 1fr;
+}
+
 /* ----------------------------------------------------------------- world -- */
 
 .gl__world {
@@ -473,13 +498,17 @@
 
 .gl__figure {
   position: absolute;
-  left: var(--gl-x, 0%);
-  bottom: var(--gl-y, 0%);
-  width: var(--gl-w, 18%);
+  left: clamp(2%, var(--gl-x, 0%), 92%);
+  bottom: clamp(2%, var(--gl-y, 0%), 32%);
+  width: clamp(6%, var(--gl-w, 18%), 24%);
   height: auto;
   z-index: var(--gl-z, 2);
   filter: drop-shadow(0 6px 10px rgba(120, 60, 20, 0.18));
   pointer-events: none;
+
+  /* A turned-around module. The mirror is about the picture's centre, so the
+     module keeps the place it was put and only the artwork changes. */
+  transform: scaleX(var(--gl-flip, 1));
 }
 
 .gl__astronaut {
@@ -488,7 +517,7 @@
   bottom: -3%;
   width: 17%;
   aspect-ratio: 256 / 337;
-  z-index: 6;
+  z-index: 90;
   background-repeat: no-repeat;
   background-size: 200% 100%;
   background-position: right bottom;
@@ -502,7 +531,7 @@
   grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
   gap: clamp(6px, 0.9vw, 18px);
   align-items: start;
-  z-index: 8;
+  z-index: 98;
   pointer-events: none;
 }
 
@@ -676,7 +705,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  z-index: 7;
+  z-index: 95;
 }
 
 /* ----------------------------------------------------------------- panel -- */

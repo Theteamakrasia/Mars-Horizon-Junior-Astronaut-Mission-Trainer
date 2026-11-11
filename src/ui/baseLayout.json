@@ -1,0 +1,94 @@
+{
+  "habitat": [
+    {
+      "left": 2,
+      "bottom": 2,
+      "width": 24
+    }
+  ],
+  "life-support": [
+    {
+      "left": 25,
+      "bottom": 3,
+      "width": 23.3
+    }
+  ],
+  "solar-array": [
+    {
+      "left": 20.7,
+      "bottom": 25.3,
+      "width": 15.8
+    },
+    {
+      "left": 30,
+      "bottom": 24.7,
+      "width": 15.9
+    },
+    {
+      "left": 32.5,
+      "bottom": 32,
+      "width": 15.3
+    },
+    {
+      "left": 23.7,
+      "bottom": 32,
+      "width": 14.8
+    }
+  ],
+  "batteries": [
+    {
+      "left": 51.6,
+      "bottom": 2,
+      "width": 14.7
+    },
+    {
+      "left": 54.5,
+      "bottom": 4.2,
+      "width": 14.3
+    },
+    {
+      "left": 60.3,
+      "bottom": 2.7,
+      "width": 15.1
+    },
+    {
+      "left": 62.7,
+      "bottom": 4.7,
+      "width": 15.1
+    }
+  ],
+  "greenhouse": [
+    {
+      "left": 45.5,
+      "bottom": 24,
+      "width": 24
+    }
+  ],
+  "ice-miner": [
+    {
+      "left": 67.8,
+      "bottom": 26.8,
+      "width": 20
+    }
+  ],
+  "regolith-shield": [
+    {
+      "left": 2,
+      "bottom": 31.9,
+      "width": 24
+    },
+    {
+      "left": 76.4,
+      "bottom": 32,
+      "width": 23.4,
+      "flip": true
+    }
+  ],
+  "nuclear-unit": [
+    {
+      "left": 75.7,
+      "bottom": 2.5,
+      "width": 24
+    }
+  ]
+}

@@ -407,6 +407,62 @@ if (landing !== null) {
   }
 }
 
+/*
+  --- Rule 11: the figure band in `ui/baseLayout.ts` matches the CSS clamp.
+
+  The outpost modules are placed with percentages. `src/ui/baseLayout.ts` owns
+  the band a module may be placed in, and `src/styles/game-loop.css` clamps
+  the same percentages with `clamp()`.
+
+  That is a duplicated constant, and a duplicated constant here is not a
+  nuisance: if the two disagree, a position the developer chose is silently
+  moved to a different place by the clamp. The file says 40%, the screen shows
+  32%, and nothing reports it.
+
+  So the numbers are compared rather than trusted. Same reasoning as Rule 9:
+  two files quietly disagreeing is the failure nobody notices until a demo.
+*/
+const baseLayoutSource = join(ROOT, 'src', 'ui', 'baseLayout.ts');
+
+if (existsSync(baseLayoutSource)) {
+  const source = readFileSync(baseLayoutSource, 'utf8');
+  const block = /export const SPOT_BAND = \{([\s\S]*?)\} as const;/.exec(source);
+
+  if (block === null) {
+    fail(0, 'cannot read SPOT_BAND from src/ui/baseLayout.ts - the parse is broken, not the app');
+  } else {
+    const band = {};
+
+    for (const name of ['left', 'bottom', 'width']) {
+      const found = new RegExp(`${name}:\\s*\\{\\s*min:\\s*(\\d+),\\s*max:\\s*(\\d+)\\s*\\}`).exec(block[1]);
+
+      if (found === null) {
+        fail(0, `SPOT_BAND.${name} is missing from src/ui/baseLayout.ts - the parse is broken, not the app`);
+      } else {
+        band[name] = { min: Number(found[1]), max: Number(found[2]) };
+      }
+    }
+
+    if (band.left !== undefined && band.bottom !== undefined && band.width !== undefined) {
+      const css = readFileSync(join(ROOT, 'src', 'styles', 'game-loop.css'), 'utf8');
+      const expected = [
+        `clamp(${band.left.min}%, var(--gl-x, 0%), ${band.left.max}%)`,
+        `clamp(${band.bottom.min}%, var(--gl-y, 0%), ${band.bottom.max}%)`,
+        `clamp(${band.width.min}%, var(--gl-w, 18%), ${band.width.max}%)`,
+      ];
+
+      for (const text of expected) {
+        if (!css.includes(text)) {
+          fail(
+            0,
+            `styles/game-loop.css does not clamp with "${text}" - SPOT_BAND in src/ui/baseLayout.ts says something else, and the CSS clamp is what decides where a module really lands`,
+          );
+        }
+      }
+    }
+  }
+}
+
 // --- Report -----------------------------------------------------------------
 if (problems.length > 0) {
   console.error(`\ncheck-markup: ${problems.length} problem(s)\n`);

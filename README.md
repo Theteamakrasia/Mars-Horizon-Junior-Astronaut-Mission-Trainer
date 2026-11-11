@@ -577,7 +577,7 @@ player decision, the sol loop, what is built and where a new event plugs in are 
 | The rover | **Built** — part of the run: sent out by an order, comes back with a document (D-062) |
 | The how-to-play guide | **Built** — ten steps; it opens by itself at the build screen |
 | The balance | **Checked, not assumed** — `npm run balance` fails if a site cannot hold all five systems (D-064) |
-| Tests | **701 tests in 32 files** (`npm test`, 2026-11-11) |
+| Tests | **772 tests in 35 files** (`npm test`, 2026-11-11) |
 | Checks | **Clean** — import layers, banned APIs, markup, strict typecheck |
 | Browser checks | **Green** — build 25/25, rover 9/9, the whole journey with no console errors |
 | Save / resume | **Not built** — in-memory only (D-003) |
@@ -597,7 +597,7 @@ player decision, the sol loop, what is built and where a new event plugs in are 
 ### The one invariant
 
 `sim/` and each feature's `model.ts` are pure: no `document`, no `window`, no network. That
-is what lets 701 tests run in a few seconds with no browser, no mocks, and no jsdom. It is enforced by
+is what lets 772 tests run in a few seconds with no browser, no mocks, and no jsdom. It is enforced by
 `npm run check` (`scripts/check-imports.mjs`), not left to good intentions.
 
 ---
@@ -609,7 +609,7 @@ is what lets 701 tests run in a few seconds with no browser, no mocks, and no js
 npm install       # dev dependencies only — the game ships no runtime dependencies
 npm run dev       # Vite dev server, http://localhost:5173
 npm run check     # import-layer + banned-API + markup checks, then tsc --noEmit
-npm test          # Vitest, 701 tests in 32 files
+npm test          # Vitest, 772 tests in 35 files
 npm run balance   # is the game still winnable? run this after touching sim/
 npm run build     # production bundle in dist/
 npm run preview   # serve the built bundle locally
@@ -627,6 +627,44 @@ There is nothing to configure and no API key to provide. Space weather uses the 
 several forecast seeds and **fails** when a site cannot hold all five systems. The game was
 unwinnable for a long time and no unit test said so, because the tests checked that the
 balance arithmetic was *correct* and not that it was *playable* (D-064).
+
+### Placing the outpost modules
+
+Where each module stands on the Mars panel is **data, not code**: it lives in
+[`src/ui/baseLayout.json`](src/ui/baseLayout.json). To change it, drag the modules on the
+real screen rather than editing the numbers:
+
+```
+npm run dev
+open http://localhost:5173/?editlayout=1#/base
+```
+
+Every copy of every module is on the panel at once — four solar arrays, four battery
+banks, two regolith shields and one of everything else. Drag one to move it; drag the
+orange grip on its corner to resize it; press **F** or use the **⇄ Mirror** button to
+turn it around. The toolbar shows the selected module's numbers, the JSON the editor
+would write, and buttons to download it, copy it, reset, or leave. Copies overlap, so
+the dropdown is how you pick the one underneath.
+
+Save the downloaded `baseLayout.json` into `src/ui/` and the game uses it. The file holds
+a pose list per kind — the nth entry is where the nth copy of that kind stands — so the
+same layout is used on the build, sol and debrief screens, and every copy the player
+builds lands where you put it. A pose may also be `flip`ped, which turns the artwork
+around without moving it.
+
+If the file has a problem — a number out of range, a list too short, a kind that is not
+a module — the game falls back to what it can and says so: a warning in the console, and
+a banner at the top of the editor. The editor always opens showing the layout as it is on
+disk, and **Reset** puts it back the way it was.
+
+The file does not hold the stacking order. That is a rule in
+[`src/ui/baseLayout.ts`](src/ui/baseLayout.ts) — the regolith shields are the furthest
+thing away and the habitat is the nearest, and the copies of a kind recede from the
+camera as they are added, so the first solar array is the nearest of them — so the
+outpost cannot be drawn in the wrong order by accident.
+
+This is a developer tool. It only exists in a dev build and is compiled out of a
+production bundle, so a player can never reach it.
 
 ---
 
@@ -689,6 +727,9 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   ├── routes.ts · router.ts ← hash routing and the journey order
     │   ├── registry.ts          ← route → screen; the only file importing a view
     │   ├── gameLoop.ts          ← shared outpost screen shell
+    │   ├── baseLayout.json      ← where each copy of each module stands on the panel
+    │   ├── baseLayout.ts        ← loads and validates that layout
+    │   ├── baseLayoutEditor.ts  ← the ?editlayout=1 placement editor (dev only)
     │   ├── activityPlayer.ts    ← the work-order player
     │   ├── guide.ts             ← the how-to-play panel and its button
     │   ├── nasaCard.ts · nasaFeedCard.ts ← the curated and the live NASA cards

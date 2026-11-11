@@ -8,6 +8,321 @@ than a documented one.
 
 ---
 
+## 2026-11-11 — Merge main, and put the how-to-play panel above the outpost
+
+**Did**
+
+- **Merged `origin/main`** into the branch. Main had moved a long way — 87 files, 13,000
+  lines: the work-order loop, the five goals, the rover, the tools, the guide, the patches.
+  Only the seven documentation files conflicted; every code file merged with both sides
+  intact, including main's new mission bar and the placement editor's depth rule in the
+  same `gameLoop.ts`.
+- **Renumbered the ids main had taken**: the issue became ISS-066, the five decisions
+  D-065 to D-069, and the five tasks TASK-088 to TASK-092. Main's highest were ISS-065,
+  D-064 and TASK-087.
+- **Put the how-to-play panel above the outpost.** The modules on the Mars panel take
+  z-indexes 0 to 79 — each kind has a band of ten, so the copies of one kind order
+  themselves without passing the next kind — and the guide was still at 40. A battery bank
+  painted over the panel. The screen now has a written-down ladder: the modules 0 to 79,
+  the crewmate 90, the hint 95, the bubbles 98, the guide 100, the leave-mission dialog
+  110.
+
+**Files**
+
+- `src/styles/game-loop.css` — the stacking ladder, and the five z-indexes that go with it
+- `docs/architecture.md`, `docs/team/decisions.md`, `docs/team/issues.md`,
+  `docs/team/progress-log.md`, `docs/team/tasks.md`, `AGENTS.md`, `README.md`
+
+**Problems**
+
+- The journey check (`tools/browser-check-journey.mjs`) fails — and it fails **identically
+  on `origin/main` itself**, checked in a clean worktree. It is main's own pre-existing
+  failure, not something the merge caused. The build-screen check
+  (`tools/browser-check-build.mjs`) passes 26 of 26 on the merged branch.
+- The ids needed renumbering twice. Main's issues file goes to ISS-065, not ISS-049 as
+  the first look suggested — the search that found ISS-049 only matched 045 to 049, so
+  050 to 065 went unseen until the merge.
+- `git show` piped through PowerShell decodes as the console code page, not UTF-8, and
+  turns every em dash into three characters. The first merge attempt silently mangled
+  three files. The fix was to redirect through `cmd`, which keeps the bytes.
+
+**Next**
+
+- The layout is one arrangement for every landing region. If the outpost should look
+  different on different ground, that is a second file and a rule for choosing between
+  them.
+
+---
+
+## 2026-11-11 — A fixed stacking order, and the NASA button where it belongs
+
+**Did**
+
+- Gave the outpost a **fixed stacking order**: shields, ice miner, solar arrays,
+  greenhouse, nuclear unit, battery banks, life support, habitat — farthest to nearest. The
+  copies of a kind **recede** from the camera as they are added, so the first solar array —
+  the one that comes with the lander — is the nearest and the fourth is the furthest back.
+  The two regolith shields share one depth.
+- **`z` is gone from the layout file.** A pose is now where it is, how big, and which way
+  round. The order is a rule in code, so the game cannot draw the outpost wrong whatever
+  the file says.
+- The editor stacks its handles by the same rule, so it is a picture of the outpost rather
+  than a different one. Its depth field stopped being editable and now says where a module
+  sits — *farthest*, *nearest*, or *3 of 8*.
+- **Put the NASA data button beside the region name** on the landing-site screen, and
+  filled it with the game's orange so it reads as something to press. It had been landing
+  on its own line under the name the whole time: the panel is a flex column, so the `<h3>`
+  and the `<button>` were separate flex children, and the `margin-left` on the button only
+  indented it.
+- Kept the developer's own layout in full: every position, every width, and the mirrored
+  regolith shield.
+
+**Files**
+
+- `src/ui/baseLayout.ts`, `src/ui/baseLayout.json`, `src/ui/baseLayout.test.ts`
+- `src/ui/gameLoop.ts`, `src/ui/gameLoop.test.ts`
+- `src/ui/baseLayoutEditor.ts`, `src/ui/base-layout-editor.css`
+- `index.html`, `src/features/landing-site/landing-site.css`, `src/features/landing-site/view.ts`
+- `docs/architecture.md`, `docs/team/decisions.md`, `docs/team/tasks.md`, `AGENTS.md`, `README.md`
+
+**Problems**
+
+- The NASA button's colour did not apply at first: `.landing-site__button--nasa-data` sat
+  **above** the plain `.landing-site__button` rule, and with the same specificity the later
+  rule wins. The `--land` modifier was already after the base rule; this one was not, and
+  had been left where the old inline NASA picture used to be.
+- The NASA button and its modal were both still uncommitted work, so the markup and the
+  logic had to land together — the markup on its own is a dead button. That commit carries
+  the developer's landing-site work; the `#encyclopedia` hunk in `index.html` was staged out
+  with a patch and stays uncommitted with the rest of the encyclopedia.
+- Verified in headless Chrome: a new harness reads the **computed z-index** of every
+  rendered module and asserts the order is exactly the one asked for — 9 checks, including
+  that all fifteen copies in the editor stack correctly. That is the check that would have
+  caught the original problem, rather than a screenshot. `npm run check` clean; `npm test`
+  503 passed in 22 files (was 492; +7 layout tests and +4 for the stacking order).
+
+**Next**
+
+- The layout is one arrangement for every landing region. If the outpost should look
+  different on different ground, that is a second file and a rule for choosing between
+  them.
+
+---
+
+## 2026-11-11 — Say so when the layout file is not clean
+
+**Did**
+
+- A layout file with a problem in it now **warns rather than breaks**: a dev-only console
+  warning at boot, and a banner at the top of the placement editor's toolbar listing every
+  problem it found.
+- **Fixed a bug that would have destroyed the developer's layout.** The editor was seeding
+  its state from the authored default instead of from the file on disk, so opening it and
+  pressing Download replaced the layout with the grid. It now opens showing the file, and
+  Reset puts everything back the way it was.
+- **Fixed a second bug the developer's own layout exposed.** Selecting a copy from the
+  dropdown did not re-paint, so the copy stayed underneath its neighbours and the pointer
+  grabbed the wrong module. Selection now brings the copy to the front.
+- The developer's own layout is now the shipped one: `src/ui/baseLayout.json` holds their
+  arrangement, with one mirrored regolith shield.
+
+**Files**
+
+- `src/ui/baseLayout.ts`, `src/ui/baseLayout.test.ts`, `src/ui/baseLayoutEditor.ts`
+- `src/ui/base-layout-editor.css`, `src/main.ts`, `src/ui/baseLayout.json`
+- `docs/architecture.md`, `docs/team/decisions.md`, `docs/team/tasks.md`, `AGENTS.md`, `README.md`
+
+**Problems**
+
+- A test asserted the shipped layout contains **no mirrored modules**. That was the wrong
+  kind of test: it pinned the content rather than the contract, so it failed the moment a
+  developer did the one thing the tool is for. It now asserts every flip in the file is a
+  real boolean, which holds either way.
+- The two editor bugs above were both invisible while the layout was the authored grid. The
+  second one only appeared because the developer's solar arrays overlap, so selecting one
+  put it under another — and the harness that caught it had been written with the old
+  positions hard-coded into it. The harnesses now read their expectations from the layout
+  file, because a test that breaks when the developer does their job is a test that will
+  be deleted rather than fixed.
+- Verified in headless Chrome: 15 checks that a broken file produces the banner and the
+  console warning, that the game still renders, that the out-of-range number was clamped
+  rather than thrown away, that the unreadable entry fell back to the default, and that
+  restoring the file clears the banner. All six harnesses green — 75 checks.
+
+**Next**
+
+- The layout is one arrangement for every landing region. If the outpost should look
+  different on different ground, that is a second file and a rule for choosing between
+  them.
+
+---
+
+## 2026-11-11 — Turn a module around
+
+**Did**
+
+- Added **mirroring** to the placement editor. A **⇄ Mirror** button in the toolbar toggles
+  the selected module, and the **F** key does the same on a focused one. The artwork
+  turns around in place — the mirror is about the picture's centre, so flipping a module
+  does not move it.
+- A mirrored module carries a small blue badge on the panel, always visible: whether a
+  module faces one way or the other is a state of the outpost, not a label you are
+  reading.
+- Added an optional `flip` to a pose. It is written to the layout file only for a module
+  that is actually mirrored, so the shipped file is unchanged and a missing `flip` still
+  means "not mirrored".
+- Added `src/ui/gameLoop.test.ts` — the first tests for that file — covering where each
+  copy of a module stands and which way round it faces.
+
+**Files**
+
+- `src/ui/baseLayout.ts`, `src/ui/baseLayout.test.ts`, `src/ui/gameLoop.ts`
+- `src/ui/gameLoop.test.ts` (new)
+- `src/ui/baseLayoutEditor.ts`, `src/ui/base-layout-editor.css`, `src/styles/game-loop.css`
+- `docs/architecture.md`, `docs/team/decisions.md`, `docs/team/tasks.md`, `AGENTS.md`, `README.md`
+
+**Problems**
+
+- The editor mirrors the **artwork**, not the handle. Mirroring the handle would have
+  flipped the resize grip to the bottom-left and the label with it. Mirroring the inner
+  image keeps the grip where the hand expects it, and makes the editor's picture match
+  the game's exactly.
+- `clampSpot` and `roundSpot` now normalise `flip` to a real boolean, so every pose that
+  comes out of the resolver has a definite answer. That changed six existing test
+  expectations, which is the right kind of change: the shape of a pose is now fixed.
+- Verified in headless Chrome over the DevTools Protocol: 14 checks that the button
+  flips, the F key flips, the badge shows only on mirrored modules, the resize grip stays
+  on the right, mirroring does not move the module, and — the one that matters — a
+  mirrored module renders mirrored **in the game**: flip a habitat, save the file,
+  reload, and the habitat is drawn turned around while the battery bank is not.
+  `npm run check` clean; `npm test` 492 passed in 22 files (was 480; +12 mirror tests and
+  +5 for the new game-loop file).
+
+**Next**
+
+- The module artwork was drawn for one facing each. If an outpost ends up with several
+  solar arrays all turned the same way, the array will read as a machine rather than a
+  field — the editor can now fix that, but the fix is a design pass.
+
+---
+
+## 2026-11-11 — A pose per module copy, and a way to resize one
+
+**Did**
+
+- Changed the layout file from one pose per kind to a **pose list per kind**: one entry
+  per copy the player could build, in build order. The second solar array the player
+  builds now stands on the second `solar-array` entry, so every copy can be placed on
+  its own instead of being derived by stepping right and shrinking.
+- `ui/gameLoop.ts`'s `moduleFigures` no longer derives anything — it asks
+  `poseFor(poses, kind, copy)` where each copy stands. The derivation survives only as a
+  fallback for a file with fewer poses than the player can build.
+- Gave the editor all fifteen copies at once — four solar arrays, four battery banks, two
+  regolith shields and one of everything else — each draggable on its own.
+- Added **scaling**: a grip on the bottom-right corner of every module that changes its
+  width when dragged sideways. The height follows the artwork's proportions, so width is
+  the only dimension. `+` and `-` do the same from the keyboard.
+- Added an **instance picker** to the toolbar, because copies overlap and a copy you
+  cannot see is a copy you cannot grab. Picking one selects it and brings it to the
+  front.
+- Took the **crewmate sprite off the build screen**. It stood exactly where the modules
+  go. The speech bubble stays — that is the crewmate's voice, not the picture.
+- The default file encodes the layout the game was already drawing, so nothing moves on
+  upgrade.
+
+**Files**
+
+- `src/ui/baseLayout.json`, `src/ui/baseLayout.ts`, `src/ui/baseLayout.test.ts`
+- `src/ui/baseLayoutEditor.ts`, `src/ui/base-layout-editor.css`
+- `src/ui/gameLoop.ts`, `src/features/base/view.ts`
+- `docs/architecture.md`, `docs/team/decisions.md`, `docs/team/tasks.md`, `AGENTS.md`, `README.md`
+
+**Problems**
+
+- The first draft gave `nuclear-unit` two poses, because it was copied from
+  `regolith-shield`. `nuclear-unit` has `maxCount: 1` — one nuclear unit, ever — so the
+  second pose would never have been drawn. The validator caught it by reporting the
+  surplus.
+- A module that started at 90% with a width of 24% hung off the right-hand edge of the
+  panel: the CSS clamp only knows the left edge. `clampSpot` now pulls the width in so
+  `left + width` never exceeds the panel.
+- Copies of a kind overlap by default, so clicking one can grab another. Raising the
+  selected copy to the front fixes it, and the picker makes it selectable at all.
+- `src/features/base/view.ts` already carried an uncommitted line from the encyclopedia
+  work. The sprite removal was staged as a patch so that line stayed in the working
+  tree — committing it would have taken the "needs" text off the cards without the
+  encyclopedia that replaces it.
+- Verified in headless Chrome over the DevTools Protocol: 20 checks on the editor (15
+  handles, per-copy dragging, the grip, the picker), 10 across the other screens, 9 on a
+  screen re-render, and 6 on the round trip (drag the third solar array → save the file
+  → reload → build three solar arrays → the third stands at 33.9%, exactly where the
+  file says). `npm run check` clean; `npm test` 480 passed in 21 files (was 471; +9 layout
+  tests).
+
+**Next**
+
+- The fifteen copies now sit where the old derivation put them, which means they
+  overlap. Spreading them out is a design job, not a code one — and it is the reason the
+  editor exists.
+
+---
+
+## 2026-11-11 — Move the outpost layout into a file, and add the placement editor
+
+**Did**
+
+- Took the module layout out of `ui/gameLoop.ts` and into `src/ui/baseLayout.json` —
+  `{left, bottom, width, z}` per kind, in percent. `src/ui/baseLayout.ts` loads it,
+  validates every number and falls back to an authored default for a kind it cannot
+  supply, so a hand-edited file can never white-screen the game.
+- Built the placement editor: open the game with `?editlayout=1`, drag the eight modules
+  on the **real** outpost panel, and download `baseLayout.json`. A toolbar shows the
+  selected module's numbers, the JSON it would write, and Download / Copy / Reset / Done.
+  Arrow keys nudge; the number fields take exact values.
+- Made the editor a developer tool rather than a screen: no route, no mount point, no
+  registry entry, and `main.ts` loads it with a dynamic import behind `import.meta.env.DEV`,
+  so it is compiled out of a production build entirely.
+- Declared the band a module may be placed in once, in `SPOT_BAND`, and added
+  `check-markup` Rule 11 to fail the build if the CSS clamp and the band ever disagree.
+- Deleted the abandoned `drag-editor` feature and the stray copies of it at the repo root
+  (ISS-066). It had eight TypeScript errors, failed the markup check on `pointer-events:
+  none`, and was unreachable — no route, no mount, no registry entry.
+
+**Files**
+
+- `src/ui/baseLayout.json`, `src/ui/baseLayout.ts`, `src/ui/baseLayout.test.ts` (new)
+- `src/ui/baseLayoutEditor.ts`, `src/ui/base-layout-editor.css` (new)
+- `src/ui/gameLoop.ts`, `src/main.ts`, `src/ui/routes.ts`, `tsconfig.json`, `scripts/check-markup.mjs`
+- `docs/architecture.md`, `docs/team/decisions.md`, `docs/team/issues.md`, `docs/team/tasks.md`, `AGENTS.md`, `README.md`
+
+**Problems**
+
+- The abandoned `drag-editor` was never wired to a route, so nothing exercised it and
+  `npm run check` was the only thing that would have caught it. It had been left in the
+  tree long enough to break the build.
+- The CSS clamp on `.gl__figure` is a *silent* transform: author 40% and the screen shows
+  32%, with nothing reporting it. The band now lives in TS, the editor clamps to it, and
+  Rule 11 keeps the CSS in step — so a position in the file is the position on the screen.
+- `moduleFigures` was producing duplicate modules at `bottom: 34`, which the CSS clamp
+  quietly pulled back to 32. It now clamps into the band itself, which renders exactly the
+  same as before and stops the two rules disagreeing.
+- The editor's overlay sits on `document.body`, not inside the screen: `features/base`
+  replaces every child of its mount when the live forecast arrives, which would have
+  destroyed a drag in progress. A `MutationObserver` on the mount finds the new panel.
+- Verified in headless Chrome over the DevTools Protocol, since the project has no DOM
+  test environment: 19 checks on the editor, 10 across the other screens, and 5 on the
+  round trip (drag → JSON → save the file → reload → the module is where the file says).
+  `npm run check` clean; `npm test` 471 passed in 21 files (was 447; +31 layout tests,
+  -7 from the deleted feature).
+
+**Next**
+
+- The layout file is still one arrangement for every site. If the outpost should look
+  different in different regions, that is a second file and a rule for choosing between
+  them — worth deciding before the demo rather than after.
+
+---
+
 ## 2026-11-11 — Make the game playable, and make it follow
 
 **Did**

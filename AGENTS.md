@@ -13,7 +13,7 @@ demo **Nov 14-15**.
 **The one invariant: `sim/` and each feature's `model.ts` are pure — no `document`, no
 `window`, no network.**
 
-That is what lets 701 tests run in a few seconds with no browser and no mocks, so the game
+That is what lets 772 tests run in a few seconds with no browser and no mocks, so the game
 can be asserted on rather than eyeballed. Everything else here exists to protect it. If
 you are unsure where code goes: if it touches the DOM it is not pure.
 
@@ -88,7 +88,7 @@ human upholds it and nothing catches you.
 | R-10 | No `on*="..."` inline handlers in markup | **enforced** | `no-inline-handler` |
 | R-11 | A relative import that resolves to nothing is an error | **enforced** | `unresolved-import` |
 | R-12 | Typecheck clean; `strict`, `noUnusedLocals` | **enforced** | `npm run check` |
-| R-13 | Tests pass (701 today) | **enforced** | `npm test`, watch ISS-015 |
+| R-13 | Tests pass (772 today) | **enforced** | `npm test`, watch ISS-015 |
 | R-14 | No `index.ts` barrel files — import concrete paths | convention | nothing |
 | R-15 | Feature CSS is imported by its own `view.ts`, never added to `style.css` | convention | nothing |
 | R-16 | Files are UTF-8, LF, no BOM. Preserve a file's existing endings | convention | **nothing** — ISS-005 |
@@ -168,6 +168,11 @@ The two requests outside the landing page are both in `data/`:
 12. First `requestAnimationFrame` scheduled.
 13. `startScreenRouter()` resolves the hash — **defaulting to `naming`** — mounts that
     screen, and hides the landing layers behind it.
+14. In a dev build with `?editlayout=1`, `main.ts` loads `ui/baseLayoutEditor` with a
+    dynamic import. The editor is attached to whichever screen is mounted, and to
+    nothing in a production build (D-065).
+15. In a dev build, a layout file with problems in it is listed in the console
+    (D-068). The game still starts: it falls back to what it can.
 
 `BACK TO MAIN MENU` returns to `landing`, which keeps running behind the menu.
 
@@ -261,6 +266,9 @@ opening its folder — that is the whole point of the layout.
 | **Building the outpost between sols** | `src/features/base/` — **built**, 23 tests |
 | **Advancing a sol, and picking the day's activity** | `src/features/act/` — **built**, 31 tests |
 | **Why the run was won or lost, and the science score** | `src/features/debrief/` — **built**, 32 tests |
+| **Reading what each module does, with NASA facts** | `src/features/encyclopedia/` — **built** |
+| **Where each copy of a module stands on the outpost panel** | `src/ui/baseLayout.json` — a pose list per kind; drag them on the real screen with `?editlayout=1` (D-065, D-066). A pose may be mirrored (`flip`). The stacking order is a rule in `ui/baseLayout.ts` (D-069), not a number in the file: the copies of a kind recede from the camera, so the first copy is the nearest. The editor opens showing the file on disk, and a file with problems is listed in the console (D-068) |
+| The placement editor itself | `src/ui/baseLayoutEditor.ts` — dev-only, compiled out of a production build |
 | **The rover, and what it finds** | `src/sim/rover.ts` — **built**, 31 tests; its state is `RunState.rover` |
 | **The work-order player and the six tools** | `src/ui/activityPlayer.ts`, `src/sim/minigames.ts` — **built** |
 | **The how-to-play guide** | `src/ui/guide.ts`, `src/sim/guide.ts` — **built** |
@@ -296,7 +304,7 @@ opening its folder — that is the whole point of the layout.
 npm install
 npm run dev        # Vite dev server
 npm run check      # layer + banned-API check, then tsc --noEmit   <- run this
-npm test           # vitest, 701 tests                            <- 40% flaky, ISS-015
+npm test           # vitest, 772 tests                            <- 40% flaky, ISS-015
 npm run build      # to dist/
 npm run preview    # serve the build
 npm run balance    # is the game still winnable?  <- run this after touching sim/
