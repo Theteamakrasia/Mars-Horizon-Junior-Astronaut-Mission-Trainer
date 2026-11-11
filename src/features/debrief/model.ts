@@ -11,7 +11,7 @@
  */
 
 import { crisisForEvent, optionOf } from '../../sim/crises';
-import { goalById, goalProgress, goalsEarned, SCIENCE_GOALS, type ScienceGoal } from '../../sim/goals';
+import { goalById, goalProgress, type ScienceGoal } from '../../sim/goals';
 import { systemsFor, countOf, NIGHT_HOURS, type ModuleKind } from '../../sim/modules';
 import { RESOURCE_NAMES, type ResourceName } from '../../sim/resources';
 import type { RunState, SolRecord } from '../../sim/run';
@@ -430,10 +430,8 @@ interface GoalVerdict {
 export interface GoalOutcome extends GoalVerdict {
   /** Sols that counted towards the goal. */
   readonly held: number;
-  /** Sols needed to earn it. */
-  readonly needed: number;
-  /** True once the goal is earned. */
-  readonly earned: boolean;
+  /** What this goal asked of the crew, in one short line. */
+  readonly aim: string;
 }
 
 /**
@@ -618,41 +616,9 @@ export function goalOutcomes(run: RunState): readonly GoalOutcome[] {
     return {
       ...outcome,
       held: objective?.held ?? 0,
-      needed: objective?.needed ?? 1,
-      earned: objective?.earned ?? false,
+      aim: objective?.aim ?? '',
     };
   });
-}
-
-/**
- * How many of the five goals the crew earned.
- *
- * This is the score of the run, as distinct from the outcome of the run:
- * surviving twelve sols is winning, and holding the goals is the grade.
- */
-export interface GoalScore {
-  readonly earned: number;
-  readonly total: number;
-  /** True when every one of the five was earned. */
-  readonly complete: boolean;
-  /** One line about it. */
-  readonly headline: string;
-}
-
-/** The goal score for a finished run. */
-export function goalScore(run: RunState): GoalScore {
-  const earned = goalsEarned(run);
-  const total = SCIENCE_GOALS.length;
-
-  return {
-    earned,
-    total,
-    complete: earned === total,
-    headline:
-      earned === total
-        ? 'Full Science Mission! All five goals earned.'
-        : `${earned} of ${total} mission goals earned.`,
-  };
 }
 
 /**
@@ -670,20 +636,20 @@ export function nextSteps(run: RunState, limit = 2): readonly NextStep[] {
   const objectives = goalProgress(run);
 
   /**
-   * A goal the crew actually missed: not earned, and it let a sol slip past
-   * that it could have counted. A run that was lost early missed every goal
-   * for that reason alone, and a goal that held on every sol it had is not
-   * something to give advice about.
+   * A goal the crew actually missed: it let a sol slip past that it could
+   * have counted. A goal that held on every sol it had is not something to
+   * give advice about, and a run that was lost early has not missed
+   * anything, it has not finished.
    */
   const missed = (id: ScienceGoal): boolean => {
     const objective = objectives.find((entry) => entry.id === id);
 
-    if (objective === undefined || objective.earned) return false;
+    if (objective === undefined) return false;
 
-    return objective.held < Math.min(run.sol, objective.needed);
+    return objective.held < run.sol;
   };
 
-  /* A goal the crew did not earn is worth a tip even in a run they won: the
+  /* A goal the crew did not hold is worth a tip even in a run they won: the
      run was survivable and the science was not. */
   const goalTips = new Map<ScienceGoal, NextStep>();
 

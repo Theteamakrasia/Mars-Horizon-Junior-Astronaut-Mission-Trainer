@@ -9,7 +9,7 @@
 
 import { offerFor, planForSol, type ActivitySpec, type ActivityStoreName } from '../../sim/activities';
 import { stormOn, stormOpacity } from '../../sim/forecast';
-import { DUST_SPOTLESS, LIFE_STORE_FLOOR, goalProgress, goalReadings, type GoalStatus, type ScienceGoal } from '../../sim/goals';
+import { DUST_SPOTLESS, LIFE_STORE_FLOOR, type ScienceGoal } from '../../sim/goals';
 import { ordersThrough, type StandingOrder } from '../../sim/standingOrders';
 import { RESOURCE_NAMES, percentOf, type ResourceName, type ResourceStores } from '../../sim/resources';
 import type { RunState } from '../../sim/run';
@@ -376,74 +376,6 @@ export function activityRows(run: RunState, sol: number): readonly ActivityRow[]
 }
 
 /* ----------------------------------------------------------------- goals -- */
-
-/**
- * One of the five science goals, read against the run as it stands.
- *
- * Two things in one row: how the goal is doing *right now* (the status and
- * the detail), and how much of it the crew has *earned* (the count). The
- * count is the part that carries forward, so it is the part that is big.
- */
-export interface GoalRow {
-  readonly id: ScienceGoal;
-  /** The name the science goes by. */
-  readonly title: string;
-  /** The short name on the tile: "Dust", "Air", "Shield". */
-  readonly short: string;
-  /** How the goal is doing. */
-  readonly status: GoalStatus;
-  /** One line about it right now. */
-  readonly detail: string;
-  /** The topic its NASA fact is filed under. */
-  readonly topic: ScienceTopic;
-  /** What earning this goal means, in one short line. */
-  readonly aim: string;
-  /** Sols that counted towards it so far. */
-  readonly held: number;
-  /** Sols needed to earn it. */
-  readonly needed: number;
-  /** 0-100 through the target. */
-  readonly percent: number;
-  /** True once the goal is earned. */
-  readonly earned: boolean;
-}
-
-/**
- * The five science goals, and how each is doing.
- *
- * Every number in the game belongs to one of them, so naming them turns a set
- * of falling bars into a set of things a player can think about: the dust is
- * blocking the Sun, the flat batteries are slowing the air makers, the
- * greenhouse is not keeping up with four appetites.
- *
- * The count comes from the objective and the status from the live reading, so
- * a row can say "the power is on right now" and "you have held it for eight
- * of ten sols" at the same time.
- */
-export function goalRows(run: RunState): readonly GoalRow[] {
-  const readings = goalReadings(run);
-  const objectives = goalProgress(run);
-
-  return readings.map((reading) => {
-    const objective = objectives.find((entry) => entry.id === reading.spec.id);
-    const held = objective?.held ?? 0;
-    const needed = objective?.needed ?? 1;
-
-    return {
-      id: reading.spec.id,
-      title: reading.spec.title,
-      short: reading.spec.short,
-      status: reading.status,
-      detail: reading.detail,
-      topic: reading.spec.topic,
-      aim: objective?.aim ?? '',
-      held,
-      needed,
-      percent: Math.min(100, Math.round((held / needed) * 100)),
-      earned: objective?.earned ?? false,
-    };
-  });
-}
 
 /* ---------------------------------------------------------------- the board -- */
 

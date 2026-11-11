@@ -8,7 +8,6 @@ import {
   activityRows,
   boardRows,
   changeRows,
-  goalRows,
   meterRows,
   missionHeadline,
   orderChecks,
@@ -186,45 +185,6 @@ describe('the daily activity', () => {
     expect(rows.length).toBe(4);
     expect(rows.filter((row) => row.isNew)).toHaveLength(2);
     expect(rows[0]?.isNew).toBe(false);
-  });
-});
-
-describe('the five science goals', () => {
-  it('shows all five, in order, every sol', () => {
-    const rows = goalRows(run);
-
-    expect(rows).toHaveLength(5);
-    expect(rows.map((row) => row.title)).toEqual([
-      'Martian Dust Storm',
-      'Life Support',
-      'Radiation Exposure',
-      'Power Shortage',
-      'Food Production',
-    ]);
-  });
-
-  it('gives every goal a status and a line about it', () => {
-    for (const row of goalRows(run)) {
-      expect(['ok', 'watch', 'critical']).toContain(row.status);
-      expect(row.detail.length).toBeGreaterThan(10);
-    }
-  });
-
-  it('files each goal under a topic of its own, so two never share a fact', () => {
-    const topics = goalRows(run).map((row) => row.topic);
-
-    expect(new Set(topics).size).toBe(topics.length);
-  });
-
-  it('shows how much of each goal has been earned, and what it takes', () => {
-    for (const row of goalRows(run)) {
-      expect(row.held).toBe(0);
-      expect(row.needed).toBeGreaterThan(0);
-      expect(row.percent).toBe(0);
-      expect(row.earned).toBe(false);
-      expect(row.aim.length).toBeGreaterThan(3);
-      expect(row.short.length).toBeLessThanOrEqual(6);
-    }
   });
 });
 

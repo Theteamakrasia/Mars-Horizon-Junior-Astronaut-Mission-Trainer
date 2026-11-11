@@ -6,7 +6,7 @@ import { flareIntensity, type ForecastEvent } from '../../sim/forecast';
 import { CORE_MODULES, type ModuleKind } from '../../sim/modules';
 import { newRun, startOutpost, withState, type RunState } from '../../sim/run';
 import { advanceSol, decide } from '../../sim/sol';
-import { blackoutSols, consumptionSummary, explainOutcome, goalOutcomes, goalScore, lowestPoints, nextSteps, reviewDecisions, scienceDetail, scienceHeadline, scienceReport, scienceSentence, timeline, usedApproximateData, wentEmpty } from './model';
+import { blackoutSols, consumptionSummary, explainOutcome, goalOutcomes, lowestPoints, nextSteps, reviewDecisions, scienceDetail, scienceHeadline, scienceReport, scienceSentence, timeline, usedApproximateData, wentEmpty } from './model';
 
 const FLARES = [
   { classType: 'X5.8', approximate: true, when: 'in a test' },
@@ -365,30 +365,12 @@ describe('the five science goals at the end', () => {
     ]);
   });
 
-  it('counts how many sols each goal held for', () => {
+  it('counts how many sols each goal held for, with no target and no score', () => {
     for (const outcome of goalOutcomes(playOut(SOLAR, SMART))) {
-      expect(outcome.needed).toBeGreaterThan(0);
       expect(outcome.held).toBeGreaterThanOrEqual(0);
       expect(outcome.held).toBeLessThanOrEqual(12);
-      expect(outcome.earned).toBe(outcome.held >= outcome.needed);
+      expect(outcome.aim.length).toBeGreaterThan(5);
     }
-  });
-
-  it('scores the run by the goals the crew earned', () => {
-    const score = goalScore(playOut(SOLAR, SMART));
-
-    expect(score.total).toBe(5);
-    expect(score.earned).toBeGreaterThanOrEqual(0);
-    expect(score.earned).toBeLessThanOrEqual(5);
-    expect(score.complete).toBe(score.earned === 5);
-    expect(score.headline).toContain('of 5');
-  });
-
-  it('calls a run with all five a full science mission', () => {
-    const run = playOut(SOLAR, SMART);
-    const score = goalScore(run);
-
-    expect(score.headline).toBe(score.complete ? 'Full Science Mission! All five goals earned.' : score.headline);
   });
 
   it('says the dust was held when the panels stayed clean', () => {

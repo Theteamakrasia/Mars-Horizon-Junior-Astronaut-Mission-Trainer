@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { goalById, goalProgress, goalReadings, goalsEarned, GOAL_TARGETS, SCIENCE_GOALS } from './goals';
+import { goalById, goalProgress, goalReadings, SCIENCE_GOALS } from './goals';
 import { CORE_MODULES, type ModuleKind } from './modules';
 import { newRun, startOutpost, withState, type RunState } from './run';
-import { advanceSol, WIN_SOL } from './sol';
+import { advanceSol } from './sol';
 import { SCIENCE_TOPICS } from './topics';
 import type { ForecastEvent } from './forecast';
 
@@ -203,13 +203,11 @@ describe('the goals as objectives', () => {
     ]);
   });
 
-  it('starts every objective at zero, with the target in plain sight', () => {
+  it('starts every objective at zero, with the job in plain sight', () => {
     for (const objective of goalProgress(outpost('jezero', CLOSED_LOOP))) {
       expect(objective.held).toBe(0);
-      expect(objective.needed).toBeGreaterThan(0);
-      expect(objective.needed).toBeLessThanOrEqual(WIN_SOL);
-      expect(objective.earned).toBe(false);
       expect(objective.aim.length).toBeGreaterThan(5);
+      expect(objective.short.length).toBeLessThanOrEqual(6);
       expect(objective.detail.length).toBeGreaterThan(3);
     }
   });
@@ -250,15 +248,16 @@ describe('the goals as objectives', () => {
     expect(power?.held).toBe(0);
   });
 
-  it('earns a goal once enough sols have counted', () => {
+  it('counts the sols a goal held for, with no target and no score', () => {
     let run = outpost('jezero', CLOSED_LOOP);
 
-    for (let sol = 0; sol < GOAL_TARGETS.food; sol += 1) run = advanceSol(run);
+    for (let sol = 0; sol < 4; sol += 1) run = advanceSol(run);
 
     const food = goalProgress(run).find((objective) => objective.id === 'food');
 
-    expect(food?.held).toBe(GOAL_TARGETS.food);
-    expect(food?.earned).toBe(true);
-    expect(goalsEarned(run)).toBeGreaterThanOrEqual(1);
+    /* There is no "earned" and no target any more: the goals are the
+       project's learning outcomes, and the count is the record of the work. */
+    expect(food?.held).toBe(4);
+    expect(Object.keys(food ?? {}).sort()).toEqual(['aim', 'detail', 'held', 'id', 'short', 'slipping', 'title']);
   });
 });

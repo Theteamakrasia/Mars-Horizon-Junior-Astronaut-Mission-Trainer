@@ -29,7 +29,7 @@ import iceMinerUrl from '../../../Assets/images/game-loop/ice-miner.png';
 import lifeSupportUrl from '../../../Assets/images/game-loop/life-support.png';
 import solarUrl from '../../../Assets/images/game-loop/solar.png';
 
-import { consumptionSummary, explainOutcome, goalOutcomes, goalScore, lowestPoints, nextSteps, reviewDecisions, scienceDetail, scienceHeadline, scienceReport, timeline, usedApproximateData, wentEmpty, type NextStep } from './model';
+import { consumptionSummary, explainOutcome, goalOutcomes, lowestPoints, nextSteps, reviewDecisions, scienceDetail, scienceHeadline, scienceReport, timeline, usedApproximateData, wentEmpty, type NextStep } from './model';
 
 const VERDICT_TEXT = { solved: 'Solved early', caught: 'Caught you out', mixed: 'A trade-off' } as const;
 const VERDICT_ICON = { solved: '✅', caught: '⚠️', mixed: '🤔' } as const;
@@ -271,8 +271,8 @@ export function mountDebrief(
       goals.append(
         h(
           'li',
-          { class: 'debrief__goal', 'data-verdict': outcome.verdict, 'data-earned': String(outcome.earned) },
-          h('span', { class: 'debrief__goal-icon', 'aria-hidden': 'true', text: outcome.earned ? '★' : verdict.icon }),
+          { class: 'debrief__goal', 'data-verdict': outcome.verdict },
+          h('span', { class: 'debrief__goal-icon', 'aria-hidden': 'true', text: verdict.icon }),
           h(
             'div',
             null,
@@ -280,7 +280,7 @@ export function mountDebrief(
               'span',
               { class: 'debrief__goal-title' },
               `${outcome.title} — ${verdict.label}`,
-              h('small', { class: 'debrief__goal-count', text: ` ${outcome.held}/${outcome.needed} sols` }),
+              h('small', { class: 'debrief__goal-count', text: ` ${outcome.held} of ${state.log.length} sols` }),
             ),
             h('p', { class: 'debrief__goal-detail', text: outcome.detail }),
           ),
@@ -288,31 +288,10 @@ export function mountDebrief(
       );
     }
 
-    const score = goalScore(state);
-
-    /* The grade, next to the outcome. Surviving the run is winning; holding
-       the goals is the score, and it is the thing the player can improve. */
-    const goalCard = h(
-      'div',
-      { class: 'gl__callout', 'data-tone': score.complete ? 'good' : 'plain' },
-      h('span', { class: 'gl__callout-icon', 'aria-hidden': 'true', text: score.complete ? '🌟' : '🎯' }),
-      h(
-        'div',
-        null,
-        h('p', { class: 'gl__callout-title', text: score.headline }),
-        h('p', {
-          class: 'gl__callout-detail',
-          text: score.complete
-            ? 'The crew held all five the whole way. That is the best result there is.'
-            : 'Each goal is held for a number of sols. Hold more of them next time.',
-        }),
-      ),
-    );
-
     const goalSection = gameSection(
-      'The five science goals',
+      'The five systems you kept running',
       goals,
-      h('p', { class: 'gl__note', text: `${score.headline} Dust storms, life support, radiation, power and food — the whole mission is these five things.` }),
+      h('p', { class: 'gl__note', text: 'Dust, life support, radiation, power and food — the whole mission is these five things.' }),
     );
 
     const replay = h(
@@ -333,7 +312,6 @@ export function mountDebrief(
       title: `${consumptionSummary(state).sols} sols. So much learned!`,
       body: [
         outcome,
-        goalCard,
         whatHappened,
         goalSection,
         gameSection('Mars Science Score', scienceCard, scienceList),

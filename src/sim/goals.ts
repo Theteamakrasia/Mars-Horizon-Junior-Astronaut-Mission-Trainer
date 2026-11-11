@@ -146,20 +146,6 @@ export const FOOD_FLOOR = 40;
  */
 export const POWER_BLACKOUT_FLOOR = 0.05;
 
-/**
- * How many sols each goal needs to be held for to be earned.
- *
- * A twelve-sol run, so ten of twelve is a good run and eight is a fair one.
- * The dust goal is easier because a storm costs a sol whatever the player does.
- */
-export const GOAL_TARGETS: Readonly<Record<ScienceGoal, number>> = {
-  'dust-storm': 12,
-  'life-support': 10,
-  radiation: 10,
-  power: 10,
-  food: 9,
-};
-
 /** What earning each goal means, in one short line. */
 export const GOAL_AIMS: Readonly<Record<ScienceGoal, string>> = {
   'dust-storm': 'Keep the panels spotless',
@@ -172,20 +158,20 @@ export const GOAL_AIMS: Readonly<Record<ScienceGoal, string>> = {
 /**
  * One goal, read as something the crew is working towards.
  *
- * `held` counts the sols that counted. `needed` is the target. `earned` is
- * what the debrief counts.
+ * `held` counts the sols that counted. There is no target and no score: the
+ * goals are the project's learning outcomes, not a rating the player earns.
+ * The count is the record - `you kept the panels clean for nine sols` - and it
+ * is the real work, so it is worth keeping.
  */
 export interface GoalObjective {
   readonly id: ScienceGoal;
   readonly title: string;
-  /** What earning it means, in one short line. */
+  /** What this goal asks of the crew, in one short line. */
   readonly aim: string;
-  /** Sols that counted so far. */
+  /** The short name the crew uses on a tile: "Dust", "Air", "Shield". */
+  readonly short: string;
+  /** Sols that held so far. */
   readonly held: number;
-  /** Sols needed to earn it. */
-  readonly needed: number;
-  /** True once `held` reaches `needed`. */
-  readonly earned: boolean;
   /** True when it is going wrong right now. */
   readonly slipping: boolean;
   /** One short line about it right now. */
@@ -216,6 +202,10 @@ function shortDetail(id: ScienceGoal, run: RunState, reading: GoalReading | unde
  * The counters come from the log, so they are a fact about what happened and
  * not a number kept alongside the run. Replaying the same log gives the same
  * answer, which is what makes the debrief and the act screen agree.
+ *
+ * There is no target and no score here on purpose. The goals are the
+ * project's learning outcomes, and what the debrief reports is the record of
+ * the work: "you kept the panels clean for nine sols".
  */
 export function goalProgress(run: RunState): readonly GoalObjective[] {
   const held: Record<ScienceGoal, number> = {
@@ -238,25 +228,17 @@ export function goalProgress(run: RunState): readonly GoalObjective[] {
 
   return SCIENCE_GOALS.map((spec) => {
     const reading = readings.find((entry) => entry.spec.id === spec.id);
-    const count = held[spec.id];
-    const needed = GOAL_TARGETS[spec.id];
 
     return {
       id: spec.id,
       title: spec.title,
+      short: spec.short,
       aim: GOAL_AIMS[spec.id],
-      held: count,
-      needed,
-      earned: count >= needed,
+      held: held[spec.id],
       slipping: reading !== undefined && reading.status !== 'ok',
       detail: shortDetail(spec.id, run, reading),
     };
   });
-}
-
-/** How many of the five goals the crew has earned. */
-export function goalsEarned(run: RunState): number {
-  return goalProgress(run).filter((objective) => objective.earned).length;
 }
 
 /**

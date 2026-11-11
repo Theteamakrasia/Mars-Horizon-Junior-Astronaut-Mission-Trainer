@@ -237,34 +237,54 @@ try {
     goals.missing.join(' | '),
   );
 
-  // 7. The recap comes first on the act screen.
+  // 7. The desk: the work orders and the standing orders.
   await clickIn('base', 'Land & start sol 1');
   await waitFor(`!!document.getElementById('act') && !document.getElementById('act').hidden`);
   await sleep(1200);
 
-  await evaluate(`(() => { const b = document.querySelector('#act .act-activity:not([disabled])'); if (b) b.click(); })()`);
-  await sleep(500);
-  await clickIn('act', 'Run sol');
-  await sleep(1200);
-
-  const panel = await evaluate(`(() => {
+  const desk = await evaluate(`(() => {
     const body = document.querySelector('#act .gl__scroll');
     if (!body) return null;
-    const first = body.querySelector('.gl__label');
     return {
-      first: first?.textContent ?? '',
-      goals: document.querySelectorAll('#act .act-goal').length,
-      counts: [...document.querySelectorAll('#act .act-goal__count')].map((n) => n.textContent.replace(/\\s+/g, '')),
+      orders: document.querySelectorAll('#act .act-order').length,
+      checks: document.querySelectorAll('#act .act-check').length,
+      board: document.querySelectorAll('#act .act-board__row').length,
+      fresh: document.querySelectorAll('#act .act-board__row[data-new="true"]').length,
+      mission: document.querySelector('#act .gl__mission-job')?.textContent ?? '',
     };
   })()`);
 
-  note('the recap is the first thing on the act panel', (panel?.first ?? '').includes('in review'), panel?.first ?? '');
-  note('the five goals are on the act panel', panel?.goals === 5, `${panel?.goals} tiles`);
+  note('there are three work orders on the desk', desk?.orders === 3, `${desk?.orders} orders`);
+  note('every work order carries two checks', desk?.checks === 6, `${desk?.checks} checks`);
+  note('the standing orders are on the board', (desk?.board ?? 0) > 0, `${desk?.board} orders`);
+  note("and today's are marked new", desk?.fresh === 2, `${desk?.fresh} new`);
   note(
-    'every goal shows a count and a target',
-    (panel?.counts ?? []).length === 5 && (panel?.counts ?? []).every((c) => /\d+\/\d+/.test(c)),
-    (panel?.counts ?? []).join(' '),
+    'the mission bar says what the player is playing',
+    (desk?.mission ?? '').includes('survive'),
+    desk?.mission ?? '',
   );
+
+  // 8. Run a sol, and check the recap comes first on the next screen.
+  await evaluate(`(() => { const b = document.querySelector('#act .act-order:not([disabled])'); if (b) b.click(); })()`);
+  await sleep(500);
+  await clickIn('act', 'Run sol');
+  await sleep(1400);
+
+  /* A crisis replaces the orders on the next sol, so the check asks for the
+     desk only when the desk is actually there. */
+  const crisis = await evaluate(`!!document.querySelector('#act .gl__choices')`);
+  note('the sol ran', crisis || (await evaluate(`!!document.querySelector('#act .act-order')`)));
+
+  if (!crisis) {
+    const after = await evaluate(`(() => {
+      const body = document.querySelector('#act .gl__scroll');
+      if (!body) return null;
+      const first = body.querySelector('.gl__label');
+      return { first: first?.textContent ?? '' };
+    })()`);
+
+    note('the recap is the first thing on the act panel', (after?.first ?? '').includes('in review'), after?.first ?? '');
+  }
 
   note('no console errors', consoleErrors.length === 0, consoleErrors.slice(0, 3).join(' | '));
 

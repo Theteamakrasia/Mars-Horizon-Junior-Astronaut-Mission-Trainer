@@ -1,6 +1,6 @@
 /*
  * The balance check: is the game still winnable, and can the five science
- * goals still be earned?
+ * systems still be held?
  *
  *   npm run balance
  *
@@ -50,7 +50,16 @@ const SEEDS: readonly number[] = (process.env.SEEDS ?? '1,2,3,4').split(',').map
 /** How many plays to keep at each sol. Wider means a better answer and slower. */
 const BEAM = Number(process.env.BEAM ?? 10);
 
-/** The bar: a run has to be winnable, and every site has to be able to earn all five goals. */
+/**
+ * How many sols a system has to hold for to count as held.
+ *
+ * The goals are not a score any more - they are the project's learning
+ * outcomes - so the check asks the honest question: can the crew keep a
+ * system running for most of the run?
+ */
+const HELD_FOR = 10;
+
+/** The bar: a run has to be winnable, and every site has to be able to hold all five systems. */
 const MIN_WIN_RATE = 0.2;
 const GOALS_TO_EARN = 5;
 
@@ -147,7 +156,7 @@ function bestPlay(start: RunState): RunState {
       }
 
       for (const played of candidates(node.state)) {
-        const earned = goalProgress(played).filter((objective) => objective.earned).length;
+        const earned = goalProgress(played).filter((objective) => objective.held >= HELD_FOR).length;
         const life = played.status === 'won' ? 100000 : played.status === 'lost' ? -100000 : 0;
 
         next.push({ state: played, score: node.score + life + earned * 1000 });
@@ -199,7 +208,7 @@ for (const region of REGIONS) {
 
       if (played.status === 'won') wins += 1;
 
-      const earned = goalProgress(played).filter((objective) => objective.earned).length;
+      const earned = goalProgress(played).filter((objective) => objective.held >= HELD_FOR).length;
 
       if (earned > bestGoals) {
         bestGoals = earned;
@@ -221,7 +230,7 @@ for (const region of REGIONS) {
 }
 
 console.log(`\nThe balance check — ${SEEDS.length} seeds, beam ${BEAM}, ${WIN_SOL} sols\n`);
-console.log('site              builds   win rate   best goals   best build');
+console.log('site              builds   win rate   systems held   best build');
 
 for (const report of reports) {
   console.log(
@@ -243,7 +252,7 @@ for (const report of reports) {
 
   if (report.bestGoals < GOALS_TO_EARN) {
     problems.push(
-      `${report.name}: no build can earn all ${GOALS_TO_EARN} goals (the best earns ${report.bestGoals}). The best build was: ${report.bestBuild.join(', ') || '(none)'}`,
+      `${report.name}: no build can hold all ${GOALS_TO_EARN} systems (the best holds ${report.bestGoals}). The best build was: ${report.bestBuild.join(', ') || '(none)'}`,
     );
   }
 }
@@ -258,5 +267,5 @@ if (problems.length > 0) {
 } else {
   const mean = reports.reduce((sum, report) => sum + report.winRate, 0) / Math.max(1, reports.length);
 
-  console.log(`PASS — every site can earn all ${GOALS_TO_EARN} goals, and ${(mean * 100).toFixed(1)}% of builds can win on average.`);
+  console.log(`PASS — every site can hold all ${GOALS_TO_EARN} systems, and ${(mean * 100).toFixed(1)}% of builds can win on average.`);
 }
