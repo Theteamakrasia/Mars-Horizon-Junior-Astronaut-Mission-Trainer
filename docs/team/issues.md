@@ -143,6 +143,24 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
   The cinematic's slow camera push is untouched: that one is model-driven
   (`--launch-camera-from` / `--launch-camera-to`), reduced-motion aware, and is the
   shot the reel is built around.
+- **Also in the parts tour, on the owner's second pass:** the artwork was a small
+  card floating in the middle of a black page, and the Prev / Next / Continue row
+  was cut off at the bottom of the window. The picture is now the full-bleed
+  backdrop - `position: absolute; inset: 0` against the panel, `object-fit: cover`
+  so it fills edge to edge - with the part name over the top of it and the
+  description and the NASA fact over the bottom. The controls are pinned to the
+  bottom of the viewport (`position: absolute; bottom: 0`) instead of riding on the
+  card's height, so they are always wholly on screen. A screen narrower than 16:9
+  falls back to `object-fit: contain`, because a horizontal crop there would take
+  the callout labels off the picture, and a label that names the part is the whole
+  point of it.
+- **Also in the parts tour:** NEXT is the orange button while there are slides left,
+  and CONTINUE takes the orange accent the moment NEXT is greyed out - that is,
+  once the player has been all the way round the five parts and there is nothing
+  left to look at. There is one orange button on the row at a time, and it is
+  always the one that moves the player forward: stepping back with PREV hands the
+  accent back to NEXT. `view.ts` toggles a single `is-primary` class on the
+  Continue button; the tour's own rules are untouched.
 - **Pre-existing:** yes; the shake was in the panel from the day it was added
   (ISS-033).
 

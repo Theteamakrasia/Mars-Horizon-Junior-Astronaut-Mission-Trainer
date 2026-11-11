@@ -462,6 +462,19 @@ export function mountLaunch(
     // disabled so the player can look back one last time before continuing.
     partsPrev.disabled = index === 0 && !partsLooped;
     partsNext.disabled = index === 0 && partsLooped;
+
+    /*
+      Once the player has been all the way round the tour there is nothing left
+      to look at: NEXT is greyed out and CONTINUE is the only action left. So
+      CONTINUE takes the orange accent then, and only then - there is one
+      orange button on the row at a time, and it is always the one that moves
+      the player forward.
+
+      The test is NEXT's own state rather than the tour flag, so stepping back
+      with PREV gives the accent back to NEXT: there are slides left to move
+      forward through, so NEXT is the way forward again.
+    */
+    partsContinue.classList.toggle('is-primary', partsNext.disabled);
   };
 
   /** Open the interactive parts tour after the docking clip ends. */

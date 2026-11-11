@@ -326,13 +326,20 @@
    The whole screen once the docking clip ends. One part slide at a time:
    name, marked-up image, description, and a row of controls along the bottom.
 
-   The controls are a SIBLING of the card, not a child of it, and they are
-   pinned to the bottom of the viewport. They used to sit inside the card,
-   below the artwork, which meant their position depended on how tall the card
-   happened to be: on a short window they were pushed off the bottom of the
-   panel and clipped away, which is the failure ISS-041 was filed about. A row
-   of its own can never be cropped by the panel, and it never sits on top of
-   the picture.
+   THE ARTWORK IS THE SCREEN. The picture is not a card floating in the
+   middle of a black page - it is the full-bleed backdrop, edge to edge, with
+   the words over it and the controls in a bar along the bottom. The five
+   parts pictures are all 16:9 (1364x768 and 1671x941), so `object-fit:
+   contain` fills a 16:9 window completely and only ever letterboxes a window
+   of some other shape, where the bars are the picture's own black space
+   rather than a frame around a small image.
+
+   The controls are a SIBLING of the card, pinned to the bottom of the
+   viewport. They used to sit inside the card, below the artwork, so their
+   position depended on how tall the card happened to be: on a short window
+   they were pushed off the bottom of the panel and clipped away, which is the
+   failure ISS-041 was filed about. A bar of their own cannot be cropped by
+   the panel, and it never sits over the picture's labels.
 
    Starts hidden, shown by view.ts when the tour begins.
  */
@@ -366,30 +373,27 @@
 }
 
 /*
-  The slide itself: name, artwork, description, fact.
+  The words, over the artwork: the part name at the top, the description and
+  the NASA fact along the bottom.
 
-  It takes the space that is left over and centres itself in it, and it scrolls
-  if there is not enough of it, so on a very short window the text can still be
-  read rather than being clipped away.
+  The bottom padding is the height of the controls bar, so the fact is never
+  hidden behind it.
 */
 .launch__parts-card {
   flex: 1 1 auto;
   min-height: 0;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: clamp(0.5rem, 1.6vmin, 1rem);
-  padding: clamp(1rem, 3vmin, 2.5rem) 1rem;
-  max-width: min(96vw, 1100px);
-  width: 100%;
-  margin: 0 auto;
-  box-sizing: border-box;
+  /* The bottom padding is the height of the controls bar plus room to read,
+     so the NASA fact is never crowded against it. */
+  padding: clamp(1rem, 3vmin, 2rem) 1rem clamp(5.5rem, 11vh, 7.5rem);
   text-align: center;
 }
 
 .launch__parts-header {
+  position: relative;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -409,49 +413,92 @@
   font-weight: 700;
   letter-spacing: 0.22em;
   text-transform: uppercase;
+  /* The name sits over the artwork, so it carries its own shadow. */
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.9);
 }
 
 /*
-  The artwork of the part being shown.
+  The artwork, full-bleed behind everything else on the screen.
+
+  It is positioned against the PANEL, not against the card: the card is left
+  unpositioned on purpose, so `inset: 0` here means the whole viewport rather
+  than the strip above the controls bar.
+
+  `cover` so it fills the screen edge to edge. The five parts pictures are all
+  16:9, and the labelled callouts sit well inside the picture's own black
+  space, so a screen wider than 16:9 crops that space and nothing else.
 
   It has no animation of any kind. It used to carry an endless one-pixel shake,
   which moved the picture under the text a child is trying to read; removing it
   is what makes the slide stable (ISS-067).
-
-  Capped by height as well as width so the whole card - name, image,
-  description - fits the viewport on short windows. Without the height cap the
-  16:9 image alone could exceed the panel and the content was clipped
-  (ISS-041).
 */
 .launch__parts-image {
-  width: auto;
-  height: auto;
-  max-width: min(88vw, 900px);
-  max-height: 46vh;
-  border-radius: 8px;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   display: block;
-  background: #152029;
+  background: var(--l-black);
 }
 
+/*
+  A screen narrower than 16:9 would have the crop take the callout labels off
+  the left and right of the picture, and a label that names the part is the
+  whole point of the picture. There the artwork is fitted whole instead, and
+  the bars are the picture's own black space rather than a frame around a
+  small image.
+*/
+@media (max-aspect-ratio: 16 / 9) {
+  .launch__parts-image {
+    object-fit: contain;
+  }
+}
+
+/*
+  The description and the NASA fact, along the bottom of the artwork.
+
+  `auto` on the description's top margin pushes it and the fact down to the
+  bottom of the card, under the name.
+*/
 .launch__parts-description {
-  margin: 0;
+  position: relative;
+  z-index: 2;
+  margin: auto 0 0;
+  max-width: min(90%, 46rem);
   font-size: clamp(1rem, 3vmin, 1.25rem);
   line-height: 1.6;
   color: #9FB0BA;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.95), 0 0 28px rgba(0, 0, 0, 0.85);
+}
+
+.launch__parts-fact {
+  position: relative;
+  z-index: 2;
+  margin: 0.5rem 0 0;
+  max-width: min(90%, 46rem);
+  font-size: clamp(0.72rem, 1.5vmin, 0.9rem);
+  line-height: 1.5;
+  color: #c3ced6;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.95), 0 0 28px rgba(0, 0, 0, 0.85);
 }
 
 /* ---------- THE CONTROLS ----------
-   A bar along the bottom of the screen. Fixed in one place, whatever the
+   A bar pinned to the bottom of the viewport. Fixed in one place, whatever the
    artwork above it is doing, so Prev, Next and Continue are always in the same
-   spot and never over the picture.
+   spot, always fully on screen, and never over the picture's labels.
  */
 .launch__parts-controls {
-  flex: 0 0 auto;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: clamp(0.5rem, 1.2vmin, 1rem);
-  width: 100%;
   padding: clamp(0.75rem, 2vmin, 1.4rem) 1rem;
   border-top: 1px solid #2E3C45;
   background: rgba(5, 7, 13, 0.94);
@@ -517,10 +564,21 @@
 }
 
 /*
-  CONTINUE is the quiet one. It used to be the orange button, which put two
-  competing emphases on one row and made the button that moves the tour along
-  the least noticeable of the three. Now it is the ordinary dark button and the
-  only orange thing on the screen is NEXT.
+  A disabled NEXT goes back to being an ordinary dark button rather than a dim
+  orange one. Once the tour is over the orange belongs to CONTINUE, and a
+  dimmed orange on the row as well would say there were two choices.
+*/
+.launch__parts-button--next:disabled {
+  background: #152029;
+  border-color: #2E3C45;
+  color: var(--l-text);
+}
+
+/*
+  CONTINUE is the quiet one to begin with. It used to be the orange button,
+  which put two competing emphases on one row and made the button that moves
+  the tour along the least noticeable of the three. Now it is the ordinary dark
+  button, and the only orange thing on the screen is NEXT.
 */
 .launch__parts-button--continue {
   background: #152029;
@@ -532,17 +590,42 @@
   border-color: #FA6200;
 }
 
+/*
+  ...until the tour is over. Once the player has been all the way round the
+  five parts there is nothing left to look at: NEXT is greyed out and CONTINUE
+  is the only action left, so it takes the same orange accent NEXT has had.
+  view.ts adds `is-primary` when that happens.
+*/
+.launch__parts-button--continue.is-primary {
+  background: #FA6200;
+  border-color: #FA6200;
+  color: #150800;
+  font-weight: 700;
+}
+
+.launch__parts-button--continue.is-primary:hover:not(:disabled) {
+  background: #ff7b33;
+  border-color: #ff7b33;
+  color: #150800;
+}
+
+/* The accent fill would swallow an accent outline here too. */
+.launch__parts-button--continue.is-primary:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
 /* ---------- SHORT VIEWPORTS ----------
-   On a short window the centred card can still exceed the panel. Tighten the
-   padding and gap, and cap the image harder, so the content stays on screen —
-   the same failure as ISS-041 at the other end of the size range. */
+   On a short window the card has less room for its words. Tighten the padding
+   and the type, and keep the space under the words clear of the controls bar,
+   so the fact is never hidden behind it - the same failure as ISS-041 at the
+   other end of the size range. */
 @media (max-height: 560px) {
   .launch__parts-card {
-    padding: 0.75rem 1rem;
-    gap: 0.5rem;
+    padding: 0.75rem 1rem clamp(5rem, 13vh, 6rem);
   }
 
-  .launch__parts-image {
-    max-height: 40vh;
+  .launch__parts-description {
+    font-size: clamp(0.9rem, 2.6vmin, 1.1rem);
   }
 }

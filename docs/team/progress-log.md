@@ -39,6 +39,19 @@ than a documented one.
 - **Swapped the launch button colours.** NEXT is the orange one — the same `#FA6200`
   fill, `#150800` text and `#ff7b33` hover as the naming page's START MISSION — and
   CONTINUE is the quiet dark button. Two orange buttons on one row was one too many.
+- **Made the parts-tour artwork the screen, on a second pass.** It was a small card
+  floating in the middle of a black page, and the controls were cut off at the
+  bottom of the window. The picture is now the full-bleed backdrop, edge to edge,
+  with the name over the top of it and the description and the NASA fact over the
+  bottom; the controls are pinned to the bottom of the viewport rather than riding
+  on the card's height, so they are always wholly on screen. A screen narrower than
+  16:9 is fitted whole instead, because a horizontal crop there would take the
+  callout labels off the picture.
+- **Made CONTINUE take the orange accent once the tour is over.** NEXT is orange
+  while there are slides left; the moment NEXT is greyed out — the player has been
+  all the way round the five parts — CONTINUE becomes the orange one, because it is
+  then the only way forward. One orange button on the row at a time, always the one
+  that moves the player on: stepping back with PREV hands the accent back to NEXT.
 - **Made the landing-site screen scale.** Every size on it was fixed rem and px, so
   nothing grew with the window: a pin label was 13.33px at 1024, 1600 and 1920 alike,
   while the rest of the app scaled. They are now `clamp()`s against the viewport, the
