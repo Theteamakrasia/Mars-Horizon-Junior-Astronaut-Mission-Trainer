@@ -33,7 +33,7 @@ import { stopReading } from '../../ui/readAloud';
 import { nextStop } from '../../ui/registry';
 import { navigate } from '../../ui/router';
 
-import { activityRows, changeRows, goalRows, meterRows, missionHeadline, powerSentence, scienceSummary, secondsLeft } from './model';
+import { activityRows, changeRows, goalRows, meterRows, missionHeadline, powerSentence, powerToday, scienceSummary, secondsLeft } from './model';
 
 import '../../styles/game-loop.css';
 import './act.css';
@@ -78,8 +78,6 @@ export function mountAct(
   let calmMode = false;
   let loadingForecast = false;
   let focusedCrisis: string | null = null;
-  /** The goal whose detail is open on the panel, if any. */
-  let openGoal: string | null = null;
   let clockNodes: { readonly bar: HTMLElement; readonly text: HTMLElement } | null = null;
   let pendingFocus: HTMLElement | null = null;
   /* NASA's live daily pictures. Empty when NASA did not answer, and the screen
@@ -184,13 +182,32 @@ export function mountAct(
   function hudFor(state: RunState): readonly HudStat[] {
     const toneOf = (tone: string): HudStat['tone'] => (tone === 'critical' ? 'bad' : tone === 'low' ? 'warn' : 'ok');
 
-    return meterRows(state).map((row) => ({
-      icon: row.emoji,
-      label: row.label,
-      value: `${row.percent}%`,
-      percent: row.percent,
-      tone: toneOf(row.tone),
-    }));
+    const meters = meterRows(state);
+    const power = powerToday(state);
+
+    /* The power card says what the crew can spend today, not what the
+       batteries hold. The batteries are drained through the night, so the
+       level at dawn is near zero even for a healthy outpost — and a card that
+       says "0%" while the player picks a 25 kWh activity reads as a broken
+       game. This is the number the activity prices come out of. */
+    const rows: HudStat[] = [
+      {
+        icon: '⚡',
+        label: 'Power today',
+        value: `${power.available} kWh`,
+        percent: power.capacity > 0 ? Math.round((power.available / power.capacity) * 100) : 0,
+        tone: power.nightCovered ? 'ok' : 'bad',
+      },
+      ...meters.slice(1).map((row) => ({
+        icon: row.emoji,
+        label: row.label,
+        value: `${row.percent}%`,
+        percent: row.percent,
+        tone: toneOf(row.tone),
+      })),
+    ];
+
+    return rows;
   }
 
   function forecastSection(state: RunState): HTMLElement {
@@ -224,9 +241,18 @@ export function mountAct(
    */
   function activitySection(state: RunState): HTMLElement {
     const rows = activityRows(state, state.sol + 1);
+    const power = powerToday(state);
     const list = h('div', { class: 'act-activities' });
 
     for (const row of rows) {
+      /* An activity the outpost cannot pay for says so. The player is still
+         allowed to pick it — the sim turns that into a blackout, and the
+         blackout is the lesson — but it is never a surprise. */
+      const short = row.powerCost > power.available;
+      const why = short
+        ? `Not enough power today: you have ${power.available} kWh and it needs ${row.powerCost}.`
+        : null;
+
       const button = h(
         'button',
         {
@@ -234,6 +260,7 @@ export function mountAct(
           type: 'button',
           'data-activity': row.id,
           'aria-pressed': String(row.chosen),
+          'data-short': String(short),
           disabled: !row.available,
         },
         h('span', { class: 'act-activity__icon', 'aria-hidden': 'true', text: row.icon }),
@@ -255,6 +282,7 @@ export function mountAct(
             class: 'act-activity__detail',
             text: row.available ? row.detail : (row.lockedReason ?? row.detail),
           }),
+          why === null ? null : h('span', { class: 'act-activity__warn', text: why }),
         ),
         h('span', { class: 'act-activity__mark', 'aria-hidden': 'true', text: row.chosen ? '✓' : '' }),
       );
@@ -335,6 +363,12 @@ export function mountAct(
     const rows = goalRows(state);
     const list = h('div', { class: 'act-goals' });
 
+    /* One detail panel for whichever tile is open. It is shown and hidden in
+       place: re-rendering the panel to open a tile threw the player back to
+       the top of the screen, which is worse than the tap was worth. */
+    const more = h('div', { class: 'act-goal__more', hidden: true });
+    const tiles = new Map<string, HTMLElement>();
+
     for (const row of rows) {
       /* Earned is the good state. Slipping is the warning. A goal that is
          neither is simply on its way, and its dot stays quiet. */
@@ -345,7 +379,7 @@ export function mountAct(
         {
           class: 'act-goal',
           type: 'button',
-          'aria-expanded': String(openGoal === row.id),
+          'aria-expanded': 'false',
           'aria-label': `${row.title}: ${row.held} of ${row.needed} sols. ${row.aim}`,
           'data-status': status,
         },
@@ -356,24 +390,28 @@ export function mountAct(
       );
 
       tile.addEventListener('click', () => {
-        openGoal = openGoal === row.id ? null : row.id;
-        render();
+        const open = more.hidden;
+
+        for (const [id, other] of tiles) other.setAttribute('aria-expanded', String(open && id === row.id));
+
+        if (!open) {
+          more.hidden = true;
+
+          return;
+        }
+
+        const fact = factForTopic(row.topic, state.sol + 1);
+
+        more.replaceChildren(
+          h('span', { class: 'act-goal__detail', text: `${row.title} — ${row.detail}` }),
+          h('span', { class: 'act-goal__fact' }, h('strong', { text: 'Did you know? ' }), `${fact.text} (${fact.credit})`),
+        );
+        more.hidden = false;
       });
 
+      tiles.set(row.id, tile);
       list.append(tile);
     }
-
-    const open = rows.find((row) => row.id === openGoal);
-    const fact = open === undefined ? null : factForTopic(open.topic, state.sol + 1);
-    const more =
-      open === undefined || fact === null
-        ? false
-        : h(
-            'div',
-            { class: 'act-goal__more' },
-            h('span', { class: 'act-goal__detail', text: `${open.title} — ${open.detail}` }),
-            h('span', { class: 'act-goal__fact' }, h('strong', { text: 'Did you know? ' }), `${fact.text} (${fact.credit})`),
-          );
 
     const earned = rows.filter((row) => row.earned).length;
 
@@ -454,12 +492,14 @@ export function mountAct(
       ),
     );
 
+    const today = powerToday(state);
+
     const dayNight = h(
       'div',
       { class: 'gl__triple', 'aria-hidden': 'true' },
       h('div', { class: 'gl__mini' }, h('span', { class: 'gl__mini-label', text: '☀ Daytime' }), h('span', { class: 'gl__mini-value', text: `+${power.generatedKw} kW` }), h('span', { class: 'gl__mini-detail', text: 'panels in sunlight' })),
-      h('div', { class: 'gl__mini' }, h('span', { class: 'gl__mini-label', text: '🔋 Stored' }), h('span', { class: 'gl__mini-value', text: `${power.storedKwh} kWh` }), h('span', { class: 'gl__mini-detail', text: `of ${power.capacityKwh}` })),
-      h('div', { class: 'gl__mini' }, h('span', { class: 'gl__mini-label', text: '🌙 Night use' }), h('span', { class: 'gl__mini-value', text: `−${power.nightDrainKw} kW` }), h('span', { class: 'gl__mini-detail', text: 'from the batteries' })),
+      h('div', { class: 'gl__mini' }, h('span', { class: 'gl__mini-label', text: '🔋 For today' }), h('span', { class: 'gl__mini-value', text: `${today.available} kWh` }), h('span', { class: 'gl__mini-detail', text: `of ${today.capacity} stored` })),
+      h('div', { class: 'gl__mini' }, h('span', { class: 'gl__mini-label', text: '🌙 Night use' }), h('span', { class: 'gl__mini-value', text: `−${power.nightDrainKw} kW` }), h('span', { class: 'gl__mini-detail', text: today.nightCovered ? 'the batteries cover it' : 'the batteries will not cover it' })),
     );
 
     const body: (Node | false)[] = [

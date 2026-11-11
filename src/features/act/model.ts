@@ -8,13 +8,65 @@
  */
 
 import { offerFor, planForSol, type ActivitySpec, type ActivityStoreName } from '../../sim/activities';
+import { stormOn, stormOpacity } from '../../sim/forecast';
 import { goalProgress, goalReadings, type GoalStatus, type ScienceGoal } from '../../sim/goals';
 import { RESOURCE_NAMES, percentOf, type ResourceName, type ResourceStores } from '../../sim/resources';
 import type { RunState } from '../../sim/run';
-import { systemsFor } from '../../sim/modules';
+import { NIGHT_HOURS, SUN_HOURS, systemsFor } from '../../sim/modules';
+import { siteScore } from '../../sim/regions';
 import { rankProgress, type ScienceRank } from '../../sim/science';
 import { WIN_SOL } from '../../sim/sol';
 import type { ScienceTopic } from '../../sim/topics';
+
+/**
+ * The power picture for the sol about to be played.
+ *
+ * `available` is the number the activity prices come out of, and the number
+ * the power card shows. It is not the level in the batteries: those are
+ * drained through the night, so the level left at dawn is near zero even for
+ * a healthy outpost, and a card that says "Power 0%" while the player still
+ * chooses a 25 kWh activity reads as a broken game rather than a day and
+ * night.
+ */
+export interface TodayPower {
+  /** kWh the crew can spend today, after the panels have filled the batteries. */
+  readonly available: number;
+  /** The batteries' capacity, in kWh. */
+  readonly capacity: number;
+  /** What the systems use over the whole sol, in kWh. */
+  readonly demand: number;
+  /** What the night alone needs, in kWh. */
+  readonly nightNeed: number;
+  /** True when the batteries still cover the night. */
+  readonly nightCovered: boolean;
+}
+
+/** The power picture for the sol about to be played. */
+export function powerToday(run: RunState): TodayPower {
+  const systems = systemsFor(run.modules, run.regionId);
+  const capacity = systems.batteryKwh;
+
+  /* The panels make nothing while they are folded, and a storm that has not
+     been answered yet is still a storm. */
+  const storm = stormOn(run.forecast, run.sol + 1);
+  const choice = storm === null ? null : run.decisions.find((entry) => entry.crisisId === storm.id)?.optionId;
+  const stormFactor =
+    storm === null ? 1 : choice === 'expose' ? 1 - stormOpacity(siteScore(run.regionId).dust) : 0;
+
+  const generated = systems.solarKw * systems.sunFactor * run.panelHealth * stormFactor * SUN_HOURS;
+  const nuclear = (systems.nuclearKw * (SUN_HOURS + NIGHT_HOURS)) / 2;
+  const dayDraw = systems.loadKw * SUN_HOURS;
+  const nightNeed = Math.max(0, systems.loadKw - systems.nuclearKw) * NIGHT_HOURS;
+  const level = capacity <= 0 ? 0 : Math.min(capacity, run.stores.power + generated + nuclear - dayDraw);
+
+  return {
+    available: Math.max(0, Math.round(level)),
+    capacity: Math.round(capacity),
+    demand: Math.round(systems.loadKw * (SUN_HOURS + NIGHT_HOURS)),
+    nightNeed: Math.round(nightNeed),
+    nightCovered: level >= nightNeed,
+  };
+}
 
 /** A headline and a line under it for the sol about to be played. */
 export interface ActPresentation {
@@ -173,6 +225,8 @@ export interface ActivityRow {
   readonly icon: string;
   readonly topic: ScienceTopic;
   readonly science: number;
+  /** The kWh this activity takes out of the batteries. */
+  readonly powerCost: number;
   readonly costs: readonly string[];
   readonly gains: readonly string[];
   /** False when the outpost is not built for it yet. */
@@ -201,6 +255,7 @@ export function activityRows(run: RunState, sol: number): readonly ActivityRow[]
       icon: offer.spec.icon,
       topic: offer.spec.topic,
       science: offer.spec.science,
+      powerCost: offer.spec.powerCostKwh,
       costs,
       gains,
       available: offer.available,

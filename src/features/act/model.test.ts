@@ -11,6 +11,7 @@ import {
   meterRows,
   missionHeadline,
   powerSentence,
+  powerToday,
   progressPercent,
   scienceSentence,
   scienceSummary,
@@ -175,7 +176,54 @@ describe('the five science goals', () => {
   });
 });
 
-describe('the science score', () => {  it('starts at zero and the bottom rank', () => {
+describe('the power the crew can spend', () => {
+  it('shows what is left after the panels fill the batteries, not the level at dawn', () => {
+    /* The batteries are drained through the night, so the level left at dawn
+       is near zero even for a healthy outpost. Showing that as "Power 0%"
+       while the player picks a 25 kWh activity reads as a broken game. */
+    const picture = powerToday(run);
+
+    expect(picture.available).toBeGreaterThan(0);
+    expect(picture.capacity).toBeGreaterThan(0);
+    expect(picture.nightNeed).toBeGreaterThan(0);
+  });
+
+  it('says the night is not covered when the batteries cannot hold it', () => {
+    const bare = powerToday(run);
+
+    expect(bare.nightCovered).toBe(false);
+  });
+
+  it('says the night is covered when there are enough batteries and panels', () => {
+    const built = powerToday(
+      startOutpost(newRun('jezero', 'Test'), [...CORE_MODULES, 'solar-array', 'solar-array', 'batteries', 'batteries', 'batteries']),
+    );
+
+    expect(built.nightCovered).toBe(true);
+  });
+
+  it('drops to nothing while the panels are folded against a storm', () => {
+    const storming = withState(run, {
+      sol: 1,
+      forecast: [
+        {
+          id: 'storm-2',
+          sol: 2,
+          kind: 'storm',
+          durationSols: 2,
+          intensity: 0,
+          summary: 'A storm.',
+          approximate: false,
+        },
+      ],
+    });
+
+    expect(powerToday(storming).available).toBe(0);
+  });
+});
+
+describe('the science score', () => {
+  it('starts at zero and the bottom rank', () => {
     const summary = scienceSummary(run);
 
     expect(summary.points).toBe(0);

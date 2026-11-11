@@ -139,6 +139,23 @@
   text-align: center;
 }
 
+/* An activity the outpost cannot pay for. It is still choosable — the sim
+   turns it into a blackout, and the blackout is the lesson — but the player
+   is never surprised by it. */
+.act-activity[data-short='true'] {
+  border-color: var(--gl-orange);
+  background: var(--gl-peach);
+}
+
+.act-activity__warn {
+  display: block;
+  margin-top: 0.15em;
+  color: var(--gl-orange-deep);
+  font-size: clamp(0.55rem, 0.68vw, 0.82rem);
+  font-weight: 800;
+  line-height: 1.25;
+}
+
 /* ---------------------------------------------------- the science goals -- */
 
 .act-goals {
