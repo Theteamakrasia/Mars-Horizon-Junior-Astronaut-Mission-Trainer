@@ -11,6 +11,16 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
+| ISS-061 | The game was unwinnable: 14 build points could not buy a night of power at any landing site | high | agent | fixed | this branch |
+| ISS-060 | The power card showed the level left at dawn, so it read 0% while the game let the player spend power | high | agent | fixed | this branch |
+| ISS-059 | Nothing told the player what the game was, or what to do on a sol | high | agent | fixed | this branch |
+| ISS-063 | The rover was a floating button on a wall clock, outside the run | medium | agent | fixed | this branch |
+| ISS-062 | Clicking a goal re-rendered the panel and threw the player back to the top | medium | agent | fixed | this branch |
+| ISS-058 | The play screens carried 85 to 139 words, too much for the audience | medium | agent | fixed | this branch |
+| ISS-057 | The sol recap sat below the fold, so a change was invisible | high | agent | fixed | this branch |
+| ISS-056 | Building a module moved no number on the HUD, so deploying looked like it did nothing | high | agent | fixed | this branch |
+| ISS-055 | The build card only explained a block while the player owned none of that module | high | agent | fixed | this branch |
+| ISS-054 | The build card counted the extras while the limit counted everything | high | agent | fixed | this branch |
 | ISS-052 | The game never named the five science goals it is about | medium | agent | fixed | 4199bd5 |
 | ISS-051 | The ration check asked the same question every run, so the answer was always 80 | medium | agent | fixed | 9f0fabb |
 | ISS-050 | `architecture.md`'s module-contract table lists exports that do not exist | medium | agent | open | — |
@@ -1107,3 +1117,180 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 **Next free id: ISS-054.**
 
+
+---
+
+## ISS-061 - The game was unwinnable: fourteen build points could not buy a night of power
+
+- **Reported by:** agent, 2026-11-11, while playing the build screen and asking what a player
+  is supposed to do with eighteen points.
+- **Where:** `src/sim/modules.ts` (`BUILD_BUDGET`, `GREENHOUSE_WATER`, `LOAD_KW`, `SHIELDING_BASE`,
+  `SHIELDING_EROSION`), `src/sim/rover.ts` and `src/features/base/`.
+- **Problem:** the lander brings one solar array and one battery bank. A bare outpost draws 12 kW
+  of life support plus heating, which is 144 kWh for one night against 100 kWh of battery. At
+  fourteen build points **no legal build at any of the five landing sites was self-sustaining**,
+  and the win rate was 14 to 23%. Measured over every legal build, eight forecast seeds and
+  five sites, **zero of 3,558 runs ended with all five science goals satisfied** - the game could
+  not be won, let alone played well.
+- **Cause:** the budget was set before the load and the generation were reconciled. Every module
+  that answered a real problem cost more than the budget allowed, so the extra points went
+  nowhere and the night was never covered.
+- **Fix:** five constants in `src/sim/modules.ts` - budget 14 to 18, greenhouse water 5 to 3,
+  greenhouse load 8 to 6, shielding base 20 to 30, shielding erosion 1 to 0.5. The win rate is
+  now 41 to 45% and every site can hold all five systems.
+- **Pre-existing:** yes; the game has always been a resource budget, and the budget was never
+  playable.
+
+---
+
+## ISS-060 - The power card showed the level left at dawn, so it read 0% while the game let the player spend power
+
+- **Reported by:** agent, 2026-11-11, in play testing: "no matter what I do power is always
+  getting to zero, and if power is at 0 how am I able to do other things that requires power".
+- **Where:** `src/features/act/model.ts` (`powerToday`), `src/features/act/view.ts`.
+- **Problem:** the batteries are drained through the night, so the level left at dawn is near zero
+  even for a healthy outpost. The card showed that level, so it read `0%` while the game
+  cheerfully let the player approve a 25 kWh activity. The card and the rules contradicted each
+  other, and nothing said which number the activity prices came out of.
+- **Cause:** the card wanted "how full are the batteries" and the store holds the level after
+  the night. Both are true and they are not the same number.
+- **Fix:** the card now shows `Power today: 400 kWh` - what is left after the panels have
+  filled the batteries and the systems have taken their share - which is exactly the number the
+  activity prices come out of. The day and night strip says the same thing and says whether the
+  batteries cover the night.
+- **Pre-existing:** yes; the card was added with the rest of the HUD.
+
+---
+
+## ISS-059 - Nothing told the player what the game was, or what to do on a sol
+
+- **Reported by:** agent, 2026-11-11, in play testing: "I do not even know what I am playing
+  and what I am doing in the game".
+- **Where:** `src/sim/guide.ts`, `src/ui/guide.ts`, `src/features/act/view.ts`,
+  `src/features/briefing/model.ts`.
+- **Problem:** the game never said what a sol was, what a work order was, what the two readings
+  under one were for, or what the board of rules was. A child meeting the game for the first
+  time had no idea what they were looking at, and a child who lost the thread had no way back
+  in. The briefing ran through the mission and stopped.
+- **Cause:** the screens were built one at a time and each assumed the player had worked out
+  the one before it.
+- **Fix:** a guide of ten steps, each saying where it happens and what to do about it. It opens
+  by itself the first time the player reaches the build screen, and a button in the mission bar
+  brings it back on any later sol. The briefing now also says what a day is - three work
+  orders, approve one, the day happens - and that two new rules arrive every day.
+- **Pre-existing:** yes; the journey screens had been built without a tutorial.
+
+---
+
+## ISS-063 - The rover was a floating button on a wall clock, outside the run
+
+- **Reported by:** agent, 2026-11-11, on the request to "add the rover exploration in the game
+  system - right now we are sending it and we are just showing some facts".
+- **Where:** `src/sim/rover.ts`, `src/sim/run.ts` (`RunState.rover`), `src/ui/roverWidget.ts`
+  (deleted), `src/data/roverFinds.ts` (moved into `sim/rover.ts`).
+- **Problem:** the rover ran on a fifteen-to-sixty-five second real timer and its state lived in
+  a widget rather than in the run. It could not be part of a sol, it did not know what the
+  outpost had built, it was destroyed when the screen was rebuilt, and the debrief could not
+  say what it had found. It was a picture window, not an expedition.
+- **Cause:** the widget was built as an optional extra, and the state was never given a home.
+- **Fix:** the rover's state is in `RunState.rover`. Sending it out is a work order like any
+  other, it drives on sol time, and it comes back with a document on the desk - a real NASA
+  picture, a place from the past, or a rare rock to log, take or leave. The catalogue moved
+  from `data/` to `sim/`, because the simulation now owns the whole lifecycle. It still touches
+  no resource.
+- **Pre-existing:** yes; the rover was added as a widget (D-059).
+
+---
+
+## ISS-062 - Clicking a goal re-rendered the panel and threw the player back to the top
+
+- **Reported by:** agent, 2026-11-11, in play testing: "clicking on goals just scrolls you back
+  up".
+- **Where:** `src/features/act/view.ts`.
+- **Problem:** tapping a goal called `render()`, which replaced the whole panel. The scroll
+  position went with it, so opening a goal threw the player back to the top of the screen -
+  worse than the tap was worth.
+- **Cause:** the detail was built inside the render rather than toggled in place.
+- **Fix:** the detail is shown and hidden in place. Nothing is re-rendered, so the scroll
+  stays where the player left it.
+- **Pre-existing:** yes; it came with the goal tiles.
+
+---
+
+## ISS-058 - The play screens carried 85 to 139 words, too much for the audience
+
+- **Reported by:** agent, 2026-11-11, on the request for a game a child can follow.
+- **Where:** `src/features/act/view.ts`, `src/features/act/model.ts`, `src/sim/activities.ts`.
+- **Problem:** the act panel held 85 words before a sol and 139 after one, and the five science
+  goals alone were about 100 of them - five paragraphs of live readings plus a NASA fact each,
+  all below the decision the player had come to make.
+- **Cause:** each goal wanted to be explained at once, on the screen where the decision was.
+- **Fix:** the goals became the standing orders - short rules on a board - and the live reading
+  moved behind a tap. The act panel is now 64 words before a sol and 97 after one, and the
+  words that were cut were the ones that were below the fold anyway. The module copy was cut
+  to one line each, and the science behind each order is one tap away.
+- **Pre-existing:** yes; the goals section was added in one piece and never measured.
+
+---
+
+## ISS-057 - The sol recap sat below the fold, so a change was invisible
+
+- **Reported by:** agent, 2026-11-11, on the request that "the changes or decisions are not
+  showing".
+- **Where:** `src/features/act/view.ts`.
+- **Problem:** the review of what the last sol did was at the bottom of the panel, under five
+  paragraphs of goals. A child whose power had run flat saw a zero on the bar and no reason
+  for it anywhere on the screen.
+- **Cause:** the recap was written first and the goals were added in front of it.
+- **Fix:** the recap is the first thing in the panel now, and the change ledger sits with it.
+- **Pre-existing:** yes; the recap was added with the goals section.
+
+---
+
+## ISS-056 - Building a module moved no number on the HUD, so deploying looked like it did nothing
+
+- **Reported by:** agent, 2026-11-11, on the request that "the changes are not showing".
+- **Where:** `src/features/base/view.ts`, `src/features/base/model.ts`.
+- **Problem:** clicking `+` re-rendered the panel and said nothing. The count changed by one and
+  a picture appeared in the world, but nothing on the HUD moved - the cards showed the night
+  hours and the days of food and water, none of which a solar array affects - so the most
+  obvious action in the game looked like no action at all.
+- **Cause:** the HUD showed five numbers that no build decision could move.
+- **Fix:** the panel says what it did ("Solar Array added - 2 points spent"), the card flashes,
+  the new figure pops in the world, and the HUD carries a **Day power** card that moves from
+  216 kWh to 864 kWh as the panels go in.
+- **Pre-existing:** yes; the cards were chosen to describe the outpost rather than the build.
+
+---
+
+## ISS-055 - The build card only explained a block while the player owned none of that module
+
+- **Reported by:** agent, 2026-11-11, on the request for "no indications" when deploying.
+- **Where:** `src/features/base/view.ts`.
+- **Problem:** the reason a module could not be added was shown only when the player owned none
+  of it. The first time you tried to build something you did not have was explained; every
+  time after that - which is exactly when you had built your way into a limit - the `+` went
+  dead and said nothing.
+- **Cause:** the guard was `!placement.ok && have === 0`, which reads as "explain the missing
+  module" rather than "explain the block".
+- **Fix:** the reason is shown whenever the button is dead, and it names the limit in words a
+  child can read: "That is the most solar arrays you can have."
+- **Pre-existing:** yes; the guard was written to explain a locked module, and it was reused
+  for the limit.
+
+---
+
+## ISS-054 - The build card counted the extras while the limit counted everything, so the player could not see how many they could add
+
+- **Reported by:** agent, 2026-11-11, on the request for "how many I deploy and what the limit
+  there is".
+- **Where:** `src/features/base/view.ts`, `src/features/base/model.ts`, `src/sim/modules.ts`.
+- **Problem:** the card counted the modules the player had added, but the limit counted the
+  module the lander brought as well. Solar Array has a limit of four and the lander brings one,
+  so the card read `3` with a dead button and no sign that three was the most. The player
+  could not tell whether three was nearly enough or already too many.
+- **Cause:** two different counts, and only one of them was on the screen.
+- **Fix:** `sim/modules.ts` grew `extraLimitOf()`, which is the limit minus the lander's copy,
+  and the card reads `3/3`. A MAX badge says the module is done, and the budget row already
+  read `3 / 9 extras`.
+- **Pre-existing:** yes; the two counts have always disagreed.

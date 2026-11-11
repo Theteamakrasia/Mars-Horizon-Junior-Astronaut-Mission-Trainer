@@ -93,6 +93,12 @@ You manage five things that never stop draining:
 Every choice you make improves one of those and costs you another. That's the whole game —
 and it's also the whole job.
 
+And every day is a **job**. You are the duty officer at the outpost: three work orders land
+on your desk, each with two readings to check and a tool to work it with, and you approve
+one. A rule book grows beside you — two new rules a sol, twenty-four by the end — and it is
+the thing you are actually learning. It is a Papers Please game about Mars, and that is
+exactly how hard a day is supposed to feel.
+
 <a id="the-design-promise"></a>
 ### The Design Promise
 
@@ -139,7 +145,7 @@ step below is a real screen you can reach, in this order:
 ```
 🚀 NAMING                     → name your astronaut (the main menu)
       ↓
-📋 BRIEFING                   → why we go, and the five resources
+📋 BRIEFING                   → why we go, the five resources, and what a day is
       ↓
 🍱 SUPPLY CHECK               → the ration maths gate
       ↓
@@ -149,9 +155,9 @@ step below is a real screen you can reach, in this order:
       ↓
 🗺  LANDING SITE              → pick one of five regions
       ↓
-🏠 BASE                       → spend 14 build points on modules
+🏠 BASE                       → spend 18 build points on modules
       ↓
-🔄 SOL LOOP (`act`)           → run sols 1-12, answer the crises
+🔄 SOL LOOP (`act`)           → a desk of work orders, one approval, 12 sols
       ↓
 📝 DEBRIEF                    → what worked, what didn't, and why
 ```
@@ -267,34 +273,57 @@ river deposits and workable terrain makes it the most **interesting** place to e
 ### 7. Establish Your Base
 
 `#/base` is the outpost. The habitat and life support are core modules; on top of them you
-spend **14 build points** across eight module kinds — solar arrays, battery banks, a nuclear
+spend **18 build points** across eight module kinds — solar arrays, battery banks, a nuclear
 unit, a greenhouse, an ice miner and regolith shielding — subject to slot limits and two hard
 site rules (the ice miner needs water ≥ 3; the regolith shield needs terrain ≥ 2). You are
 allowed to launch with nothing extra. That is a choice, and usually a bad one.
 
 ![Design mockup of the outpost overview showing a deployed Habitat, Life Support unit, Solar Array and Battery module on the Martian surface, alongside a Life Support and Resources panel listing food, water, oxygen, power and radiation shielding levels](Assets/README_ref/survival%20loop.png)
 
-The run's clock is fixed before you land: a flare on sol 3, a supply pod on sol 5, a dust
-storm on sol 7 and a second flare on sol 10 (D-033). The mockup above shows an earlier,
-illustrative forecast; the build uses that four-event schedule. This screen is where you
-prepare for it. Press **Land & start sol 1** when you are ready.
+Each card says **what the module does**, **how many you have of it** and — when the button
+is dead — **why**. The count and the limit are the same number, so `3/3` means three is the
+most, not "nearly enough". The HUD carries a **Day power** card that moves from 216 kWh to
+864 kWh as the panels go in, so deploying something visibly does something.
+
+The **how-to-play guide** opens by itself the first time you reach this screen, and a `?`
+button in the mission bar brings it back on any later sol.
+
+The run's hazards are rolled from a seed, so each mission is a little different: a flare
+here, a dust storm there, at least one sol of quiet between them (D-048, D-056). This screen
+is where you prepare for what you can see. Press **Land & start sol 1** when you are ready.
 
 <a id="run-the-sols"></a>
 ### 8. Run the Sols
 
-`#/act` advances exactly one sol per press of **Run sol N**. Nothing in the outpost is on a
-timer: the game waits for you. Each sol resolves in the same order — cargo arrives, the Sun
-comes up, the night drains the batteries, and whatever power cannot be found slows life
-support and the greenhouse.
+`#/act` is a **desk**, and it works like one: it is the duty officer's job for twelve sols
+(D-060). Nothing in the outpost is on a timer — the game waits for you. The mission bar
+across the top always says what you are playing, and the review of the last sol is the
+first thing in the panel, so a change is never something you have to hunt for.
 
-**Every sol has a main activity.** Before the day runs you pick one of three: send the
-rover out to survey, run a science experiment, clean the solar panels, dig for water ice,
-pile soil on the habitat for shielding, or simply let the crew rest and watch the sunset.
-Every activity costs something — mostly power — and the cost comes out of the same
+**Each sol has three work orders on the desk.** Every order says what it costs and what it
+gives, and carries **two readings** to check before you approve it — the numbers are there
+to be compared, and looking is the skill. Some orders have a **tool**: work it and you win
+stars, and the stars make the order worth more science. Working an order well never gives
+you back a single kWh; it only ever buys science (D-063), so how well you play cannot decide
+whether you survive.
+
+**The standing orders are the rule book.** Two new rules arrive every sol, on a board beside
+the desk, until there are twenty-four of them. They are the five learning goals in the
+order you meet them, and they are also the keepsake: the debrief prints the standing orders
+you worked under.
+
+Also on the desk: a **note from home** or the crew, and — if you sent the rover out — the
+**document the rover brings back**, a real NASA picture of a place from the past or a rare
+rock to log, take or leave.
+
+**Every sol has a main activity.** The order you approve is what the crew spends the day
+on: send the rover out to survey, run a science experiment, clean the solar panels, dig for
+water ice, pile soil on the habitat for shielding, or simply let the crew rest and watch the
+sunset. Every activity costs something — mostly power — and the cost comes out of the same
 batteries that life support needs. Spend 25 kWh on a rover survey with a flat battery and
 that sol runs in a blackout, exactly as a dark night would.
 
-Each activity earns **science points**, so the run has a score and a rank: Explorer, Field
+Each sol earns **science points**, so the run has a score and a rank: Explorer, Field
 Scientist, Research Lead, Senior Scientist, Chief Martian Scientist. The debrief reports both,
 and keeps them apart: the rank measures the science you did, not whether you got home.
 
@@ -335,6 +364,12 @@ The debrief is where the learning actually lands. It reviews every crisis choice
 - Which problems you solved early and which ones caught you
 - The **real science** behind whatever went wrong
 
+It also gives you your **certificate**, the **patches** your run earned, and the **standing
+orders** you worked under — the twenty-four rules, printed as the manual you took home with
+you. The five science goals are printed as a **record**, not a grade: what you kept running,
+and for how long. There is no counter telling you how well you did at them (D-061). Surviving
+twelve sols is the only outcome.
+
 **View my Mars story** opens the journal mode of the same screen (D-039); **Try a different
 outpost** and **Main menu** leave the run. A run that ends badly is the most educational run
 in the game.
@@ -351,23 +386,27 @@ a player takes away without ever being told a lesson:
 | **Systems thinking** | Changing one thing ripples through everything else — more modules means more power draw *and* more oxygen to recycle |
 | **Energy balance** | Day/night cycles, storage capacity, and the gap between generating and surviving until sunrise |
 | **Closed-loop living** | Recycling water, regenerating air, and growing food instead of resupplying — the core of real off-world life support |
-| **Reading data** | Storm warnings, resource stores and the fixed forecast are how you make decisions, not decoration |
+| **Reading data** | Storm warnings, resource stores and the forecast are how you make decisions, not decoration. Every order carries two readings to check before you stamp it |
+| **Following a rule book** | Two new rules arrive every sol and they stack up. By the end you are working to twenty-four of them at once, which is what a checklist is for |
 | **Preparation & margin** | Winners build reserves *before* the crisis. This is a life skill, not just a game one |
 | **Reading real space-weather data** | Solar-flare strength comes from live NASA data, with NOAA as a backup, not made-up numbers |
 | **Second attempts** | Losing teaches more than winning, because the debrief explains exactly *why* |
 
 ### The five science goals
 
-Everything in the game is one of five things, and the game says so on every sol. The
-act screen carries all five with their live state and a NASA fact about each, and the
-debrief reports how each one fared:
+Everything in the game is one of five things, and the game says so. **These are the
+project's learning outcomes, not a score** (D-061): there is no counter telling you how
+well you did at them, and the debrief prints them as a record of what you kept running and
+for how long. What *is* a score is the science points, which come from the work you
+approved. The five goals arrive as the **standing orders** — two new rules every sol — in
+the order you meet them:
 
 | Goal | What it is about | How the game makes it real |
 | --- | --- | --- |
-| ☪️ **Martian Dust Storm** | Dust cuts the sunlight reaching the solar panels and can affect the equipment | A real dust storm on sol 7 buries the panels for two sols. Leaving them out costs power; leaving them out *in a storm* costs a fifth of their output, for good |
+| ☪️ **Martian Dust Storm** | Dust cuts the sunlight reaching the solar panels and can affect the equipment | A real dust storm buries the panels for two sols. Leaving them out costs power; leaving them out *in a storm* costs a fifth of their output, for good |
 | 🫁 **Life Support** | Keeping oxygen, water and a safe living environment | Oxygen and water are made from power. When the batteries run flat, the makers slow down and the stores start falling |
 | ☢️ **Radiation Exposure** | Protecting the crew from harmful space radiation | Mars has no global magnetic field, so shielding is the only protection. A flare takes a third of it, or two thirds if nobody took cover |
-| ⚡ **Power Shortage** | Keeping enough electricity for the systems that matter | The panels make nothing for twelve hours of night. Every activity you pick draws from the same batteries life support needs |
+| ⚡ **Power Shortage** | Keeping enough electricity for the systems that matter | The panels make nothing for twelve hours of night. Every order you approve draws from the same batteries life support needs |
 | 🍞 **Food Production** | Making sure the crew has food they can count on | The greenhouse grows 12 food a sol and four astronauts eat 10 — but only while the power holds and the greenhouse is not paused |
 
 <a id="the-science-is-real"></a>
@@ -490,6 +529,14 @@ This game is built for young players first, and every decision follows from that
 - **No fantasy elements.** No aliens, no magic, no monsters. The only enemy is physics.
 - **Realistic, but readable.** The science is true; the presentation is a friendly UI with
   emoji markers, plain language and no unexplained jargon.
+- **Short sentences, few of them.** The play screens carry 64 words before a sol and 97
+  after one. The detail is one tap away, never in the way of the decision.
+- **Nothing is hidden.** Every card says why its button is dead. The power card shows the
+  number the prices come out of, not the level left at dawn. The build card counts against
+  the same limit the game uses.
+- **A guide, and a mission bar.** The bar says what you are playing; the guide says where
+  everything is. It opens by itself the first time you reach the outpost and comes back
+  from a `?` button whenever you need it.
 - **No punishing complexity.** A child can land, survive several sols and understand *why*
   they made the choices they did — without reading a manual.
 - **Losing is informative.** There's no game-over screen that just says "you failed." You get a
@@ -515,15 +562,20 @@ player decision, the sol loop, what is built and where a new event plugs in are 
 | Area | State |
 | --- | --- |
 | The nine-screen journey | **Built** and routed |
-| Resource simulation and sol loop | **Built** — 12 sols, four scheduled events |
-| A main activity every sol | **Built** — three offered, one chosen, each with a real cost |
-| Science score and rank | **Built** — points from activities, five ranks |
+| The desk loop | **Built** — three work orders a sol, two readings each, a tool, one approval (D-060) |
+| Resource simulation and sol loop | **Built** — 12 sols, hazards rolled from a seed |
+| The standing orders | **Built** — 24 rules, two arriving every sol |
+| Science score and rank | **Built** — points from the orders you approve, five ranks |
+| The five learning goals | **Built** — a record of what you kept running, never a score (D-061) |
 | Crisis decisions and debrief verdicts | **Built** — flare, storm and supply pod |
 | Live flare strength | **Built** — NASA DONKI → NOAA SWPC → baked fallback |
 | Live NASA daily pictures | **Built** — Astronomy Picture of the Day → the saved gallery |
-| The rover | **Built** — a button that finds real NASA places and rare rocks |
-| Tests | **621 tests in 28 files** (`npm test`, 2026-11-11) |
+| The rover | **Built** — part of the run: sent out by an order, comes back with a document (D-062) |
+| The how-to-play guide | **Built** — ten steps; it opens by itself at the build screen |
+| The balance | **Checked, not assumed** — `npm run balance` fails if a site cannot hold all five systems (D-064) |
+| Tests | **699 tests in 32 files** (`npm test`, 2026-11-11) |
 | Checks | **Clean** — import layers, banned APIs, markup, strict typecheck |
+| Browser checks | **Green** — build 25/25, rover 9/9, the whole journey with no console errors |
 | Save / resume | **Not built** — in-memory only (D-003) |
 | Login before `naming` | **Not built** — Supabase deferred (D-003, TASK-022) |
 | Plan phase | **Deliberately not built** — do not add unasked (D-029) |
@@ -541,7 +593,7 @@ player decision, the sol loop, what is built and where a new event plugs in are 
 ### The one invariant
 
 `sim/` and each feature's `model.ts` are pure: no `document`, no `window`, no network. That
-is what lets 621 tests run in a few seconds with no browser, no mocks, and no jsdom. It is enforced by
+is what lets 699 tests run in a few seconds with no browser, no mocks, and no jsdom. It is enforced by
 `npm run check` (`scripts/check-imports.mjs`), not left to good intentions.
 
 ---
@@ -553,7 +605,8 @@ is what lets 621 tests run in a few seconds with no browser, no mocks, and no js
 npm install       # dev dependencies only — the game ships no runtime dependencies
 npm run dev       # Vite dev server, http://localhost:5173
 npm run check     # import-layer + banned-API + markup checks, then tsc --noEmit
-npm test          # Vitest, 621 tests in 28 files
+npm test          # Vitest, 699 tests in 32 files
+npm run balance   # is the game still winnable? run this after touching sim/
 npm run build     # production bundle in dist/
 npm run preview   # serve the built bundle locally
 ```
@@ -565,6 +618,11 @@ page.
 
 There is nothing to configure and no API key to provide. Space weather uses the public
 `DEMO_KEY` path and falls through on its own (ISS-009).
+
+**`npm run balance` is not optional.** It plays every legal build at every landing site over
+several forecast seeds and **fails** when a site cannot hold all five systems. The game was
+unwinnable for a long time and no unit test said so, because the tests checked that the
+balance arithmetic was *correct* and not that it was *playable* (D-064).
 
 ---
 
@@ -588,6 +646,9 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
 ├── scripts/
 │   ├── check-imports.mjs        ← layering and banned-API checks
 │   └── check-markup.mjs         ← mount-point and hook-scoping checks
+├── tools/
+│   ├── balance-check.mts        ← is the game still winnable?
+│   └── browser-check-*.mjs      ← the real game in headless Chrome
 ├── docs/                        ← architecture, game flow, changelog, team records
 └── src/
     ├── main.ts                  ← boot, element lookup, screen mounting
@@ -596,12 +657,19 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   ├── resources.ts         ← drain and stores
     │   ├── sol.ts               ← advance one sol, win/lose
     │   ├── run.ts               ← RunState and progression
-    │   ├── activities.ts        ← the day's activity, its cost and its gain
+    │   ├── activities.ts        ← the day's work orders, their cost and their gain
+    │   ├── standingOrders.ts    ← the twenty-four rules the player works to
+    │   ├── minigames.ts         ← the six tools, and how each is graded
+    │   ├── guide.ts             ← the how-to-play guide
+    │   ├── patches.ts           ← the badges a run earns
+    │   ├── deskNotes.ts         ← the notes that land on the desk
     │   ├── science.ts           ← the science score and the rank ladder
+    │   ├── goals.ts             ← the five learning goals, as a record
     │   ├── topics.ts            ← what a lesson is about
     │   ├── modules.ts           ← catalogue, costs, upkeep, every tuning number
+    │   ├── rover.ts             ← the rover's rules and its catalogue of real finds
     │   ├── regions.ts           ← the five landing regions
-    │   ├── forecast.ts          ← the fixed event schedule
+    │   ├── forecast.ts          ← the seeded event schedule
     │   ├── crises.ts            ← crisis copy, options, defaults
     │   └── comms.ts             ← Earth–Mars delay
     ├── data/
@@ -617,6 +685,8 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   ├── routes.ts · router.ts ← hash routing and the journey order
     │   ├── registry.ts          ← route → screen; the only file importing a view
     │   ├── gameLoop.ts          ← shared outpost screen shell
+    │   ├── activityPlayer.ts    ← the work-order player
+    │   ├── guide.ts             ← the how-to-play panel and its button
     │   ├── nasaCard.ts · nasaFeedCard.ts ← the curated and the live NASA cards
     │   └── button-strip.ts · button-strip.css
     ├── features/                ← one folder per screen

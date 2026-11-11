@@ -201,12 +201,178 @@
   flex: 1 1 8rem;
 }
 
+/* ------------------------------------------------------------- mission bar -- */
+
+/*
+ * One line, always on screen, saying what the player is playing.
+ *
+ * The game is about keeping five systems running for twelve sols, and nothing
+ * else on the screen said so. A child could play the whole run without ever
+ * being told what the job was.
+ */
+.gl__mission {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: clamp(6px, 0.8vw, 16px);
+  margin: 0 clamp(12px, 1.25vw, 24px);
+  padding: clamp(5px, 0.55vw, 10px) clamp(9px, 1vw, 18px);
+  border-radius: clamp(7px, 0.65vw, 12px);
+  background: var(--gl-navy);
+  color: var(--gl-panel);
+}
+
+.gl__mission-job {
+  font-family: var(--gl-display);
+  font-weight: 800;
+  font-size: clamp(0.6rem, 0.8vw, 0.95rem);
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+}
+
+.gl__mission-progress {
+  flex: 0 0 auto;
+  color: var(--gl-orange);
+  font-weight: 800;
+  font-size: clamp(0.56rem, 0.72vw, 0.86rem);
+  white-space: nowrap;
+}
+
+.gl__mission-right {
+  display: flex;
+  align-items: center;
+  gap: clamp(5px, 0.6vw, 12px);
+}
+
+/* ------------------------------------------------------------- the guide -- */
+
+/*
+ * The how-to-play panel.
+ *
+ * A child who has lost the thread needs a way back in, and a child meeting
+ * the game for the first time needs the same thing before they start.
+ */
+.gl__guide {
+  position: absolute;
+  z-index: 40;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(46rem, 92vw);
+  max-height: 86vh;
+  overflow-y: auto;
+  padding: clamp(10px, 1.2vw, 22px);
+  border-radius: clamp(10px, 1vw, 18px);
+  background: var(--gl-panel);
+  border: 2px solid var(--gl-orange);
+  box-shadow: 0 18px 48px rgba(20, 30, 48, 0.35);
+}
+
+.gl__guide-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6em;
+  margin-bottom: 0.4em;
+}
+
+.gl__guide-title {
+  margin: 0;
+  color: var(--gl-ink);
+  font-family: var(--gl-display);
+  font-size: clamp(1rem, 1.5vw, 1.7rem);
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.gl__guide-close {
+  flex: 0 0 auto;
+  width: clamp(24px, 2.4vw, 40px);
+  height: clamp(24px, 2.4vw, 40px);
+  border: 0;
+  border-radius: 50%;
+  background: var(--gl-card-strong);
+  color: var(--gl-ink);
+  font: inherit;
+  font-weight: 900;
+  font-size: clamp(0.7rem, 0.9vw, 1rem);
+  cursor: pointer;
+}
+
+.gl__guide-close:hover {
+  background: var(--gl-peach);
+}
+
+.gl__guide-steps {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(6px, 0.8vw, 14px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: none;
+}
+
+.gl__guide-step {
+  padding: clamp(5px, 0.6vw, 11px) clamp(7px, 0.75vw, 14px);
+  border-left: clamp(3px, 0.4vw, 6px) solid var(--gl-orange);
+  border-radius: clamp(5px, 0.5vw, 9px);
+  background: var(--gl-card);
+}
+
+.gl__guide-where {
+  margin: 0;
+  color: var(--gl-orange-deep);
+  font-weight: 900;
+  font-size: clamp(0.48rem, 0.6vw, 0.74rem);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.gl__guide-title-line {
+  margin: 0.05em 0 0;
+  color: var(--gl-ink);
+  font-family: var(--gl-display);
+  font-size: clamp(0.76rem, 0.95vw, 1.14rem);
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.gl__guide-body {
+  margin: 0.1em 0 0;
+  color: var(--gl-muted);
+  font-size: clamp(0.62rem, 0.78vw, 0.94rem);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+/* The little button that opens the guide. */
+.gl__guide-button {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: clamp(20px, 2vw, 34px);
+  height: clamp(20px, 2vw, 34px);
+  border: 0;
+  border-radius: 50%;
+  background: var(--gl-orange);
+  color: var(--gl-navy);
+  font: inherit;
+  font-weight: 900;
+  font-size: clamp(0.7rem, 0.9vw, 1rem);
+  cursor: pointer;
+}
+
+.gl__guide-button:hover {
+  background: var(--gl-panel);
+}
+
 /* ------------------------------------------------------------------- HUD -- */
 
 .gl__hud {
   flex: 0 0 auto;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
   gap: clamp(6px, 1.25vw, 24px);
   padding: clamp(8px, 0.83vw, 16px) clamp(12px, 1.25vw, 24px) 0;
 }
@@ -728,6 +894,12 @@
   background: var(--gl-warn-bg);
 }
 
+/* The good result: everything held. */
+.gl__callout[data-tone='good'] {
+  background: var(--gl-green-soft);
+  box-shadow: inset 0 0 0 1px var(--gl-green);
+}
+
 .gl__callout-icon {
   font-size: clamp(0.95rem, 1.35vw, 1.6rem);
   line-height: 1;
@@ -874,11 +1046,35 @@
 }
 
 .gl__count {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.05em;
   min-width: 1.2em;
   text-align: center;
   font-weight: 900;
   font-size: clamp(0.65rem, 0.85vw, 1rem);
   font-variant-numeric: tabular-nums;
+}
+
+/* The limit beside the count: "2/3". Without it a player cannot tell
+   whether the "+" is broken or whether they are done. */
+.gl__count small {
+  color: var(--gl-muted);
+  font-size: 0.72em;
+  font-weight: 800;
+}
+
+/* A live region for the screen: read by a screen reader, seen by nobody. */
+.gl__live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* --------------------------------------------------------------- choices -- */

@@ -1,6 +1,6 @@
 /**
- * The base screen: spend a fixed number of build points on modules before the
- * landing, with a live preview of what the build will do.
+ * The base screen: spend the build points on modules before the landing, with
+ * a live preview of what the build will do for the five goals.
  *
  * Owns the DOM only. Placement rules and the preview come from ./model, and the
  * preview runs the real sol step, so it cannot promise what the sim will not
@@ -20,17 +20,19 @@ import { factFor } from '../../data/nasaGallery';
 import { createForecast, type ForecastEvent } from '../../sim/forecast';
 import { newRun, startOutpost, withState, type RunState } from '../../sim/run';
 import { regionById, siteScore } from '../../sim/regions';
-import { gamePanel, gameScreen, gameWorld, moduleArt, moduleFigures, type SignalCard } from '../../ui/gameLoop';
+import { gamePanel, gameScreen, gameSection, gameWorld, moduleArt, moduleFigures, type SignalCard } from '../../ui/gameLoop';
+import { readButton } from '../../ui/readButton';
+import { guideButton, guidePanel } from '../../ui/guide';
 import { nextStop } from '../../ui/registry';
 import { navigate } from '../../ui/router';
 
 import {
   BUDGET_NONE,
-  BUILDABLE,
   CORE_MODULES,
   addModule,
-  canPlace,
+  buildCards,
   extraSlots,
+  goalPreview,
   pointsLeft,
   previewFor,
   previewSummary,
@@ -54,6 +56,9 @@ const SHORT_NAME: Readonly<Record<ModuleKind, string>> = {
   'nuclear-unit': 'Nuclear',
 };
 
+/** How long the toast that says what you just built stays on screen. */
+const TOAST_MS = 4000;
+
 export function mountBase(
   mount: HTMLElement,
   run: RunState | null,
@@ -65,7 +70,16 @@ export function mountBase(
   let extras: readonly ModuleKind[] = start.modules.length > 0 ? start.modules.slice(CORE_MODULES.length) : [];
   let loaded: LoadedForecast | null = null;
   let disposed = false;
+  /** What the player just did, so the screen can say so. */
+  let toast = '';
+  /** The card that changed, so it can flash. */
+  let changed: ModuleKind | null = null;
+  let toastTimer: number | null = null;
   const controller = new AbortController();
+
+  /* One live region for the whole screen. It is re-parented on every render
+     rather than rebuilt, so a change of its text is actually announced. */
+  const live = h('div', { class: 'gl__live', 'aria-live': 'polite', 'aria-atomic': 'true' });
 
   /** The forecast the screen is working from: live data once it arrives. */
   function forecast(): readonly ForecastEvent[] {
@@ -88,6 +102,24 @@ export function mountBase(
     };
   }
 
+  /** Whether the how-to-play guide is open. */
+  let guideOpen = false;
+  /** The guide has been offered once, so it never ambushes the player twice. */
+  let guideShown = false;
+
+  /** Say what the player just did, and let it go after a few seconds. */
+  function announce(message: string): void {
+    toast = message;
+
+    if (toastTimer !== null) window.clearTimeout(toastTimer);
+
+    toastTimer = window.setTimeout(() => {
+      toastTimer = null;
+      toast = '';
+      render();
+    }, TOAST_MS);
+  }
+
   function render(focusKey?: string): void {
     const focusable = new Map<string, HTMLElement>();
     const summary = previewSummary(extras, regionId);
@@ -96,8 +128,11 @@ export function mountBase(
 
     const daysLabel = (days: number, steady: string): string => (Number.isFinite(days) ? `${days} sols` : steady);
 
+    /* Day power is on the screen because it is the number that moves when the
+       player adds a solar array. Nothing else on this screen did. */
     const hud = [
-      { icon: '⚡', label: 'Night power', value: `${summary.nightHours} / 12 h`, tone: summary.nightHours < 12 ? ('warn' as const) : ('ok' as const) },
+      { icon: '☀️', label: 'Day power', value: `${summary.dayKwh} kWh` },
+      { icon: '🌙', label: 'Night power', value: `${summary.nightHours} / 12 h`, tone: summary.nightHours < 12 ? ('warn' as const) : ('ok' as const) },
       { icon: '🫧', label: 'Air', value: 'Ready' },
       { icon: '💧', label: 'Water', value: daysLabel(summary.waterDays, 'Recycled'), tone: summary.waterDays < 12 ? ('warn' as const) : ('ok' as const) },
       { icon: '🍞', label: 'Food', value: daysLabel(summary.foodDays, 'Grown'), tone: summary.foodDays < 12 ? ('warn' as const) : ('ok' as const) },
@@ -134,39 +169,80 @@ export function mountBase(
 
     const cards = h('div', { class: 'gl__grid' });
 
-    for (const spec of BUILDABLE) {
-      const have = extras.filter((kind) => kind === spec.kind).length;
-      const placement = canPlace(spec.kind, extras, regionId);
-      const add = h('button', { class: 'gl__step gl__step--add', type: 'button', 'aria-label': `Add ${spec.name}`, disabled: !placement.ok }, '+');
-      const remove = h('button', { class: 'gl__step', type: 'button', 'aria-label': `Remove ${spec.name}`, disabled: have === 0 }, '−');
+    for (const card of buildCards(extras, regionId)) {
+      const add = h('button', { class: 'gl__step gl__step--add', type: 'button', 'aria-label': `Add ${card.name}`, disabled: card.blocked !== '' }, '+');
+      const remove = h('button', { class: 'gl__step', type: 'button', 'aria-label': `Remove ${card.name}`, disabled: card.have === 0 }, '−');
 
-      focusable.set(`add-${spec.kind}`, add);
-      focusable.set(`remove-${spec.kind}`, remove);
+      focusable.set(`add-${card.kind}`, add);
+      focusable.set(`remove-${card.kind}`, remove);
 
       add.addEventListener('click', () => {
-        extras = addModule(extras, spec.kind, regionId);
-        render(`add-${spec.kind}`);
+        const next = addModule(extras, card.kind, regionId);
+
+        if (next === extras) return;
+
+        extras = next;
+        changed = card.kind;
+        announce(`${card.name} added · ${card.cost} points spent`);
+        render(`add-${card.kind}`);
       });
+
       remove.addEventListener('click', () => {
-        extras = removeModule(extras, spec.kind);
-        render(`remove-${spec.kind}`);
+        const next = removeModule(extras, card.kind);
+
+        if (next === extras) return;
+
+        extras = next;
+        changed = card.kind;
+        announce(`${card.name} removed · ${card.cost} points back`);
+        render(`remove-${card.kind}`);
       });
 
       cards.append(
         h(
           'article',
-          { class: 'gl__card' },
+          { class: card.kind === changed ? 'gl__card gl__card--changed' : 'gl__card' },
           h(
             'div',
             { class: 'gl__card-head' },
-            h('img', { class: 'gl__card-img', src: moduleArt(spec.kind), alt: '' }),
-            h('p', { class: 'gl__card-name', text: spec.name }),
-            h('span', { class: 'gl__cost', text: `✦ ${spec.cost}` }),
+            h('img', { class: 'gl__card-img', src: moduleArt(card.kind), alt: '' }),
+            h('p', { class: 'gl__card-name', text: card.name }),
+            h('span', { class: 'gl__cost', text: `✦ ${card.cost}` }),
+            card.atLimit ? h('span', { class: 'gl__card-max', text: 'MAX' }) : null,
           ),
-          h('p', { class: 'gl__card-line', text: spec.gives }),
-          h('p', { class: 'gl__card-line', text: spec.needs }),
-          h('div', { class: 'gl__stepper' }, remove, h('span', { class: 'gl__count', text: String(have) }), add),
-          !placement.ok && have === 0 ? h('p', { class: 'gl__card-why', text: placement.reason }) : null,
+          h('p', { class: 'gl__card-line', text: card.gives }),
+          h('p', { class: 'gl__card-tag', text: card.needs }),
+          h(
+            'div',
+            { class: 'gl__stepper' },
+            remove,
+            h(
+              'span',
+              { class: 'gl__count' },
+              h('strong', { text: String(card.have) }),
+              h('small', { text: `/${card.limit}` }),
+            ),
+            add,
+          ),
+          /* The reason is shown whenever the "+" is dead, not only the first
+             time. The old code hid it the moment the player owned one, which
+             is exactly when the limit started to matter. */
+          card.blocked !== '' ? h('p', { class: 'gl__card-why', text: card.blocked }) : null,
+        ),
+      );
+    }
+
+    // ---- What this build can do for the five goals.
+    const goals = h('div', { class: 'gl__goals' });
+
+    for (const goal of goalPreview(extras, regionId)) {
+      goals.append(
+        h(
+          'div',
+          { class: 'gl__goal', 'data-ok': String(goal.ok) },
+          h('span', { class: 'gl__goal-mark', 'aria-hidden': 'true', text: goal.ok ? '✓' : '✗' }),
+          h('span', { class: 'gl__goal-title', text: goal.title }),
+          h('span', { class: 'gl__goal-why', text: goal.ok ? '' : goal.why }),
         ),
       );
     }
@@ -189,19 +265,68 @@ export function mountBase(
       navigate(nextStop('base') ?? 'act');
     });
 
+    /* The whole build, read out. The cards are the decision, and a player
+       who cannot read yet still gets to make it. */
+    const read = readButton(
+      () =>
+        [
+          `You have ${pointsLeft(extras)} build points left and ${extras.length} modules on the ground.`,
+          ...buildCards(extras, regionId).map(
+            (card) =>
+              `${card.name}. ${card.gives}. ${card.needs}. You have ${card.have} of ${card.limit}.${card.blocked === '' ? '' : ` ${card.blocked}`}`,
+          ),
+        ].join(' '),
+      { ariaLabel: 'Read the build screen aloud' },
+    );
+
     const panel = gamePanel({
       kicker: 'Build your outpost',
       title: 'What will you bring?',
       sub: 'Choose extras to keep your crew safe.',
       body: [
         budget,
+        toast === '' ? null : h('p', { class: 'gl__toast', text: toast }),
+        gameSection('Your goals with this build', goals),
         cards,
         h('p', { class: 'gl__note', text: `NASA fact · ${factFor(start.sol + regionId.length).text} (${factFor(start.sol + regionId.length).credit})` }),
       ],
-      footer: [launch, h('p', { class: 'gl__note', text: BUDGET_NONE })],
+      footer: [launch, h('p', { class: 'gl__note', text: BUDGET_NONE }), read ?? false],
     });
 
-    mount.replaceChildren(gameScreen({ hud, world, panel, variant: 'gl--base', headerSub: 'BUILD YOUR OUTPOST', rover: true, onLeave: () => navigate('naming') }));
+    const screen = gameScreen({
+      hud,
+      world,
+      panel,
+      variant: 'gl--base',
+      headerSub: 'BUILD YOUR OUTPOST',
+      onLeave: () => navigate('naming'),
+      mission: {
+        job: 'Your job: build an outpost that keeps the crew alive for 12 sols.',
+        progress: `${pointsLeft(extras)} points left · ${extras.length} modules on the ground`,
+        help: guideButton(() => {
+          guideOpen = true;
+          render();
+        }),
+      },
+    });
+
+    /* The guide opens by itself the first time the player reaches the build
+       screen, because that is the first screen with a mission bar and the
+       first one where they have to decide something. After that it is there
+       whenever they want it. */
+    if (!guideShown) {
+      guideShown = true;
+      guideOpen = true;
+    }
+
+    if (guideOpen) screen.append(guidePanel(() => {
+      guideOpen = false;
+      render();
+    }));
+
+    live.textContent = toast;
+    screen.append(live);
+    mount.replaceChildren(screen);
 
     if (focusKey !== undefined) focusable.get(focusKey)?.focus();
   }
@@ -219,6 +344,7 @@ export function mountBase(
   return () => {
     disposed = true;
     controller.abort();
+    if (toastTimer !== null) window.clearTimeout(toastTimer);
     mount.replaceChildren();
   };
 }

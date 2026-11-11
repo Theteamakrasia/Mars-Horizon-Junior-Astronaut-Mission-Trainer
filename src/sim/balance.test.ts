@@ -66,9 +66,10 @@ function play(
   extras: readonly ModuleKind[],
   picks: Record<string, string>,
   pick: 'first-available' | 'best' | 'none' = 'first-available',
+  flares: readonly { readonly classType: string; readonly approximate: boolean; readonly when: string }[] = [],
 ): RunState {
   let run = startOutpost(
-    withState(newRun(regionId, 'Tester'), { forecast: createForecast([]) }),
+    withState(newRun(regionId, 'Tester'), { forecast: createForecast(flares) }),
     [...CORE_MODULES, ...extras],
   );
 
@@ -115,9 +116,21 @@ describe('a whole run', () => {
   });
 
   it('is losable when the player takes no cover from a flare', () => {
-    const run = play('jezero', NO_SHIELD_BUILD, CARELESS);
+    /* A real X-class flare, the kind DONKI actually reports: the only flare
+       big enough to take the shielding from the lander's own 30 down to
+       nothing. A typical flare no longer does it, and pretending otherwise
+       would pin the balance back where it was. */
+    const run = play('jezero', NO_SHIELD_BUILD, CARELESS, 'first-available', [
+      { classType: 'X9.3', approximate: true, when: 'in 2017' },
+    ]);
 
     expect(run.status).toBe('lost');
+  });
+
+  it('leaves almost no shielding when the player takes no cover', () => {
+    const run = play('jezero', NO_SHIELD_BUILD, CARELESS);
+
+    expect(run.stores.shielding).toBeLessThan(20);
   });
 
   it('can be played on more than one region', () => {

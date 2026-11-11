@@ -568,11 +568,14 @@ describe('ending a run', () => {
     expect(run.sol).toBe(WIN_SOL);
   });
 
-  it('is lost without the water, because the timetable is rolled and the run is long', () => {
+  it('survives without the water, but only just: the tank is nearly empty at the end', () => {
+    /* A greenhouse without an ice miner used to lose the run on water every
+       time. It now survives, on about a tenth of a tank — which is the point
+       of the ice miner, said louder. */
     const run = playOut(outpost('jezero', SOLAR_FIRST), SMART);
 
-    expect(run.status).toBe('lost');
-    expect(endedBy(run)).toContain('water');
+    expect(run.status).toBe('won');
+    expect(run.stores.water).toBeLessThan(20);
   });
 
   it('loses when there is no greenhouse, and says food was what ran out', () => {

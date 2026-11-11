@@ -29,8 +29,16 @@ export const CORE_MODULES: readonly ModuleKind[] = [
   'batteries',
 ];
 
-/** Build points the lander can carry beyond the core modules. */
-export const BUILD_BUDGET = 14;
+/**
+ * Build points the lander can carry beyond the core modules.
+ *
+ * Eighteen, not fourteen. The lander brings one solar array and one battery
+ * bank, and a bare outpost needs 12 kW of life support plus heating: 144 kWh
+ * for one night, against 100 kWh of battery. At fourteen points no legal build
+ * at any landing site could keep the lights on, and the run was lost on
+ * water. `tools/balance-check.mjs` is what proved it, and what keeps it true.
+ */
+export const BUILD_BUDGET = 18;
 
 /** Crew who live at the outpost. */
 export const CREW_SIZE = 4;
@@ -53,7 +61,7 @@ export const LOAD_KW: Readonly<Record<ModuleKind, number>> = {
   'life-support': 8,
   'solar-array': 0,
   batteries: 0,
-  greenhouse: 8,
+  greenhouse: 6,
   'ice-miner': 6,
   'regolith-shield': 0,
   'nuclear-unit': 0,
@@ -63,15 +71,36 @@ export const OXYGEN_GENERATED = 14;
 export const WATER_RECYCLING = 0.9;
 export const ELECTROLYSIS_WATER = 3;
 export const GREENHOUSE_FOOD = 12;
-export const GREENHOUSE_WATER = 5;
+/**
+ * Water a greenhouse drinks, as a percent of a tank, every sol.
+ *
+ * Three, not five. At five, a greenhouse without an ice miner drank the crew
+ * dry before sol twelve and the run was lost on water at every site where the
+ * ice was too far away to mine.
+ */
+export const GREENHOUSE_WATER = 3;
 export const ICE_WATER_PER_WATER_POINT = 3;
-export const SHIELDING_BASE = 20;
+/**
+ * The shielding the outpost starts with, before any regolith is piled on.
+ *
+ * Thirty, not twenty. The radiation goal asks for forty, so a bare outpost is
+ * one shield short of safe and one regolith module is what closes the gap.
+ */
+export const SHIELDING_BASE = 30;
 export const SHIELDING_PER_REGOLITH = 30;
-export const SHIELDING_EROSION = 1;
+/**
+ * How much shielding wears away every sol.
+ *
+ * Half a point, not a whole one. At one point a sol the shielding was gone
+ * before the crew could stack any more soil on top of it.
+ */
+export const SHIELDING_EROSION = 0.5;
 
 export interface ModuleSpec {
   readonly kind: ModuleKind;
   readonly name: string;
+  /** How the crew says more than one of it: "solar arrays", not "solar arrayss". */
+  readonly plural: string;
   readonly emoji: string;
   /** Build points. Core modules cost nothing: they come with the lander. */
   readonly cost: number;
@@ -89,76 +118,84 @@ export const MODULE_CATALOGUE: readonly ModuleSpec[] = [
   {
     kind: 'habitat',
     name: 'Habitat',
+    plural: 'habitats',
     emoji: '🏠',
     cost: 0,
     maxCount: 1,
-    gives: 'Shelter for the crew',
-    needs: `Heating and lights: ${LOAD_KW.habitat} kW, all day and night`,
+    gives: 'A home for the crew',
+    needs: `${LOAD_KW.habitat} kW, day and night`,
   },
   {
     kind: 'life-support',
     name: 'Life Support',
+    plural: 'life support units',
     emoji: '🫁',
     cost: 0,
     maxCount: 1,
-    gives: 'Makes oxygen and recycles 90% of the water',
-    needs: `${LOAD_KW['life-support']} kW, and a little water to split into oxygen`,
+    gives: 'Makes air, recycles water',
+    needs: `${LOAD_KW['life-support']} kW`,
   },
   {
     kind: 'solar-array',
     name: 'Solar Array',
+    plural: 'solar arrays',
     emoji: '☀️',
     cost: 2,
     maxCount: 4,
-    gives: `${SOLAR_KW_PER_ARRAY} kW while the Sun is up. Nothing at night`,
-    needs: 'Dust storms bury it. Sunlight depends on the site',
+    gives: `+${SOLAR_KW_PER_ARRAY} kW in daylight`,
+    needs: 'Nothing at night',
   },
   {
     kind: 'batteries',
     name: 'Battery Bank',
+    plural: 'battery banks',
     emoji: '🔋',
     cost: 2,
     maxCount: 4,
-    gives: `Stores ${BATTERY_KWH_PER_BANK} kWh to get through the night`,
-    needs: 'Nothing to run, but it only helps if the panels fill it',
+    gives: `Stores ${BATTERY_KWH_PER_BANK} kWh`,
+    needs: 'The panels must fill it',
   },
   {
     kind: 'greenhouse',
     name: 'Greenhouse',
+    plural: 'greenhouses',
     emoji: '🌱',
     cost: 3,
     maxCount: 1,
-    gives: 'Grows food, so you launch less from Earth',
-    needs: `${LOAD_KW.greenhouse} kW and ${GREENHOUSE_WATER}% of your water every sol`,
+    gives: 'Grows food',
+    needs: `${LOAD_KW.greenhouse} kW · ${GREENHOUSE_WATER}% water`,
   },
   {
     kind: 'ice-miner',
     name: 'Ice Miner',
+    plural: 'ice miners',
     emoji: '⛏️',
     cost: 3,
     maxCount: 1,
-    gives: 'Digs up ice and melts it: new water from the ground',
-    needs: `${LOAD_KW['ice-miner']} kW. Only works where there is ice nearby`,
+    gives: 'Makes water from ice',
+    needs: `${LOAD_KW['ice-miner']} kW · needs ice`,
     requires: { axis: 'water', min: 3, why: 'There is not enough ice near this site to mine.' },
   },
   {
     kind: 'regolith-shield',
     name: 'Regolith Shield',
+    plural: 'regolith shields',
     emoji: '🛡️',
     cost: 2,
     maxCount: 2,
-    gives: `Piles Martian soil over the habitat: +${SHIELDING_PER_REGOLITH} shielding`,
-    needs: 'Needs ground firm enough to pile soil on',
+    gives: `+${SHIELDING_PER_REGOLITH} shielding`,
+    needs: 'Flat ground only',
     requires: { axis: 'terrain', min: 2, why: 'The ground here is too steep to pile soil on safely.' },
   },
   {
     kind: 'nuclear-unit',
     name: 'Nuclear Power Unit',
+    plural: 'nuclear units',
     emoji: '☢️',
     cost: 4,
     maxCount: 1,
-    gives: `${NUCLEAR_KW} kW day and night, whatever the weather`,
-    needs: 'Expensive to launch. Why real rovers use it',
+    gives: `${NUCLEAR_KW} kW, day or night`,
+    needs: 'Costs 4 points',
   },
 ];
 
@@ -256,12 +293,36 @@ export function pointsSpent(modules: readonly ModuleKind[]): number {
   return extrasOf(modules).reduce((sum, kind) => sum + specOf(kind).cost, 0);
 }
 
-/** How many extra modules a site's terrain lets the crew build: flat ground, more room. */
+/**
+ * How many extra modules a site's terrain lets the crew build: flat ground, more room.
+ *
+ * Four, not three. The outpost that reaches all five science goals needs
+ * seven extras — panels, batteries, a greenhouse, an ice miner, a shield and a
+ * nuclear unit — and at three extras per point of terrain three of the five
+ * landing sites had no room for it. The rule still holds: flat ground gives
+ * more room.
+ */
 export function extraSlots(regionId: string): number {
-  return siteScore(regionId).terrain + 3;
+  return siteScore(regionId).terrain + 4;
 }
 
 /** Modules beyond the four core ones. */
 export function extraModuleCount(modules: readonly ModuleKind[]): number {
   return extrasOf(modules).length;
+}
+
+/**
+ * How many of a module the player can add beyond the lander's copy.
+ *
+ * The lander brings one solar array and one battery bank, and the limit on
+ * those is four, so the player can add three of each. The build screen used
+ * to count the extras while the limit counted everything, so a player at
+ * "3" could not add another and was never told why. Both numbers now come
+ * from here.
+ */
+export function extraLimitOf(kind: ModuleKind): number {
+  const spec = specOf(kind);
+  const fromLander = CORE_MODULES.includes(kind) ? 1 : 0;
+
+  return Math.max(0, spec.maxCount - fromLander);
 }

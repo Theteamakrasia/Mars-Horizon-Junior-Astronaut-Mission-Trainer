@@ -28,7 +28,8 @@ import {
   type ResourceName,
   type ResourceStores,
 } from './resources';
-import type { DecisionRecord, RunState, SolActivity, SolEvent, SolRecord } from './run';
+import { inspectionStars, type DecisionRecord, type RunState, type SolActivity, type SolEvent, type SolRecord } from './run';
+import { deployRover, discover, pickForSol, remainingFinds, ROVER_FINDS } from './rover';
 import { siteScore } from './regions';
 import { crisisForEvent, optionOf } from './crises';
 import { SOL_LOG_POINTS } from './science';
@@ -196,7 +197,7 @@ export function advanceSol(run: RunState): RunState {
 
     if (event.kind === 'storm' && choice === 'expose') {
       panelHealth = Math.max(MIN_PANEL_HEALTH, panelHealth - EXPOSED_PANEL_DAMAGE);
-      notes.push('Dust settled on the panels and they will never be as clean again.');
+      notes.push('Dust settled on the panels. It never washes off.');
     }
   }
 
@@ -235,7 +236,10 @@ export function advanceSol(run: RunState): RunState {
       panelHealth = Math.min(1, panelHealth + activity.panelRepair);
     }
 
-    scienceEarned += activity.science;
+    /* The stars an inspection won multiply the science the order is worth.
+       That is the whole effect: an inspection never touches a store, so the
+       balance of a run does not depend on how well the player did it. */
+    scienceEarned += activity.science * inspectionStars(run, sol, activity.id);
     notes.push(`Today's activity: ${activity.title}.`);
   }
 
@@ -278,11 +282,11 @@ export function advanceSol(run: RunState): RunState {
 
   if (blackout > 0) {
     notes.push(
-      `The batteries ran flat for part of the sol (${Math.round(blackout * 100)}% of the power needed was missing), so life support and the greenhouse slowed down.`,
+      `Batteries ran flat for ${Math.round(blackout * 100)}% of the sol, so life support slowed down.`,
     );
   }
   if (wasted > 0) {
-    notes.push(`${Math.round(wasted)} kWh of sunshine was wasted because the batteries were already full.`);
+    notes.push(`${Math.round(wasted)} kWh of sunlight wasted: the batteries were already full.`);
   }
 
   // ---- The crew and the plants.
@@ -318,6 +322,7 @@ export function advanceSol(run: RunState): RunState {
     powerUsed: demand,
     powerWasted: wasted,
     blackout,
+    panelHealth,
     greenhousePaused,
     used: { oxygen: crewOxygen, water: crewWater, food: crewFood },
     activity: done,
@@ -328,6 +333,16 @@ export function advanceSol(run: RunState): RunState {
   const depleted = isRunOver(after);
   const status = depleted ? 'lost' : sol >= WIN_SOL ? 'won' : 'active';
 
+  /* The rover. It goes out on a work order like any other, and it comes back
+     with a document on the desk the next sol — so the find is found at the
+     end of the sol that sent it, and the desk shows it from the next one. */
+  let rover = run.rover;
+
+  if (activity !== null && activity.sendsRover === true) {
+    rover = deployRover(rover, sol);
+    rover = discover(rover, ROVER_FINDS, pickForSol(sol, remainingFinds(rover, ROVER_FINDS).length));
+  }
+
   return {
     ...run,
     sol,
@@ -336,6 +351,7 @@ export function advanceSol(run: RunState): RunState {
     panelHealth,
     science: run.science + scienceEarned,
     chosenActivity: null,
+    rover,
     log: [...run.log, record],
   };
 }

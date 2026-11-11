@@ -11,13 +11,22 @@
  * its own.
  */
 
-import { NEXT_HORIZON_CARD, factFor } from '../../data/nasaGallery';
+import { NEXT_HORIZON_CARD, factFor, factForTopic } from '../../data/nasaGallery';
 import { lastDetail, lastSource } from '../../data/spaceweather';
 import { h } from '../../dom/h';
 import { newRun, type RunState } from '../../sim/run';
 import { gamePanel, gameScreen, gameSection, gameWorld, moduleArt, moduleFigures, type HudStat, type SignalCard } from '../../ui/gameLoop';
 import { nasaCard } from '../../ui/nasaCard';
 import { stopReading } from '../../ui/readAloud';
+import { goalById, type ScienceGoal } from '../../sim/goals';
+import { SCIENCE_TOPICS, type ScienceTopic } from '../../sim/topics';
+
+/** The topic the NASA facts for a goal are filed under. */
+function topicOf(goal: ScienceGoal): ScienceTopic {
+  const found = goalById(goal);
+
+  return found?.topic ?? SCIENCE_TOPICS[0];
+}
 import { navigate } from '../../ui/router';
 
 import '../../styles/game-loop.css';
@@ -29,7 +38,7 @@ import iceMinerUrl from '../../../Assets/images/game-loop/ice-miner.png';
 import lifeSupportUrl from '../../../Assets/images/game-loop/life-support.png';
 import solarUrl from '../../../Assets/images/game-loop/solar.png';
 
-import { consumptionSummary, explainOutcome, goalOutcomes, lowestPoints, nextSteps, reviewDecisions, scienceDetail, scienceHeadline, scienceReport, timeline, usedApproximateData, wentEmpty, type NextStep } from './model';
+import { consumptionSummary, explainOutcome, goalOutcomes, lowestPoints, manualFor, patchReport, roverReport, nextSteps, reviewDecisions, scienceDetail, scienceHeadline, scienceReport, timeline, usedApproximateData, wentEmpty, type NextStep } from './model';
 
 const VERDICT_TEXT = { solved: 'Solved early', caught: 'Caught you out', mixed: 'A trade-off' } as const;
 const VERDICT_ICON = { solved: '✅', caught: '⚠️', mixed: '🤔' } as const;
@@ -276,17 +285,92 @@ export function mountDebrief(
           h(
             'div',
             null,
-            h('span', { class: 'debrief__goal-title', text: `${outcome.title} — ${verdict.label}` }),
+            h(
+              'span',
+              { class: 'debrief__goal-title' },
+              `${outcome.title} — ${verdict.label}`,
+              h('small', { class: 'debrief__goal-count', text: ` ${outcome.held} of ${state.log.length} sols` }),
+            ),
             h('p', { class: 'debrief__goal-detail', text: outcome.detail }),
           ),
         ),
       );
     }
 
+    const rover = roverReport(state);
+
+    const roverSection =
+      rover.found === 0
+        ? false
+        : gameSection(
+            'What the rover found',
+            h('p', {
+              class: 'gl__body',
+              text: `The rover turned up ${rover.found} ${rover.found === 1 ? 'thing' : 'things'}: ${rover.visited.length} sites logged, ${rover.collected.length} rocks brought home and ${rover.left.length} left where they lie.`,
+            }),
+          );
+
+    /* The certificate: the astronaut's name, their rank, and what they earned.
+       It is the thing a child wants to keep. */
+    const patches = patchReport(state);
+    const certificate = h(
+      'div',
+      { class: 'debrief__certificate' },
+      h('p', { class: 'debrief__certificate-kicker', text: 'Mars Horizon · Junior Astronaut Mission Trainer' }),
+      h('p', { class: 'debrief__certificate-name', text: state.astronautName.trim() === '' ? 'Junior Astronaut' : state.astronautName }),
+      h('p', { class: 'debrief__certificate-rank', text: `${science.rank.icon} ${science.rank.title} · ${science.points} science points` }),
+      h(
+        'div',
+        { class: 'debrief__patches' },
+        ...patches.earned.map((patch) =>
+          h(
+            'div',
+            { class: 'debrief__patch' },
+            h('span', { class: 'debrief__patch-icon', 'aria-hidden': 'true', text: patch.icon }),
+            h('span', { class: 'debrief__patch-title', text: patch.title }),
+            h('span', { class: 'debrief__patch-detail', text: patch.detail }),
+          ),
+        ),
+        patches.earned.length === 0
+          ? h('p', { class: 'gl__note', text: 'No patches this time. There are ten to find.' })
+          : h('p', { class: 'gl__note', text: `${patches.earned.length} of ${patches.total} patches. There are ten to find.` }),
+      ),
+    );
+
+    /* The manual: the standing orders the run was played against, with the
+       NASA fact behind each one. This is what the player learned, printed. */
+    const manual = h('div', { class: 'debrief__manual' });
+
+    for (const group of manualFor(state)) {
+      if (group.length === 0) continue;
+
+      const title = group[0]?.goal ?? 'power';
+
+      manual.append(
+        h(
+          'div',
+          { class: 'debrief__manual-group' },
+          h('p', { class: 'debrief__manual-title', text: goalById(title)?.title ?? title }),
+          h(
+            'ul',
+            { class: 'debrief__manual-list' },
+            ...group.map((entry) =>
+              h(
+                'li',
+                { class: 'debrief__manual-row' },
+                h('span', { class: 'debrief__manual-text', text: entry.text }),
+                h('span', { class: 'debrief__manual-fact', text: `NASA fact · ${factForTopic(topicOf(entry.goal), entry.sol).text}` }),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     const goalSection = gameSection(
-      'The five science goals',
+      'The five systems you kept running',
       goals,
-      h('p', { class: 'gl__note', text: 'Dust storms, life support, radiation, power and food — the whole mission is these five things.' }),
+      h('p', { class: 'gl__note', text: 'Dust, life support, radiation, power and food — the whole mission is these five things.' }),
     );
 
     const replay = h(
@@ -307,8 +391,11 @@ export function mountDebrief(
       title: `${consumptionSummary(state).sols} sols. So much learned!`,
       body: [
         outcome,
+        certificate,
         whatHappened,
+        roverSection,
         goalSection,
+        gameSection('The standing orders you worked under', manual),
         gameSection('Mars Science Score', scienceCard, scienceList),
         gameSection('Next time, try…', tips(steps)),
         gameSection('NASA fact', h('p', { class: 'gl__note', text: `${factFor(consumptionSummary(state).sols).text} (${factFor(consumptionSummary(state).sols).credit})` })),

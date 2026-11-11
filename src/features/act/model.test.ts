@@ -6,11 +6,14 @@ import { WIN_SOL } from '../../sim/sol';
 import {
   activityCosts,
   activityRows,
+  boardRows,
   changeRows,
-  goalRows,
+  deskNote,
   meterRows,
   missionHeadline,
+  orderChecks,
   powerSentence,
+  powerToday,
   progressPercent,
   scienceSentence,
   scienceSummary,
@@ -60,7 +63,7 @@ describe('act model', () => {
   });
 
   it('writes the power picture as a sentence for screen readers', () => {
-    expect(powerSentence(45, 12, 30)).toBe('The arrays make 45 kW while the Sun is up. 12 kWh is stored. Night costs 30 kW for 12 hours.');
+    expect(powerSentence(45, 12, 30)).toBe('45 kW in the Sun · 12 kWh stored · 30 kW at night');
   });
 });
 
@@ -134,37 +137,112 @@ describe('the daily activity', () => {
     expect(costs.costs).toEqual(['−8 kWh', '−5 Water']);
     expect(costs.gains).toEqual(['+6 Food', '+2 science']);
   });
-});
 
-describe('the five science goals', () => {
-  it('shows all five, in order, every sol', () => {
-    const rows = goalRows(run);
-
-    expect(rows).toHaveLength(5);
-    expect(rows.map((row) => row.title)).toEqual([
-      'Martian Dust Storm',
-      'Life Support',
-      'Radiation Exposure',
-      'Power Shortage',
-      'Food Production',
-    ]);
-  });
-
-  it('gives every goal a status and a line about it', () => {
-    for (const row of goalRows(run)) {
-      expect(['ok', 'watch', 'critical']).toContain(row.status);
-      expect(row.detail.length).toBeGreaterThan(10);
+  it('gives every order two things to check', () => {
+    for (const row of activityRows(run, 1)) {
+      expect(orderChecks(run, row)).toHaveLength(2);
     }
   });
 
-  it('files each goal under a topic of its own, so two never share a fact', () => {
-    const topics = goalRows(run).map((row) => row.topic);
+  it('checks the power against what the outpost has for today', () => {
+    const survey = activityRows(run, 2).find((row) => row.id === 'survey');
+    const checks = survey === undefined ? [] : orderChecks(run, survey);
+    const power = checks[0];
 
-    expect(new Set(topics).size).toBe(topics.length);
+    expect(power?.label).toBe('Power');
+    expect(power?.value).toContain('kWh');
+  });
+
+  it('says when an order is more than the outpost can pay for', () => {
+    /* No stored power and no sunlight: there is nothing left to spend. */
+    const flat = withState(run, { stores: { ...run.stores, power: 0 }, panelHealth: 0 });
+    const survey = activityRows(flat, 2).find((row) => row.id === 'survey');
+    const power = survey === undefined ? undefined : orderChecks(flat, survey)[0];
+
+    expect(power?.ok).toBe(false);
+    expect(power?.why).toContain('power');
+  });
+
+  it('checks the system an order looks after', () => {
+    const sweep = activityRows(run, 1).find((row) => row.id === 'sweep-panels');
+    const checks = sweep === undefined ? [] : orderChecks(run, sweep);
+
+    expect(checks[1]?.label).toBe('Panels');
+    expect(checks[1]?.value).toBe('100%');
+  });
+
+  it('says when an order is only for the science points', () => {
+    const rest = activityRows(run, 1).find((row) => row.id === 'rest');
+    const checks = rest === undefined ? [] : orderChecks(run, rest);
+
+    expect(checks[1]?.value).toContain('science points');
+  });
+
+  it('puts a note on some sols and not on others', () => {
+    expect(deskNote(2)).not.toBeNull();
+    expect(deskNote(2)?.minutes).toBeGreaterThan(0);
+    expect(deskNote(1)).toBeNull();
+  });
+
+  it('puts the standing orders on the board and marks the new ones', () => {
+    /* Sol 1 done means sol 2 is the day being played: four orders on the
+       board, the two that arrived on sol 2 marked new. */
+    const rows = boardRows(withState(run, { sol: 1 }));
+
+    expect(rows.length).toBe(4);
+    expect(rows.filter((row) => row.isNew)).toHaveLength(2);
+    expect(rows[0]?.isNew).toBe(false);
   });
 });
 
-describe('the science score', () => {  it('starts at zero and the bottom rank', () => {
+describe('the power the crew can spend', () => {
+  it('shows what is left after the panels fill the batteries, not the level at dawn', () => {
+    /* The batteries are drained through the night, so the level left at dawn
+       is near zero even for a healthy outpost. Showing that as "Power 0%"
+       while the player picks a 25 kWh activity reads as a broken game. */
+    const picture = powerToday(run);
+
+    expect(picture.available).toBeGreaterThan(0);
+    expect(picture.capacity).toBeGreaterThan(0);
+    expect(picture.nightNeed).toBeGreaterThan(0);
+  });
+
+  it('says the night is not covered when the batteries cannot hold it', () => {
+    const bare = powerToday(run);
+
+    expect(bare.nightCovered).toBe(false);
+  });
+
+  it('says the night is covered when there are enough batteries and panels', () => {
+    const built = powerToday(
+      startOutpost(newRun('jezero', 'Test'), [...CORE_MODULES, 'solar-array', 'solar-array', 'batteries', 'batteries', 'batteries']),
+    );
+
+    expect(built.nightCovered).toBe(true);
+  });
+
+  it('drops to nothing while the panels are folded against a storm', () => {
+    const storming = withState(run, {
+      sol: 1,
+      forecast: [
+        {
+          id: 'storm-2',
+          sol: 2,
+          kind: 'storm',
+          durationSols: 2,
+          intensity: 0,
+          summary: 'A storm.',
+          approximate: false,
+        },
+      ],
+    });
+
+    expect(powerToday(storming).available).toBe(0);
+  });
+});
+
+describe('the science score', () => {
+  it('starts at zero and the bottom rank', () => {
     const summary = scienceSummary(run);
 
     expect(summary.points).toBe(0);

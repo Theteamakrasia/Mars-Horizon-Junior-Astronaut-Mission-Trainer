@@ -1,6 +1,6 @@
 # Architecture
 
-The annotated truth about this repository as of 2026-11-08. Everything here was read
+The annotated truth about this repository as of 2026-11-11. Everything here was read
 from the files, not inferred from intent. Where a file is empty or does not exist, it
 says so — **an empty file is a promise, not an implementation.**
 
@@ -10,8 +10,13 @@ Read [`../AGENTS.md`](../AGENTS.md) first. This document is the detail behind it
 
 A Mars outpost survival-strategy game for ages 8-16, in which a child balances five
 draining resources — power, oxygen, water, food, radiation shielding — over a
-sol-based loop. Students are NASA Space Apps Challenge entrants; Nov 8 2026 is the
-feature freeze and Nov 14-15 is the demo.
+sol-based loop. It is a **Papers Please game about Mars** (D-060): each sol the player
+is the duty officer at the outpost, three work orders land on the desk, each carries
+two readings to check and a tool to work it with, and the player approves one. The
+**standing orders** are the rule book that grows two rules a sol, and they are the
+five learning goals in the order the player meets them (D-061). Students are NASA
+Space Apps Challenge entrants; Nov 8 2026 is the feature freeze and Nov 14-15 is
+the demo.
 
 **The single most important invariant:** `sim/` and each feature's `model.ts` are pure —
 no `document`, no `window`, no network. That is what makes the game assertable rather
@@ -19,7 +24,7 @@ than eyeballed, and it is what `npm run check` protects.
 
 ## The invariant, and why it is enforced
 
-621 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
+699 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
 reference it would still work, and the cost would surface later as an untestable bug.
 Enforced as `no-dom-in-pure-zone`.
 
@@ -130,7 +135,22 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
 │   │                                             the script checks that it still has its frames,
 │   │                                             because a still frame there is a bug that looks
 │   │                                             like a design choice.
-│   └── browser-check-rover.mjs         complete   ~230 lines. Node only. Drives the real game in
+│   ├── balance-check.mts              complete   ~180 lines. TypeScript, run by tsx. Plays every
+    │   │                                             legal build at every landing site over several
+    │   │                                             forecast seeds and fails when a site cannot hold
+    │   │                                             all five systems, or when too few builds can win.
+    │   │                                             The game was unwinnable for a long time and no
+    │   │                                             test said so; this is the check that says so
+    │   │                                             (D-064). npm run balance.
+    │   ├── browser-check-build.mjs        complete   Node only. Drives the real game in headless
+    │   │                                             Chrome: the build screen's limits and reasons,
+    │   │                                             the desk's three orders and six checks, the
+    │   │                                             standing orders on the board, the guide, a tool
+    │   │                                             worked for stars, and no console errors. 25 checks.
+    │   ├── browser-check-journey.mjs      complete   Node only. Drives the whole journey from the
+    │   │                                             naming screen to the outpost and asserts that no
+    │   │                                             console error appears on the way.
+    │   └── browser-check-rover.mjs         complete   ~230 lines. Node only. Drives the real game in
 │                                                 headless Chrome over the DevTools Protocol: names the
 │                                                 astronaut, walks to the outpost, deploys the rover
 │                                                 and checks that the NASA picture really loads and
@@ -138,7 +158,7 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
 │                                                 not a test - `npm test` stays free of a browser.
 │                                                 Needs `npm run build && npm run preview`.
 │
-│   All five are dev tools: not scanned by `npm run check`, and they add no runtime dependency.
+│   All eight are dev tools: not scanned by `npm run check`, and they add no runtime dependency.
 │
 ├── scripts/
 │   └── check-imports.mjs               complete   Zone + banned-API checker, 9 rule ids.
@@ -160,7 +180,7 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
 │   │   ├── CONVENTIONS.md, INTEGRATIONS.md, TESTING.md, CONCERNS.md
 │   └── team/
 │       ├── decisions.md                complete   numbered, newest first
-│       ├── issues.md                   complete   every logged issue, ISS-001..ISS-040
+│       ├── issues.md                   complete   every logged issue, ISS-001..ISS-063
 │       ├── goals.md  tasks.md  progress-log.md
 ├── .github/workflows/
 │   ├── ci.yml                          PR/main checks: typecheck, tests, HTML, build
@@ -214,47 +234,90 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         endedBy, WIN_SOL. Solar generation, module draw +
     │   │                                         night drain, crew use offset by modules, forecast
     │   │                                         events, the chosen activity, science points,
-    │   │                                         clamp/cap, status. Turn-based (D-030). 40 tests.
+    │   │                                         clamp/cap, status. Turn-based (D-030). 53 tests.
     │   ├── run.ts                      complete   RunStatus, RunState, SolEvent, DecisionRecord,
     │   │                                         SolRecord, SolActivity, newRun, landAt, withState,
-    │   │                                         startOutpost. RunState is the only thing shared
-    │   │                                         between screens; it carries `modules`, `science`
-    │   │                                         and `chosenActivity`.
+    │   │                                         startOutpost, answerRoverFind, recordInspection,
+    │   │                                         inspectionStars, Inspection. RunState is the only
+    │   │                                         thing shared between screens; it carries
+    │   │                                         `modules`, `science`, `chosenActivity`, `rover`
+    │   │                                         and `inspections`. The last two are what put the
+    │   │                                         rover and the tools inside the run (D-062).
     │   ├── activities.ts               complete   ActivitySpec, ActivityOffer, ActivityStores,
     │   │                                         ActivityRequirement, SolPlan, ACTIVITY_CATALOGUE,
     │   │                                         SOL_PLANS, activityById, planForSol, lockedReason,
     │   │                                         offerFor, offerForSpec. The twelve activities and
-    │   │                                         the twelve sol plans (D-051, D-054). 17 tests.
+    │   │                                         the twelve sol plans (D-051, D-054) — a curriculum,
+    │   │                                         not a random draw, which is why the orders are not
+    │   │                                         procedural (D-060). 18 tests.
+    │   ├── standingOrders.ts           complete   StandingOrder, STANDING_ORDERS, ordersThrough,
+    │   │                                         ordersForSol, orderById. The twenty-four rules the
+    │   │                                         player works to, two arriving every sol (D-060).
+    │   │                                         They are the five learning goals in the order the
+    │   │                                         player meets them (D-061). 7 tests.
+    │   ├── minigames.ts                complete   EngineKind, Grade, EngineOrder, EngineUnlockSol,
+    │   │                                         EngineName, engineUnlocked, gradeSequence,
+    │   │                                         gradeRadar, gradeTiming, gradeSort, PackItem,
+    │   │                                         gradePack, gradeMatch. The six tools and how each
+    │   │                                         is graded. Stars multiply science and never a
+    │   │                                         store (D-063). 23 tests.
+    │   ├── guide.ts                    complete   GuideWhere, GuideStep, GUIDE_STEPS, guideStep.
+    │   │                                         The how-to-play guide: ten steps, each saying
+    │   │                                         where it happens. The words live here so they can
+    │   │                                         be read and tested without a browser (D-060). 6 tests.
+    │   ├── patches.ts                  complete   Patch, patchesFor, PATCH_COUNT. The ten badges a
+    │   │                                         run earns, worked out from the run itself. 7 tests.
+    │   ├── deskNotes.ts                complete   NoteFrom, DeskNote, DESK_NOTES, noteForSol. The
+    │   │                                         notes from home and the crew that land on the desk.
+    │   │                                         8 tests.
     │   ├── science.ts                  complete   ScienceRank, SCIENCE_RANKS, SOL_LOG_POINTS,
     │   │                                         rankFor, rankProgress. The score and the rank
-    │   │                                         ladder (D-052). 9 tests.
-    │   ├── goals.ts                    complete   ScienceGoal, GoalSpec, GoalReading,
-    │   │                                         GoalStatus, SCIENCE_GOALS, goalById,
-    │   │                                         goalReadings. The five science goals the
-    │   │                                         mission is about, and how each is doing
-    │   │                                         right now (D-058). 17 tests.
+    │   │                                         ladder (D-052). 11 tests.
+    │   ├── goals.ts                    complete   ScienceGoal, GoalSpec, GoalStatus, GoalReading,
+    │   │                                         GoalObjective, SCIENCE_GOALS, goalById, goalProgress,
+    │   │                                         goalReadings, GOAL_AIMS, and the floor constants.
+    │   │                                         The five science goals the mission is about, and
+    │   │                                         what the player kept running (D-058, D-061).
+    │   │                                         There is deliberately no target and no score: the
+    │   │                                         goals are the learning outcomes, not a second
+    │   │                                         win condition. 23 tests.
     │   ├── topics.ts                   complete   ScienceTopic, SCIENCE_TOPICS, TOPIC_LABEL,
     │   │                                         isScienceTopic. The vocabulary the activities and
     │   │                                         the NASA facts share.
     │   ├── run.test.ts                  complete   11 tests
-    │   ├── balance.test.ts              complete   7 acceptance tests: a good build wins, a
+    │   ├── balance.test.ts              complete   8 acceptance tests: a good build wins, a
     │   │                                         careless one does not, the activity loop does
     │   │                                         not make the game unwinnable, and more than one
     │   │                                         region can be played.
-    │   ├── activities.test.ts          complete   17 tests
-    │   ├── science.test.ts             complete   9 tests
-    │   ├── goals.test.ts               complete   17 tests
+    │   ├── activities.test.ts          complete   18 tests
+    │   ├── science.test.ts             complete   11 tests
+    │   ├── goals.test.ts               complete   23 tests
+    │   ├── standingOrders.test.ts      complete   7 tests
+    │   ├── minigames.test.ts           complete   23 tests
+    │   ├── guide.test.ts               complete   6 tests
+    │   ├── patches.test.ts             complete   7 tests
+    │   ├── deskNotes.test.ts           complete   8 tests
     │   ├── modules.ts                  complete   ModuleKind, ModuleSpec, MODULE_CATALOGUE,
     │   │                                         CORE_MODULES, specOf, countOf, systemsFor, extrasOf,
-    │   │                                         pointsSpent, extraSlots, extraModuleCount. Catalogue
-    │   │                                         in `sim/` because `act` needs it and cannot import
-    │   │                                         `base` (D-032). 14 tests.
-    │   ├── rover.ts                    complete   RoverFind, RoverState, newRover, deployRover,
-    │   │                                         recallRover, discover, logSite, collectMaterial,
-    │   │                                         leaveMaterial, nextFindDelayMs. Pure rover rules;
-    │   │                                         the pick is passed in, never Math.random (D-059).
-    │   │                                         A rover with a find waiting cannot be recalled.
-    │   │                                         `rover.test.ts`: 19 tests.
+    │   │                                         pointsSpent, extraSlots, extraModuleCount,
+    │   │                                         extraLimitOf, plus every tuning number:
+    │   │                                         BUILD_BUDGET 18, LOAD_KW, GREENHOUSE_WATER 3,
+    │   │                                         SHIELDING_BASE 30, SHIELDING_EROSION 0.5.
+    │   │                                         Catalogue in `sim/` because `act` needs it and
+    │   │                                         cannot import `base` (D-032); `extraLimitOf` is
+    │   │                                         the limit minus the lander's copy, so the build
+    │   │                                         card and the limit count the same thing
+    │   │                                         (ISS-054). 14 tests.
+    │   ├── rover.ts                    complete   RoverFind, RoverPhase, RoverState, newRover,
+    │   │                                         deployRover, recallRover, remainingFinds,
+    │   │                                         canDiscover, discover, logSite, collectMaterial,
+    │   │                                         leaveMaterial, pickForSol, FIND_SCIENCE,
+    │   │                                         FindAnswer, ROVER_FINDS. The rover's rules
+    │   │                                         AND its catalogue of real NASA finds: the
+    │   │                                         simulation owns the whole lifecycle, so the
+    │   │                                         catalogue lives here and not in `data/` (D-062).
+    │   │                                         It drives on sol time and touches no resource.
+    │   │                                         `rover.test.ts`: 31 tests.
     │   ├── forecast.ts                 complete   ForecastEvent, FlareInput, ForecastKind,
     │   │                                         flareIntensity, createForecast(flares, seed?,
     │   │                                         dustScore?), createSeededRandom, planEvents,
@@ -322,11 +385,13 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         same card as the curated one. The picture is
     │   │                                         optional: a video day keeps its words.
     │   ├── nasa-card.css              complete   card frame, caption type scale, action row.
-    │   ├── roverWidget.ts             complete   roverWidget() -> the rover button and its windows;
-    │   │                                         resetRover(). Holds the rover, its find timer and
-    │   │                                         the open window outside the DOM so it survives
-    │   │                                         screen redraws (D-059). Imports `data/roverFinds`.
-    │   ├── rover.css                  complete   the left-edge button, red dot, small and large windows.
+    │   ├── activityPlayer.ts         complete   Inspection, InspectionResult, makeInspection.
+    │   │                                         Builds the work-order player for one order: which
+    │   │                                         tool it uses and the two readings it asks for.
+    │   │                                         The grading is in sim/minigames.ts (D-060).
+    │   ├── guide.ts                  complete   guidePanel(onClose), guideButton(onOpen). The
+    │   │                                         how-to-play panel and the ? button in the mission
+    │   │                                         bar. The words come from sim/guide.ts.
     │   ├── registry.ts                 complete   the one composition seam. Exports ScreenFactory,
     │   │                                         screenMount, resolveScreen, nextStop,
     │   │                                         allScreenMounts. Maps all nine built routes onto
@@ -368,7 +433,11 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │                                             Suspect: layers animate with no looping copy —
     │                                             ISS-002, unverified in a browser.
     │
-    ├── data/                           COMPLETE. The only zone allowed to fetch.
+    ├── data/                           COMPLETE. The only zone allowed to fetch. The rover's
+    │   │                               catalogue is NOT here: it moved into sim/rover.ts,
+    │   │                               because the simulation now owns the rover's whole
+    │   │                               lifecycle and data/ is for things fetched from a
+    │   │                               network (D-062).
     │   ├── README.md                   the quarantine rules and the live-source chain
     │   ├── spaceweather.ts             complete   SpaceWeatherEvent, SpaceWeatherSource
     │   │                                         ('donki' | 'noaa' | 'fallback'),
@@ -384,14 +453,6 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         runtime image API, and the words are
     │   │                                         unit tested here. `factForTopic`
     │   │                                         picks the fact about one system.
-    │   ├── roverFinds.ts              complete   ROVER_FINDS: three historic sites and three
-    │   │                                         rare rocks, each with a NASA picture, credit
-    │   │                                         and source link. Static (D-059). Pictures
-    │   │                                         come from NASA's picture CDN at a size that
-    │   │                                         fits the screen; Photojournal's old /jpeg/
-    │   │                                         address now serves a web page, not a picture.
-    │   ├── roverFinds.test.ts         complete   9 tests; the picture host, the size, the
-    │   │                                         crop, the credit and the source link are held.
     │   ├── nasaDaily.ts                complete   DailyFact, DailyFactSource, parseApod,
     │   │                                         cleanExplanation, fetchDailyFacts, lastDailySource,
     │   │                                         lastDailyDetail, resetDailyFacts, savedFactFor.
@@ -426,7 +487,11 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         under prefers-reduced-motion. D-049
     │   ├── briefing/                   COMPLETE   The mission briefing.
     │   │   ├── README.md                           the contract
-    │   │   ├── model.ts                 complete   BEATS, beatsThrough, greetingFor. Pure.
+    │   │   ├── model.ts                 complete   BEATS, beatsThrough, greetingFor. Pure. The
+    │   │   │                                     briefing says what the job is and what a day
+    │   │   │                                     is before the player has to live one: three
+    │   │   │                                     work orders, approve one, the day happens
+    │   │   │                                     (D-060).
     │   │   ├── model.test.ts            complete   literal-input tests
     │   │   ├── view.ts                  complete   mountBriefing(root, run, setRun) -> teardown.
     │   │   │                                     One beat at a time under the artwork; NEXT or
@@ -477,27 +542,37 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │   │                                     previewFor, previewSummary, upcomingWarnings.
     │   │   │                                     Re-exports the `sim/modules.ts` catalogue
     │   │   │                                     (D-032).
-    │   │   ├── model.test.ts            complete   14 literal-input tests
+    │   │   ├── model.test.ts            complete   23 literal-input tests
     │   │   ├── view.ts                  complete   mountBase(root, run, setRun) -> teardown.
     │   │   │                                     Rebuilt on the game-loop shell (D-038): the
-    │   │   │                                     outpost on Mars, the catalogue, five cards.
+    │   │   │                                     outpost on Mars, the catalogue, five cards. Each
+    │   │   │                                     card says what it does and why the button is
+    │   │   │                                     dead, and counts the extras against the same
+    │   │   │                                     limit the game uses (ISS-054, ISS-055). The HUD
+    │   │   │                                     carries a Day power card that moves as the panels
+    │   │   │                                     go in (ISS-056). The guide opens here the first
+    │   │   │                                     time the player arrives (D-060).
     │   │   └── base.css                 complete   the budget line and card reasons only
     │   ├── act/                        COMPLETE   TASK-030. Turn-based sol control (D-030).
     │   │   ├── README.md                           the contract
     │   │   ├── model.ts                 complete   missionHeadline, meterRows, toneFor,
     │   │   │                                     changeRows, progressPercent, secondsLeft,
-    │   │   │                                     powerSentence, activityCosts,
-    │   │   │                                     activityRows, scienceSummary,
-    │   │   │                                     scienceSentence. Pure, 20 tests.
-    │   │   ├── model.test.ts            complete   20 literal-input tests
+    │   │   │                                     powerSentence, activityCosts, activityRows,
+    │   │   │                                     scienceSummary, scienceSentence, powerToday.
+    │   │   │                                     Pure, 31 tests.
+    │   │   ├── model.test.ts            complete   31 literal-input tests
     │   │   ├── view.ts                  complete   mountAct(root, run, setRun) -> teardown.
-    │   │   │                                     Three activity cards per calm sol (D-051),
-    │   │   │                                     a science card in the world panel, and
-    │   │   │                                     the live NASA daily picture. Run sol ->
-    │   │   │                                     advanceSol; on a finished run, setRun then
-    │   │   │                                     navigate to `debrief`. A crisis replaces the
-    │   │   │                                     mission panel (D-040).
-    │   │   └── act.css                  complete   crisis option artwork and the activity cards
+    │   │   │                                     The desk: three work orders, each with two
+    │   │   │                                     readings to check and a tool to work it
+    │   │   │                                     with; the board of standing orders; the notes
+    │   │   │                                     from home; the rover's document; the sol recap
+    │   │   │                                     at the top (D-060). Run sol -> advanceSol; on a
+    │   │   │                                     finished run, setRun then navigate to
+    │   │   │                                     `debrief`. A crisis replaces the mission
+    │   │   │                                     panel (D-040). The mission bar says what the
+    │   │   │                                     player is playing, and the guide is one button
+    │   │   │                                     away.
+    │   │   └── act.css                  complete   crisis option artwork and the work-order cards
     │   └── debrief/                    COMPLETE   TASK-031. Why the run was won or lost.
     │       ├── README.md                           the contract
     │       ├── model.ts                 complete   Explanation, ConsumptionSummary, NextStep,
@@ -507,11 +582,14 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │       │                                     usedApproximateData, nextSteps,
     │       │                                     wentEmpty, scienceReport, scienceHeadline,
     │       │                                     scienceDetail, scienceSentence.
-    │       │                                     Conservative ledger attribution. 25 tests.
-    │       ├── model.test.ts            complete   25 literal-input tests
+    │       │                                     Conservative ledger attribution. 32 tests.
+    │       ├── model.test.ts            complete   32 literal-input tests
     │       ├── view.ts                  complete   mountDebrief(root, run, setRun) -> teardown.
     │       │                                     Results panel, plus the journal as a mode
     │       │                                     (D-039): decisions, sol table, honesty note.
+    │       │                                     The certificate, the patches the run earned and
+    │       │                                     the standing orders the player worked under,
+    │       │                                     which is the keepsake (D-061).
     │       └── debrief.css              complete   tip cards, journal entries, two-link footer
     │
     └── styles/                         shared CSS: the landing page, the game-loop frame
@@ -524,7 +602,8 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
         │                                         block. Lines 100-101 contradict 110-113 — ISS-003.
         └── game-loop.css               complete   the `.gl` frame for base, act and debrief (D-038):
                                                   header, HUD cards, world, dock, panel, cards,
-                                                  choices, clock, journal; imported by each
+                                                  choices, clock, journal, mission bar and the
+                                                  how-to-play guide; imported by each
                                                   feature's view.ts (R-15)
 ```
 
@@ -607,6 +686,19 @@ ui/router.ts → location.hash → parseRoute (pure) → onRoute(route) → main
              → registry.resolveScreen → features/*/view.ts → teardown on navigate away
 ```
 
+**The day's loop** — the part a player lives, and where each piece of it lives:
+
+```
+act → the three work orders for today          sim/activities.ts
+    → the player checks the two readings on each and may work one with a tool
+      (the stars only multiply the science the order is worth)  sim/minigames.ts
+    → advanceSol applies the cost and the gain, deploys the rover if the
+      order was the exploring one, and grows the board by two
+                                                   sim/standingOrders.ts
+    → the recap at the top of the panel is built from the log, and the
+      guide (sim/guide.ts) is one button away
+```
+
 The rotation behind the menu is **CSS keyframes**, not JavaScript: `naming-mars-turn`
 (150s) and `naming-astronaut-float` (9s), both removed under
 `prefers-reduced-motion`. No `requestAnimationFrame` is involved, so there is no loop
@@ -684,12 +776,19 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `fetchDailyFacts` | `(options?) => Promise<DailyFact[]>`; never rejects, one request per session, and an empty list when NASA is busy. The enrichment layer on top of the saved gallery (D-053) |
 | | `lastDailySource`, `lastDailyDetail`, `resetDailyFacts` | what the UI reports, and the reset for tests |
 | | `savedFactFor` | `(sol) -> DailyFact`; the saved fact to fall back on |
-| `data/roverFinds` | `ROVER_FINDS` | fixed finds with a NASA picture, credit and source link; static, no runtime fetch. Pictures are addressed on NASA's picture CDN, sized to the screen and never cropped |
+| `sim/rover` | `RoverFind`, `RoverState`, `RoverPhase`, `FindKind`, `FindAnswer` | what the rover can find and what it has done; a find waits as `pending` until the player answers it, and nothing is found twice |
+| | `ROVER_FINDS` | the catalogue of real NASA finds: three historic sites and three rare rocks, each with a NASA picture, credit and source link. Static, no runtime fetch. Pictures are addressed on NASA's picture CDN, sized to the screen and never cropped. It lives in `sim/`, not `data/`, because the simulation owns the rover's whole lifecycle (D-062) |
+| | `newRover`, `deployRover`, `recallRover` | `(state) -> state`; deploying when out, or recalling when home, returns the same object. A rover with a find waiting cannot be recalled: it is still driving towards it |
+| | `discover`, `canDiscover`, `remainingFinds` | `(state, catalogue, pick 0-1) -> state`; a no-op at base, with a find already waiting, or when everything is found |
+| | `logSite`, `collectMaterial`, `leaveMaterial` | answer the pending find; each is a no-op for the wrong kind or when nothing waits |
+| | `pickForSol` | `(sol, remaining) -> number`; which find the rover brings back on this sol. The pick is derived from the sol, not from `Math.random`, so a mission repeats |
+| | `FIND_SCIENCE` | 4 — the points a find is worth. It is the only thing a find gives: the rover touches no resource (D-062) |
 | `ui/readAloud` | `canReadAloud`, `readAloud`, `stopReading` | `(text, onDone?) -> boolean`; false when unsupported or the text is empty. Starts cancel any current passage first, and `stopReading()` is safe when nothing plays. Browser speech only (D-043) |
 | `ui/readButton` | `readButton` | `(getText, options?) -> HTMLButtonElement \| null`; a toggle whose label, `aria-pressed` and pause hooks (`onStart`, `onStop`) are shared by every screen that reads aloud. Returns null where speech is unavailable |
 | `ui/nasaCard` | `nasaCard` | `(card: NasaFigure, kicker?) -> figure`; picture, alt, caption, "Did you know?", credit and source link, plus the shared read-aloud control only when `canReadAloud()` is true. The kicker defaults to the sol for a `NasaCard` and to a plain NASA label otherwise |
 | `ui/nasaFeedCard` | `nasaFeedCard` | `(fact: DailyFact, kicker?) -> figure`; the live NASA picture in the same card as the curated one. The picture is optional — a video day keeps its words |
-| `ui/roverWidget` | `roverWidget`, `resetRover` | `() -> HTMLElement`; the round rover button for the left edge, appended by `gameScreen({ rover: true })` on `base` and `act`. `resetRover()` puts the rover back at base and is called by `naming` when a run begins. Deploy asks first (no `confirm`, R-9); a find shows a red dot until answered. The draws are seeded, so a mission is repeatable (D-059) |
+| `ui/activityPlayer` | `Inspection`, `InspectionResult`, `makeInspection` | `(engine, sol) -> Inspection`; the work-order player for one order: which tool it uses, what the two readings ask for, and how it is graded. The grading itself is in `sim/minigames.ts`, so the rules stay pure (D-060) |
+| `ui/guide` | `guidePanel`, `guideButton` | `guidePanel(onClose) -> HTMLElement`; the how-to-play panel, with each step saying where it happens. `guideButton(onOpen) -> HTMLButtonElement`; the `?` in the mission bar. The words are in `sim/guide.ts` (D-060) |
 | `sim/drift` | `stepDrift` | `(state, dt, size, viewport) -> DriftResult`; reflects off walls, returns the fastest `Impact` or null |
 | | `createInitialDrift` | `(size, viewport, speed) -> DriftState`; random 30-45 degree diagonal. **5 `Math.random()` calls** |
 | | `driftSpeedForViewport` | `(width) -> number`, clamped 96..176 px/s |
@@ -727,12 +826,9 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `countOf` | `(modules, kind) -> number` |
 | | `systemsFor` | `(modules, regionId) -> Systems`; the whole outpost as one object: solar, battery, load, what the crew gets and what it costs |
 | | `extrasOf`, `pointsSpent`, `extraSlots`, `extraModuleCount` | what the player built beyond the core, what it cost, and how many more would fit |
+| | `extraLimitOf` | `(kind) -> number`; the limit minus the lander's copy, so the build card and the limit count the same thing (ISS-054) |
+| | `BUILD_BUDGET` 18, `LOAD_KW`, `GREENHOUSE_WATER` 3, `SHIELDING_BASE` 30, `SHIELDING_EROSION` 0.5 | the balance. These five numbers are what made the game unwinnable once; `npm run balance` is what says so next time (ISS-061, D-064) |
 | | `CREW_SIZE`, `SUN_HOURS`, `NIGHT_HOURS`, `OXYGEN_PER_CREW`, `WATER_PER_CREW`, `FOOD_PER_CREW` | the crew and the day; **every tuning number the sol maths uses** |
-| `sim/rover` | `RoverFind`, `RoverState`, `RoverPhase` | what the rover can find and what it has done; a find waits as `pending` until the player answers it, and nothing is found twice |
-| | `newRover`, `deployRover`, `recallRover` | `(state) -> state`; deploying when out, or recalling when home, returns the same object. A rover with a find waiting cannot be recalled: it is still driving towards it |
-| | `discover`, `canDiscover`, `remainingFinds` | `(state, catalogue, pick 0-1) -> state`; a no-op at base, with a find already waiting, or when everything is found |
-| | `logSite`, `collectMaterial`, `leaveMaterial` | answer the pending find; each is a no-op for the wrong kind or when nothing waits |
-| | `nextFindDelayMs` | `(foundSoFar, pick) -> ms`; 15-25 s for the first find, 35-65 s after |
 | `sim/forecast` | `ForecastEvent`, `FlareInput`, `ForecastKind` | the run's forecast events; `intensity` is 1-3 for a flare and 0 for the pod and storm |
 | | `flareIntensity` | `(classType) -> 1 \| 2 \| 3`; X = 3, M = 2, C and below = 1 |
 | | `createForecast` | `(flares, seed = DEFAULT_SEED, dustScore = NEUTRAL_SCORE.dust) -> ForecastEvent[]`; the timetable is seeded, sols 2-10, one event at a time, at least one flare and two events. Flare sizes come from the M/X pool, or from the long-run NOAA mix when it is empty |
@@ -753,9 +849,20 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `rankFor` | `(points) -> ScienceRank`; never throws, a broken score is the bottom rank |
 | | `rankProgress` | `(points) -> { current, next, percent, toNext }`; the road to the next rank, with no NaN at the top (D-052) |
 | `sim/topics` | `ScienceTopic`, `SCIENCE_TOPICS`, `TOPIC_LABEL`, `isScienceTopic` | the vocabulary the activities and the NASA facts share, so a screen can show the fact about the system it is teaching. One topic per science goal, plus `missions` for the science that is not about a system |
-| `sim/goals` | `ScienceGoal`, `GoalSpec`, `GoalReading`, `GoalStatus` | the five science goals and one reading of each |
+| `sim/goals` | `ScienceGoal`, `GoalSpec`, `GoalReading`, `GoalStatus`, `GoalObjective` | the five science goals and one reading of each |
 | | `SCIENCE_GOALS`, `goalById` | the five goals in the order they are shown: dust storm, life support, radiation, power, food. Each carries its own question and its own NASA fact topic (D-058) |
 | | `goalReadings` | `(run) => GoalReading[]`; how each goal is doing right now, worked out from the sim — the storm actually running, the panels' real output, the stores as they stand, the last sol's blackout |
+| | `goalProgress` | `(run) => GoalObjective[]`; what the player kept running and for how long. There is deliberately **no target and no score**: the goals are the learning outcomes, not a second win condition (D-061) |
+| | `GOAL_AIMS` | the one line each goal says it is aiming at, printed in the debrief |
+| `sim/standingOrders` | `StandingOrder`, `STANDING_ORDERS` | the twenty-four rules the player works to, two arriving every sol. They are the five learning goals in the order the player meets them (D-060, D-061) |
+| | `ordersThrough`, `ordersForSol` | `(sol) => readonly StandingOrder[]`; the whole board so far, and the two that are new today |
+| | `orderById` | `(id) => StandingOrder \| null` |
+| `sim/minigames` | `EngineKind`, `Grade`, `ENGINE_ORDER`, `ENGINE_UNLOCK_SOL`, `ENGINE_NAME` | the six tools and when each becomes available |
+| | `engineUnlocked` | `(engine, sol) => boolean` |
+| | `gradeSequence`, `gradeRadar`, `gradeTiming`, `gradeSort`, `gradePack`, `gradeMatch` | how each tool is graded, and how many stars it won. The stars multiply the science an order is worth and never touch a store (D-063) |
+| `sim/guide` | `GuideWhere`, `GuideStep`, `GUIDE_STEPS`, `guideStep` | the how-to-play guide: ten steps, each saying where it happens and what to do about it. The words live here so they can be read and tested without a browser (D-060) |
+| `sim/patches` | `Patch`, `patchesFor`, `PATCH_COUNT` | the ten badges a run earns, worked out from the run itself; the debrief prints the ones that were earned (D-060) |
+| `sim/deskNotes` | `NoteFrom`, `DeskNote`, `DESK_NOTES`, `noteForSol` | the notes from home and the crew that land on the desk; one per sol, and none twice |
 | `sim/comms` | `REAL_MIN_ONE_WAY_MINUTES`, `REAL_MAX_ONE_WAY_MINUTES` | the real 3-22 minute range, for the approximation note |
 | | `oneWayMinutes`, `roundTripMinutes`, `earthCanAnswerInTime` | a simplified rising delay over the run; labelled approximate in the UI |
 | `sim/sol` | `advanceSol` | `(run) -> RunState`; solar generation, module draw + night drain, crew use, forecast events, the chosen activity, science points, clamp/cap, status. **Turn-based: one sol per call** (D-030) |
@@ -765,12 +872,14 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `isRunOver`, `lostStores`, `endedBy` | whether the run has ended, and which life store ended it. Power is not a life store |
 | | `isSelfSustaining` | `(run) -> boolean`; a calm sol leaves air, water and food level or better |
 | | `WIN_SOL` | 12 — the run is won by living through this many sols |
-| `sim/run` | `RunState` | `sol, regionId, astronautName, stores, status, modules, panelHealth, science, chosenActivity, forecast, log, decisions` — the only thing shared between screens |
-| | `RunStatus`, `SolEvent`, `DecisionRecord`, `SolRecord`, `SolActivity` | what a sol did: the stores, the net, the blackout, the activity, the events and the notes |
+| `sim/run` | `RunState` | `sol, regionId, astronautName, stores, status, modules, panelHealth, science, chosenActivity, forecast, log, decisions, rover, inspections` — the only thing shared between screens |
+| | `RunStatus`, `SolEvent`, `DecisionRecord`, `SolRecord`, `SolActivity`, `Inspection` | what a sol did: the stores, the net, the blackout, the activity, the events and the notes. `Inspection` is how many stars an order was worked for |
 | | `newRun` | `(regionId, astronautName?) -> RunState` |
 | | `landAt` | `(run, regionId) -> RunState`; sets the region, keeping the astronaut's name |
 | | `startOutpost` | `(run, modules) -> RunState`; lands the outpost with full batteries and the shielding those modules give, and resets the score |
 | | `withState` | `(run, patch) -> RunState` |
+| | `answerRoverFind` | `(run, answer) -> RunState`; answers the find the rover brought back and adds `FIND_SCIENCE`. A no-op when nothing waits |
+| | `recordInspection`, `inspectionStars` | how an order was worked, and how many stars it won (D-063) |
 | `ui/routes` | `Route` | `'naming' \| 'briefing' \| 'supply' \| 'launch' \| 'interior' \| 'landing' \| 'landing-site' \| 'base' \| 'act' \| 'debrief'` |
 | | `ROUTE_ORDER` | the routes in play order, `naming` first |
 | | `DEFAULT_ROUTE` | `'naming'` — the entry screen (D-021) |
@@ -804,22 +913,23 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `moduleFigures`, `moduleArt`, `MODULE_ART`, `WORLD_BACKGROUND`, `ASTRONAUT_SPRITE` | the artwork the world panel draws, owned here so `base`, `act` and `debrief` do not copy the imports |
 | | `gameHeader`, `gameHud`, `gameDock` | `gameHeader(sub?, onLeave?)`: without `onLeave` the right-hand label is plain decorative text; with it, it is a Menu button opening an in-screen leave dialog with Keep playing / Leave mission (D-044). `gameHud` draws the five resource cards (`HudStat`) and `gameDock` the three-tab dock. The pause/settings/BUILD pills and the dock are `aria-hidden` spans, not buttons (D-038) |
 | | `gameSection` | `(label, ...content) -> section`; an uppercase label and its body |
-| | `gameScreen` | `(options) -> section`; takes `rover?: boolean` and appends the rover button when it is true. Only `base` and `act` ask for it (D-059) |
+| | `gameScreen` | `(options) -> section`; takes `mission?: MissionBarOptions`, whose `help` slot carries the guide's `?` button (D-060). The rover button is gone: the rover is part of the run now, not a widget on the wall (D-062) |
 | | `moduleFigures`, `moduleArt`, `MODULE_ART`, `WORLD_BACKGROUND`, `ASTRONAUT_SPRITE` | artwork placement and the bundled asset URLs; the only import site for the figures base, act and debrief share |
 | `features/base/model` | `BUILDABLE`, `canPlace`, `addModule`, `removeModule`, `pointsLeft` | build rules over the `sim/modules.ts` catalogue (D-032) |
 | | `previewFor`, `previewSummary`, `upkeepFor`, `upcomingWarnings` | the calm-sol projection. `previewSummary` gives the five resource cards one number each, from the same projection as the sentences |
-| `features/base/view` | `mountBase` | `(root, run, setRun) -> teardown`; the outpost on Mars, the catalogue steppers, and Land & start sol 1 → `startOutpost` then `act`. Holds a mutable local `extras` so a second build is not applied to stale data; it also shows a rotating NASA fact beside the build panel from `factFor` |
+| `features/base/view` | `mountBase` | `(root, run, setRun) -> teardown`; the outpost on Mars, the catalogue steppers, and Land & start sol 1 → `startOutpost` then `act`. Holds a mutable local `extras` so a second build is not applied to stale data; it also shows a rotating NASA fact beside the build panel from `factFor`. Each card says why its button is dead and counts the extras against the same limit the game uses (ISS-054, ISS-055), the HUD carries a Day power card that moves as the panels go in (ISS-056), and the guide opens here the first time the player arrives (D-060) |
 | `features/supply/model` | `SUPPLY_BEATS`, `packsFor`, `judge`, `hintFor`, `workingSentence`, `approximateTotalKg` | the ration check over `sim/modules.ts`; the crew size is read from the sim, not typed in, so it agrees with the briefing (ISS-044) |
 | | `seedFrom`, `questionFor`, `choicesFor`, `promptFor`, `puzzleFor` | the question and its four options for one run. The mission length, the answer and the button order all vary, seeded from the astronaut name so a demo repeats and a test can pin it (D-057) |
 | `features/act/model` | `missionHeadline`, `meterRows`, `changeRows`, `toneFor`, `secondsLeft`, `powerSentence` | presentation helpers over `sim/sol`; `meterRows` carries `percent`, `tone` and `emoji` for the HUD |
-| | `activityRows`, `activityCosts` | the three activities offered on a sol, and what each costs and gives |
+| | `activityRows`, `activityCosts` | the three work orders offered on a sol, and what each costs and gives |
 | | `scienceSummary`, `scienceSentence` | the score, the rank, and the road to the next one |
-| `features/act/view` | `mountAct` | `(root, run, setRun) -> teardown`; three activity cards per calm sol (D-051), a science card in the world panel, and the live NASA daily picture. Run sol calls `advanceSol`, then `setRun`; a finished run navigates to `debrief`. A crisis replaces the mission panel in place, with its countdown and "take your time" switch (D-040) |
+| | `powerToday` | `(run) => number`; the power the crew can actually spend today — what is left after the panels have filled the batteries and the systems have taken their share. It is the number the order prices come out of, and the number the power card shows (ISS-060) |
+| `features/act/view` | `mountAct` | `(root, run, setRun) -> teardown`; the desk: three work orders, each with two readings to check and a tool to work it with; the board of standing orders; the notes; the rover's document; the sol recap first (D-060). Run sol calls `advanceSol`, then `setRun`; a finished run navigates to `debrief`. A crisis replaces the mission panel in place, with its countdown and "take your time" switch (D-040). The mission bar says what the player is playing and the guide is one button away |
 | `features/debrief/model` | `explainOutcome` | `(run) -> {headline, detail, confident}`; conservative ledger attribution — only claims a cause when a logged fact establishes it, otherwise `confident: false` and the screen points at the timeline |
 | | `scienceReport`, `scienceHeadline`, `scienceDetail`, `scienceSentence` | what science the run did, the rank it earned, and every activity the crew chose. Measures the science, not the outcome (D-052) |
 | | `consumptionSummary`, `lowestPoints`, `blackoutSols`, `reviewDecisions`, `timeline` | arithmetic over the log; per-decision verdicts from fixed option rules; one row per sol |
 | | `nextSteps`, `wentEmpty`, `usedApproximateData` | what to try next, each step tied to a fact from this run and carrying an `art` hint; the store that ended the run; whether any flare size was approximate |
-| `features/debrief/view` | `mountDebrief` | `(root, run, setRun) -> teardown`; the results panel with the Mars Science Score, and the journal as a mode reached from "View my Mars story" (D-039). "Try a new outpost" calls `newRun` then `landing-site`; it shows a rotating NASA fact next to the closing card from `factFor` |
+| `features/debrief/view` | `mountDebrief` | `(root, run, setRun) -> teardown`; the results panel with the Mars Science Score, and the journal as a mode reached from "View my Mars story" (D-039). "Try a new outpost" calls `newRun` then `landing-site`; it shows a rotating NASA fact next to the closing card from `factFor`. It also prints the certificate, the patches the run earned, and the standing orders the player worked under — the keepsake (D-061) |
 | `features/launch/model` | `TITLE` | `'THE MISSION BEGINS'` — the card that holds before the first still |
 | | `NASA_FACT` | one real fact about the rocket itself, which no shot is about: a rocket that goes far drops its empty fuel tanks partway up. Carried in the spoken description rather than as a beat, so the reel does not slow down for it |
 | | `TITLE_DURATION_MS` | 900 — the card alone; 200ms in and out leaves 500ms of readability |
@@ -905,4 +1015,20 @@ Deliberate shortcuts, and why each was accepted.
    the right seam if real-time is ever wanted, but that is not in scope.
 10. **The `KNOWN` set is empty.** Deliberate, per the reasoning above.
 11. **No DOM test coverage.** Accepted only because there is no jsdom yet — ISS-011,
-    ISS-013. The largest real gap in the repository.
+    ISS-013. The largest real gap in the repository. The three headless-Chrome checks
+    (`tools/browser-check-*.mjs`) cover some of it — the build screen, the desk, the
+    rover and the whole journey — but they are checks, not tests: `npm test` stays
+    free of a browser.
+12. **The orders are a curriculum, not a random draw.** Each sol's three work orders
+    are fixed, so a demo repeats and the teaching lands in a known order. Procedural
+    orders were rejected (D-060) for exactly that reason: a random order would throw
+    away the lesson each locked card teaches.
+13. **The five goals are not scored.** `sim/goals.ts` reports what the player kept
+    running and for how long, and there is deliberately no target and no counter
+    (D-061). The cost is that the debrief cannot say "you did well at" — and the
+    point is that it should not.
+14. **The balance is checked, not unit-tested.** `npm run balance` plays every legal
+    build at every site rather than asserting over the constants (D-064), because a
+    test over the constants only proves the constants still do what they did — which
+    is exactly what was wrong. The cost is that the check takes longer than the test
+    suite and is a separate command.

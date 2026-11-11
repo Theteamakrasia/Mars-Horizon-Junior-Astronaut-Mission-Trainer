@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { goalById, goalReadings, SCIENCE_GOALS } from './goals';
+import { goalById, goalProgress, goalReadings, SCIENCE_GOALS } from './goals';
 import { CORE_MODULES, type ModuleKind } from './modules';
 import { newRun, startOutpost, withState, type RunState } from './run';
 import { advanceSol } from './sol';
@@ -105,19 +105,21 @@ describe('reading the goals off a run', () => {
     expect(readingOf(outpost('jezero', CLOSED_LOOP), 'dust-storm')).toContain('panels are clean');
   });
 
-  it('says a dust storm is over the panels when one is', () => {
-    /* The storm starts on sol 7 and lasts two sols. */
+  it('warns when a dust storm is on the way, without saying the panels have failed', () => {
+    /* The storm starts on sol 7 and lasts two sols. A storm the crew can see
+       coming is a warning, not a failure: `critical` is kept for the panels
+       failing now, which is the one they cannot prepare for. */
     const run = withState(outpost('jezero', CLOSED_LOOP), { sol: 6 });
 
-    expect(readingOf(run, 'dust-storm')).toContain('dust storm is over the panels');
-    expect(statusOf(run, 'dust-storm')).toBe('critical');
+    expect(readingOf(run, 'dust-storm')).toContain('dust storm is on the way');
+    expect(statusOf(run, 'dust-storm')).toBe('watch');
   });
 
   it('says the dust damage to the panels is for good', () => {
     const dusty = withState(outpost('jezero', CLOSED_LOOP), { panelHealth: 0.5 });
 
     expect(readingOf(dusty, 'dust-storm')).toContain('for good');
-    expect(statusOf(dusty, 'dust-storm')).toBe('watch');
+    expect(statusOf(dusty, 'dust-storm')).toBe('critical');
   });
 
   it('says what the crew have to breathe and drink', () => {
@@ -179,5 +181,83 @@ describe('reading the goals off a run', () => {
       expect(reading.detail.length).toBeGreaterThan(10);
       expect(['ok', 'watch', 'critical']).toContain(reading.status);
     }
+  });
+});
+
+/*
+ * The objectives are what a goal became: something to earn, with a count the
+ * player can see. The counters are cumulative on purpose, so a sol of good
+ * work is never lost to one bad afternoon.
+ */
+describe('the goals as objectives', () => {
+  it('gives one objective per goal, in the same order', () => {
+    const objectives = goalProgress(outpost('jezero', CLOSED_LOOP));
+
+    expect(objectives).toHaveLength(5);
+    expect(objectives.map((objective) => objective.id)).toEqual([
+      'dust-storm',
+      'life-support',
+      'radiation',
+      'power',
+      'food',
+    ]);
+  });
+
+  it('starts every objective at zero, with the job in plain sight', () => {
+    for (const objective of goalProgress(outpost('jezero', CLOSED_LOOP))) {
+      expect(objective.held).toBe(0);
+      expect(objective.aim.length).toBeGreaterThan(5);
+      expect(objective.short.length).toBeLessThanOrEqual(6);
+      expect(objective.detail.length).toBeGreaterThan(3);
+    }
+  });
+
+  it('counts a good sol towards every goal the outpost is holding', () => {
+    let run = outpost('jezero', CLOSED_LOOP);
+
+    run = advanceSol(run);
+
+    const held = goalProgress(run).map((objective) => objective.held);
+
+    expect(held).toEqual([1, 1, 1, 1, 1]);
+  });
+
+  it('does not count a sol with a blackout towards the power goal', () => {
+    /* No solar and no batteries: the batteries are flat from the first sol. */
+    let run = outpost('jezero', []);
+
+    run = advanceSol(run);
+
+    const power = goalProgress(run).find((objective) => objective.id === 'power');
+
+    expect(power?.held).toBe(0);
+    expect(power?.slipping).toBe(true);
+  });
+
+  it('keeps counting a sol towards the goals it did hold', () => {
+    /* The same bad sol: the power goal is lost, the food goal is not. */
+    let run = outpost('jezero', []);
+
+    run = advanceSol(run);
+
+    const objectives = goalProgress(run);
+    const food = objectives.find((objective) => objective.id === 'food');
+    const power = objectives.find((objective) => objective.id === 'power');
+
+    expect(food?.held).toBe(1);
+    expect(power?.held).toBe(0);
+  });
+
+  it('counts the sols a goal held for, with no target and no score', () => {
+    let run = outpost('jezero', CLOSED_LOOP);
+
+    for (let sol = 0; sol < 4; sol += 1) run = advanceSol(run);
+
+    const food = goalProgress(run).find((objective) => objective.id === 'food');
+
+    /* There is no "earned" and no target any more: the goals are the
+       project's learning outcomes, and the count is the record of the work. */
+    expect(food?.held).toBe(4);
+    expect(Object.keys(food ?? {}).sort()).toEqual(['aim', 'detail', 'held', 'id', 'short', 'slipping', 'title']);
   });
 });

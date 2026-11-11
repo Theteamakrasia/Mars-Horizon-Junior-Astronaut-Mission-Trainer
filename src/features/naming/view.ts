@@ -13,7 +13,6 @@ import astronautUrl from '../../../Assets/images/naming/astronaut.webp';
 import marsUrl from '../../../Assets/images/naming/mars.webp';
 import { newRun, type RunState } from '../../sim/run';
 import { nextStop } from '../../ui/registry';
-import { resetRover } from '../../ui/roverWidget';
 import { navigate } from '../../ui/router';
 
 import './naming.css';
@@ -45,9 +44,6 @@ export function mountNaming(
   run: RunState | null,
   setRun: (next: RunState | null) => void,
 ): () => void {
-  // The menu is where every mission begins, so the rover always starts a run at base.
-  resetRover();
-
   const input = require<HTMLInputElement>(root, '[data-naming-input]');
   const form = require<HTMLFormElement>(root, '[data-naming-form]');
   const hint = require<HTMLParagraphElement>(root, '[data-naming-hint]');
@@ -119,7 +115,6 @@ export function mountNaming(
     // a no-op after the first press. Clearing the form is the honest meaning:
     // start again with a fresh name and no run.
     setRun(null);
-    resetRover();
     input.value = '';
     input.readOnly = false;
     submit.disabled = true;

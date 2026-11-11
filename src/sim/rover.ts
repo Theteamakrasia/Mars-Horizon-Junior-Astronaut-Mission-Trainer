@@ -1,10 +1,14 @@
 /**
  * The rover: a robot you send out to look for lost history and rare rocks.
  *
- * Pure rules only. No DOM, no timers, no network (R-1). The rover button in
- * `ui/` owns the clock and the windows; this file owns what is allowed to
- * happen: a rover that is at base cannot find anything, a find waits until the
- * player has answered it, and nothing is ever found twice.
+ * Pure rules only. No DOM, no timers, no network (R-1). This file owns what
+ * is allowed to happen: a rover that is at base cannot find anything, a find
+ * waits until the player has answered it, and nothing is ever found twice.
+ *
+ * The rover lives in the run, not in a window. It is sent out by a work order
+ * like any other, it moves on sol time rather than on a wall clock, and it
+ * comes back with a document on the desk. A rover you can only look at from
+ * the outside is not part of the game.
  *
  * Randomness comes in as a number from 0 to 1 (`pick`), never from
  * `Math.random()`, so every rule here can be asserted on exactly.
@@ -46,6 +50,14 @@ export type RoverPhase = 'stowed' | 'exploring';
 /** Everything the rover has done this run. */
 export interface RoverState {
   readonly phase: RoverPhase;
+  /**
+   * The sol the rover comes back on.
+   *
+   * Null while it is stowed. The rover drives on sol time, like everything
+   * else in the game, so the player knows when to expect it rather than
+   * watching a countdown in another window.
+   */
+  readonly returnsOn: number | null;
   /** A find the player has not answered yet. While set, the rover finds nothing new. */
   readonly pending: RoverFind | null;
   /** Every id the rover has ever turned up, answered or not. Stops repeats. */
@@ -58,21 +70,22 @@ export interface RoverState {
   readonly left: readonly string[];
 }
 
-/** Wait before the first find after a deploy, in ms: 15 to 25 seconds. */
-export const FIRST_FIND_MIN_MS = 15_000;
-export const FIRST_FIND_SPREAD_MS = 10_000;
-/** Wait before every later find, in ms: 35 to 65 seconds. */
-export const NEXT_FIND_MIN_MS = 35_000;
-export const NEXT_FIND_SPREAD_MS = 30_000;
-
 /** A rover that has not been sent out yet. */
 export function newRover(): RoverState {
-  return { phase: 'stowed', pending: null, found: [], visited: [], collected: [], left: [] };
+  return { phase: 'stowed', returnsOn: null, pending: null, found: [], visited: [], collected: [], left: [] };
 }
 
-/** Send the rover out. Already out is a no-op. */
-export function deployRover(state: RoverState): RoverState {
-  return state.phase === 'exploring' ? state : { ...state, phase: 'exploring' };
+/**
+ * Send the rover out.
+ *
+ * It comes back on the next sol, so the find is on the desk when the player
+ * is making the next decision rather than arriving while they are looking at
+ * something else. Already out is a no-op.
+ */
+export function deployRover(state: RoverState, sol: number): RoverState {
+  if (state.phase === 'exploring') return state;
+
+  return { ...state, phase: 'exploring', returnsOn: sol + 1 };
 }
 
 /**
@@ -85,7 +98,7 @@ export function deployRover(state: RoverState): RoverState {
 export function recallRover(state: RoverState): RoverState {
   if (state.phase === 'stowed' || state.pending !== null) return state;
 
-  return { ...state, phase: 'stowed' };
+  return { ...state, phase: 'stowed', returnsOn: null };
 }
 
 /** The finds the rover has not turned up yet, in catalogue order. */
@@ -145,15 +158,159 @@ export function leaveMaterial(state: RoverState): RoverState {
 }
 
 /**
- * How long until the rover's next find, in ms.
+ * What a find is worth in science points.
  *
- * The first find comes quickly so a new player sees the rover do something;
- * later ones are further apart so it never feels like a slot machine.
+ * The same however the player answers it. The choice is about what goes in
+ * the record, not about the score: the rover teaches, and the score is for
+ * the work rather than for the button pressed.
  */
-export function nextFindDelayMs(foundSoFar: number, pick: number): number {
-  const clamped = Math.min(1, Math.max(0, pick));
+export const FIND_SCIENCE = 4;
 
-  return foundSoFar === 0
-    ? Math.round(FIRST_FIND_MIN_MS + clamped * FIRST_FIND_SPREAD_MS)
-    : Math.round(NEXT_FIND_MIN_MS + clamped * NEXT_FIND_SPREAD_MS);
+/** How the player answered a find. */
+export type FindAnswer = 'log' | 'collect' | 'leave';
+
+/**
+ * Which find the rover turns up, given the sol it is on.
+ *
+ * The rover moves on sol time, so its finds do too: the same sol always turns
+ * up the same thing, and the pick walks through the catalogue so a long run
+ * works its way along it rather than repeating.
+ */
+export function pickForSol(sol: number, remaining: number): number {
+  if (remaining <= 0) return 0;
+
+  const spread = (Math.abs(sol * 7) % remaining) / remaining;
+
+  return Math.min(0.999, spread);
 }
+
+/* ------------------------------------------------------------- the catalogue -- */
+
+/**
+ * The picture itself, from NASA's image CDN.
+ *
+ * Photojournal used to serve these at `photojournal.jpl.nasa.gov/jpeg/<PIA>.jpg`.
+ * That address now redirects to a web page rather than an image, so every
+ * rover picture came back as HTML and was dropped. The pictures live on
+ * NASA's asset CDN instead, under a folder built from the PIA number:
+ * `PIA26368` is in `pia26/pia26368/`.
+ *
+ * The size in the query string is the CDN resizing the picture for us, so a
+ * child on a school connection downloads a picture that fits the screen rather
+ * than the full-size one. Schiaparelli's picture is 2.6 MB unscaled. Both
+ * sides are capped and the shape is kept, so nothing is cropped: a picture is
+ * a picture of the thing, not of a piece of it.
+ */
+function pictureUrl(pia: string): string {
+  const digits = pia.replace('PIA', '').toLowerCase();
+  const folder = `pia${digits.slice(0, 2)}`;
+
+  return `https://assets.science.nasa.gov/dynamicimage/assets/science/psd/photojournal/pia/${folder}/pia${digits}/${pia}.jpg?w=768&h=768&fit=clip`;
+}
+
+/** The picture's page, where the full caption and size options live. */
+function pageUrl(pia: string): string {
+  return `https://photojournal.jpl.nasa.gov/catalog/${pia}`;
+}
+
+/** Everything the rover can come across, in the order of this list. */
+export const ROVER_FINDS: readonly RoverFind[] = [
+  {
+    id: 'viking-1',
+    kind: 'site',
+    title: 'Viking 1 landing site',
+    where: 'Chryse Planitia, the “Plains of Gold”',
+    when: '1976',
+    alt: 'A rocky red-brown Martian plain under a reddish sky, with part of the Viking 1 lander and an orange cable in the corner.',
+    story:
+      'This is where the first American spacecraft to land safely on Mars came to rest. Viking 1 touched down on 20 July 1976 and sent back the first pictures ever taken from the surface of Mars.',
+    fact: 'The two Viking landers took more than 4,500 pictures of the surface between them.',
+    credit: 'NASA/JPL',
+    imageUrl: pictureUrl('PIA00564'),
+    sourceUrl: pageUrl('PIA00564'),
+  },
+  {
+    id: 'pathfinder',
+    kind: 'site',
+    title: 'Pathfinder and Sojourner',
+    where: 'Ares Vallis, an ancient flood channel',
+    when: '1997',
+    alt: 'The tiny Sojourner rover sitting next to some rocks on the rocky ground of Ares Vallis.',
+    story:
+      'Mars Pathfinder bounced to a stop on airbags in July 1997. Out rolled Sojourner, the very first wheeled rover to drive on Mars. It is about the size of a microwave oven.',
+    fact: 'Sojourner was planned to work for 7 days. It kept going for 83.',
+    credit: 'NASA/JPL',
+    imageUrl: pictureUrl('PIA01122'),
+    sourceUrl: pageUrl('PIA01122'),
+  },
+  {
+    id: 'beagle-2',
+    kind: 'site',
+    title: 'Beagle 2, the lost lander',
+    where: 'Isidis Planitia',
+    when: 'Lost 2003, found 2015',
+    alt: 'A black-and-white satellite picture of Mars, with a tiny bright shape marked "Beagle 2" on the dusty ground.',
+    story:
+      'Beagle 2 was a small British lander that was never heard from after it arrived on Christmas Day 2003. For years nobody knew what had happened. Then NASA’s Mars Reconnaissance Orbiter spotted it from space.',
+    fact: 'The pictures show Beagle 2 did land softly and opened some of its solar panels. It simply could not call home.',
+    credit: 'NASA/JPL-Caltech/Univ. of Arizona/University of Leicester',
+    imageUrl: pictureUrl('PIA19107'),
+    sourceUrl: pageUrl('PIA19107'),
+  },
+  {
+    id: 'schiaparelli',
+    kind: 'site',
+    title: 'Schiaparelli test lander',
+    where: 'Meridiani Planum',
+    when: '2016',
+    alt: 'A black-and-white satellite picture of Mars, with a bright square close-up of the crater where Schiaparelli reached the ground.',
+    story:
+      'Schiaparelli was a European test lander. Its landing did not go as planned, but it sent data all the way down. NASA’s orbiter then photographed the marks it left, and engineers used both to learn what to fix next time.',
+    fact: 'Testing a landing on a small lander first is how space agencies make the next big one safer.',
+    credit: 'NASA/JPL-Caltech/Univ. of Arizona',
+    imageUrl: pictureUrl('PIA21131'),
+    sourceUrl: pageUrl('PIA21131'),
+  },
+  {
+    id: 'heat-shield-rock',
+    kind: 'material',
+    title: 'Heat Shield Rock',
+    where: 'Meridiani Planum',
+    when: '2005',
+    alt: 'A dark, pitted, basketball-sized rock sitting on pale Martian sand.',
+    story:
+      'This pitted rock is a meteorite made mostly of iron and nickel. It fell to Mars from space long ago. It was the first meteorite of any kind ever identified on another planet.',
+    fact: 'It was found sitting right next to where Opportunity’s own heat shield landed, which is how it got its name.',
+    credit: 'NASA/JPL/Cornell',
+    imageUrl: pictureUrl('PIA07269'),
+    sourceUrl: pageUrl('PIA07269'),
+  },
+  {
+    id: 'block-island',
+    kind: 'material',
+    title: 'Block Island meteorite',
+    where: 'Meridiani Planum',
+    when: '2009',
+    alt: 'A close-up microscope view of a metal rock with a fine triangle-shaped pattern in its surface.',
+    story:
+      'Block Island is about 60 centimetres across and is the largest meteorite yet found on Mars. A close-up shows a triangle pattern that iron-nickel meteorites on Earth have too.',
+    fact: 'That pattern formed more than 4.5 billion years ago, as the metal slowly cooled.',
+    credit: 'NASA/JPL-Caltech/Cornell University/USGS',
+    imageUrl: pictureUrl('PIA12191'),
+    sourceUrl: pageUrl('PIA12191'),
+  },
+  {
+    id: 'cheyava-falls',
+    kind: 'material',
+    title: 'The “leopard spot” rock',
+    where: 'Jezero Crater, an ancient river bed',
+    when: '2024',
+    alt: 'A reddish band of rock on Mars covered in small white patches ringed with dark minerals, like leopard spots.',
+    story:
+      'Nicknamed Cheyava Falls, this rock was found by the Perseverance rover. Its reddish band is covered in light patches about a millimetre wide, each one ringed by a thin layer of dark minerals. The rover drilled a sample and kept it on board.',
+    fact: 'The minerals in those spots, vivianite and greigite, are sometimes found on Earth beside living things. Scientists need to study the sample closely before they can say what it means.',
+    credit: 'NASA/JPL-Caltech/MSSS',
+    imageUrl: pictureUrl('PIA26368'),
+    sourceUrl: pageUrl('PIA26368'),
+  },
+];

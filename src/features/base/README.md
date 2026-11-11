@@ -47,8 +47,27 @@ The outpost overview: placed modules, the Life Support and Resources panel showi
 five stores as percentages, the incoming-weather warning, and the Build New Module
 control.
 
+**And the feedback that makes the build legible** (ISS-054, ISS-055, ISS-056):
+
+- the card counts the **extras** against `extraLimitOf()` — the same limit the game uses,
+  so `3/3` means three is the most and not "nearly enough"
+- when the button is dead, the card says **why**, in words a child can read
+- the HUD carries a **Day power** card that moves as the panels go in, so deploying
+  something visibly does something
+
+**The how-to-play guide opens here the first time** (D-060): this is the first screen with
+a mission bar and the first one where the player has to decide something. A `?` button in
+the mission bar brings it back on any later sol.
+
 ## Sol stepping is decided
 
 Turn-based: one sol advances per **Start sols / Advance sol** press (D-030). Adding a
 module is an immediate choice on this screen, not a per-sol decision. There is no clock
 abstraction and no ticker.
+
+## The budget is checked, not assumed
+
+`npm run balance` plays every legal build at every landing site over several forecast
+seeds and **fails** when a site cannot hold all five systems (D-064). The game was
+unwinnable at 14 points and no unit test said so; run the check after touching anything
+in `src/sim/modules.ts`.

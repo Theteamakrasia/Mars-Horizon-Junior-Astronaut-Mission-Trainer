@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { CORE_MODULES } from './modules';
+import { CORE_MODULES, SHIELDING_BASE, SHIELDING_PER_REGOLITH } from './modules';
 import { newRun, landAt, startOutpost, withState, type RunState } from './run';
 
 /*
@@ -91,7 +91,7 @@ describe('landing the outpost', () => {
     const landed = startOutpost(newRun('jezero', 'Tester'), [...CORE_MODULES, 'regolith-shield']);
 
     expect(landed.stores.power).toBe(100);
-    expect(landed.stores.shielding).toBe(50);
+    expect(landed.stores.shielding).toBe(SHIELDING_BASE + SHIELDING_PER_REGOLITH);
   });
 
   it('resets anything a previous attempt left behind', () => {

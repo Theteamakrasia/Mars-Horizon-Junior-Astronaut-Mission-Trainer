@@ -11,7 +11,9 @@
  */
 
 import { crisisForEvent, optionOf } from '../../sim/crises';
-import { goalById, type ScienceGoal } from '../../sim/goals';
+import { goalById, goalProgress, SCIENCE_GOALS, type ScienceGoal } from '../../sim/goals';
+import { PATCH_COUNT, patchesFor, type Patch } from '../../sim/patches';
+import { ordersThrough } from '../../sim/standingOrders';
 import { systemsFor, countOf, NIGHT_HOURS, type ModuleKind } from '../../sim/modules';
 import { RESOURCE_NAMES, type ResourceName } from '../../sim/resources';
 import type { RunState, SolRecord } from '../../sim/run';
@@ -411,15 +413,101 @@ export function scienceSentence(report: ScienceReport): string {
   return `${report.points} science points. ${scienceHeadline(report)} ${scienceDetail(report)}`;
 }
 
+/* ------------------------------------------------------------ the patches -- */
+
+/** The patches a run earned, and the ones still to find. */
+export interface PatchReport {
+  readonly earned: readonly Patch[];
+  /** How many there are in total. */
+  readonly total: number;
+}
+
+/** The patches a run earned. */
+export function patchReport(run: RunState): PatchReport {
+  return { earned: patchesFor(run), total: PATCH_COUNT };
+}
+
+/* ------------------------------------------------------------- the manual -- */
+
+/**
+ * The standing orders the crew worked under, grouped by the system they
+ * belong to.
+ *
+ * This is the keepsake: the twenty-four rules the run was played against,
+ * printed in the debrief, with the NASA fact behind each one. It is the
+ * clearest answer to "what did I learn" that the game has.
+ */
+export interface ManualEntry {
+  readonly id: string;
+  readonly text: string;
+  /** The goal the order belongs to. */
+  readonly goal: ScienceGoal;
+  /** The sol the order arrived on. */
+  readonly sol: number;
+}
+
+/** The standing orders, grouped by goal and in the order they arrived. */
+export function manualFor(run: RunState): readonly (readonly ManualEntry[])[] {
+  const entries = ordersThrough(Math.max(1, run.sol)).map((order) => ({
+    id: order.id,
+    text: order.text,
+    goal: order.goal,
+    sol: order.sol,
+  }));
+
+  return SCIENCE_GOALS.map((goal) => entries.filter((entry) => entry.goal === goal.id));
+}
+
+/* ------------------------------------------------------------ the rover -- */
+
+/**
+ * What the rover found over the run.
+ *
+ * The rover is part of the run now, so what it brought back belongs in the
+ * debrief next to everything else the crew did.
+ */
+export interface RoverReport {
+  /** How many finds the rover turned up. */
+  readonly found: number;
+  /** Historic sites the crew logged. */
+  readonly visited: readonly string[];
+  /** Rocks the crew brought home. */
+  readonly collected: readonly string[];
+  /** Rocks the crew left where they lie. */
+  readonly left: readonly string[];
+}
+
+/** What the rover found over the run. */
+export function roverReport(run: RunState): RoverReport {
+  return {
+    found: run.rover.found.length,
+    visited: run.rover.visited,
+    collected: run.rover.collected,
+    left: run.rover.left,
+  };
+}
+
 /* ------------------------------------------------------------ the goals -- */
 
-/** How one of the five science goals fared over the run. */
-export interface GoalOutcome {
+/**
+ * How one goal fared, before the objective count is joined on.
+ *
+ * `held` — it was fine. `hurt` — it was damaged or dipped. `failed` — it ran
+ * out.
+ */
+interface GoalVerdict {
   readonly id: ScienceGoal;
   readonly title: string;
-  /** `held` — it was fine. `hurt` — it was damaged or dipped. `failed` — it ran out. */
   readonly verdict: 'held' | 'hurt' | 'failed';
   readonly detail: string;
+}
+
+/** How one of the five science goals fared over the run. */
+export interface GoalOutcome extends GoalVerdict {
+  /** Sols that counted towards the goal. */
+  readonly held: number;
+  /** What this goal asked of the crew, in one short line. */
+  readonly aim: string;
 }
 
 /**
@@ -439,7 +527,7 @@ export function goalOutcomes(run: RunState): readonly GoalOutcome[] {
   const title = (id: ScienceGoal): string => goalById(id)?.title ?? id;
 
   /* -- Martian Dust Storm ----------------------------------------------- */
-  const dust: GoalOutcome = (() => {
+  const dust: GoalVerdict = (() => {
     if (run.panelHealth <= 0.25) {
       return {
         id: 'dust-storm',
@@ -469,7 +557,7 @@ export function goalOutcomes(run: RunState): readonly GoalOutcome[] {
   })();
 
   /* -- Life Support ------------------------------------------------------ */
-  const life: GoalOutcome = (() => {
+  const life: GoalVerdict = (() => {
     if (ended.includes('oxygen')) {
       return {
         id: 'life-support',
@@ -506,7 +594,7 @@ export function goalOutcomes(run: RunState): readonly GoalOutcome[] {
   })();
 
   /* -- Radiation Exposure ------------------------------------------------ */
-  const radiation: GoalOutcome = (() => {
+  const radiation: GoalVerdict = (() => {
     if (ended.includes('shielding')) {
       return {
         id: 'radiation',
@@ -534,7 +622,7 @@ export function goalOutcomes(run: RunState): readonly GoalOutcome[] {
   })();
 
   /* -- Power Shortage ---------------------------------------------------- */
-  const power: GoalOutcome = (() => {
+  const power: GoalVerdict = (() => {
     if (blackouts.length > 0) {
       const sols = blackouts.join(', ');
 
@@ -558,7 +646,7 @@ export function goalOutcomes(run: RunState): readonly GoalOutcome[] {
   })();
 
   /* -- Food Production --------------------------------------------------- */
-  const food: GoalOutcome = (() => {
+  const food: GoalVerdict = (() => {
     if (ended.includes('food')) {
       return {
         id: 'food',
@@ -594,7 +682,19 @@ export function goalOutcomes(run: RunState): readonly GoalOutcome[] {
     };
   })();
 
-  return [dust, life, radiation, power, food];
+  /* The count of sols that counted is joined on here, so the debrief and the
+     act screen cannot disagree about how far the crew got. */
+  const objectives = goalProgress(run);
+
+  return [dust, life, radiation, power, food].map((outcome) => {
+    const objective = objectives.find((entry) => entry.id === outcome.id);
+
+    return {
+      ...outcome,
+      held: objective?.held ?? 0,
+      aim: objective?.aim ?? '',
+    };
+  });
 }
 
 /**
@@ -609,9 +709,70 @@ export function nextSteps(run: RunState, limit = 2): readonly NextStep[] {
   const systems = systemsFor(run.modules, run.regionId);
   const nightNeed = Math.max(0, systems.loadKw - systems.nuclearKw) * NIGHT_HOURS;
   const ended = endedBy(run)[0];
+  const objectives = goalProgress(run);
 
-  if (ended === 'water' && countOf(run.modules, 'ice-miner') === 0) {
-    steps.push({ title: 'Add an ice miner', detail: 'Make water from nearby ice, instead of waiting for a supply pod.', art: 'ice-miner' });
+  /**
+   * A goal the crew actually missed: it let a sol slip past that it could
+   * have counted. A goal that held on every sol it had is not something to
+   * give advice about, and a run that was lost early has not missed
+   * anything, it has not finished.
+   */
+  const missed = (id: ScienceGoal): boolean => {
+    const objective = objectives.find((entry) => entry.id === id);
+
+    if (objective === undefined) return false;
+
+    return objective.held < run.sol;
+  };
+
+  /* A goal the crew did not hold is worth a tip even in a run they won: the
+     run was survivable and the science was not. */
+  const goalTips = new Map<ScienceGoal, NextStep>();
+
+  if (missed('life-support') && countOf(run.modules, 'ice-miner') === 0) {
+    goalTips.set('life-support', { title: 'Add an ice miner', detail: 'Make water from nearby ice, instead of waiting for a supply pod.', art: 'ice-miner' });
+  }
+
+  if (missed('food') && countOf(run.modules, 'greenhouse') === 0) {
+    goalTips.set('food', { title: 'Add a greenhouse', detail: 'Grow food every sol so the stores stop falling.', art: 'greenhouse' });
+  }
+
+  if (missed('radiation')) {
+    goalTips.set(
+      'radiation',
+      countOf(run.modules, 'regolith-shield') < 2
+        ? {
+            title: 'Pile on more soil',
+            detail: 'The shield fell below 40 and stayed there. Another regolith shield starts you with more.',
+            art: 'regolith-shield',
+          }
+        : {
+            title: 'Pile soil on the habitat',
+            detail: 'The shield fell below 40 and stayed there. The activity adds 8 shielding a sol.',
+            art: 'regolith-shield',
+          },
+    );
+  }
+
+  if (missed('power') && systems.batteryKwh < nightNeed) {
+    goalTips.set('power', { title: 'Add a battery bank', detail: `One night needs about ${Math.round(nightNeed)} kWh. You had ${systems.batteryKwh}.`, art: 'batteries' });
+  }
+
+  /* The goal that ended the run comes first, because that is the one that
+     mattered. Then the pod, which is the one choice that was a mistake. */
+  const endedGoal: Readonly<Record<string, ScienceGoal>> = {
+    oxygen: 'life-support',
+    water: 'life-support',
+    food: 'food',
+    shielding: 'radiation',
+  };
+  const endedId = ended === undefined ? null : (endedGoal[ended] ?? null);
+  const order: readonly ScienceGoal[] = ['life-support', 'food', 'radiation', 'power'];
+
+  if (endedId !== null) {
+    const tip = goalTips.get(endedId);
+
+    if (tip !== undefined) steps.push(tip);
   }
 
   const pod = run.decisions.find((decision) => decision.crisisId.startsWith('supply-') && decision.optionId !== 'water');
@@ -621,16 +782,12 @@ export function nextSteps(run: RunState, limit = 2): readonly NextStep[] {
     steps.push({ title: 'Choose water from the pod', detail: `The pod on sol ${podSol} could have topped the tank up by 30.`, art: 'choice' });
   }
 
-  if (ended === 'food' && countOf(run.modules, 'greenhouse') === 0) {
-    steps.push({ title: 'Add a greenhouse', detail: 'Grow food every sol so the stores stop falling.', art: 'greenhouse' });
-  }
+  for (const id of order) {
+    if (id === endedId) continue;
 
-  if (ended === 'shielding' && countOf(run.modules, 'regolith-shield') < 2) {
-    steps.push({ title: 'Pile on more soil', detail: 'A regolith shield starts you with more radiation protection.', art: 'regolith-shield' });
-  }
+    const tip = goalTips.get(id);
 
-  if (systems.batteryKwh < nightNeed) {
-    steps.push({ title: 'Add a battery bank', detail: `One night needs about ${Math.round(nightNeed)} kWh. You had ${systems.batteryKwh}.`, art: 'batteries' });
+    if (tip !== undefined) steps.push(tip);
   }
 
   const caught = reviewDecisions(run).find((review) => review.verdict === 'caught');
