@@ -99,6 +99,14 @@
   scrollbar-color: var(--gl-card-strong) transparent;
 }
 
+/* The body scrolls, so its children must keep their own height.
+   Without this a child taller than the space left is squeezed instead of
+   overflowing, and a picture with a fixed aspect ratio pours over its own
+   caption (ISS-071). */
+.sheet__body > * {
+  flex: 0 0 auto;
+}
+
 .sheet__foot {
   flex: 0 0 auto;
   display: flex;

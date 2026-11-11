@@ -11,6 +11,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
+| ISS-071 | The sheet squashed what was inside it, so a NASA picture covered its own caption | medium | agent | fixed | this branch |
 | ISS-069 | The journey check never found the naming screen, so it could not fail and could not pass | medium | agent | fixed | this branch |
 | ISS-068 | The panel said "Sol 0 of 12" on the first day, while the button under it said "Run sol 1" | low | agent | fixed | this branch |
 | ISS-067 | The encyclopedia's "Back to outpost" always went to the build screen, even mid-run | low | agent | fixed | this branch |
@@ -78,6 +79,28 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | ISS-012 | No CI; nothing runs checks on push | low | agent | fixed | adc5767 |
 | ISS-013 | Vitest runs node-env, no jsdom, so DOM is untestable | low | unassigned | open | — |
 | ISS-014 | `base.css` calls the page non-interactive while draggable | low | agent | fixed | this branch |
+
+---
+
+## ISS-071 — The sheet squashed what was inside it, so a NASA picture covered its own caption
+
+- **Reported by:** agent, 2026-11-11, while measuring the new real-data sheet in a headless
+  browser (ISS-070).
+- **Where:** `src/ui/sheet.css` (`.sheet__body`).
+- **Problem:** `.sheet__body` is a flex column with a bounded height and `overflow-y: auto`,
+  but its children kept the default `flex-shrink: 1`. A child taller than the space left
+  was therefore **squeezed rather than overflowing**: the two NASA cards measured 154 px
+  tall while their contents were 522 px and 540 px. The pictures had `aspect-ratio: 16/9`
+  and `width: 100%`, so they did not shrink — they **poured over their own card**, and the
+  caption, the "Did you know?" line and the credit underneath were clipped away. The sheet
+  looked like two photographs with no words at all.
+- **Cause:** the sheet was built for the short sections (a list of work orders, a board of
+  rules), and a flex column that scrolls needs its children told not to shrink. Nothing
+  said so, and the short sections were unaffected, so the bug waited for the first sheet
+  with a picture in it.
+- **Fix:** `.sheet__body > *` gets `flex: 0 0 auto`, so a child keeps its natural height
+  and the body scrolls — which is what a scrolling body is for.
+- **Pre-existing:** yes; it arrived with the sheet in D-070.
 
 ---
 
