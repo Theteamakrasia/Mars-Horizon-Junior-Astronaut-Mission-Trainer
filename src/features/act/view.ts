@@ -407,12 +407,14 @@ export function mountAct(
             weather: 'Clear skies',
             crew: last === undefined ? 'A sol is one Mars day. Ready for our first one?' : `Sol ${last.sol} is done. Ready for the next one?`,
             figures: moduleFigures(state.modules),
+            showAstronaut: false,
           })
         : gameWorld({
             label: 'Crew alert',
             weather: `${EVENT_NAME[crisis.kind]} incoming`,
             crew: CRISIS_BRIEF[crisis.kind].crew,
             figures: moduleFigures(state.modules),
+            showAstronaut: false,
             hint: earthIsInTime(state, crisis)
               ? `Mission Control can answer in ${roundTripMinutes(crisis.sol)} minutes.`
               : `Earth cannot reply before this ${EVENT_NAME[crisis.kind].toLowerCase()} arrives.`,
