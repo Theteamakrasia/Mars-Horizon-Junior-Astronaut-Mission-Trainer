@@ -18,10 +18,11 @@
  * hub, because it *is* that day's work order.
  */
 
-import { cardForSol, factForTopic } from '../../data/nasaGallery';
+import { cardForSol, factFor, factForTopic, regionCard, type NasaCard } from '../../data/nasaGallery';
 import type { DailyFact } from '../../data/nasaDaily';
+import { describeWhen, strongestFlares } from '../../data/spaceweather';
 import { loadDailyFacts } from '../../dom/dailyFactLoader';
-import { loadForecast } from '../../dom/forecastLoader';
+import { loadForecast, type LoadedForecast } from '../../dom/forecastLoader';
 import { h } from '../../dom/h';
 import { earthAdvice, earthIsInTime, optionOf, pendingCrisis, type Crisis } from '../../sim/crises';
 import { oneWayMinutes, roundTripMinutes } from '../../sim/comms';
@@ -133,6 +134,9 @@ export function mountAct(
      says so rather than showing a broken card. */
   let dailyFacts: readonly DailyFact[] = [];
   let dailyDetail = '';
+  /* The live space weather, kept whole: the forecast is the game's reading of
+     it, but the data sheet shows NASA's own readings (D-071). */
+  let loaded: LoadedForecast | null = null;
   const controller = new AbortController();
 
   function stopTimer(): void {
@@ -718,28 +722,129 @@ export function mountAct(
   }
 
   /**
-   * The NASA picture for the sol, and the fact about the day's subject.
+   * The saved NASA card for the sol being played.
+   *
+   * The card follows the sol: sol 1 is the planet you land on, sol 7 is the
+   * dust storm. Before the first sol there is nothing to follow, so the sol
+   * being played is the one that counts — otherwise the section opens on a
+   * picture-less first day.
+   */
+  function learningCard(state: RunState): NasaCard | null {
+    return cardForSol(state.sol + 1);
+  }
+
+  /**
+   * How many NASA pictures are behind the data tile.
+   *
+   * The tile says what is behind it, so it needs the count — and the count has
+   * to agree with what the sheet actually shows.
+   */
+  function picturesBehind(state: RunState): number {
+    return (
+      (dailyFacts.length > 0 ? 1 : 0) +
+      (learningCard(state) === null ? 0 : 1) +
+      (regionCard(state.regionId) === null ? 0 : 1)
+    );
+  }
+
+  /**
+   * The whole NASA layer, in one sheet (D-071).
+   *
+   * The game owns a lot of real data — NASA's picture of the sol, the picture of
+   * the region the player landed in, the live daily picture, the live flare
+   * readings, and forty tagged facts — and until now the section behind the
+   * "Real data" button showed one card. This is all of it, in the order a
+   * child would ask for it: what NASA is doing today, what this sol is about,
+   * where the crew landed, what the Sun is doing, and a fact to take away.
    *
    * The live feed is enrichment (D-053): when NASA did not answer, the screen
-   * shows the saved NASA card and says why, rather than pretending.
+   * says so rather than pretending.
    */
   function dataBody(state: RunState): readonly (Node | false)[] {
-    const last = state.log[state.log.length - 1];
-    const learning = cardForSol(last === undefined ? state.sol : last.sol);
-    const live =
-      dailyFacts.length === 0
-        ? null
-        : h(
-            'div',
-            { class: 'act-data__live' },
-            gameSection('From NASA today', nasaFeedCard(dailyFacts[state.sol % dailyFacts.length] as DailyFact)),
-            h('p', { class: 'gl__note', text: dailyDetail }),
-          );
+    const learning = learningCard(state);
+    const region = regionCard(state.regionId);
 
     return [
+      livePicture(state),
       learning === null ? false : nasaCard(learning),
-      live ?? h('p', { class: 'gl__note', text: dailyDetail.length > 0 ? dailyDetail : 'NASA is not answering right now, so the saved NASA picture above is the one on screen.' }),
+      region === null ? false : nasaCard(region, 'Your landing site'),
+      spaceWeather(),
+      nasaFacts(state),
     ];
+  }
+
+  /** NASA's live daily picture, or the honest reason there is not one. */
+  function livePicture(state: RunState): HTMLElement {
+    if (dailyFacts.length === 0) {
+      return h('p', {
+        class: 'gl__note',
+        text: dailyDetail.length > 0 ? dailyDetail : 'NASA is not answering right now, so the saved NASA picture below is the one on screen.',
+      });
+    }
+
+    return h(
+      'div',
+      { class: 'act-data__live' },
+      gameSection('From NASA today', nasaFeedCard(dailyFacts[state.sol % dailyFacts.length] as DailyFact)),
+      h('p', { class: 'gl__note', text: dailyDetail }),
+    );
+  }
+
+  /**
+   * NASA's own space-weather readings, and where they came from.
+   *
+   * The forecast on the panel is the game's reading of these readings — a
+   * timetable, one event per sol. This is the real thing: the class of each
+   * flare and the day it peaked, strongest first, with the source underneath so
+   * the player knows whether they are looking at a live reading or at the
+   * game's long-run record.
+   */
+  function spaceWeather(): HTMLElement {
+    const readings = loaded?.flares ?? [];
+    const strongest = strongestFlares(readings);
+    const list = h('div', { class: 'act-weather' });
+
+    for (const flare of strongest) {
+      list.append(
+        h(
+          'div',
+          { class: 'act-weather__row' },
+          h('span', { class: 'act-weather__class', text: flare.classType }),
+          h('span', { class: 'act-weather__when', text: describeWhen(flare.peakTime) }),
+        ),
+      );
+    }
+
+    const source = loaded?.detail ?? 'The live reading has not come back yet.';
+
+    /* Nothing live: say so once, and say where the forecast on the desk came
+       from instead. Two sentences saying the same thing is noise. */
+    if (strongest.length === 0) {
+      list.append(
+        h('p', {
+          class: 'gl__note',
+          text: `No live flare readings came back, so the forecast on the desk is the game’s own record of how often these happen. ${source}`,
+        }),
+      );
+
+      return gameSection('Real space weather', list);
+    }
+
+    const count = readings.length === 1 ? '1 reading' : `${readings.length} readings`;
+
+    return gameSection('Real space weather', list, h('p', { class: 'gl__note', text: `${count}, biggest first. ${source}` }));
+  }
+
+  /** Two NASA facts to take away, one for the sol and one for the run. */
+  function nasaFacts(state: RunState): HTMLElement {
+    const today = factFor(state.sol + 5);
+    const later = factFor(state.sol + 12);
+
+    return gameSection(
+      'NASA facts',
+      h('p', { class: 'act-fact', text: `NASA fact · ${today.text} (${today.credit})` }),
+      h('p', { class: 'act-fact', text: `NASA fact · ${later.text} (${later.credit})` }),
+    );
   }
 
   /**
@@ -1058,7 +1163,11 @@ export function mountAct(
             ],
           });
 
-    const tiles = hubTiles(state, { nasaToday: dailyFacts.length > 0 });
+    const tiles = hubTiles(state, {
+      nasaToday: dailyFacts.length > 0,
+      pictures: picturesBehind(state),
+      liveFlares: loaded?.flares.length ?? 0,
+    });
     const panel = crisis === null ? hubPanel(state, tiles) : crisisPanel(state, crisis);
 
     const screen = gameScreen({
@@ -1145,6 +1254,7 @@ export function mountAct(
       if (disposed || run === null) return;
 
       loadingForecast = false;
+      loaded = result;
       run = withState(run, { forecast: result.forecast });
       setRun(run);
       render();

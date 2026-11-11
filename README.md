@@ -305,6 +305,10 @@ is a label and one line of state, and each opens its section over the desk. The 
 readable at a glance, and the review button carries the last sol's net change as chips,
 so a change is never something you have to hunt for.
 
+**View real data** opens the whole NASA layer (D-071): NASA's live daily picture, the
+saved card for the sol, a real photograph of the landing region you chose, NASA's own
+flare readings with the service they came from, and two NASA facts to take away.
+
 **Each sol has three work orders on the desk.** Every order says what it costs and what it
 gives, and carries **two readings** to check before you approve it — the numbers are there
 to be compared, and looking is the skill. Some orders have a **tool**: work it and you win
@@ -527,6 +531,13 @@ NASA cards, never a replacement: when NASA is busy the saved card stays on scree
 game says why. The game is complete without a network, and the player is never shown a
 number or a picture we cannot name the source of.
 
+All of it lives in one place on the act screen — the **Real data** button (D-071). It opens
+NASA's live daily picture, the saved card for the sol, **a photograph of the landing region
+the player chose**, **NASA's own flare readings** (the class, the day it peaked, and the
+service they came from), and two NASA facts. The region photo used to appear once on the
+landing screen and never again, and the flare readings were thrown away by the loader,
+leaving only the game's own timetable.
+
 ---
 
 <a id="kid-friendly-by-design"></a>
@@ -583,7 +594,7 @@ player decision, the sol loop, what is built and where a new event plugs in are 
 | The rover | **Built** — part of the run: sent out by an order, comes back with a document (D-062) |
 | The how-to-play guide | **Built** — ten steps; it opens by itself at the build screen |
 | The balance | **Checked, not assumed** — `npm run balance` fails if a site cannot hold all five systems (D-064) |
-| Tests | **785 tests in 36 files** (`npm test`, 2026-11-11) |
+| Tests | **791 tests in 36 files** (`npm test`, 2026-11-11) |
 | Checks | **Clean** — import layers, banned APIs, markup, strict typecheck |
 | Browser checks | **Green** — build 25/25, rover 9/9, the whole journey with no console errors |
 | Save / resume | **Not built** — in-memory only (D-003) |
@@ -603,7 +614,7 @@ player decision, the sol loop, what is built and where a new event plugs in are 
 ### The one invariant
 
 `sim/` and each feature's `model.ts` are pure: no `document`, no `window`, no network. That
-is what lets 785 tests run in a few seconds with no browser, no mocks, and no jsdom. It is enforced by
+is what lets 791 tests run in a few seconds with no browser, no mocks, and no jsdom. It is enforced by
 `npm run check` (`scripts/check-imports.mjs`), not left to good intentions.
 
 ---
@@ -615,7 +626,7 @@ is what lets 785 tests run in a few seconds with no browser, no mocks, and no js
 npm install       # dev dependencies only — the game ships no runtime dependencies
 npm run dev       # Vite dev server, http://localhost:5173
 npm run check     # import-layer + banned-API + markup checks, then tsc --noEmit
-npm test          # Vitest, 785 tests in 36 files
+npm test          # Vitest, 791 tests in 36 files
 npm run balance   # is the game still winnable? run this after touching sim/
 npm run build     # production bundle in dist/
 npm run preview   # serve the built bundle locally

@@ -514,6 +514,28 @@ try {
   note('the stats button opens the five systems', meters === 5, `${meters} meters`);
   await closeSheet();
 
+  // 12b. The real NASA data, behind its button. It used to show one picture
+  //      while the game owned a region's photo, the live flare readings and
+  //      forty facts (ISS-070).
+  await openTile('data');
+  const realData = await evaluate(`(() => ({
+    cards: document.querySelectorAll('#act .nasa-card').length,
+    kickers: [...document.querySelectorAll('#act .nasa-card__kicker')].map((n) => n.textContent),
+    weather: document.querySelectorAll('#act .act-weather__row').length,
+    facts: document.querySelectorAll('#act .act-fact').length,
+    sections: [...document.querySelectorAll('#act .sheet__body .gl__label')].map((n) => n.textContent),
+    tile: document.querySelector('#act .act-tile[data-tile="data"] .act-tile__status')?.textContent ?? '',
+  }))()`);
+
+  note('the data button opens the NASA layer', (realData?.cards ?? 0) > 0, `${realData?.cards ?? 0} cards`);
+  note('and it shows more than one picture', (realData?.cards ?? 0) > 1, `${realData?.cards ?? 0} pictures`);
+  note("including the landing site's own photo", (realData?.kickers ?? []).some((label) => label.includes('landing site')), (realData?.kickers ?? []).join(' | '));
+  note('the real space weather is in there', (realData?.sections ?? []).some((label) => label.includes('space weather')), (realData?.sections ?? []).join(' | '));
+  note('and there are NASA facts to read', (realData?.facts ?? 0) >= 2, `${realData?.facts ?? 0} facts`);
+  note('the button says what is behind it', /\d+\s*picture/.test(realData?.tile ?? ''), realData?.tile ?? '');
+
+  await closeSheet();
+
   // 13. Run a sol, and the review lands on the hub.
   await clickIn('act', 'Run sol');
   await sleep(1400);

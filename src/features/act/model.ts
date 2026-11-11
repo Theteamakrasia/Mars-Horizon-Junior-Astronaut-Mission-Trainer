@@ -539,9 +539,21 @@ export interface HubTile {
   readonly chips: readonly ChangeRow[];
 }
 
-/** What the hub needs that the run cannot know: whether NASA answered. */
+/**
+ * What the hub needs that the run cannot know: what NASA has answered.
+ *
+ * The model cannot ask the network, and it may not import `data/` (a model may
+ * only import `sim/`), so the view counts the pictures and the readings and
+ * passes the numbers in. The data tile then says what is behind it, which is
+ * the whole point of a tile.
+ */
 export interface HubContext {
+  /** True when NASA's daily picture answered today. */
   readonly nasaToday: boolean;
+  /** How many NASA pictures are behind the data tile. */
+  readonly pictures: number;
+  /** How many live space-weather readings came back. */
+  readonly liveFlares: number;
 }
 
 const plural = (count: number, one: string, many = `${one}s`): string =>
@@ -614,7 +626,12 @@ export function hubTiles(run: RunState, context: HubContext): readonly HubTile[]
   tiles.push({
     id: 'data',
     label: 'Real data',
-    status: context.nasaToday ? "Today's NASA picture" : 'Saved NASA picture',
+    status:
+      context.liveFlares > 0
+        ? `${plural(context.pictures, 'picture')} · ${plural(context.liveFlares, 'live flare')}`
+        : context.nasaToday
+          ? `${plural(context.pictures, 'picture')} · live today`
+          : `${plural(context.pictures, 'picture')} · saved`,
     attention: false,
     chips: [],
   });

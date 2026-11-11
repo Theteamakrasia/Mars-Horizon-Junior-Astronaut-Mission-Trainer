@@ -8,6 +8,64 @@ than a documented one.
 
 ---
 
+## 2026-11-11 — The "Real data" section is the whole NASA layer, and the sheet stops squashing what is inside it
+
+**Did**
+
+- **Made the "Real data" section the whole NASA layer** (D-071, ISS-070). It holds NASA's
+  live daily picture, the saved NASA card for the sol, **the landing region's own
+  photograph** — which used to appear once on the landing screen and never again —
+  **NASA's own space-weather readings** (the flare class and the day it peaked, strongest
+  first, with the source they came from: DONKI, NOAA, or the game's long-run record),
+  and two NASA facts to take away. The tile's line of state counts what is behind it:
+  "3 pictures · 5 live flares".
+- **Carried the live readings out of the loader.** `dom/forecastLoader.ts` kept only the
+  game's timetable and threw NASA's own readings away; `LoadedForecast.flares` now holds
+  them, and `data/spaceweather.ts` gains `strongestFlares` to order them (A<B<C<M<X, then
+  the number) — DONKI can return thirty days of flares and a screen cannot show them all.
+- **The forecast stays on the main panel.** It is the game's schedule and it is what the
+  player acts on; a flare reading is NASA's, and the two are now kept apart.
+- **Fixed the sheet squashing its contents** (ISS-071). The body is a flex column that
+  scrolls, and its children were shrinking instead of overflowing, so a NASA picture with
+  a fixed aspect ratio poured over its own caption — the card measured 154 px tall with
+  522 px of content in it. The body's children now keep their own height.
+
+**Files**
+
+- `src/features/act/view.ts`, `src/features/act/model.ts`, `src/features/act/act.css`,
+  `src/features/act/model.test.ts` — the NASA layer and the tile's line of state
+- `src/data/spaceweather.ts`, `src/data/spaceweather.test.ts` — `strongestFlares`
+- `src/dom/forecastLoader.ts` — `LoadedForecast.flares`
+- `src/ui/sheet.css` — the body scrolls, its children do not shrink
+- `tools/browser-check-build.mjs` — six new assertions on the data sheet
+- `docs/architecture.md`, `docs/game-flow.md`, `docs/team/decisions.md`,
+  `docs/team/issues.md`, `docs/team/progress-log.md`, `docs/team/tasks.md`, `AGENTS.md`,
+  `src/features/act/README.md`
+
+**Problems**
+
+- **The saved card was for the sol just finished, not the sol being played.** On the
+  first day there is no finished sol, so `cardForSol(0)` was null and the section opened
+  with no sol picture at all. It now asks for the sol being played, which is also the one
+  a player wants to read.
+- **Two sheets of the same game, two different "not answered yet" sentences.** The live
+  daily picture and the live flare readings each have their own honest note, and the
+  first draft said the same thing twice in one section. The space-weather section now
+  says it once, with the source underneath.
+- **The region photograph is a remote NASA URL**, like the saved cards already were, so
+  with no network it is a broken picture. That was accepted rather than shipping local
+  copies — the images exist at NASA and nowhere else.
+- **The sheet bug was not visible in any test.** It only showed when a child-sized card
+  with a fixed-aspect picture was put in a sheet for the first time, and only a
+  measurement in a real browser caught it.
+
+**Next**
+
+- The data sheet is a long scroll: three pictures, each with its caption and its fact.
+  A child who wants the one fact about the region has to pass two photographs to get it.
+
+---
+
 ## 2026-11-11 — The desk becomes a hub of buttons, and every picture is drawn by the game
 
 **Did**

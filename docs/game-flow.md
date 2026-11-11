@@ -424,7 +424,9 @@ Three things in this game come from NASA, and they behave differently on purpose
 **Space weather.** The forecast's timetable is rolled per run (D-048) and the *size* of
 each flare comes from live data: NASA DONKI first, then NOAA SWPC, then the long-run
 record of real M and X flares when neither answers. `data/spaceweather.ts` is the only
-place allowed to make that request.
+place allowed to make that request. The act screen's **Real data** sheet shows NASA's own
+readings — the flare class and the day it peaked, strongest first, with the source they
+came from — and not only the game's timetable (D-071).
 
 **The daily picture.** Every sol also carries a real NASA picture and its written
 explanation, read live from the Astronomy Picture of the Day, filtered to Mars
@@ -451,6 +453,12 @@ Beside them, forty short NASA facts are filed under six topics — power, dust, 
 food, radiation and missions — and one topic per science goal. That is what lets the
 act screen put the fact about water next to the activity that touches water, and the
 fact about radiation next to the one that piles soil on the habitat.
+
+**Where the layer is shown.** The act screen's *Real data* sheet is where all of it lives
+(D-071): NASA's live daily picture, the saved card for the sol, the **landing region's own
+photograph**, NASA's own space-weather readings, and two facts to take away. The region's
+photograph used to appear once on the landing screen and never again; the flare readings
+used to be thrown away by the loader, leaving only the game's timetable.
 
 ---
 

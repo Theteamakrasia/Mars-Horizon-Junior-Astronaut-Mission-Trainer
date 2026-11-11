@@ -24,7 +24,7 @@ than eyeballed, and it is what `npm run check` protects.
 
 ## The invariant, and why it is enforced
 
-785 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
+791 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
 reference it would still work, and the cost would surface later as an untestable bug.
 Enforced as `no-dom-in-pure-zone`.
 
@@ -423,7 +423,9 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         (D-070).
     │   ├── sheet.css                 complete   the backdrop and the card. `position: fixed`, so
     │   │                                         a sheet is not affected by the panel's own
-    │   │                                         scroll or its one-column collapse.
+    │   │                                         scroll or its one-column collapse. The body
+    │   │                                         scrolls, so its children are told not to
+    │   │                                         shrink (ISS-071).
     │   ├── registry.ts                 complete   the one composition seam. Exports ScreenFactory,
     │   │                                         screenMount, resolveScreen, nextStop,
     │   │                                         allScreenMounts. Maps all nine built routes onto
@@ -489,7 +491,10 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         dustScore?) fetches the flares and runs
     │   │                                         createForecast. The join between data/ and sim/,
     │   │                                         shared by base and act without a cross-feature
-    │   │                                         import. Never rejects.
+    │   │                                         import. Never rejects. It also carries the
+    │   │                                         raw readings out in `flares`, because the
+    │   │                                         forecast is the game's reading of them and
+    │   │                                         the data sheet shows NASA's own (D-071).
     │   ├── dailyFactLoader.ts          complete   LoadedDailyFacts; loadDailyFacts(signal) fetches
     │   │                                         the NASA daily pictures. The join between data/ and
     │   │                                         sim/, shared by act and debrief without a
@@ -515,10 +520,13 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         ('donki' | 'noaa' | 'fallback'),
     │   │                                         parseFlares, parseNoaaFlares,
     │   │                                         fetchSpaceWeather, lastSource, lastDetail,
-    │   │                                         describeWhen. NASA DONKI -> NOAA SWPC ->
-    │   │                                         an empty fallback, in that order; every
-    │   │                                         flare is kept, not just the strongest.
-    │   ├── spaceweather.test.ts        complete   25 tests; every fetch is injected
+    │   │                                         describeWhen, strongestFlares. NASA DONKI ->
+    │   │                                         NOAA SWPC -> an empty fallback, in that
+    │   │                                         order; every flare is kept, not just the
+    │   │                                         strongest. `strongestFlares` orders the
+    │   │                                         readings for a screen that cannot show
+    │   │                                         thirty days of them (D-071).
+    │   ├── spaceweather.test.ts        complete   31 tests; every fetch is injected
     │   ├── nasaGallery.ts             complete   Twelve sol cards plus a closing card,
     │   │                                         five real region photos and forty tagged
     │   │                                         facts. Static by choice (D-042): no
@@ -634,7 +642,10 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │   │                                     hubTiles, HubSection, HubTile, HubContext.
     │   │   │                                     Pure, 38 tests. It words the hub's buttons
     │   │   │                                     and never touches an icon: a model may not
-    │   │   │                                     import ui/ (D-070).
+    │   │   │                                     import ui/ (D-070). `HubContext` carries
+    │   │   │                                     what NASA answered — the count of pictures
+    │   │   │                                     and the count of live readings — because a
+    │   │   │                                     model may not import data/ (D-071).
     │   │   ├── model.test.ts            complete   38 literal-input tests
     │   │   ├── view.ts                  complete   mountAct(root, run, setRun) -> teardown.
     │   │   │                                     **The desk is a hub of five or six buttons**,
@@ -652,9 +663,15 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │   │                                     `debrief`. A crisis replaces the hub (D-040).
     │   │   │                                     Every pictogram is an `IconName`; the mapping
     │   │   │                                     from an activity id to its icon lives here,
-    │   │   │                                     not in sim/.
+    │   │   │                                     not in sim/. The **real data sheet is the
+    │   │   │                                     whole NASA layer** (D-071): NASA's live
+    │   │   │                                     daily picture, the saved card for the sol,
+    │   │   │                                     the landing region's own photograph, NASA's
+    │   │   │                                     own space-weather readings with their
+    │   │   │                                     source, and two NASA facts.
     │   │   └── act.css                  complete   the hub tiles and chips, the tool, the crisis
-    │   │                                             option artwork and the work-order cards
+    │   │                                             option artwork, the work-order cards and
+    │   │                                             the real-data sheet's flare rows
     │   └── debrief/                    COMPLETE   TASK-031. Why the run was won or lost.
     │       ├── README.md                           the contract
     │       ├── model.ts                 complete   Explanation, ConsumptionSummary, NextStep,
@@ -814,7 +831,9 @@ There are two network paths outside the landing page, both in `data/`.
 **Space weather.** `base` and `act` call `dom/forecastLoader` → `data/spaceweather`, which
 tries NASA DONKI, then NOAA SWPC, then an empty fallback. The event *schedule* is seeded
 per run in `sim/forecast.ts` (D-048); the flare *size* is the part that comes from the
-network.
+network. The loader also carries the raw readings out in `LoadedForecast.flares`, so the
+act screen's **real data sheet** can show NASA's own flare classes and dates and say
+where they came from, not only the game's timetable (D-071).
 
 **NASA's daily pictures.** `act` calls `dom/dailyFactLoader` → `data/nasaDaily`, which asks
 NASA's Astronomy Picture of the Day for Mars pictures and falls back to the saved gallery
@@ -856,13 +875,14 @@ returns to `landing`, which keeps running behind the mounted screen.
 | module | exports | contract |
 | --- | --- | --- |
 | `main.ts` | none (side effects) | composition root; throws on a missing element id |
-| `dom/forecastLoader` | `LoadedForecast`, `loadForecast` | `(signal?, seed = Date.now(), dustScore = NEUTRAL_SCORE.dust) -> Promise<LoadedForecast>`; never rejects. Fetches flares through `data/spaceweather`, then runs `sim/forecast.createForecast`. Sits in `dom/` because it joins `data/` and `sim/`, and both `base` and `act` need it without importing each other (R-5) |
+| `dom/forecastLoader` | `LoadedForecast`, `loadForecast` | `(signal?, seed = Date.now(), dustScore = NEUTRAL_SCORE.dust) -> Promise<LoadedForecast>`; never rejects. Fetches flares through `data/spaceweather`, then runs `sim/forecast.createForecast`. Sits in `dom/` because it joins `data/` and `sim/`, and both `base` and `act` need it without importing each other (R-5). `LoadedForecast.flares` carries the raw readings out, so a screen can show NASA's own space weather and not only the game's timetable (D-071) |
 | `dom/dailyFactLoader` | `LoadedDailyFacts`, `loadDailyFacts` | `(signal?) -> Promise<LoadedDailyFacts>`; never rejects. Fetches NASA's daily pictures through `data/nasaDaily` and reports the source. In `dom/` for the same reason as the forecast loader: `act` and `debrief` both want it and R-5 stops them importing each other |
 | `dom/svg` | `svg` | `(shapes, attrs = {}) -> SVGSVGElement`; an `<svg>` holding one `<path>` per shape, with `stroke`/`fill` set to `currentColor`. Built as nodes rather than parsed from a string, so the one place that knows the SVG namespace can never be handed markup. Used by `ui/icons.ts` only |
 | `data/spaceweather` | `SpaceWeatherEvent`, `SpaceWeatherSource` | a flare as the game uses it; source is `'donki' \| 'noaa' \| 'fallback'` |
 | | `fetchSpaceWeather` | `(options?) -> Promise<SpaceWeatherEvent[]>`; never rejects. Tries NASA DONKI, then NOAA SWPC, then the empty `FALLBACK_FLARES`. Every flare is kept, not just the strongest. Remembers one answer so two screens cost one request; an answer abandoned by its caller is not remembered |
 | | `parseFlares`, `parseNoaaFlares` | `(json) -> SpaceWeatherEvent[]`; validate every field and drop anything malformed rather than trusting the wire |
 | | `lastSource`, `lastDetail`, `resetSpaceWeather` | what the UI reports; reset is for tests |
+| | `strongestFlares` | `(flares, count = 4) -> SpaceWeatherEvent[]`; the biggest readings first, by class (A<B<C<M<X, then the number). A live feed carries days of flares and a screen cannot show them all (D-071). Pure, and it does not touch the list it was given |
 | | `describeWhen` | `(peakTime) -> string`, e.g. `11 May 2024`; `'recently'` on a bad date |
 | `data/nasaGallery` | `NasaFigure`, `NasaCard`, `RegionCard`, `NASA_CARDS`, `NEXT_HORIZON_CARD`, `REGION_CARDS`, `NasaFact`, `FACTS` | twelve curated sol cards plus one closing artist concept; five region photos; forty tagged facts. Every card carries an id, alt text, caption, fact, credit and source link |
 | | `cardForSol`, `regionCard` | the card for a sol or a region, or `null` for one outside the run |
@@ -888,7 +908,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 | `ui/activityPlayer` | `Inspection`, `InspectionResult`, `makeInspection` | `(engine, sol) -> Inspection`; the work-order player for one order: which tool it uses, what the two readings ask for, and how it is graded. The grading itself is in `sim/minigames.ts`, so the rules stay pure (D-060). `Inspection.done()` reports whether the player has finished; nothing gates on it yet, so the Finish button is always there |
 | `ui/guide` | `guidePanel`, `guideButton` | `guidePanel(onClose) -> HTMLElement`; the how-to-play panel, with each step saying where it happens. `guideButton(onOpen) -> HTMLButtonElement`; the `?` icon button in the header, beside Menu, on every screen that opts in with `ScreenOptions.help`. The words are in `sim/guide.ts` (D-060, D-070) |
 | `ui/icons` | `IconName`, `ICON_PATHS`, `RESOURCE_ICON`, `RANK_ICON`, `icon` | `ICON_PATHS: Record<IconName, readonly Shape[]>` — the game's 34 stroked 24×24 line drawings, drawn through `dom/svg.svg`. `icon(name, label?) -> SVGSVGElement`: decorative and hidden from a screen reader unless `label` is given, in which case it becomes an `img` with that name. `RESOURCE_ICON` maps the five stores, `RANK_ICON` the five science ranks. Pure data plus one DOM builder, so a test can read every path without a browser (D-070) |
-| `ui/sheet` | `SheetOptions`, `sheet`, `sheetCloseButton` | `(options: {icon, kicker?, title, body, footer?, doneLabel?, onClose}) -> HTMLElement`; one section of a screen as a dialog over it: backdrop, card, header bar, scrolling `.sheet__body`, closing button, and one `onClose` for the close button, the done button, the backdrop and `Escape`. A Tab trap keeps focus inside. `sheetCloseButton(mounted) -> HTMLElement \| null` finds the button to focus once it is in the document. The act hub's five or six tiles open into it (D-070) |
+| `ui/sheet` | `SheetOptions`, `sheet`, `sheetCloseButton` | `(options: {icon, kicker?, title, body, footer?, doneLabel?, onClose}) -> HTMLElement`; one section of a screen as a dialog over it: backdrop, card, header bar, scrolling `.sheet__body`, closing button, and one `onClose` for the close button, the done button, the backdrop and `Escape`. A Tab trap keeps focus inside. The body's children keep their own heights and the body scrolls, so a picture is never clipped by its own card (ISS-071). `sheetCloseButton(mounted) -> HTMLElement \| null` finds the button to focus once it is in the document. The act hub's five or six tiles open into it (D-070) |
 | `sim/drift` | `stepDrift` | `(state, dt, size, viewport) -> DriftResult`; reflects off walls, returns the fastest `Impact` or null |
 | | `createInitialDrift` | `(size, viewport, speed) -> DriftState`; random 30-45 degree diagonal. **5 `Math.random()` calls** |
 | | `driftSpeedForViewport` | `(width) -> number`, clamped 96..176 px/s |
@@ -1025,7 +1045,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `hubTiles(run, context)`, `HubSection`, `HubTile`, `HubContext` | the desk as five buttons, or six once a sol has run: each a label, one line of state, a `chips` list for the review, and whether it `attention`s. Pure words — no icon, because a model may not import `ui/` (D-070) |
 | | `scienceSummary`, `scienceSentence` | the score, the rank, and the road to the next one |
 | | `powerToday` | `(run) => number`; the power the crew can actually spend today — what is left after the panels have filled the batteries and the systems have taken their share. It is the number the order prices come out of, and the number the power card shows (ISS-060) |
-| `features/act/view` | `mountAct` | `(root, run, setRun) -> teardown`; **the desk is a hub of five buttons, or six after a sol** (D-070): today's tasks, the desk, the standing orders, the colony stats, NASA's real data, and the review of the last sol. Each is a label and one line of state, and each opens its section as a `ui/sheet` over the desk. The review tile carries the sol's net-change chips, so a change is never only behind a button (ISS-057). The science points sit in the panel head's top right and `Sol N of 12` in its kicker (ISS-068). Run sol calls `advanceSol`, then `setRun`; a finished run navigates to `debrief`. A crisis replaces the hub in place, with its countdown and "take your time" switch (D-040). An activity's pictogram is mapped from its id here, not in `sim/` |
+| `features/act/view` | `mountAct` | `(root, run, setRun) -> teardown`; **the desk is a hub of five buttons, or six after a sol** (D-070): today's tasks, the desk, the standing orders, the colony stats, NASA's real data, and the review of the last sol. Each is a label and one line of state, and each opens its section as a `ui/sheet` over the desk. The review tile carries the sol's net-change chips, so a change is never only behind a button (ISS-057). The science points sit in the panel head's top right and `Sol N of 12` in its kicker (ISS-068). The **real data sheet is the whole NASA layer** (D-071): the live daily picture, the saved card for the sol, the landing region's own photograph, NASA's own space-weather readings with their source, and two NASA facts; the tile counts what is behind it. Run sol calls `advanceSol`, then `setRun`; a finished run navigates to `debrief`. A crisis replaces the hub in place, with its countdown and "take your time" switch (D-040). An activity's pictogram is mapped from its id here, not in `sim/` |
 | `features/debrief/model` | `explainOutcome` | `(run) -> {headline, detail, confident}`; conservative ledger attribution — only claims a cause when a logged fact establishes it, otherwise `confident: false` and the screen points at the timeline |
 | | `scienceReport`, `scienceHeadline`, `scienceDetail`, `scienceSentence` | what science the run did, the rank it earned, and every activity the crew chose. Measures the science, not the outcome (D-052) |
 | | `consumptionSummary`, `lowestPoints`, `blackoutSols`, `reviewDecisions`, `timeline` | arithmetic over the log; per-decision verdicts from fixed option rules; one row per sol |

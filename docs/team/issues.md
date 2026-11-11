@@ -12,6 +12,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
 | ISS-071 | The sheet squashed what was inside it, so a NASA picture covered its own caption | medium | agent | fixed | this branch |
+| ISS-070 | The "Real data" section showed one picture, so the game looked like it owned one NASA picture | low | agent | fixed | this branch |
 | ISS-069 | The journey check never found the naming screen, so it could not fail and could not pass | medium | agent | fixed | this branch |
 | ISS-068 | The panel said "Sol 0 of 12" on the first day, while the button under it said "Run sol 1" | low | agent | fixed | this branch |
 | ISS-067 | The encyclopedia's "Back to outpost" always went to the build screen, even mid-run | low | agent | fixed | this branch |
@@ -101,6 +102,33 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 - **Fix:** `.sheet__body > *` gets `flex: 0 0 auto`, so a child keeps its natural height
   and the body scrolls — which is what a scrolling body is for.
 - **Pre-existing:** yes; it arrived with the sheet in D-070.
+
+---
+
+## ISS-070 — The "Real data" section showed one picture, so the game looked like it owned one NASA picture
+
+- **Reported by:** the player, 2026-11-11, on the act screen's new hub: *"it's only showing
+  the picture now of real nasa data. but it used to show many more data."*
+- **Where:** `src/features/act/view.ts` (`dataBody`), behind the hub's "Real data" tile
+  (D-070).
+- **Problem:** the section was called *Real data* and held one NASA card — the live daily
+  picture, or the saved card for the sol when NASA's feed did not answer. The game owns far
+  more real data than that: **a NASA photograph of the landing region the player actually
+  chose** (`REGION_CARDS`, five of them, shown once on the landing screen and never again),
+  **NASA's own space-weather readings** (the flare class and the day it peaked), and
+  **forty tagged facts**. A child who opened the button named after real data found one
+  picture, and the rest of the NASA layer was invisible from the screen that runs the day.
+- **Cause:** the hub was built from the old panel's sections, and the old panel had one
+  NASA block at the bottom of a long scroll. Moving it into a sheet kept it as it was —
+  a picture and a note — without asking what "real data" should mean on a screen that now
+  has a button with that name.
+- **Fix:** the sheet is now the whole NASA layer (D-071): NASA's live daily picture, the
+  saved card for the sol, **the landing region's own photograph**, **the live flare
+  readings with the source they came from**, and two NASA facts to take away. The tile's
+  line of state counts what is behind it ("3 pictures · 5 live flares"), and
+  `dom/forecastLoader.ts` carries the raw readings out instead of throwing them away.
+- **Pre-existing:** no; the section was thin from the moment D-070 landed, and the player
+  found it on the first day.
 
 ---
 
@@ -1232,7 +1260,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-**Next free id: ISS-070.**
+**Next free id: ISS-071.**
 
 
 ---

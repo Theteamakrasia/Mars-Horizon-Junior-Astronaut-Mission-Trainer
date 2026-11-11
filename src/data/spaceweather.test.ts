@@ -9,6 +9,8 @@ import {
   parseFlares,
   parseNoaaFlares,
   resetSpaceWeather,
+  strongestFlares,
+  type SpaceWeatherEvent,
 } from './spaceweather';
 
 /*
@@ -295,5 +297,51 @@ describe('describeWhen', () => {
 
   it('does not crash on a bad date', () => {
     expect(describeWhen('nonsense')).toBe('recently');
+  });
+});
+
+describe('strongestFlares', () => {
+  const flare = (classType: string, peakTime = '2024-05-11T01:23:00Z'): SpaceWeatherEvent => ({
+    kind: 'flare',
+    classType,
+    peakTime,
+    approximate: false,
+  });
+
+  it('puts the biggest class first, and the letters count', () => {
+    const strongest = strongestFlares([flare('C1.0'), flare('X1.0'), flare('M4.2')]);
+
+    expect(strongest.map((event) => event.classType)).toEqual(['X1.0', 'M4.2', 'C1.0']);
+  });
+
+  it('counts the number inside a letter', () => {
+    const strongest = strongestFlares([flare('M1.0'), flare('M4.2')]);
+
+    expect(strongest.map((event) => event.classType)).toEqual(['M4.2', 'M1.0']);
+  });
+
+  it('keeps only the few that were asked for', () => {
+    const strongest = strongestFlares([flare('B1.0'), flare('C1.0'), flare('M1.0'), flare('X1.0'), flare('A1.0')], 2);
+
+    expect(strongest).toHaveLength(2);
+    expect(strongest.map((event) => event.classType)).toEqual(['X1.0', 'M1.0']);
+  });
+
+  it('sorts an unreadable class last instead of throwing', () => {
+    const strongest = strongestFlares([flare('nonsense'), flare('B2.0')]);
+
+    expect(strongest.map((event) => event.classType)).toEqual(['B2.0', 'nonsense']);
+  });
+
+  it('does not touch the list it was given', () => {
+    const flares = [flare('C1.0'), flare('X1.0')];
+
+    strongestFlares(flares);
+
+    expect(flares.map((event) => event.classType)).toEqual(['C1.0', 'X1.0']);
+  });
+
+  it('answers nothing for nothing', () => {
+    expect(strongestFlares([])).toEqual([]);
   });
 });

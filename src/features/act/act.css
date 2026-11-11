@@ -555,6 +555,53 @@
   line-height: 1.3;
 }
 
+/* ------------------------------------------------------- the real data sheet -- */
+
+/*
+ * NASA's own space-weather readings.
+ *
+ * A flare class is a short code (M4.2), so it is set in the game's own weight
+ * and given a colour of its own: the reading is the headline, and the date it
+ * peaked is the quiet line under it.
+ */
+.act-weather {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(3px, 0.4vw, 8px);
+}
+
+.act-weather__row {
+  display: flex;
+  align-items: baseline;
+  gap: clamp(6px, 0.7vw, 14px);
+  padding: clamp(3px, 0.4vw, 8px) clamp(6px, 0.7vw, 14px);
+  border-radius: clamp(6px, 0.6vw, 12px);
+  background: var(--gl-card);
+}
+
+.act-weather__class {
+  color: var(--gl-orange-deep);
+  font-family: var(--gl-display);
+  font-weight: 900;
+  font-size: clamp(0.72rem, 0.92vw, 1.1rem);
+  letter-spacing: 0.04em;
+}
+
+.act-weather__when {
+  color: var(--gl-muted);
+  font-size: clamp(0.55rem, 0.7vw, 0.85rem);
+  font-weight: 700;
+}
+
+/* A NASA fact to take away, in the same words the build screen uses. */
+.act-fact {
+  margin: 0 0 clamp(3px, 0.4vw, 8px);
+  color: var(--gl-muted);
+  font-size: clamp(0.56rem, 0.7vw, 0.85rem);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
 /* ------------------------------------------------------------------ the hub -- */
 
 /*

@@ -272,7 +272,7 @@ describe('the science score', () => {
 });
 
 describe('the hub', () => {
-  const context = { nasaToday: false };
+  const context = { nasaToday: false, pictures: 2, liveFlares: 0 };
   const find = (tiles: readonly HubTile[], id: HubSection): HubTile | undefined =>
     tiles.find((tile) => tile.id === id);
 
@@ -309,9 +309,10 @@ describe('the hub', () => {
     expect(stats?.attention).toBe(false);
   });
 
-  it('says whether the picture on the data button is today\'s or the saved one', () => {
-    expect(find(hubTiles(run, { nasaToday: true }), 'data')?.status).toContain('NASA picture');
-    expect(find(hubTiles(run, { nasaToday: false }), 'data')?.status).toContain('Saved');
+  it('says what is behind the data button: how many pictures, and whether they are live', () => {
+    expect(find(hubTiles(run, { nasaToday: true, pictures: 3, liveFlares: 5 }), 'data')?.status).toBe('3 pictures · 5 live flares');
+    expect(find(hubTiles(run, { nasaToday: true, pictures: 2, liveFlares: 0 }), 'data')?.status).toBe('2 pictures · live today');
+    expect(find(hubTiles(run, { nasaToday: false, pictures: 2, liveFlares: 0 }), 'data')?.status).toBe('2 pictures · saved');
   });
 
   it('adds the review once a sol has run, and prints its net change on the button', () => {

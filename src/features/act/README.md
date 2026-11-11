@@ -47,6 +47,13 @@ panel's own head now says.
 line drawings in `ui/icons.ts`, and an activity's picture is mapped from its id **here**,
 in the view — `sim/` cannot hold one, because a model may not import `ui/` (D-070).
 
+**The "Real data" sheet is the whole NASA layer** (D-071). It holds NASA's live daily
+picture, the saved card for the sol, **the landing region's own photograph**, **NASA's own
+space-weather readings** — the flare class and the day it peaked, with the source they
+came from — and two NASA facts. The tile says what is behind it ("3 pictures · 5 live
+flares"), and the forecast stays on the main panel, because a schedule is the game's and
+a flare reading is NASA's.
+
 ## The trade-off, shown with a picture instead of a paragraph
 
 The README's Power Surplus mission is the clearest statement of the game's thesis, and
