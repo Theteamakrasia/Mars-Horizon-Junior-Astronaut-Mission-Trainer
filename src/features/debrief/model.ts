@@ -11,7 +11,9 @@
  */
 
 import { crisisForEvent, optionOf } from '../../sim/crises';
-import { goalById, goalProgress, type ScienceGoal } from '../../sim/goals';
+import { goalById, goalProgress, SCIENCE_GOALS, type ScienceGoal } from '../../sim/goals';
+import { PATCH_COUNT, patchesFor, type Patch } from '../../sim/patches';
+import { ordersThrough } from '../../sim/standingOrders';
 import { systemsFor, countOf, NIGHT_HOURS, type ModuleKind } from '../../sim/modules';
 import { RESOURCE_NAMES, type ResourceName } from '../../sim/resources';
 import type { RunState, SolRecord } from '../../sim/run';
@@ -409,6 +411,51 @@ export function scienceDetail(report: ScienceReport): string {
 /** One line for the science score, so it can be read aloud as well as seen. */
 export function scienceSentence(report: ScienceReport): string {
   return `${report.points} science points. ${scienceHeadline(report)} ${scienceDetail(report)}`;
+}
+
+/* ------------------------------------------------------------ the patches -- */
+
+/** The patches a run earned, and the ones still to find. */
+export interface PatchReport {
+  readonly earned: readonly Patch[];
+  /** How many there are in total. */
+  readonly total: number;
+}
+
+/** The patches a run earned. */
+export function patchReport(run: RunState): PatchReport {
+  return { earned: patchesFor(run), total: PATCH_COUNT };
+}
+
+/* ------------------------------------------------------------- the manual -- */
+
+/**
+ * The standing orders the crew worked under, grouped by the system they
+ * belong to.
+ *
+ * This is the keepsake: the twenty-four rules the run was played against,
+ * printed in the debrief, with the NASA fact behind each one. It is the
+ * clearest answer to "what did I learn" that the game has.
+ */
+export interface ManualEntry {
+  readonly id: string;
+  readonly text: string;
+  /** The goal the order belongs to. */
+  readonly goal: ScienceGoal;
+  /** The sol the order arrived on. */
+  readonly sol: number;
+}
+
+/** The standing orders, grouped by goal and in the order they arrived. */
+export function manualFor(run: RunState): readonly (readonly ManualEntry[])[] {
+  const entries = ordersThrough(Math.max(1, run.sol)).map((order) => ({
+    id: order.id,
+    text: order.text,
+    goal: order.goal,
+    sol: order.sol,
+  }));
+
+  return SCIENCE_GOALS.map((goal) => entries.filter((entry) => entry.goal === goal.id));
 }
 
 /* ------------------------------------------------------------ the rover -- */
