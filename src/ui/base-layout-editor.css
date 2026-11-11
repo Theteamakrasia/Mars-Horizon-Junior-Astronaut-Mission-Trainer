@@ -63,6 +63,36 @@
   width: 100%;
   height: auto;
   filter: drop-shadow(0 6px 10px rgba(120, 60, 20, 0.18));
+
+  /* The artwork alone is mirrored, never the handle: the resize grip has to
+     stay on the bottom-right and the label has to stay readable. */
+  transform: scaleX(var(--ble-flip, 1));
+}
+
+/*
+ * The marker on a mirrored module.
+ *
+ * Always visible, unlike the name tag: whether a module is turned around is
+ * a state of the outpost, not a label you are reading.
+ */
+.ble__mark {
+  display: none;
+  position: absolute;
+  left: -8px;
+  top: -8px;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  border: 2px solid #fff9ec;
+  background: #347ba2;
+  color: #fff9ec;
+  font: 700 10px/13px 'Nunito', 'Segoe UI', system-ui, sans-serif;
+  text-align: center;
+  pointer-events: none;
+}
+
+.ble__handle--mirrored .ble__mark {
+  display: block;
 }
 
 .ble__handle--selected img {
@@ -271,4 +301,10 @@
 
 .ble__btn--primary:hover {
   background: #cf4726;
+}
+
+/* A toggle that is on: the Mirror button, and nothing else. */
+.ble__btn[aria-pressed='true'] {
+  background: #347ba2;
+  border-color: #347ba2;
 }

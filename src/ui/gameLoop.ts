@@ -80,6 +80,13 @@ export interface WorldFigure {
   /** Percent of the panel's width. */
   readonly width: number;
   readonly z?: number;
+  /**
+   * Mirrored left to right.
+   *
+   * The mirror is about the picture's centre, so a turned-around module keeps
+   * the place it was put.
+   */
+  readonly flip?: boolean;
 }
 
 /**
@@ -107,6 +114,7 @@ export function moduleFigures(kinds: readonly ModuleKind[]): readonly WorldFigur
       bottom: spot.bottom,
       width: spot.width,
       z: spot.z,
+      flip: spot.flip === true,
     });
   }
 
@@ -380,7 +388,7 @@ export function gameWorld(options: WorldOptions): HTMLElement {
         class: 'gl__figure',
         src: figure.src,
         alt: '',
-        style: `--gl-x:${figure.left}%;--gl-y:${figure.bottom}%;--gl-w:${figure.width}%;--gl-z:${figure.z ?? 2}`,
+        style: `--gl-x:${figure.left}%;--gl-y:${figure.bottom}%;--gl-w:${figure.width}%;--gl-z:${figure.z ?? 2};--gl-flip:${figure.flip === true ? -1 : 1}`,
       }),
     );
   }

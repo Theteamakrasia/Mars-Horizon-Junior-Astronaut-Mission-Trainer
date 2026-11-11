@@ -150,10 +150,11 @@ export function startLayoutEditor(root: HTMLElement): () => void {
         'data-copy': String(instance.copy),
         tabindex: '0',
         role: 'button',
-        'aria-label': `${instance.label} — drag to place, drag the corner to resize, arrow keys to nudge`,
+        'aria-label': `${instance.label} — drag to place, drag the corner to resize, press F to mirror, arrow keys to nudge`,
       },
       h('img', { src: moduleArt(instance.kind), alt: '', 'aria-hidden': 'true' }),
       h('span', { class: 'ble__tag', 'aria-hidden': 'true' }, instance.label),
+      h('span', { class: 'ble__mark', 'aria-hidden': 'true', text: '⇄' }),
       grip,
     );
 
@@ -209,6 +210,7 @@ export function startLayoutEditor(root: HTMLElement): () => void {
 
   const download = h('button', { class: 'ble__btn', type: 'button' }, 'Download JSON');
   const copy = h('button', { class: 'ble__btn', type: 'button' }, 'Copy JSON');
+  const mirror = h('button', { class: 'ble__btn', type: 'button', 'aria-pressed': 'false', title: 'Mirror the selected module (F)' }, '⇄ Mirror');
   const reset = h('button', { class: 'ble__btn', type: 'button' }, 'Reset');
   const done = h('button', { class: 'ble__btn ble__btn--primary', type: 'button' }, 'Done');
 
@@ -218,14 +220,14 @@ export function startLayoutEditor(root: HTMLElement): () => void {
     h('p', { class: 'ble__title', text: 'Placement editor' }),
     h('p', {
       class: 'ble__hint',
-      text: 'Drag a module to move it, drag its corner to resize it. Every copy the player could build is here.',
+      text: 'Drag a module to move it, drag its corner to resize it, and mirror it with the button or F. Every copy the player could build is here.',
     }),
     picker,
     readout,
     h('div', { class: 'ble__fields' }, left.row, bottom.row, width.row, depth.row),
     h('p', { class: 'ble__label', text: 'baseLayout.json — save it into src/ui/' }),
     jsonArea,
-    h('div', { class: 'ble__buttons' }, download, copy, reset, done),
+    h('div', { class: 'ble__buttons' }, mirror, download, copy, reset, done),
   );
 
   // --- Painting. -----------------------------------------------------------
@@ -241,6 +243,11 @@ export function startLayoutEditor(root: HTMLElement): () => void {
       handle.style.setProperty('--ble-left', `${spot.left}%`);
       handle.style.setProperty('--ble-bottom', `${spot.bottom}%`);
       handle.style.setProperty('--ble-width', `${spot.width}%`);
+
+      /* The artwork is mirrored, not the handle: the resize grip has to stay
+       * on the bottom-right and the label has to stay readable. */
+      handle.style.setProperty('--ble-flip', spot.flip === true ? '-1' : '1');
+      handle.classList.toggle('ble__handle--mirrored', spot.flip === true);
 
       /* The selected copy is drawn in front of the others. Copies of a kind
        * overlap, and a copy you cannot see is a copy you cannot grab — so
@@ -286,13 +293,23 @@ export function startLayoutEditor(root: HTMLElement): () => void {
   /** Put a module's numbers in the toolbar. */
   function showSpot(instance: Instance): void {
     const spot = poses[instance.kind][instance.copy];
+    const flipped = spot.flip === true;
 
     left.input.value = String(spot.left);
     bottom.input.value = String(spot.bottom);
     width.input.value = String(spot.width);
     depth.input.value = String(spot.z);
 
-    readout.textContent = `${instance.label} — left ${spot.left}%, bottom ${spot.bottom}%, width ${spot.width}%.`;
+    mirror.setAttribute('aria-pressed', flipped ? 'true' : 'false');
+
+    readout.textContent = `${instance.label} — left ${spot.left}%, bottom ${spot.bottom}%, width ${spot.width}%${flipped ? ', mirrored' : ''}.`;
+  }
+
+  /** Turn a module around. The mirror is about its centre, so it stays put. */
+  function flipInstance(instance: Instance): void {
+    const spot = poses[instance.kind][instance.copy];
+
+    setSpot(instance, { ...spot, flip: spot.flip !== true });
   }
 
   /** Move the overlay over the outpost panel, wherever it now is. */
@@ -426,6 +443,15 @@ export function startLayoutEditor(root: HTMLElement): () => void {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
       select(instance.key);
+
+      return;
+    }
+
+    /* F turns the module around. */
+    if (event.key === 'f' || event.key === 'F') {
+      event.preventDefault();
+      select(instance.key);
+      flipInstance(instance);
     }
   }
 
@@ -504,6 +530,13 @@ export function startLayoutEditor(root: HTMLElement): () => void {
 
   download.addEventListener('click', downloadJson);
   copy.addEventListener('click', () => void copyJson());
+  mirror.addEventListener('click', () => {
+    if (selected === null) return;
+
+    const instance = instances.find((entry) => entry.key === selected);
+
+    if (instance !== undefined) flipInstance(instance);
+  });
   reset.addEventListener('click', resetPoses);
   done.addEventListener('click', finish);
 

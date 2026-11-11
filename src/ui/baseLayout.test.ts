@@ -17,6 +17,17 @@ import {
   roundSpot,
 } from './baseLayout';
 
+/** A layout with the right number of poses for every kind, so only the thing under test is wrong. */
+function complete(): Record<string, { left: number; bottom: number; width: number; z: number }[]> {
+  const layout: Record<string, { left: number; bottom: number; width: number; z: number }[]> = {};
+
+  for (const spec of MODULE_CATALOGUE) {
+    layout[spec.kind] = Array.from({ length: spec.maxCount }, () => ({ left: 10, bottom: 20, width: 15, z: 2 }));
+  }
+
+  return layout;
+}
+
 describe('SPOT_BAND', () => {
   it('keeps every band ordered', () => {
     expect(SPOT_BAND.left.min).toBeLessThan(SPOT_BAND.left.max);
@@ -60,7 +71,7 @@ describe('clampSpot', () => {
   it('leaves a legal spot alone', () => {
     const spot = { left: 28, bottom: 30, width: 20, z: 4 };
 
-    expect(clampSpot(spot)).toEqual(spot);
+    expect(clampSpot(spot)).toEqual({ ...spot, flip: false });
   });
 
   it('keeps a module from hanging off the right-hand edge', () => {
@@ -81,13 +92,13 @@ describe('roundSpot', () => {
   it('rounds every number to one decimal', () => {
     const spot = roundSpot({ left: 45.58845757471659, bottom: 20.244645987348527, width: 20.04, z: 4.6 });
 
-    expect(spot).toEqual({ left: 45.6, bottom: 20.2, width: 20, z: 5 });
+    expect(spot).toEqual({ left: 45.6, bottom: 20.2, width: 20, z: 5, flip: false });
   });
 
   it('leaves an already-round spot alone', () => {
     const spot = { left: 28, bottom: 30, width: 20, z: 4 };
 
-    expect(roundSpot(spot)).toEqual(spot);
+    expect(roundSpot(spot)).toEqual({ ...spot, flip: false });
   });
 });
 
@@ -105,7 +116,7 @@ describe('resolvePoses', () => {
       habitat: [{ left: 10, bottom: 20, width: 15, z: 2 }],
     });
 
-    expect(poses.habitat[0]).toEqual({ left: 10, bottom: 20, width: 15, z: 2 });
+    expect(poses.habitat[0]).toEqual({ left: 10, bottom: 20, width: 15, z: 2, flip: false });
   });
 
   it('reads the old shape, where a kind held one pose', () => {
@@ -113,19 +124,19 @@ describe('resolvePoses', () => {
       habitat: { left: 10, bottom: 20, width: 15, z: 2 },
     });
 
-    expect(poses.habitat[0]).toEqual({ left: 10, bottom: 20, width: 15, z: 2 });
+    expect(poses.habitat[0]).toEqual({ left: 10, bottom: 20, width: 15, z: 2, flip: false });
   });
 
   it('falls back to the default for a kind that is missing', () => {
     const poses = resolvePoses({});
 
-    expect(poses.habitat[0]).toEqual(DEFAULT_POSES.habitat[0]);
+    expect(poses.habitat[0]).toEqual({ ...DEFAULT_POSES.habitat[0], flip: false });
   });
 
   it('falls back to the default for a pose that is not a spot', () => {
     const poses = resolvePoses({ habitat: ['over there'] });
 
-    expect(poses.habitat[0]).toEqual(DEFAULT_POSES.habitat[0]);
+    expect(poses.habitat[0]).toEqual({ ...DEFAULT_POSES.habitat[0], flip: false });
   });
 
   it('derives the copies a short list does not cover', () => {
@@ -153,7 +164,7 @@ describe('resolvePoses', () => {
   it('survives a source that is not an object at all', () => {
     const poses = resolvePoses('nonsense');
 
-    expect(poses.habitat[0]).toEqual(DEFAULT_POSES.habitat[0]);
+    expect(poses.habitat[0]).toEqual({ ...DEFAULT_POSES.habitat[0], flip: false });
   });
 });
 
@@ -166,7 +177,7 @@ describe('poseFor', () => {
       ],
     });
 
-    expect(poseFor(poses, 'solar-array', 1)).toEqual({ left: 3, bottom: 4, width: 12, z: 2 });
+    expect(poseFor(poses, 'solar-array', 1)).toEqual({ left: 3, bottom: 4, width: 12, z: 2, flip: false });
   });
 
   it('derives a pose the file does not have', () => {
@@ -183,22 +194,11 @@ describe('poseFor', () => {
   it('returns something for a kind the file never mentions', () => {
     const poses = resolvePoses({});
 
-    expect(poseFor(poses, 'habitat', 0)).toEqual(DEFAULT_POSES.habitat[0]);
+    expect(poseFor(poses, 'habitat', 0)).toEqual({ ...DEFAULT_POSES.habitat[0], flip: false });
   });
 });
 
 describe('describeLayoutProblems', () => {
-  /** A layout with the right number of poses for every kind, so only the thing under test is wrong. */
-  function complete(): Record<string, { left: number; bottom: number; width: number; z: number }[]> {
-    const layout: Record<string, { left: number; bottom: number; width: number; z: number }[]> = {};
-
-    for (const spec of MODULE_CATALOGUE) {
-      layout[spec.kind] = Array.from({ length: spec.maxCount }, () => ({ left: 10, bottom: 20, width: 15, z: 2 }));
-    }
-
-    return layout;
-  }
-
   it('says nothing about a good layout', () => {
     expect(describeLayoutProblems(complete())).toEqual([]);
   });
@@ -258,6 +258,61 @@ describe('describeLayoutProblems', () => {
 
   it('reports a source that is not an object', () => {
     expect(describeLayoutProblems('nonsense')).toHaveLength(1);
+  });
+});
+
+describe('mirroring', () => {
+  it('reads a mirrored pose', () => {
+    const poses = resolvePoses({ habitat: [{ left: 10, bottom: 20, width: 15, z: 2, flip: true }] });
+
+    expect(poses.habitat[0].flip).toBe(true);
+  });
+
+  it('treats a pose with no flip as not mirrored', () => {
+    const poses = resolvePoses({ habitat: [{ left: 10, bottom: 20, width: 15, z: 2 }] });
+
+    expect(poses.habitat[0].flip).toBe(false);
+  });
+
+  it('treats a flip that is not true as not mirrored', () => {
+    const poses = resolvePoses({ habitat: [{ left: 10, bottom: 20, width: 15, z: 2, flip: 'yes' }] });
+
+    expect(poses.habitat[0].flip).toBe(false);
+  });
+
+  it('keeps the mirror through clamping and rounding', () => {
+    expect(clampSpot({ left: 10, bottom: 20, width: 15, z: 2, flip: true }).flip).toBe(true);
+    expect(roundSpot({ left: 10, bottom: 20, width: 15, z: 2, flip: true }).flip).toBe(true);
+  });
+
+  it('writes the mirror only for a module that is mirrored', () => {
+    const poses = {
+      ...MODULE_POSES,
+      habitat: [{ left: 28, bottom: 30, width: 20, z: 4, flip: true }],
+      greenhouse: [{ left: 52, bottom: 30, width: 20, z: 4 }],
+    };
+    const parsed = JSON.parse(buildLayoutJson(poses)) as { habitat: { flip?: boolean }[]; greenhouse: { flip?: boolean }[] };
+
+    expect(parsed.habitat[0].flip).toBe(true);
+    expect(parsed.greenhouse[0].flip).toBeUndefined();
+  });
+
+  it('reports a flip that is neither true nor false', () => {
+    const layout = complete();
+
+    layout.habitat[0] = { ...layout.habitat[0], flip: 'yes' } as never;
+
+    const problems = describeLayoutProblems(layout);
+
+    expect(problems.some((line) => line.includes('habitat[0].flip'))).toBe(true);
+  });
+
+  it('leaves the shipped layout unmirrored', () => {
+    for (const spec of MODULE_CATALOGUE) {
+      for (const spot of MODULE_POSES[spec.kind]) {
+        expect(spot.flip).toBe(false);
+      }
+    }
   });
 });
 

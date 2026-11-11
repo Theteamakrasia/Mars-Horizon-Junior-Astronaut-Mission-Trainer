@@ -32,6 +32,17 @@ export interface ModuleSpot {
   readonly width: number;
   /** Stacking order. Higher paints in front. */
   readonly z: number;
+  /**
+   * Mirrored left to right.
+   *
+   * Absent means not mirrored. Every module has a facing direction — a solar
+   * panel catches the sun on one side, the ice miner's arm points one way — so
+   * a mirrored module is the same module turned around, not a different one.
+   *
+   * The mirror is about the picture's centre, so turning a module around does
+   * not move it.
+   */
+  readonly flip?: boolean;
 }
 
 /**
@@ -119,6 +130,7 @@ export function clampSpot(spot: ModuleSpot): ModuleSpot {
     bottom: clamp(spot.bottom, SPOT_BAND.bottom.min, SPOT_BAND.bottom.max),
     width: Math.min(width, fits),
     z: clamp(spot.z, 0, 20),
+    flip: spot.flip === true,
   };
 }
 
@@ -136,6 +148,7 @@ export function roundSpot(spot: ModuleSpot): ModuleSpot {
     bottom: Math.round(spot.bottom * 10) / 10,
     width: Math.round(spot.width * 10) / 10,
     z: Math.round(spot.z),
+    flip: spot.flip === true,
   };
 }
 
@@ -162,7 +175,10 @@ function readSpot(value: unknown): ModuleSpot | null {
   if (!Number.isFinite(left) || !Number.isFinite(bottom)) return null;
   if (!Number.isFinite(width) || !Number.isFinite(z)) return null;
 
-  return clampSpot({ left, bottom, width, z });
+  /* A missing flip is not a flip. Anything that is not exactly true is not
+   * true either, so a typo turns the module back the right way round rather
+   * than mirroring it at random. */
+  return clampSpot({ left, bottom, width, z, flip: value.flip === true });
 }
 
 /**
@@ -197,7 +213,7 @@ function deriveSpot(previous: ModuleSpot): ModuleSpot {
 function readPoses(value: unknown, kind: ModuleKind, count: number): ModuleSpot[] {
   const fallback = DEFAULT_POSES[kind];
 
-  if (value === undefined) return fallback.map((spot) => ({ ...spot }));
+  if (value === undefined) return fallback.map((spot) => clampSpot(spot));
 
   const entries = Array.isArray(value) ? value : [value];
   const poses: ModuleSpot[] = [];
@@ -209,7 +225,7 @@ function readPoses(value: unknown, kind: ModuleKind, count: number): ModuleSpot[
   }
 
   /* Nothing usable at all: the authored default is better than a guess. */
-  if (poses.length === 0) return fallback.map((spot) => ({ ...spot }));
+  if (poses.length === 0) return fallback.map((spot) => clampSpot(spot));
 
   while (poses.length < count) {
     poses.push(deriveSpot(poses[poses.length - 1]));
@@ -247,7 +263,7 @@ export function resolvePoses(source: unknown): ModulePoses {
 export function poseFor(poses: ModulePoses, kind: ModuleKind, copy: number): ModuleSpot {
   const list = poses[kind];
 
-  if (list === undefined || list.length === 0) return DEFAULT_POSES[kind][0];
+  if (list === undefined || list.length === 0) return clampSpot(DEFAULT_POSES[kind][0]);
 
   const spot = list[copy];
 
@@ -334,6 +350,10 @@ function describeSpot(label: string, value: unknown): string[] {
     problems.push(`${label}.z is not a number. It is being ignored.`);
   }
 
+  if (value.flip !== undefined && typeof value.flip !== 'boolean') {
+    problems.push(`${label}.flip is not true or false. The module is not being mirrored.`);
+  }
+
   return problems;
 }
 
@@ -343,22 +363,28 @@ function describeSpot(label: string, value: unknown): string[] {
  * Keys come out in catalogue order so the file reads like the catalogue, and
  * positions are rounded to one decimal because a dragged position is never
  * more precise than that.
+ *
+ * `flip` is written only for a module that is actually mirrored, so the file
+ * stays quiet for the ones that are not.
  */
 export function buildLayoutJson(poses: Readonly<Record<string, readonly ModuleSpot[]>>): string {
-  const ordered: Record<string, { left: number; bottom: number; width: number; z: number }[]> = {};
+  const ordered: Record<string, { left: number; bottom: number; width: number; z: number; flip?: boolean }[]> = {};
 
   for (const spec of MODULE_CATALOGUE) {
     const list = poses[spec.kind] ?? DEFAULT_POSES[spec.kind];
 
     ordered[spec.kind] = list.map((spot) => {
       const rounded = roundSpot(spot);
-
-      return {
+      const entry: { left: number; bottom: number; width: number; z: number; flip?: boolean } = {
         left: rounded.left,
         bottom: rounded.bottom,
         width: rounded.width,
         z: rounded.z,
       };
+
+      if (rounded.flip === true) entry.flip = true;
+
+      return entry;
     });
   }
 

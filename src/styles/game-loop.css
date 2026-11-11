@@ -292,6 +292,11 @@
   padding: clamp(8px, 0.83vw, 16px) clamp(12px, 1.25vw, 24px) clamp(12px, 1.25vw, 24px);
 }
 
+/* Full-width reference screens (encyclopedia): panel spans the whole page. */
+.gl--encyclopedia .gl__main {
+  grid-template-columns: 1fr;
+}
+
 /* ----------------------------------------------------------------- world -- */
 
 .gl__world {
@@ -307,13 +312,17 @@
 
 .gl__figure {
   position: absolute;
-  left: var(--gl-x, 0%);
-  bottom: var(--gl-y, 0%);
-  width: var(--gl-w, 18%);
+  left: clamp(2%, var(--gl-x, 0%), 92%);
+  bottom: clamp(2%, var(--gl-y, 0%), 32%);
+  width: clamp(6%, var(--gl-w, 18%), 24%);
   height: auto;
   z-index: var(--gl-z, 2);
   filter: drop-shadow(0 6px 10px rgba(120, 60, 20, 0.18));
   pointer-events: none;
+
+  /* A turned-around module. The mirror is about the picture's centre, so the
+     module keeps the place it was put and only the artwork changes. */
+  transform: scaleX(var(--gl-flip, 1));
 }
 
 .gl__astronaut {
