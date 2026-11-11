@@ -307,11 +307,11 @@ export function describeLayoutProblems(source: unknown): string[] {
     }
 
     if (entries.length > spec.maxCount) {
-      problems.push(`${spec.kind} has ${entries.length} poses but only ${spec.maxCount} can be built. The extra ones are ignored.`);
+      problems.push(`${spec.kind} lists ${poses(entries.length)}, but only ${spec.maxCount} copies can be built. The extra ones are ignored.`);
     }
 
     if (entries.length < spec.maxCount) {
-      problems.push(`${spec.kind} has ${entries.length} poses but ${spec.maxCount} can be built. The rest are derived.`);
+      problems.push(`${spec.kind} lists ${poses(entries.length)}, but ${spec.maxCount} copies can be built. The rest are derived.`);
     }
 
     entries.forEach((pose, index) => {
@@ -326,8 +326,12 @@ export function describeLayoutProblems(source: unknown): string[] {
   return problems;
 }
 
-/** What is wrong with one pose, in words. */
-function describeSpot(label: string, value: unknown): string[] {
+/** "1 pose" or "3 poses", so a message can say what it found. */
+function poses(count: number): string {
+  return count === 1 ? '1 pose' : `${count} poses`;
+}
+
+/** What is wrong with one pose, in words. */function describeSpot(label: string, value: unknown): string[] {
   if (!isRecord(value)) return [`${label} is not a pose. It is being ignored.`];
 
   const problems: string[] = [];

@@ -1,33 +1,109 @@
 {
   "habitat": [
-    { "left": 28, "bottom": 30, "width": 20, "z": 4 }
+    {
+      "left": 2,
+      "bottom": 2,
+      "width": 24,
+      "z": 4
+    }
   ],
   "life-support": [
-    { "left": 28, "bottom": 4, "width": 20, "z": 5 }
+    {
+      "left": 25,
+      "bottom": 3,
+      "width": 23.3,
+      "z": 5
+    }
   ],
   "solar-array": [
-    { "left": 4, "bottom": 30, "width": 20, "z": 3 },
-    { "left": 14, "bottom": 32, "width": 17, "z": 4 },
-    { "left": 24, "bottom": 32, "width": 14, "z": 5 },
-    { "left": 34, "bottom": 32, "width": 11, "z": 6 }
+    {
+      "left": 30.5,
+      "bottom": 24.7,
+      "width": 14.9,
+      "z": 3
+    },
+    {
+      "left": 35.7,
+      "bottom": 32,
+      "width": 13.4,
+      "z": 4
+    },
+    {
+      "left": 23.5,
+      "bottom": 32,
+      "width": 14,
+      "z": 5
+    },
+    {
+      "left": 17.2,
+      "bottom": 25.3,
+      "width": 14.8,
+      "z": 6
+    }
   ],
   "batteries": [
-    { "left": 4, "bottom": 4, "width": 20, "z": 5 },
-    { "left": 14, "bottom": 8, "width": 17, "z": 6 },
-    { "left": 24, "bottom": 12, "width": 14, "z": 7 },
-    { "left": 34, "bottom": 16, "width": 11, "z": 8 }
+    {
+      "left": 48.8,
+      "bottom": 5.1,
+      "width": 15.5,
+      "z": 5
+    },
+    {
+      "left": 53.2,
+      "bottom": 3.3,
+      "width": 15.1,
+      "z": 6
+    },
+    {
+      "left": 60.2,
+      "bottom": 5.5,
+      "width": 15.1,
+      "z": 7
+    },
+    {
+      "left": 64.5,
+      "bottom": 2.7,
+      "width": 15.8,
+      "z": 8
+    }
   ],
   "greenhouse": [
-    { "left": 52, "bottom": 30, "width": 20, "z": 4 }
+    {
+      "left": 45.5,
+      "bottom": 24,
+      "width": 24,
+      "z": 4
+    }
   ],
   "ice-miner": [
-    { "left": 52, "bottom": 4, "width": 20, "z": 5 }
+    {
+      "left": 67.8,
+      "bottom": 26.8,
+      "width": 20,
+      "z": 5
+    }
   ],
   "regolith-shield": [
-    { "left": 76, "bottom": 30, "width": 18, "z": 3 },
-    { "left": 81, "bottom": 32, "width": 15, "z": 4 }
+    {
+      "left": 2,
+      "bottom": 31.9,
+      "width": 24,
+      "z": 3
+    },
+    {
+      "left": 76.4,
+      "bottom": 32,
+      "width": 23.4,
+      "z": 4,
+      "flip": true
+    }
   ],
   "nuclear-unit": [
-    { "left": 76, "bottom": 4, "width": 18, "z": 5 }
+    {
+      "left": 75.7,
+      "bottom": 2.5,
+      "width": 24,
+      "z": 5
+    }
   ]
 }

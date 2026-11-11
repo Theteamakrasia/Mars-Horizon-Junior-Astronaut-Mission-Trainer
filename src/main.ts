@@ -4,6 +4,7 @@ import astronautUrl from '../Assets/images/floating.png';
 import { startFloatingAstronaut } from './dom/floatAstronaut';
 import { createStarfield } from './dom/starfield';
 import type { RunState } from './sim/run';
+import { LAYOUT_PROBLEMS } from './ui/baseLayout';
 import { allScreenMounts, resolveScreen, screenMount } from './ui/registry';
 import { startRouter } from './ui/router';
 import type { Route } from './ui/routes';
@@ -190,6 +191,26 @@ function bootstrap(): void {
    */
   if (layoutRequested()) {
     layoutEditorReady = import('./ui/baseLayoutEditor').then((mod) => mod.startLayoutEditor);
+  }
+
+  /*
+   * Say so when the layout file is not clean.
+   *
+   * The game copes with a broken file rather than refusing to start: a kind it
+   * cannot read falls back to the authored default and a number out of range
+   * is clamped. That is the right behaviour for the player, and it is the
+   * wrong behaviour for the developer, because a silently fixed file looks
+   * exactly like a file that was ignored. So the fix list is printed where the
+   * developer will see it.
+   *
+   * Dev only. A malformed file cannot reach production anyway — Vite fails
+   * the build on unparseable JSON — so a warning there would be noise.
+   */
+  if (import.meta.env.DEV && LAYOUT_PROBLEMS.length > 0) {
+    console.warn(
+      `[Mars Horizon] baseLayout.json has ${LAYOUT_PROBLEMS.length} problem(s). The game is using the closest it can.`,
+      ...LAYOUT_PROBLEMS,
+    );
   }
 
   startScreenRouter();

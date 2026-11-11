@@ -28,6 +28,8 @@ import { h } from '../dom/h';
 import { MODULE_CATALOGUE, type ModuleKind } from '../sim/modules';
 import {
   DEFAULT_POSES,
+  LAYOUT_PROBLEMS,
+  MODULE_POSES,
   SPOT_BAND,
   buildLayoutJson,
   clampSpot,
@@ -109,7 +111,13 @@ export function startLayoutEditor(root: HTMLElement): () => void {
   const poses: Record<string, ModuleSpot[]> = {};
 
   for (const spec of MODULE_CATALOGUE) {
-    poses[spec.kind] = (DEFAULT_POSES[spec.kind] ?? []).map((spot) => ({ ...spot }));
+    /* The layout **on disk**, not the authored default.
+     *
+     * Seeding from the default would mean the editor opened showing a
+     * different outpost from the one the game is drawing, and downloading
+     * without touching anything would quietly replace the developer's layout
+     * with the grid. Reset is the button that goes back to the default. */
+    poses[spec.kind] = (MODULE_POSES[spec.kind] ?? DEFAULT_POSES[spec.kind] ?? []).map((spot) => ({ ...spot }));
   }
 
   let selected: string | null = null;
@@ -175,6 +183,32 @@ export function startLayoutEditor(root: HTMLElement): () => void {
 
   // --- The toolbar. --------------------------------------------------------
 
+  /*
+   * What is wrong with the layout file this editor opened.
+   *
+   * The game copes with a broken file rather than refusing to start, so
+   * without this a file the game quietly fixed looks exactly like a file it
+   * ignored. The list is about the file as it was loaded, which is why the
+   * banner also says that what the editor exports is always valid — fix a
+   * problem here and the banner is a snapshot until you reload.
+   */
+  function layoutProblems(): HTMLElement[] {
+    if (LAYOUT_PROBLEMS.length === 0) return [];
+
+    return [
+      h(
+        'div',
+        { class: 'ble__problems' },
+        h('p', {
+          class: 'ble__problems-title',
+          text: `This layout file has ${LAYOUT_PROBLEMS.length} problem(s):`,
+        }),
+        ...LAYOUT_PROBLEMS.map((line) => h('p', { class: 'ble__problems-line', text: line })),
+        h('p', { class: 'ble__problems-note', text: 'The file the editor exports is always valid.' }),
+      ),
+    ];
+  }
+
   function numberField(label: string, min: number, max: number): NumberField {
     const input = h('input', {
       class: 'ble__num',
@@ -217,6 +251,7 @@ export function startLayoutEditor(root: HTMLElement): () => void {
   const toolbar = h(
     'div',
     { class: 'ble__toolbar' },
+    ...layoutProblems(),
     h('p', { class: 'ble__title', text: 'Placement editor' }),
     h('p', {
       class: 'ble__hint',
@@ -265,19 +300,17 @@ export function startLayoutEditor(root: HTMLElement): () => void {
       handle.classList.toggle('ble__handle--selected', other === key);
     }
 
+    /* Paint again, so the selected copy comes to the front. Without this a
+     * copy picked from the dropdown stays under its neighbours, and the
+     * pointer grabs the wrong module. */
+    render();
+
     const instance = instances.find((entry) => entry.key === key);
 
     if (instance === undefined) return;
 
-    const spot = poses[instance.kind][instance.copy];
-
     picker.value = key;
-    left.input.value = String(spot.left);
-    bottom.input.value = String(spot.bottom);
-    width.input.value = String(spot.width);
-    depth.input.value = String(spot.z);
-
-    readout.textContent = `${instance.label} — left ${spot.left}%, bottom ${spot.bottom}%, width ${spot.width}%.`;
+    showSpot(instance);
   }
 
   function setSpot(instance: Instance, spot: ModuleSpot): void {
@@ -501,9 +534,15 @@ export function startLayoutEditor(root: HTMLElement): () => void {
     }, 1500);
   }
 
+  /**
+ * Undo every change, back to the layout the editor opened with.
+ *
+ * Not the authored default: this is the file the developer already has, and
+ * "Reset" in an editor means "put it back how it was", not "forget everything".
+ */
   function resetPoses(): void {
     for (const spec of MODULE_CATALOGUE) {
-      poses[spec.kind] = (DEFAULT_POSES[spec.kind] ?? []).map((spot) => ({ ...spot }));
+      poses[spec.kind] = (MODULE_POSES[spec.kind] ?? DEFAULT_POSES[spec.kind] ?? []).map((spot) => ({ ...spot }));
     }
 
     render();

@@ -307,10 +307,13 @@ describe('mirroring', () => {
     expect(problems.some((line) => line.includes('habitat[0].flip'))).toBe(true);
   });
 
-  it('leaves the shipped layout unmirrored', () => {
+  it('reads every flip in the shipped layout as a boolean', () => {
+    /* Not "the shipped layout is unmirrored" — that would fail the moment a
+     * developer did the one thing this tool is for. What matters is that
+     * every flip in the file is a real yes or no. */
     for (const spec of MODULE_CATALOGUE) {
       for (const spot of MODULE_POSES[spec.kind]) {
-        expect(spot.flip).toBe(false);
+        expect(typeof spot.flip).toBe('boolean');
       }
     }
   });
