@@ -13,6 +13,7 @@ import { mountLaunch } from '../features/launch/view';
 import { mountNaming } from '../features/naming/view';
 import { mountSupply } from '../features/supply/view';
 import { mountBase } from '../features/base/view';
+import { mountEncyclopedia } from '../features/encyclopedia/view';
 import { mountAct } from '../features/act/view';
 import { mountDebrief } from '../features/debrief/view';
 import type { RunState } from '../sim/run';
@@ -46,6 +47,8 @@ const SCREEN_MOUNTS: Readonly<Partial<Record<Route, string>>> = {
   interior: '#interior',
   'landing-site': '#landing-site',
   base: '#base',
+  // The encyclopedia: reference details for each piece of equipment.
+  encyclopedia: '#encyclopedia',
   act: '#act',
   debrief: '#debrief',
 };
@@ -62,6 +65,8 @@ const SCREENS: Readonly<Partial<Record<Route, ScreenFactory>>> = {
   'landing-site': mountLandingSite,
   // The outpost: build modules between sols.
   base: mountBase,
+  // The encyclopedia: reference details for each piece of equipment.
+  encyclopedia: mountEncyclopedia,
   // Advance one sol, then resolve to `debrief`.
   act: mountAct,
   // Explain why the run was won or lost.

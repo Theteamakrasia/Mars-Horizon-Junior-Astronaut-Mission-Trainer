@@ -167,7 +167,6 @@ export function mountBase(
             h('span', { class: 'gl__cost', text: `✦ ${spec.cost}` }),
           ),
           h('p', { class: 'gl__card-line', text: spec.gives }),
-          h('p', { class: 'gl__card-line', text: spec.needs }),
           h('div', { class: 'gl__stepper' }, remove, h('span', { class: 'gl__count', text: String(have) }), add),
           !placement.ok && have === 0 ? h('p', { class: 'gl__card-why', text: placement.reason }) : null,
         ),

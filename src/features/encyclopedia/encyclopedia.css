@@ -1,0 +1,292 @@
+/* ENCYCLOPEDIA — reference details for each piece of equipment.
+   Imported by ./view.ts only (R-15). The shell (header, panel) is the shared
+   game-loop frame in styles/game-loop.css; only the list and cards live here. */
+
+.gl--encyclopedia .gl__scroll {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(6px, 0.72vw, 14px);
+  padding: 0 clamp(4px, 0.4vw, 8px) clamp(4px, 0.4vw, 8px);
+}
+
+/* Full-page encyclopedia: subtle texture background behind the card grid. */
+.gl--encyclopedia .gl__panel {
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(255, 255, 255, 0.08) 0%, transparent 60%),
+    linear-gradient(180deg, #f5f0e3 0%, #e8dfce 60%, #d4c9b0 100%);
+  background-size: cover, 100% 100%;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+/* Squarish card grid — one card per piece of equipment. */
+.enc__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(clamp(150px, 20vw, 220px), 1fr));
+  gap: clamp(10px, 1.2vw, 20px);
+  padding: 0 clamp(4px, 0.4vw, 8px) clamp(4px, 0.4vw, 8px);
+}
+
+.enc__card {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(6px, 0.7vw, 12px);
+  width: 100%;
+  aspect-ratio: 1;
+  border: 0;
+  border-radius: clamp(10px, 1vw, 18px);
+  background: var(--gl-card);
+  color: var(--gl-ink);
+  cursor: pointer;
+  box-shadow: 0 2px 0 rgba(34, 50, 74, 0.05);
+  transition: transform 140ms ease, box-shadow 140ms ease;
+}
+
+.enc__card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.enc__card:focus-visible {
+  outline: 3px solid var(--gl-orange);
+  outline-offset: 2px;
+}
+
+.enc__card--open {
+  background: var(--gl-panel);
+  border: 1px solid var(--gl-line);
+}
+
+.enc__card-art {
+  width: 100%;
+  height: clamp(90px, 16vw, 140px);
+  object-fit: contain;
+  border-radius: clamp(8px, 0.8vw, 14px) clamp(8px, 0.8vw, 14px) 0 0;
+  background: #fff;
+  flex: 0 0 auto;
+}
+
+.enc__card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25em;
+  padding: clamp(8px, 0.9vw, 14px) clamp(10px, 1vw, 16px);
+  flex: 1;
+}
+
+.enc__card-name {
+  margin: 0;
+  font-family: var(--gl-display);
+  font-weight: 800;
+  font-size: clamp(0.86rem, 1.1vw, 1.15rem);
+  line-height: 1.2;
+}
+
+.enc__card-one-line {
+  margin: 0;
+  color: var(--gl-muted);
+  font-family: var(--gl-body);
+  font-weight: 600;
+  font-size: clamp(0.66rem, 0.8vw, 0.85rem);
+  line-height: 1.3;
+  flex: 1;
+}
+
+.enc__card-cost {
+  margin-top: auto;
+  font-family: var(--gl-body);
+  font-weight: 700;
+  font-size: clamp(0.7rem, 0.9vw, 1rem);
+  color: var(--gl-muted);
+  white-space: nowrap;
+}
+
+.enc__detail {
+  width: 100%;
+  margin-top: clamp(8px, 0.9vw, 16px);
+  padding: clamp(10px, 1.1vw, 20px);
+  border-radius: clamp(8px, 0.83vw, 16px);
+  background: var(--gl-card-strong);
+  border: 1px solid var(--gl-line);
+  color: var(--gl-ink);
+  font-family: var(--gl-body);
+  font-size: clamp(0.74rem, 0.98vw, 1.2rem);
+  line-height: 1.45;
+}
+
+.enc__detail-line {
+  margin: 0 0 0.5em 0;
+}
+
+.enc__detail-line:last-child {
+  margin-bottom: 0;
+}
+
+.enc__nasa {
+  margin-top: clamp(8px, 0.9vw, 16px);
+  padding: clamp(8px, 0.9vw, 16px);
+  border-radius: clamp(8px, 0.83vw, 16px);
+  background: var(--gl-peach);
+  color: var(--gl-ink);
+  font-family: var(--gl-body);
+  font-size: clamp(0.7rem, 0.9vw, 1.05rem);
+  line-height: 1.4;
+}
+
+.enc__nasa-label {
+  margin: 0 0 0.3em 0;
+  color: var(--gl-orange-deep);
+  font-family: var(--gl-display);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: clamp(0.58rem, 0.75vw, 0.9rem);
+}
+
+.enc__nasa-fact {
+  margin: 0 0 0.3em 0;
+  font-weight: 800;
+}
+
+.enc__nasa-credit {
+  margin: 0;
+  color: var(--gl-muted);
+  font-weight: 600;
+  font-size: clamp(0.62rem, 0.78vw, 0.95rem);
+}
+
+/* --- Detail modal popup --- */
+
+.enc__modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 50;
+  background: rgba(22, 26, 34, 0.55);
+  backdrop-filter: blur(4px);
+  padding: clamp(12px, 1.2vw, 24px);
+}
+
+.enc__modal {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(12px, 1.2vw, 24px);
+  padding: clamp(16px, 1.6vw, 32px);
+  border-radius: clamp(12px, 1.2vw, 24px);
+  background: var(--gl-panel);
+  color: var(--gl-ink);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  max-width: clamp(320px, 70vw, 700px);
+  width: 100%;
+  animation: enc-modal-open 220ms ease-out;
+}
+
+@keyframes enc-modal-open {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.enc__modal-close {
+  position: absolute;
+  top: clamp(10px, 1vw, 16px);
+  right: clamp(10px, 1vw, 16px);
+  width: clamp(28px, 3vw, 36px);
+  height: clamp(28px, 3vw, 36px);
+  border: none;
+  border-radius: 50%;
+  background: var(--gl-navy);
+  color: #fff;
+  font-size: clamp(1rem, 1.4vw, 1.6rem);
+  line-height: 1;
+  cursor: pointer;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.enc__modal-close:hover {
+  background: var(--gl-orange-deep);
+}
+
+.enc__modal-art {
+  width: 100%;
+  height: auto;
+  border-radius: clamp(8px, 0.8vw, 16px);
+  object-fit: contain;
+  background: #fff;
+}
+
+.enc__modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 0.8vw, 16px);
+  justify-content: center;
+}
+
+.enc__modal-name {
+  margin: 0;
+  font-family: var(--gl-display);
+  font-weight: 800;
+  font-size: clamp(1.1rem, 1.5vw, 1.8rem);
+  line-height: 1.2;
+  color: var(--gl-ink);
+}
+
+.enc__modal-gives {
+  margin: 0;
+  font-weight: 600;
+  font-size: clamp(0.78rem, 0.95vw, 1.1rem);
+  line-height: 1.4;
+}
+
+.enc__modal-needs {
+  margin: 0;
+  font-weight: 600;
+  font-size: clamp(0.78rem, 0.95vw, 1.1rem);
+  line-height: 1.4;
+  color: var(--gl-muted);
+}
+
+.enc__modal-nasa {
+  margin-top: clamp(8px, 0.8vw, 16px);
+  padding: clamp(10px, 1vw, 16px);
+  border-radius: clamp(8px, 0.8vw, 16px);
+  background: var(--gl-peach);
+  color: var(--gl-ink);
+}
+
+.enc__modal-nasa-label {
+  margin: 0 0 0.3em 0;
+  color: var(--gl-orange-deep);
+  font-family: var(--gl-display);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: clamp(0.58rem, 0.75vw, 0.9rem);
+}
+
+.enc__modal-nasa-fact {
+  margin: 0 0 0.3em 0;
+  font-weight: 800;
+}
+
+.enc__modal-nasa-credit {
+  margin: 0;
+  color: var(--gl-muted);
+  font-weight: 600;
+  font-size: clamp(0.62rem, 0.78vw, 0.95rem);
+}
+
+/* Reduced motion: keep the modal instant. */
+@media (prefers-reduced-motion: reduce) {
+  .enc__modal {
+    animation: none;
+  }
+}

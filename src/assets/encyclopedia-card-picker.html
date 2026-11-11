@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Encyclopedia Card Sprite Picker</title>
+  <style>
+    :root {
+      --bg: #f5f0e3;
+      --panel: #fff9ec;
+      --navy: #1d2d46;
+      --ink: #22324a;
+      --muted: #6c7787;
+
+    const previewArea = document.getElementById('previewArea');
+    const positionPanel = document.getElementById('positionPanel');
+    const exportContent = document.getElementById('exportContent');
+    const copyBtn = document.getElementById('copyBtn');
+
+    let currentEquip = EQUIPMENT[0];
+    const cards = {};
+
+    EQUIPMENT.forEach(equip => {
+      const stage = document.createElement('div');
+      stage.className = 'card-stage';
+      stage.dataset.id = equip.id;
+
+      const art = document.createElement('img');
+      art.className = 'card-art';
+      art.src = new URL(`../../Assets/images/game-loop/${equip.file}`, import.meta.url).href;
+      art.dataset.id = equip.id;
+      stage.appendChild(art);
+
+      const label = document.createElement('div');
+      label.className = 'card-label';
+      label.textContent = equip.name;
+      stage.appendChild(label);
+
+      stage.addEventListener('pointerdown', (e) => {
+        let isDragging = true;
+        const rect = stage.getBoundingClientRect();
+        const startX = e.clientX - rect.left;
+        const startY = e.clientY - rect.top;
+        const startLeft = parseFloat(stage.style.left) || 0;
+        const startTop = parseFloat(stage.style.top) || 0;
+
+        const onMove = (ev) => {
+          if (!isDragging) return;
+          const newLeft = Math.max(0, Math.min(startLeft + (ev.clientX - startX), stage.clientWidth));
+          const newTop = Math.max(0, Math.min(startTop + (ev.clientY - startY), stage.clientHeight));
+          stage.style.left = `${newLeft}px`;
+          stage.style.top = `${newTop}px`;
+          updatePositions(equip.id);
+        };
+
+        const onUp = () => {
+          isDragging = false;
+          document.removeEventListener('pointermove', onMove);
+          document.removeEventListener('pointerup', onUp);
+        };
+
+        document.addEventListener('pointermove', onMove);
+        document.addEventListener('pointerup', onUp);
+      });
+
+      stage.addEventListener('click', () => {
+        document.querySelectorAll('.toolbar button').forEach(b => b.classList.remove('active'));
+        document.querySelector(`.toolbar button[data-id="${equip.id}"]`)?.classList.add('active');
+        showEquipment(equip.id);
+      });
+
+      previewArea.appendChild(stage);
+
+      const posItem = document.createElement('div');
+      posItem.className = 'pos-item';
+      posItem.dataset.id = equip.id;
+
+      const h4 = document.createElement('h4');
+      h4.textContent = equip.name;
+      const row = document.createElement('div');
+      row.innerHTML = `
+        <div class="row"><span>Left %</span><span id="l-${equip.id}">0</span></div>
+        <div class="row"><span>Top %</span><span id="t-${equip.id}">0</span></div>
+        <div class="row"><span>Width %</span><span id="w-${equip.id}">100</span></div>
+      `;
+      posItem.appendChild(h4);
+      posItem.appendChild(row);
+      positionPanel.appendChild(posItem);
+
+      cards[equip.id] = { stage, art, posItem };
+      updatePositions(equip.id);
+    });
+
+    function showEquipment(id) {
+      currentEquip = EQUIPMENT.find(e => e.id === id);
+      document.querySelectorAll('.toolbar button').forEach(b => b.classList.remove('active'));
+      document.querySelector(`.toolbar button[data-id="${id}"]`)?.classList.add('active');
+      document.querySelectorAll('.card-stage').forEach(c => {
+        c.style.display = c.dataset.id === id ? 'block' : 'none';
+      });
+      updatePositions(id);
+      exportContent.textContent = `/* ${currentEquip.id} */\n${getPositionJSON(currentEquip.id)}`;
+    }
+
+    function updatePositions(id) {
+      const data = cards[id];
+      if (!data) return;
+      const stage = data.stage;
+      const w = stage.clientWidth || 100;
+      const h = stage.clientHeight || 100;
+      const left = Math.round((parseFloat(stage.style.left) || 0) / w * 10000) / 100;
+      const top = Math.round((parseFloat(stage.style.top) || 0) / h * 10000) / 100;
+      const width = Math.round((parseFloat(stage.style.width) || 100) / w * 10000) / 100;
+      document.getElementById(`l-${id}`).textContent = left;
+      document.getElementById(`t-${id}`).textContent = top;
+      document.getElementById(`w-${id}`).textContent = width;
+      data.posItem.style.borderColor = '#1d2d46';
+    }
+
+    function getPositionJSON(id) {
+      const data = cards[id];
+      if (!data) return '{}';
+      const stage = data.stage;
+      const w = stage.clientWidth || 100;
+      const h = stage.clientHeight || 100;
+      return JSON.stringify({
+        kind: id,
+        name: currentEquip.name,
+        left: Math.round(parseFloat(stage.style.left) || 0),
+        top: Math.round(parseFloat(stage.style.top) || 0),
+        width: Math.round((parseFloat(stage.style.width) || 100) / w * 100) / 100,
+        z: 2
+      }, null, 2);
+    }
+
+    copyBtn.addEventListener('click', () => {
+      const text = exportContent.textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        copyBtn.textContent = '✅ Copied!';
+        setTimeout(() => { copyBtn.textContent = '📋 Copy to clipboard'; }, 2000);
+      });
+    });
+
+    showEquipment('habitat');
+  </script>
+</body>
+</html>
+
+      --orange: #df542b;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      padding: 16px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    header h1 {
+      font-size: 1.4rem;
+      margin: 0;
+      flex: 1;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .toolbar button {
+      padding: 8px 16px;
+      border: 1px solid var(--navy);
+      border-radius: 8px;
+      background: var(--navy);
+      color: #fff;
+      cursor: pointer;
+      font-size: 0.9rem;
+      flex: 1 1 120px;
+      transition: background 0.15s;
+    }
+
+    .toolbar button:hover { background: #2a3d5e; }
+    .toolbar button.active { background: var(--orange); border-color: var(--orange); }
+
+    .preview-area {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 24px;
+      padding: 16px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .card-stage {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      overflow: hidden;
+      cursor: grab;
+      user-select: none;
+    }
+
+    .card-stage:active { cursor: grabbing; }
+
+    .card-stage .card-art {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      pointer-events: none;
+      border-radius: 12px;
+    }
+
+    .card-stage .card-label {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      right: 12px;
+      text-align: center;
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #fff;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      border-radius: 6px;
+      padding: 4px 8px;
+      background: rgba(0,0,0,0.4);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>⚙️ Encyclopedia Card Sprite Picker</h1>
+    <span class="legend">
+      <span>🖱️ Drag any sprite to position it on the card</span>
+      <span>📋 Click a sprite to select it</span>
+      <span>📥 Export positions below</span>
+    </span>
+  </header>
+
+  <div class="toolbar" id="toolbar"></div>
+
+  <div class="preview-area" id="previewArea"></div>
+
+  <div class="position-panel" id="positionPanel"></div>
+
+  <div class="export-panel" id="exportPanel">
+    <strong>📋 Ready-to-copy positions</strong>
+    <div id="exportContent"><code>Select an equipment to export its position.</code></div>
+    <button id="copyBtn">📋 Copy to clipboard</button>
+  </div>
+
+  <footer>Build your outpost with 8 equipment kinds. Drag &amp; drop each sprite to find the perfect spot.</footer>
+
+  <script>
+    const EQUIPMENT = [
+      { id: 'habitat',        name: 'Habitat',        file: 'habitat.png' },
+      { id: 'life-support',   name: 'Life Support',   file: 'life-support.png' },
+      { id: 'solar-array',    name: 'Solar Array',    file: 'solar.png' },
+      { id: 'batteries',      name: 'Batteries',      file: 'battery-bank.png' },
+      { id: 'greenhouse',     name: 'Greenhouse',     file: 'green-house.png' },
+      { id: 'ice-miner',      name: 'Ice Miner',      file: 'ice-miner.png' },
+      { id: 'regolith-shield', name: 'Regolith Shield', file: 'regolith-sheild.png' },
+      { id: 'nuclear-unit',   name: 'Nuclear Unit',   file: 'nuclear-power.png' },
+    ];
+
+    const toolbar = document.getElementById('toolbar');
+    EQUIPMENT.forEach(equip => {
+      const btn = document.createElement('button');
+      btn.textContent = `${equip.name} (${equip.id})`;
+      btn.dataset.id = equip.id;
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.toolbar button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        showEquipment(equip.id);
+      });
+      toolbar.appendChild(btn);
+    });
+  </script>
+</body>
+</html>

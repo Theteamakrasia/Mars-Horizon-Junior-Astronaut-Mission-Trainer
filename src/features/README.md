@@ -47,13 +47,15 @@ Two rules are conventions, not enforced — do not forget them:
 | `base/` | establish the outpost | built (TASK-029) |
 | `act/` | advance a sol, resolve a crisis | built (TASK-030) |
 | `debrief/` | explain the outcome | built (TASK-031) |
+| `encyclopedia/` | equipment reference, reached from the game menu | built |
 
 **There is deliberately no `plan/`.** The act screen is built without a planning phase —
 confirmed by the project owner and recorded as decision D-018. Do not add one unasked.
 
 ## Start here
 
-All nine screens are built and the pure simulation behind them is complete:
+All nine journey screens are built plus the `encyclopedia/` reference, and the pure
+simulation behind them is complete:
 `src/sim/resources.ts`, `src/sim/sol.ts`, `src/sim/run.ts` and `src/sim/forecast.ts`.
 Pick up an open task from `docs/team/tasks.md`; every journey screen is wired into
 `src/ui/registry.ts`, which is the only file permitted to import a feature's `view.ts`.
