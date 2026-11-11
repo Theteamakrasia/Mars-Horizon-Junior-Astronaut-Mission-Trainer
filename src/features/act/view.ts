@@ -128,6 +128,12 @@ export function mountAct(
   let focusTile: HubSection | null = null;
   /** Whether the how-to-play guide is open. */
   let guideOpen = false;
+  /**
+   * The mounted popup. It lives on `document.body`, not inside the screen, so
+   * the forecast and the clock can redraw the desk without resetting the page
+   * the child is reading or replaying its entrance.
+   */
+  let guideEl: HTMLElement | null = null;
   let clockNodes: { readonly bar: HTMLElement; readonly text: HTMLElement } | null = null;
   let pendingFocus: HTMLElement | null = null;
   /* NASA's live daily pictures. Empty when NASA did not answer, and the screen
@@ -223,6 +229,14 @@ export function mountAct(
     openSheet = section;
     guideOpen = false;
     focusSheet = true;
+    render();
+  }
+
+  /** Close the guide, and take the popup off the document. */
+  function closeGuide(): void {
+    guideOpen = false;
+    guideEl?.remove();
+    guideEl = null;
     render();
   }
 
@@ -1185,11 +1199,17 @@ export function mountAct(
     });
 
     /* The guide sits over the whole screen, as a dialog: it is read once and
-       dismissed, and the day behind it is untouched. */
-    if (guideOpen) screen.append(guidePanel(() => {
-      guideOpen = false;
-      render();
-    }));
+       dismissed, and the day behind it is untouched. It is mounted on the
+       document so a redraw of the desk cannot reset the page being read. */
+    if (guideOpen && guideEl === null) {
+      guideEl = guidePanel(closeGuide);
+      document.body.append(guideEl);
+    }
+
+    if (!guideOpen && guideEl !== null) {
+      guideEl.remove();
+      guideEl = null;
+    }
 
     const open = guideOpen || crisis !== null ? null : sheetFor(state, tiles);
 
@@ -1276,6 +1296,8 @@ export function mountAct(
     controller.abort();
     stopTimer();
     clockNodes = null;
+    guideEl?.remove();
+    guideEl = null;
     mount.replaceChildren();
   };
 }
