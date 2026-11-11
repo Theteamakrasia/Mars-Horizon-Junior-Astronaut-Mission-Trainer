@@ -35,6 +35,8 @@ export interface GoalSpec {
   readonly id: ScienceGoal;
   /** The name the science goes by. */
   readonly title: string;
+  /** The short name the crew uses on a tile: "Dust", "Air", "Shield". */
+  readonly short: string;
   /** What the goal is really about, in the game's words. */
   readonly question: string;
   /** The topic its NASA fact is filed under. */
@@ -53,30 +55,35 @@ export const SCIENCE_GOALS: readonly GoalSpec[] = [
   {
     id: 'dust-storm',
     title: 'Martian Dust Storm',
+    short: 'Dust',
     question: 'Dust cuts the sunlight reaching the solar panels and can affect the equipment.',
     topic: 'dust',
   },
   {
     id: 'life-support',
     title: 'Life Support',
+    short: 'Air',
     question: 'Keeping oxygen, water and a safe living environment.',
     topic: 'water',
   },
   {
     id: 'radiation',
     title: 'Radiation Exposure',
+    short: 'Shield',
     question: 'Protecting the crew from harmful space radiation.',
     topic: 'radiation',
   },
   {
     id: 'power',
     title: 'Power Shortage',
+    short: 'Power',
     question: 'Keeping enough electricity for the systems that matter.',
     topic: 'power',
   },
   {
     id: 'food',
     title: 'Food Production',
+    short: 'Food',
     question: 'Making sure the crew has food they can count on.',
     topic: 'food',
   },

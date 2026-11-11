@@ -14,6 +14,7 @@ import {
   NIGHT_HOURS,
   SUN_HOURS,
   countOf,
+  extraLimitOf,
   extraModuleCount,
   extraSlots,
   extrasOf,
@@ -23,12 +24,13 @@ import {
   type ModuleKind,
   type ModuleSpec,
 } from '../../sim/modules';
+import { LIFE_STORE_FLOOR, POWER_BLACKOUT_FLOOR, SHIELDING_FLOOR, type ScienceGoal } from '../../sim/goals';
 import { visibleForecast, type ForecastEvent } from '../../sim/forecast';
 import { newRun, startOutpost } from '../../sim/run';
-import { projectSol } from '../../sim/sol';
+import { projectSol, WIN_SOL } from '../../sim/sol';
 import { siteScore } from '../../sim/regions';
 
-export { BUILD_BUDGET, CORE_MODULES, MODULE_CATALOGUE, extraSlots, pointsSpent, specOf };
+export { BUILD_BUDGET, CORE_MODULES, MODULE_CATALOGUE, extraLimitOf, extraSlots, pointsSpent, specOf };
 export type { ModuleKind, ModuleSpec };
 
 /** Reminder shown beside the launch button: building nothing extra is allowed, and teaches something. */
@@ -57,8 +59,8 @@ export function pointsLeft(extras: readonly ModuleKind[]): number {
  * Can one more of this module go here?
  *
  * Checked in the order a child would hit the limits: the site's rules first
- * (ice, ground), then room, then the budget. The reason names the one that
- * actually stopped it.
+ * (ice, ground), then the limit on how many, then room, then the budget. The
+ * reason names the one that actually stopped it, in words a child can read.
  */
 export function canPlace(kind: ModuleKind, extras: readonly ModuleKind[], regionId: string): Placement {
   const spec = specOf(kind);
@@ -70,18 +72,136 @@ export function canPlace(kind: ModuleKind, extras: readonly ModuleKind[], region
   }
 
   if (countOf(modules, kind) >= spec.maxCount) {
-    return { ok: false, reason: `You already have the most ${spec.name} units allowed.` };
+    return { ok: false, reason: `That is the most ${spec.plural} you can have.` };
   }
 
   if (extraModuleCount(modules) >= extraSlots(regionId)) {
-    return { ok: false, reason: 'There is no room left on this ground. Flatter sites have more room.' };
+    return { ok: false, reason: 'No room left on this ground.' };
   }
 
   if (spec.cost > pointsLeft(extras)) {
-    return { ok: false, reason: `Not enough build points. It costs ${spec.cost} and you have ${pointsLeft(extras)}.` };
+    return { ok: false, reason: `You need ${spec.cost} points. You have ${pointsLeft(extras)}.` };
   }
 
   return { ok: true, reason: '' };
+}
+
+/**
+ * One module card on the build screen, ready to draw.
+ *
+ * The count and the limit are both on the card, because a player who cannot
+ * see how many they are allowed cannot tell whether the "+" is broken or
+ * whether they are done.
+ */
+export interface BuildCard {
+  readonly kind: ModuleKind;
+  readonly name: string;
+  readonly cost: number;
+  /** How many the player has added. */
+  readonly have: number;
+  /** How many the player can add in total. */
+  readonly limit: number;
+  /** How many the outpost has, including the copy the lander brought. */
+  readonly total: number;
+  /** True when no more can be added. */
+  readonly atLimit: boolean;
+  /** Why the "+" is dead, in one short line. Empty when it is not dead. */
+  readonly blocked: string;
+  /** What it gives, in one short line. */
+  readonly gives: string;
+  /** What it asks of everything else, in one short line. */
+  readonly needs: string;
+}
+
+/**
+ * Every buildable module, with the numbers the card needs.
+ *
+ * `atLimit` is about the module's own limit only. A module can also be
+ * blocked by the ground or the budget, and then `blocked` says which.
+ */
+export function buildCards(extras: readonly ModuleKind[], regionId: string): readonly BuildCard[] {
+  return BUILDABLE.map((spec) => {
+    const have = countOf(extras, spec.kind);
+    const limit = extraLimitOf(spec.kind);
+    const placement = canPlace(spec.kind, extras, regionId);
+    const fromLander = CORE_MODULES.includes(spec.kind) ? 1 : 0;
+
+    return {
+      kind: spec.kind,
+      name: spec.name,
+      cost: spec.cost,
+      have,
+      limit,
+      total: have + fromLander,
+      atLimit: have >= limit,
+      blocked: placement.ok ? '' : placement.reason,
+      gives: spec.gives,
+      needs: spec.needs,
+    };
+  });
+}
+
+/**
+ * What this build can do for the five goals.
+ *
+ * The build screen used to answer "what will I buy?" and nothing else, so a
+ * player had no way to know which modules were for which goal. Now the build
+ * is a plan: five ticks, and a line saying what is missing when there is no
+ * tick.
+ */
+export interface GoalPreview {
+  readonly id: ScienceGoal;
+  readonly title: string;
+  /** True when this build can hold the goal. */
+  readonly ok: boolean;
+  /** Why not, in one short line. Empty when it can. */
+  readonly why: string;
+}
+
+/** Whether a build can hold each of the five goals, and what is missing. */
+export function goalPreview(extras: readonly ModuleKind[], regionId: string): readonly GoalPreview[] {
+  const run = startOutpost(newRun(regionId, ''), allModules(extras));
+  const calm = projectSol(run);
+  const systems = systemsFor(allModules(extras), regionId);
+  const upkeep = upkeepFor(extras, regionId);
+
+  /* Where the stores end up if nothing changes for the whole run. */
+  const waterAtEnd = run.stores.water + calm.net.water * WIN_SOL;
+  const shieldAtEnd = run.stores.shielding + calm.net.shielding * WIN_SOL;
+  const powerOk = calm.blackout <= POWER_BLACKOUT_FLOOR && upkeep.nightHoursCovered >= NIGHT_HOURS;
+
+  return [
+    {
+      id: 'dust-storm',
+      title: 'Dust Storm',
+      ok: true,
+      why: '',
+    },
+    {
+      id: 'life-support',
+      title: 'Life Support',
+      ok: waterAtEnd >= LIFE_STORE_FLOOR,
+      why: 'No water source',
+    },
+    {
+      id: 'radiation',
+      title: 'Radiation',
+      ok: shieldAtEnd >= SHIELDING_FLOOR,
+      why: `Need ${SHIELDING_FLOOR} shielding, have ${Math.round(shieldAtEnd)}`,
+    },
+    {
+      id: 'power',
+      title: 'Power',
+      ok: powerOk,
+      why: 'Batteries too small for a night',
+    },
+    {
+      id: 'food',
+      title: 'Food',
+      ok: systems.hasGreenhouse,
+      why: 'No greenhouse',
+    },
+  ];
 }
 
 /** Add a module if allowed; otherwise return the list unchanged. */
@@ -143,6 +263,14 @@ export interface PreviewSummary {
   readonly waterDays: number;
   /** Shielding the build starts with, out of 100. */
   readonly shielding: number;
+  /**
+   * kWh the panels make on a clear day.
+   *
+   * This is the number that moves when the player adds a solar array, which
+   * is why it is on the screen: before, nothing on the build screen changed
+   * when the most obvious module was added.
+   */
+  readonly dayKwh: number;
 }
 
 /**
@@ -160,6 +288,7 @@ export function previewSummary(extras: readonly ModuleKind[], regionId: string):
     foodDays: daysUntilEmpty(run.stores.food, calm.net.food),
     waterDays: daysUntilEmpty(run.stores.water, calm.net.water),
     shielding: Math.round(run.stores.shielding),
+    dayKwh: upkeepFor(extras, regionId).dayGeneration,
   };
 }
 
@@ -185,13 +314,13 @@ export function previewFor(extras: readonly ModuleKind[], regionId: string): rea
   if (calm.blackout > 0 || upkeep.dayGeneration < upkeep.dailyDemand) {
     lines.push({
       label: 'Power',
-      text: `The panels make ${upkeep.dayGeneration} kWh a day but the outpost needs ${upkeep.dailyDemand}. The batteries will run flat and life support will slow down.`,
+      text: `Panels make ${upkeep.dayGeneration} kWh. The outpost needs ${upkeep.dailyDemand}. It will run flat.`,
       tone: 'bad',
     });
   } else if (upkeep.nightHoursCovered < NIGHT_HOURS) {
     lines.push({
       label: 'Power',
-      text: `The batteries only cover ${upkeep.nightHoursCovered} of the 12 night hours. Add storage or a power source that works in the dark.`,
+      text: `The batteries cover ${upkeep.nightHoursCovered} of 12 night hours. Add storage or a power source for the dark.`,
       tone: 'warn',
     });
   } else {
@@ -210,12 +339,12 @@ export function previewFor(extras: readonly ModuleKind[], regionId: string): rea
   lines.push(
     waterDays === Number.POSITIVE_INFINITY
       ? { label: 'Water', text: 'Water is topped up as fast as it is used.', tone: 'ok' }
-      : { label: 'Water', text: `Water runs out in about ${waterDays} sols unless something brings more.`, tone: waterDays < 12 ? 'warn' : 'ok' },
+      : { label: 'Water', text: `Water runs out in about ${waterDays} sols. Nothing brings more.`, tone: waterDays < 12 ? 'warn' : 'ok' },
   );
 
   lines.push({
     label: 'Shielding',
-    text: `Starts at ${Math.round(run.stores.shielding)} out of 100 and wears down a little every sol.`,
+    text: `Starts at ${Math.round(run.stores.shielding)} of 100 and wears down a little every sol.`,
     tone: run.stores.shielding < 40 ? 'warn' : 'ok',
   });
 

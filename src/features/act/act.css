@@ -67,15 +67,25 @@
 .act-activity__icon {
   display: grid;
   place-items: center;
-  width: clamp(26px, 2.6vw, 50px);
-  height: clamp(26px, 2.6vw, 50px);
+  width: clamp(24px, 2.2vw, 42px);
+  height: clamp(24px, 2.2vw, 42px);
   border-radius: 50%;
   background: var(--gl-panel);
-  font-size: clamp(0.85rem, 1.3vw, 1.6rem);
+  font-size: clamp(0.8rem, 1.15vw, 1.4rem);
 }
 
 .act-activity__body {
   min-width: 0;
+}
+
+/* The title and the price on one line, so a card is two lines tall and not
+   four. Three of these have to fit above the fold with everything else. */
+.act-activity__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.2em 0.4em;
 }
 
 .act-activity__title {
@@ -88,7 +98,7 @@
 
 .act-activity__detail {
   display: block;
-  margin-top: 0.15em;
+  margin-top: 0.1em;
   color: var(--gl-muted);
   font-weight: 600;
   font-size: clamp(0.6rem, 0.75vw, 0.92rem);
@@ -99,7 +109,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.3rem;
-  margin-top: 0.35em;
 }
 
 /* What it costs and what it gives, as two kinds of chip. */
@@ -133,30 +142,53 @@
 /* ---------------------------------------------------- the science goals -- */
 
 .act-goals {
-  display: flex;
-  flex-direction: column;
-  gap: clamp(4px, 0.5vw, 10px);
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: clamp(3px, 0.4vw, 8px);
 }
 
 .act-goal {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: clamp(6px, 0.7vw, 14px);
-  align-items: start;
-  padding: clamp(5px, 0.6vw, 11px) clamp(7px, 0.75vw, 14px);
+  grid-template-areas:
+    'dot name'
+    'bar bar';
+  column-gap: 0.3em;
+  row-gap: clamp(2px, 0.25vw, 5px);
+  align-items: center;
+  padding: clamp(4px, 0.45vw, 9px) clamp(5px, 0.55vw, 11px);
   border: 1px solid var(--gl-line);
-  border-radius: clamp(8px, 0.72vw, 14px);
+  border-radius: clamp(7px, 0.6vw, 12px);
   background: var(--gl-card);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease;
 }
 
-/* The dot is the whole status: green, amber, or the warning colour. A child
-   who cannot read the line under it still sees whether a goal is in trouble. */
+.act-goal:hover {
+  background: var(--gl-card-strong);
+}
+
+.act-goal:focus-visible {
+  outline: 3px solid var(--gl-orange);
+  outline-offset: 2px;
+}
+
+/* The dot is the whole status: green for earned, amber for slipping. A
+   child who cannot read the words still sees whether a goal is in trouble. */
 .act-goal__dot {
-  width: clamp(8px, 0.85vw, 14px);
-  height: clamp(8px, 0.85vw, 14px);
-  margin-top: 0.35em;
+  grid-area: dot;
+  width: clamp(7px, 0.72vw, 12px);
+  height: clamp(7px, 0.72vw, 12px);
   border-radius: 50%;
   background: var(--gl-green);
+}
+
+.act-goal[data-status='plain'] .act-goal__dot {
+  background: var(--gl-card-strong);
+  box-shadow: inset 0 0 0 1px var(--gl-line);
 }
 
 .act-goal[data-status='watch'] {
@@ -176,22 +208,77 @@
   background: var(--gl-orange-deep);
 }
 
-.act-goal__body {
-  min-width: 0;
-}
-
-.act-goal__title {
-  display: block;
+.act-goal__name {
+  grid-area: name;
   color: var(--gl-ink);
   font-family: var(--gl-display);
-  font-size: clamp(0.68rem, 0.86vw, 1.02rem);
+  font-size: clamp(0.58rem, 0.74vw, 0.9rem);
   font-weight: 900;
-  line-height: 1.15;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The count is the point of the tile: how much of this goal the crew has
+   earned, out of how many sols it takes. */
+.act-goal__count {
+  grid-area: name;
+  justify-self: end;
+  display: flex;
+  align-items: baseline;
+  gap: 0.05em;
+  font-family: var(--gl-display);
+  color: var(--gl-ink);
+  font-size: clamp(0.62rem, 0.8vw, 0.98rem);
+  font-weight: 900;
+  line-height: 1;
+}
+
+.act-goal__count small {
+  color: var(--gl-muted);
+  font-size: 0.62em;
+  font-weight: 800;
+}
+
+.act-goal__bar {
+  grid-area: bar;
+  display: block;
+  height: clamp(3px, 0.32vw, 6px);
+  border-radius: 999px;
+  background: var(--gl-card-strong);
+  overflow: hidden;
+}
+
+.act-goal__bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--gl-green);
+  transition: width 0.35s ease;
+}
+
+.act-goal[data-status='watch'] .act-goal__bar > span {
+  background: var(--gl-orange);
+}
+
+.act-goal[data-status='critical'] .act-goal__bar > span {
+  background: var(--gl-orange-deep);
+}
+
+/* The detail and the NASA fact, behind a tap. */
+.act-goal__more {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2em;
+  margin-top: 0.3em;
+  padding: clamp(5px, 0.6vw, 11px) clamp(7px, 0.75vw, 14px);
+  border-radius: clamp(8px, 0.72vw, 14px);
+  background: var(--gl-card);
 }
 
 .act-goal__detail {
   display: block;
-  margin-top: 0.15em;
   color: var(--gl-ink);
   font-size: clamp(0.6rem, 0.74vw, 0.9rem);
   font-weight: 700;
@@ -200,7 +287,6 @@
 
 .act-goal__fact {
   display: block;
-  margin-top: 0.25em;
   color: var(--gl-muted);
   font-size: clamp(0.54rem, 0.68vw, 0.82rem);
   font-weight: 600;

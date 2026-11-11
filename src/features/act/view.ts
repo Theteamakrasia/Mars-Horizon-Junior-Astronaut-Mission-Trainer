@@ -78,6 +78,8 @@ export function mountAct(
   let calmMode = false;
   let loadingForecast = false;
   let focusedCrisis: string | null = null;
+  /** The goal whose detail is open on the panel, if any. */
+  let openGoal: string | null = null;
   let clockNodes: { readonly bar: HTMLElement; readonly text: HTMLElement } | null = null;
   let pendingFocus: HTMLElement | null = null;
   /* NASA's live daily pictures. Empty when NASA did not answer, and the screen
@@ -238,17 +240,21 @@ export function mountAct(
         h(
           'span',
           { class: 'act-activity__body' },
-          h('span', { class: 'act-activity__title', text: row.title }),
+          h(
+            'span',
+            { class: 'act-activity__head' },
+            h('span', { class: 'act-activity__title', text: row.title }),
+            h(
+              'span',
+              { class: 'act-activity__tags' },
+              ...row.costs.map((text) => h('span', { class: 'act-tag act-tag--cost', text })),
+              ...row.gains.map((text) => h('span', { class: 'act-tag act-tag--gain', text })),
+            ),
+          ),
           h('span', {
             class: 'act-activity__detail',
             text: row.available ? row.detail : (row.lockedReason ?? row.detail),
           }),
-          h(
-            'span',
-            { class: 'act-activity__tags' },
-            ...row.costs.map((text) => h('span', { class: 'act-tag act-tag--cost', text })),
-            ...row.gains.map((text) => h('span', { class: 'act-tag act-tag--gain', text })),
-          ),
         ),
         h('span', { class: 'act-activity__mark', 'aria-hidden': 'true', text: row.chosen ? '✓' : '' }),
       );
@@ -267,6 +273,12 @@ export function mountAct(
           ? 'You can change your mind until you run the sol.'
           : 'Pick one to run today. It costs what it says it costs.';
 
+    /* The fact about the day's own subject, tucked under the cards. It used
+       to be a separate line further down the panel, where it read as another
+       paragraph rather than as the thing about this choice. */
+    const chosen = rows.find((row) => row.chosen) ?? rows.find((row) => row.available) ?? rows[0];
+    const fact = chosen === undefined ? null : factForTopic(chosen.topic, state.sol + 1);
+
     /* The cards are the day's decision, so they are worth hearing as well as
        reading: the cheapest kind of access for a player who cannot read yet. */
     const read = readButton(
@@ -281,7 +293,13 @@ export function mountAct(
       { ariaLabel: "Read today's activities aloud" },
     );
 
-    return gameSection("Today's activity", list, h('p', { class: 'gl__note', text: note }), read ?? false);
+    return gameSection(
+      "Today's activity",
+      list,
+      h('p', { class: 'gl__note', text: note }),
+      fact === null ? false : h('p', { class: 'gl__note', text: `NASA fact · ${fact.text} (${fact.credit})` }),
+      read ?? false,
+    );
   }
 
   /**
@@ -307,66 +325,117 @@ export function mountAct(
   }
 
   /**
-   * The NASA fact that matches the day's activity.
+   * The five goals, and how much of each has been earned.
    *
-   * A player cleaning the solar panels gets a fact about solar panels, not a
-   * random one. That is what the topics on the facts are for.
-   */
-  function activityFactLine(state: RunState): Node | false {
-    const rows = activityRows(state, state.sol + 1);
-    const row = rows.find((offer) => offer.chosen) ?? rows.find((offer) => offer.available) ?? rows[0];
-
-    if (row === undefined) return false;
-
-    const fact = factForTopic(row.topic, state.sol + 1);
-
-    return h('p', { class: 'gl__note', text: `NASA fact · ${fact.text} (${fact.credit})` });
-  }
-
-  /**
-   * The five science goals, and how each is doing.
-   *
-   * Every number in the game belongs to one of them: the dust blocking the
-   * Sun, the air and water makers, the shielding, the batteries and the food.
-   * Naming them is what turns a set of falling bars into something a player
-   * can think about — and each goal carries a NASA fact about its own system,
-   * so the science is on the same screen as the state.
+   * Five tiles across, one line each: the name, the count and a bar. The
+   * detail and the NASA fact are a tap away, because a screen that shows all
+   * of it at once is a wall of words and a child reads none of it.
    */
   function goalSection(state: RunState): HTMLElement {
     const rows = goalRows(state);
     const list = h('div', { class: 'act-goals' });
 
     for (const row of rows) {
-      const fact = factForTopic(row.topic, state.sol + 1);
+      /* Earned is the good state. Slipping is the warning. A goal that is
+         neither is simply on its way, and its dot stays quiet. */
+      const status = row.earned ? 'ok' : row.status === 'ok' ? 'plain' : row.status;
 
-      list.append(
+      const tile = h(
+        'button',
+        {
+          class: 'act-goal',
+          type: 'button',
+          'aria-expanded': String(openGoal === row.id),
+          'aria-label': `${row.title}: ${row.held} of ${row.needed} sols. ${row.aim}`,
+          'data-status': status,
+        },
+        h('span', { class: 'act-goal__dot', 'aria-hidden': 'true' }),
+        h('span', { class: 'act-goal__name', text: row.short }),
+        h('span', { class: 'act-goal__count' }, h('strong', { text: String(row.held) }), h('small', { text: `/${row.needed}` })),
+        h('span', { class: 'act-goal__bar', 'aria-hidden': 'true' }, h('span', { style: `width:${row.percent}%` })),
+      );
+
+      tile.addEventListener('click', () => {
+        openGoal = openGoal === row.id ? null : row.id;
+        render();
+      });
+
+      list.append(tile);
+    }
+
+    const open = rows.find((row) => row.id === openGoal);
+    const fact = open === undefined ? null : factForTopic(open.topic, state.sol + 1);
+    const more =
+      open === undefined || fact === null
+        ? false
+        : h(
+            'div',
+            { class: 'act-goal__more' },
+            h('span', { class: 'act-goal__detail', text: `${open.title} — ${open.detail}` }),
+            h('span', { class: 'act-goal__fact' }, h('strong', { text: 'Did you know? ' }), `${fact.text} (${fact.credit})`),
+          );
+
+    const earned = rows.filter((row) => row.earned).length;
+
+    return gameSection(
+      'Your five goals',
+      list,
+      more,
+      h('p', { class: 'gl__note', text: `${earned} of 5 earned. Tap one to see how it is doing.` }),
+    );
+  }
+
+  /**
+   * What the last sol did, and what it changed.
+   *
+   * This is the answer to "what just happened", so it is the first thing in
+   * the panel. It used to sit at the bottom, under five paragraphs of goals,
+   * which meant a child whose power had run flat saw a zero on the bar and no
+   * reason for it anywhere on the screen.
+   */
+  function recapSection(state: RunState): HTMLElement | false {
+    const last = state.log[state.log.length - 1];
+
+    if (last === undefined) return false;
+
+    const items = [...last.events.map((event) => event.summary), ...last.notes];
+    const list = h('ul', { class: 'gl__list' });
+
+    /* What the crew chose comes first: it is the decision this sol was
+       about, and the science it earned is why the score moved. */
+    if (last.activity !== null) {
+      list.append(h('li', { text: `You chose: ${last.activity.title}. (+${last.activity.science} science)` }));
+    }
+
+    for (const item of items.length > 0 ? items : ['A quiet sol. Everything ran as expected.']) {
+      list.append(h('li', { text: item }));
+    }
+
+    const changes = h('div', { class: 'act-changes' });
+
+    for (const row of changeRows(last.net)) {
+      changes.append(
         h(
           'div',
-          { class: 'act-goal', 'data-status': row.status },
-          h('span', { class: 'act-goal__dot', 'aria-hidden': 'true' }),
+          { class: 'act-change', 'data-tone': row.tone },
           h(
-            'div',
-            { class: 'act-goal__body' },
-            h('span', { class: 'act-goal__title', text: row.title }),
-            h('span', { class: 'act-goal__detail', text: row.detail }),
-            h('span', { class: 'act-goal__fact' }, h('strong', { text: 'Did you know? ' }), `${fact.text} (${fact.credit})`),
+            'span',
+            { class: 'act-change__label' },
+            h('span', { 'aria-hidden': 'true', text: `${row.emoji} ` }),
+            row.label,
           ),
+          h('strong', { class: 'act-change__value', text: row.text }),
         ),
       );
     }
 
-    return gameSection(
-      'The five science goals',
-      list,
-      h('p', { class: 'gl__note', text: 'Every number in the game belongs to one of these five.' }),
-    );
+    return gameSection(`Sol ${last.sol} in review`, list, changes);
   }
 
   /** A normal sol: what the day costs, what is coming, what happened last. */
   function missionPanel(state: RunState): HTMLElement {
     const mission = missionHeadline(state);
     const region = regionById(state.regionId);
-    const score = siteScore(state.regionId);
     const power = powerPicture(state);
     const last = state.log[state.log.length - 1];
     const waiting = loadingForecast && state.forecast.length === 0;
@@ -394,56 +463,15 @@ export function mountAct(
     );
 
     const body: (Node | false)[] = [
+      recapSection(state),
       callout,
       activitySection(state),
-      activityFactLine(state),
       goalSection(state),
       gameSection('Day → Night', dayNight),
-      h('p', { class: 'gl__note', text: `${region ? region.name : 'Your site'}: ${SITE_AXES.map((axis) => `${AXIS_NAMES[axis]} ${score[axis]}/5`).join(' · ')}` }),
       forecastSection(state),
     ];
 
     if (last !== undefined) {
-      const items = [...last.events.map((event) => event.summary), ...last.notes];
-      const list = h('ul', { class: 'gl__list' });
-
-      /* What the crew chose comes first: it is the decision this sol was
-         about, and the science it earned is why the score moved. */
-      if (last.activity !== null) {
-        list.append(h('li', { text: `You chose: ${last.activity.title}. (+${last.activity.science} science points)` }));
-      }
-
-      for (const item of items.length > 0 ? items : ['A quiet sol. Everything ran as expected.']) list.append(h('li', { text: item }));
-
-      body.push(gameSection(`What happened on sol ${last.sol}`, list));
-
-      /* The numbers behind the story: what the sol added and what it cost. */
-      const changes = h('div', { class: 'act-changes' });
-
-      for (const row of changeRows(last.net)) {
-        changes.append(
-          h(
-            'div',
-            { class: 'act-change', 'data-tone': row.tone },
-            h(
-              'span',
-              { class: 'act-change__label' },
-              h('span', { 'aria-hidden': 'true', text: `${row.emoji} ` }),
-              row.label,
-            ),
-            h('strong', { class: 'act-change__value', text: row.text }),
-          ),
-        );
-      }
-
-      body.push(
-        gameSection(
-          'What this sol changed',
-          changes,
-          h('p', { class: 'gl__note', text: 'Power is stored energy. The other four are percent of a tank. A plus means you made more than you used.' }),
-        ),
-      );
-
       /* One real NASA image per sol, after the recap: something to look at and
          learn from before the next decision. Out-of-range sols simply get none. */
       const learning = cardForSol(last.sol);
@@ -598,8 +626,15 @@ export function mountAct(
     const state = run;
     const crisis = pendingCrisis(state);
     const last = state.log[state.log.length - 1];
+    const region = regionById(state.regionId);
+    const score = siteScore(state.regionId);
 
     clockNodes = null;
+
+    /* The site's own scores, on the picture where there is room for them.
+       They used to be a line of text under the decision, where they read as
+       one more paragraph. */
+    const siteHint = `${region ? region.name : 'Your site'}: ${SITE_AXES.map((axis) => `${AXIS_NAMES[axis]} ${score[axis]}/5`).join(' · ')}`;
 
     const world =
       crisis === null
@@ -608,6 +643,7 @@ export function mountAct(
             weather: 'Clear skies',
             crew: last === undefined ? 'A sol is one Mars day. Ready for our first one?' : `Sol ${last.sol} is done. Ready for the next one?`,
             figures: moduleFigures(state.modules),
+            hint: siteHint,
             signals: [scienceSignal(state)],
           })
         : gameWorld({

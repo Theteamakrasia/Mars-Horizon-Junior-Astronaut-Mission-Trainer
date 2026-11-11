@@ -196,7 +196,7 @@ export function advanceSol(run: RunState): RunState {
 
     if (event.kind === 'storm' && choice === 'expose') {
       panelHealth = Math.max(MIN_PANEL_HEALTH, panelHealth - EXPOSED_PANEL_DAMAGE);
-      notes.push('Dust settled on the panels and they will never be as clean again.');
+      notes.push('Dust settled on the panels. It never washes off.');
     }
   }
 
@@ -278,11 +278,11 @@ export function advanceSol(run: RunState): RunState {
 
   if (blackout > 0) {
     notes.push(
-      `The batteries ran flat for part of the sol (${Math.round(blackout * 100)}% of the power needed was missing), so life support and the greenhouse slowed down.`,
+      `Batteries ran flat for ${Math.round(blackout * 100)}% of the sol, so life support slowed down.`,
     );
   }
   if (wasted > 0) {
-    notes.push(`${Math.round(wasted)} kWh of sunshine was wasted because the batteries were already full.`);
+    notes.push(`${Math.round(wasted)} kWh of sunlight wasted: the batteries were already full.`);
   }
 
   // ---- The crew and the plants.

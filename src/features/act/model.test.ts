@@ -60,7 +60,7 @@ describe('act model', () => {
   });
 
   it('writes the power picture as a sentence for screen readers', () => {
-    expect(powerSentence(45, 12, 30)).toBe('The arrays make 45 kW while the Sun is up. 12 kWh is stored. Night costs 30 kW for 12 hours.');
+    expect(powerSentence(45, 12, 30)).toBe('45 kW in the Sun · 12 kWh stored · 30 kW at night');
   });
 });
 

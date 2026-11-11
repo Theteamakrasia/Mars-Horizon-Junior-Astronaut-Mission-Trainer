@@ -23,7 +23,96 @@
   white-space: nowrap;
 }
 
+/* The card that was just changed flashes, so a press is never silent. */
+.gl--base .gl__card--changed {
+  animation: gl-card-changed 900ms ease;
+}
+
+@keyframes gl-card-changed {
+  0% {
+    box-shadow: 0 0 0 3px var(--gl-orange);
+    background: var(--gl-peach);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+    background: var(--gl-card);
+  }
+}
+
+/* What the player just built, said out loud. */
+.gl--base .gl__toast {
+  margin: 0;
+  padding: clamp(5px, 0.55vw, 10px) clamp(8px, 0.83vw, 16px);
+  border-radius: clamp(8px, 0.72vw, 14px);
+  background: var(--gl-green-soft);
+  color: var(--gl-ink);
+  font-weight: 800;
+  font-size: clamp(0.62rem, 0.78vw, 0.95rem);
+}
+
+/* The badge on a module that cannot be added again. */
+.gl--base .gl__card-max {
+  flex: 0 0 auto;
+  padding: 0 0.4em;
+  border-radius: 999px;
+  background: var(--gl-peach);
+  color: var(--gl-orange-deep);
+  font-size: clamp(0.48rem, 0.6vw, 0.72rem);
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+/* The trade-off under the card: what this module asks of everything else. */
+.gl--base .gl__card-tag {
+  margin: 0;
+  color: var(--gl-muted);
+  font-size: clamp(0.54rem, 0.66vw, 0.8rem);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
 /* A disabled "+" keeps the reason under the card readable. */
 .gl--base .gl__card-why {
   margin-top: 0.15em;
+}
+
+/* What this build can do for the five goals. */
+.gl--base .gl__goals {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(2px, 0.25vw, 6px);
+}
+
+.gl--base .gl__goal {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: 0.4em;
+  padding: clamp(1px, 0.15vw, 4px) 0;
+  line-height: 1.3;
+}
+
+.gl--base .gl__goal-mark {
+  font-weight: 900;
+  color: var(--gl-green);
+}
+
+.gl--base .gl__goal[data-ok='false'] .gl__goal-mark {
+  color: var(--gl-orange-deep);
+}
+
+.gl--base .gl__goal-title {
+  color: var(--gl-ink);
+  font-weight: 800;
+  font-size: clamp(0.6rem, 0.74vw, 0.9rem);
+  white-space: nowrap;
+}
+
+.gl--base .gl__goal-why {
+  color: var(--gl-orange-deep);
+  font-size: clamp(0.56rem, 0.7vw, 0.84rem);
+  font-weight: 700;
+  line-height: 1.25;
 }
