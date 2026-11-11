@@ -75,6 +75,40 @@
   outline-offset: 2px;
 }
 
+/*
+ * The corner you drag to change the size.
+ *
+ * It sits on the bottom-right of the module, so dragging it sideways widens
+ * the picture and the left edge stays where it was. The height follows the
+ * artwork's own proportions, so width is the only dimension to change.
+ */
+.ble__grip {
+  position: absolute;
+  right: -8px;
+  bottom: -8px;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  border: 2px solid #fff9ec;
+  border-radius: 50%;
+  background: #df542b;
+  cursor: ew-resize;
+  touch-action: none;
+  pointer-events: auto;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.ble__handle:hover .ble__grip,
+.ble__handle--selected .ble__grip {
+  background: #cf4726;
+}
+
+/*
+ * The name of a module, shown on hover and on the selected one.
+ *
+ * Every copy of every module is on the panel at once, so a permanent label
+ * on each would be noise.
+ */
 .ble__tag {
   position: absolute;
   left: 50%;
@@ -86,6 +120,13 @@
   color: #f5f0e3;
   font: 700 11px/1.4 'Nunito', 'Segoe UI', system-ui, sans-serif;
   white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ble__handle:hover .ble__tag,
+.ble__handle--selected .ble__tag {
+  opacity: 1;
 }
 
 /* ------------------------------------------------------------- toolbar -- */
@@ -127,6 +168,25 @@
   background: rgba(0, 0, 0, 0.28);
   font-size: 12px;
   font-weight: 700;
+}
+
+/*
+ * Which module is selected.
+ *
+ * Copies of a kind overlap in the default layout, so clicking the one you
+ * want is not always possible. This is the way to pick the one underneath.
+ */
+.ble__pick {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 8px;
+  padding: 5px 6px;
+  border: 1px solid rgba(245, 240, 227, 0.25);
+  border-radius: 6px;
+  background: #0b1015;
+  color: #f5f0e3;
+  font: 600 12px/1.4 'Nunito', 'Segoe UI', system-ui, sans-serif;
 }
 
 .ble__fields {

@@ -13,6 +13,11 @@
  * therefore never be checked. It is also compiled out of a production build
  * entirely, so no player can reach it.
  *
+ * Every copy of every module is on the panel at once — four solar arrays, two
+ * regolith shields, one of everything else — because the file records a pose
+ * for each copy and the player may build any number of them. The nth copy of
+ * a kind stands on the nth pose in that kind's list.
+ *
  * The overlay is a fixed layer on `document.body` rather than a set of
  * elements injected into the screen. `features/base` replaces every child of
  * its mount when the live forecast arrives, so anything injected into the
@@ -20,9 +25,9 @@
  */
 
 import { h } from '../dom/h';
-import { MODULE_CATALOGUE, specOf, type ModuleKind } from '../sim/modules';
+import { MODULE_CATALOGUE, type ModuleKind } from '../sim/modules';
 import {
-  MODULE_SPOT,
+  DEFAULT_POSES,
   SPOT_BAND,
   buildLayoutJson,
   clampSpot,
@@ -34,9 +39,6 @@ import { moduleArt } from './gameLoop';
 
 import './base-layout-editor.css';
 
-/** The module kinds the editor places, in catalogue order. */
-const KINDS: readonly ModuleKind[] = MODULE_CATALOGUE.map((spec) => spec.kind);
-
 /** The class put on the outpost panel while the editor is on. */
 const EDITING_CLASS = 'gl__world--editing';
 
@@ -45,6 +47,44 @@ const NUDGE = 0.5;
 
 /** How far a shift and an arrow key nudges a module, in percent. */
 const NUDGE_FAR = 5;
+
+/** How much one key press changes a module's width, in percent. */
+const RESIZE = 1;
+
+/** How much a shift and a key press changes a module's width, in percent. */
+const RESIZE_FAR = 5;
+
+/** One copy of one module: which kind, and which copy of it. */
+interface Instance {
+  /** A stable key, e.g. `solar-array#2`. */
+  readonly key: string;
+  readonly kind: ModuleKind;
+  /** Zero-based: copy 0 is the first one the player builds. */
+  readonly copy: number;
+  /** How many copies of this kind the player could build. */
+  readonly total: number;
+  /** What to call it in the toolbar. */
+  readonly label: string;
+}
+
+/** Every copy of every module, in catalogue order. */
+function buildInstances(): Instance[] {
+  const instances: Instance[] = [];
+
+  for (const spec of MODULE_CATALOGUE) {
+    for (let copy = 0; copy < spec.maxCount; copy += 1) {
+      instances.push({
+        key: `${spec.kind}#${copy}`,
+        kind: spec.kind,
+        copy,
+        total: spec.maxCount,
+        label: spec.maxCount === 1 ? spec.name : `${spec.name} ${copy + 1} of ${spec.maxCount}`,
+      });
+    }
+  }
+
+  return instances;
+}
 
 /** One number field in the toolbar. */
 interface NumberField {
@@ -65,18 +105,22 @@ export function startLayoutEditor(root: HTMLElement): () => void {
   /* A screen with no outpost panel has nothing to place. */
   if (world === null) return () => {};
 
-  const spots: Record<string, ModuleSpot> = {};
+  const instances = buildInstances();
+  const poses: Record<string, ModuleSpot[]> = {};
 
-  for (const kind of KINDS) spots[kind] = { ...MODULE_SPOT[kind] };
+  for (const spec of MODULE_CATALOGUE) {
+    poses[spec.kind] = (DEFAULT_POSES[spec.kind] ?? []).map((spot) => ({ ...spot }));
+  }
 
-  let selected: ModuleKind | null = null;
-  let dragging: ModuleKind | null = null;
-  let grab = { x: 0, y: 0 };
+  let selected: string | null = null;
   let stopped = false;
 
-  // --- The draggable handles, one per module kind. -------------------------
+  /** What a pointer is doing right now. */
+  let drag: { key: string; mode: 'move' | 'resize'; grabX: number; grabY: number } | null = null;
 
-  const handles = new Map<ModuleKind, HTMLElement>();
+  // --- The draggable handles, one per copy of every module. ----------------
+
+  const handles = new Map<string, HTMLElement>();
   const box = h('div', { class: 'ble__box' });
 
   const guide = h('div', { class: 'ble__guide' });
@@ -88,29 +132,43 @@ export function startLayoutEditor(root: HTMLElement): () => void {
 
   box.append(guide);
 
-  for (const kind of KINDS) {
-    const spec = specOf(kind);
+  for (const instance of instances) {
+    /* The grip is the corner you drag to change the size. */
+    const grip = h('span', {
+      class: 'ble__grip',
+      role: 'button',
+      tabindex: '-1',
+      'aria-hidden': 'true',
+      title: 'Drag to resize',
+    });
 
     const handle = h(
       'div',
       {
         class: 'ble__handle',
-        'data-kind': kind,
+        'data-kind': instance.kind,
+        'data-copy': String(instance.copy),
         tabindex: '0',
         role: 'button',
-        'aria-label': `${spec.name} — drag to place, arrow keys to nudge`,
+        'aria-label': `${instance.label} — drag to place, drag the corner to resize, arrow keys to nudge`,
       },
-      h('img', { src: moduleArt(kind), alt: '', 'aria-hidden': 'true' }),
-      h('span', { class: 'ble__tag', 'aria-hidden': 'true' }, spec.name),
+      h('img', { src: moduleArt(instance.kind), alt: '', 'aria-hidden': 'true' }),
+      h('span', { class: 'ble__tag', 'aria-hidden': 'true' }, instance.label),
+      grip,
     );
 
-    handle.addEventListener('pointerdown', (event) => onPointerDown(event, kind));
-    handle.addEventListener('pointermove', (event) => onPointerMove(event, kind));
-    handle.addEventListener('pointerup', (event) => onPointerUp(event, kind));
-    handle.addEventListener('pointercancel', (event) => onPointerUp(event, kind));
-    handle.addEventListener('keydown', (event) => onKeyDown(event, kind));
+    handle.addEventListener('pointerdown', (event) => onPointerDown(event, instance, 'move'));
+    handle.addEventListener('pointermove', (event) => onPointerMove(event, instance));
+    handle.addEventListener('pointerup', (event) => onPointerUp(event));
+    handle.addEventListener('pointercancel', (event) => onPointerUp(event));
+    handle.addEventListener('keydown', (event) => onKeyDown(event, instance));
 
-    handles.set(kind, handle);
+    grip.addEventListener('pointerdown', (event) => onPointerDown(event, instance, 'resize'));
+    grip.addEventListener('pointermove', (event) => onPointerMove(event, instance));
+    grip.addEventListener('pointerup', (event) => onPointerUp(event));
+    grip.addEventListener('pointercancel', (event) => onPointerUp(event));
+
+    handles.set(instance.key, handle);
     box.append(handle);
   }
 
@@ -135,6 +193,12 @@ export function startLayoutEditor(root: HTMLElement): () => void {
     return { input, row };
   }
 
+  const picker = h('select', { class: 'ble__pick' });
+
+  for (const instance of instances) {
+    picker.append(h('option', { value: instance.key }, instance.label));
+  }
+
   const left = numberField('left %', SPOT_BAND.left.min, SPOT_BAND.left.max);
   const bottom = numberField('bottom %', SPOT_BAND.bottom.min, SPOT_BAND.bottom.max);
   const width = numberField('width %', SPOT_BAND.width.min, SPOT_BAND.width.max);
@@ -154,8 +218,9 @@ export function startLayoutEditor(root: HTMLElement): () => void {
     h('p', { class: 'ble__title', text: 'Placement editor' }),
     h('p', {
       class: 'ble__hint',
-      text: 'Drag a module to place it. Extra copies of a module step right on their own.',
+      text: 'Drag a module to move it, drag its corner to resize it. Every copy the player could build is here.',
     }),
+    picker,
     readout,
     h('div', { class: 'ble__fields' }, left.row, bottom.row, width.row, depth.row),
     h('p', { class: 'ble__label', text: 'baseLayout.json — save it into src/ui/' }),
@@ -166,54 +231,68 @@ export function startLayoutEditor(root: HTMLElement): () => void {
   // --- Painting. -----------------------------------------------------------
 
   function render(): void {
-    for (const kind of KINDS) {
-      const handle = handles.get(kind);
+    for (const instance of instances) {
+      const handle = handles.get(instance.key);
 
       if (handle === undefined) continue;
 
-      const spot = spots[kind];
+      const spot = poses[instance.kind][instance.copy];
 
       handle.style.setProperty('--ble-left', `${spot.left}%`);
       handle.style.setProperty('--ble-bottom', `${spot.bottom}%`);
       handle.style.setProperty('--ble-width', `${spot.width}%`);
-      handle.style.setProperty('--ble-z', String(spot.z));
+
+      /* The selected copy is drawn in front of the others. Copies of a kind
+       * overlap, and a copy you cannot see is a copy you cannot grab — so
+       * picking it from the toolbar brings it to the front. */
+      handle.style.setProperty('--ble-z', instance.key === selected ? '999' : String(spot.z));
     }
 
-    jsonArea.value = buildLayoutJson(spots);
+    jsonArea.value = buildLayoutJson(poses);
   }
 
-  function select(kind: ModuleKind): void {
-    selected = kind;
+  function select(key: string): void {
+    selected = key;
 
     for (const [other, handle] of handles) {
-      handle.classList.toggle('ble__handle--selected', other === kind);
+      handle.classList.toggle('ble__handle--selected', other === key);
     }
 
-    showSpot(kind);
+    const instance = instances.find((entry) => entry.key === key);
+
+    if (instance === undefined) return;
+
+    const spot = poses[instance.kind][instance.copy];
+
+    picker.value = key;
+    left.input.value = String(spot.left);
+    bottom.input.value = String(spot.bottom);
+    width.input.value = String(spot.width);
+    depth.input.value = String(spot.z);
+
+    readout.textContent = `${instance.label} — left ${spot.left}%, bottom ${spot.bottom}%, width ${spot.width}%.`;
+  }
+
+  function setSpot(instance: Instance, spot: ModuleSpot): void {
+    poses[instance.kind][instance.copy] = roundSpot(clampSpot(spot));
+
+    render();
+
+    /* The toolbar follows the drag, so the numbers on screen are always the
+     * numbers in the file. */
+    if (selected === instance.key) showSpot(instance);
   }
 
   /** Put a module's numbers in the toolbar. */
-  function showSpot(kind: ModuleKind): void {
-    const spot = spots[kind];
+  function showSpot(instance: Instance): void {
+    const spot = poses[instance.kind][instance.copy];
 
     left.input.value = String(spot.left);
     bottom.input.value = String(spot.bottom);
     width.input.value = String(spot.width);
     depth.input.value = String(spot.z);
 
-    readout.textContent = `${specOf(kind).name} — left ${spot.left}%, bottom ${spot.bottom}%.`;
-  }
-
-  function setSpot(kind: ModuleKind, spot: ModuleSpot): void {
-    /* Rounded as well as clamped, so the toolbar, the readout and the file
-     * all quote the same numbers. */
-    spots[kind] = roundSpot(clampSpot(spot));
-
-    render();
-
-    /* The toolbar follows the drag, so the numbers on screen are always the
-     * numbers in the file. */
-    if (selected === kind) showSpot(kind);
+    readout.textContent = `${instance.label} — left ${spot.left}%, bottom ${spot.bottom}%, width ${spot.width}%.`;
   }
 
   /** Move the overlay over the outpost panel, wherever it now is. */
@@ -232,54 +311,84 @@ export function startLayoutEditor(root: HTMLElement): () => void {
 
   // --- Dragging. -----------------------------------------------------------
 
-  function onPointerDown(event: PointerEvent, kind: ModuleKind): void {
-    const handle = handles.get(kind);
-
-    if (handle === undefined || world === null || dragging !== null) return;
+  function onPointerDown(event: PointerEvent, instance: Instance, mode: 'move' | 'resize'): void {
+    if (drag !== null || world === null) return;
 
     event.preventDefault();
+    event.stopPropagation();
+
+    const handle = handles.get(instance.key);
+
+    if (handle === undefined) return;
+
     handle.setPointerCapture(event.pointerId);
 
     const rect = world.getBoundingClientRect();
-    const spot = spots[kind];
+    const spot = poses[instance.kind][instance.copy];
 
-    /* Remember where in the picture the pointer grabbed it, so the module
-     * does not jump to the cursor when the drag starts. */
-    grab = {
-      x: event.clientX - (rect.left + (rect.width * spot.left) / 100),
-      y: event.clientY - (rect.top + rect.height - (rect.height * spot.bottom) / 100),
-    };
+    if (mode === 'move') {
+      /* Remember where in the picture the pointer grabbed it, so the module
+       * does not jump to the cursor when the drag starts. */
+      drag = {
+        key: instance.key,
+        mode,
+        grabX: event.clientX - (rect.left + (rect.width * spot.left) / 100),
+        grabY: event.clientY - (rect.top + rect.height - (rect.height * spot.bottom) / 100),
+      };
+    } else {
+      /* Resizing grabs the right-hand edge, so the left edge stays put. */
+      drag = {
+        key: instance.key,
+        mode,
+        grabX: event.clientX - (rect.left + (rect.width * (spot.left + spot.width)) / 100),
+        grabY: event.clientY,
+      };
+    }
 
-    dragging = kind;
-    select(kind);
+    select(instance.key);
   }
 
-  function onPointerMove(event: PointerEvent, kind: ModuleKind): void {
-    if (dragging !== kind || world === null) return;
+  function onPointerMove(event: PointerEvent, instance: Instance): void {
+    if (drag === null || drag.key !== instance.key || world === null) return;
 
     const rect = world.getBoundingClientRect();
-    const { left: nextLeft, bottom: nextBottom } = pointToPercent(
-      { x: event.clientX - grab.x, y: event.clientY - grab.y },
-      rect,
-    );
+    const spot = poses[instance.kind][instance.copy];
 
-    setSpot(kind, { ...spots[kind], left: nextLeft, bottom: nextBottom });
+    if (drag.mode === 'move') {
+      const { left: nextLeft, bottom: nextBottom } = pointToPercent(
+        { x: event.clientX - drag.grabX, y: event.clientY - drag.grabY },
+        rect,
+      );
+
+      setSpot(instance, { ...spot, left: nextLeft, bottom: nextBottom });
+
+      return;
+    }
+
+    /* Resizing: the right edge follows the pointer, the left edge does not. */
+    const rightPx = event.clientX - drag.grabX;
+    const leftPx = rect.left + (rect.width * spot.left) / 100;
+    const nextWidth = ((rightPx - leftPx) / rect.width) * 100;
+
+    setSpot(instance, { ...spot, width: nextWidth });
   }
 
-  function onPointerUp(event: PointerEvent, kind: ModuleKind): void {
-    if (dragging !== kind) return;
+  function onPointerUp(event: PointerEvent): void {
+    if (drag === null) return;
 
-    const handle = handles.get(kind);
+    const handle = handles.get(drag.key);
 
     if (handle !== undefined && handle.hasPointerCapture(event.pointerId)) {
       handle.releasePointerCapture(event.pointerId);
     }
 
-    dragging = null;
+    drag = null;
   }
 
-  function onKeyDown(event: KeyboardEvent, kind: ModuleKind): void {
+  function onKeyDown(event: KeyboardEvent, instance: Instance): void {
     const step = event.shiftKey ? NUDGE_FAR : NUDGE;
+    const resize = event.shiftKey ? RESIZE_FAR : RESIZE;
+    const spot = poses[instance.kind][instance.copy];
 
     let delta: { left: number; bottom: number } | null = null;
 
@@ -288,22 +397,36 @@ export function startLayoutEditor(root: HTMLElement): () => void {
     else if (event.key === 'ArrowUp') delta = { left: 0, bottom: step };
     else if (event.key === 'ArrowDown') delta = { left: 0, bottom: -step };
 
-    if (delta === null) {
-      if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        select(kind);
-      }
+    if (delta !== null) {
+      event.preventDefault();
+      select(instance.key);
+      setSpot(instance, { ...spot, left: spot.left + delta.left, bottom: spot.bottom + delta.bottom });
 
       return;
     }
 
-    event.preventDefault();
-    select(kind);
-    setSpot(kind, {
-      ...spots[kind],
-      left: spots[kind].left + delta.left,
-      bottom: spots[kind].bottom + delta.bottom,
-    });
+    /* Plus and minus change the size, so the whole editor works from the
+     * keyboard alone. */
+    if (event.key === '+' || event.key === '=') {
+      event.preventDefault();
+      select(instance.key);
+      setSpot(instance, { ...spot, width: spot.width + resize });
+
+      return;
+    }
+
+    if (event.key === '-' || event.key === '_') {
+      event.preventDefault();
+      select(instance.key);
+      setSpot(instance, { ...spot, width: spot.width - resize });
+
+      return;
+    }
+
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      select(instance.key);
+    }
   }
 
   // --- The toolbar's actions. ----------------------------------------------
@@ -311,7 +434,11 @@ export function startLayoutEditor(root: HTMLElement): () => void {
   function onFieldChange(): void {
     if (selected === null) return;
 
-    setSpot(selected, {
+    const instance = instances.find((entry) => entry.key === selected);
+
+    if (instance === undefined) return;
+
+    setSpot(instance, {
       left: Number(left.input.value),
       bottom: Number(bottom.input.value),
       width: Number(width.input.value),
@@ -320,7 +447,7 @@ export function startLayoutEditor(root: HTMLElement): () => void {
   }
 
   function downloadJson(): void {
-    const blob = new Blob([buildLayoutJson(spots)], { type: 'application/json' });
+    const blob = new Blob([buildLayoutJson(poses)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = h('a', { href: url, download: 'baseLayout.json' });
 
@@ -331,7 +458,7 @@ export function startLayoutEditor(root: HTMLElement): () => void {
   }
 
   async function copyJson(): Promise<void> {
-    const text = buildLayoutJson(spots);
+    const text = buildLayoutJson(poses);
 
     try {
       await navigator.clipboard.writeText(text);
@@ -348,8 +475,10 @@ export function startLayoutEditor(root: HTMLElement): () => void {
     }, 1500);
   }
 
-  function resetSpots(): void {
-    for (const kind of KINDS) spots[kind] = { ...MODULE_SPOT[kind] };
+  function resetPoses(): void {
+    for (const spec of MODULE_CATALOGUE) {
+      poses[spec.kind] = (DEFAULT_POSES[spec.kind] ?? []).map((spot) => ({ ...spot }));
+    }
 
     render();
 
@@ -371,9 +500,11 @@ export function startLayoutEditor(root: HTMLElement): () => void {
     field.input.addEventListener('change', onFieldChange);
   }
 
+  picker.addEventListener('change', () => select(picker.value));
+
   download.addEventListener('click', downloadJson);
   copy.addEventListener('click', () => void copyJson());
-  reset.addEventListener('click', resetSpots);
+  reset.addEventListener('click', resetPoses);
   done.addEventListener('click', finish);
 
   // --- Staying in step with the screen. ------------------------------------
@@ -406,7 +537,7 @@ export function startLayoutEditor(root: HTMLElement): () => void {
 
   syncBox();
   render();
-  select(KINDS[0]);
+  select(instances[0].key);
 
   function stop(): void {
     if (stopped) return;
