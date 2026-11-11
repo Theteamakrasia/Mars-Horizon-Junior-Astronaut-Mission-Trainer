@@ -15,7 +15,7 @@
 import { h } from '../dom/h';
 import { navigate } from './router';
 import type { ModuleKind } from '../sim/modules';
-import { MODULE_SPOT, SPOT_BAND, clamp } from './baseLayout';
+import { MODULE_POSES, poseFor } from './baseLayout';
 
 /* The artwork is bundled by Vite, never fetched: the Figma asset URLs expire. */
 import astronautUrl from '../../Assets/images/interior/sprite/interact-alt.webp';
@@ -60,12 +60,14 @@ export function moduleArt(kind: ModuleKind): string {
  * modules by dragging them on the real base screen (`?editlayout=1`) rather
  * than editing a literal here, and that file is the record of what they chose.
  *
+ * The file holds a pose **per copy**, not per kind: a player can build four
+ * solar arrays and each one can stand somewhere different, so each one has its
+ * own entry and the nth entry is where the nth copy stands.
+ *
  * Modules sit in four dedicated zones so the outpost looks established rather
  * than scattered: Power (solar + batteries), Habitat (home + life support),
  * Food (greenhouse + ice miner), and Shielding/Energy (regolith shield +
- * nuclear). Each kind gets one fixed slot in its zone, nothing overlaps, and
- * duplicates of a kind step right within their zone row and shrink (see
- * `moduleFigures`), clamped to the panel edge.
+ * nuclear).
  */
 
 /** A figure standing in the world. */
@@ -83,38 +85,28 @@ export interface WorldFigure {
 /**
  * Lay out the modules the outpost actually has.
  *
- * Each kind sits in its fixed slot. A second and third copy of the same
- * module step to the right within the same row and shrink a little, so a row
- * of panels reads as a row rather than one picture drawn on top of itself.
- * Duplicates are clamped to the panel edge so nothing paints off-screen or
- * into a neighbour's slot.
- *
- * Every figure this returns is inside `SPOT_BAND`, which is the same band the
- * CSS clamp uses. That is deliberate: the CSS clamp is a safety net for a bad
- * hand-edited file, and it should never be what decides where a module lands.
+ * Each copy of a kind stands where the layout file says that copy stands: the
+ * second solar array goes on the second `solar-array` pose. A file that is
+ * missing a pose for a copy falls back to deriving one, so a module is never
+ * simply absent.
  */
 export function moduleFigures(kinds: readonly ModuleKind[]): readonly WorldFigure[] {
   const placed = new Map<ModuleKind, number>();
   const figures: WorldFigure[] = [];
 
   for (const kind of kinds) {
-    const spot = MODULE_SPOT[kind];
     const copy = placed.get(kind) ?? 0;
 
     placed.set(kind, copy + 1);
 
-    // Step half a slot per duplicate and shrink fast, so copies stay inside
-    // their zone and never touch the next one.
-    const width = Math.max(SPOT_BAND.width.min, spot.width - copy * 3);
-    const step = Math.floor(spot.width * 0.5);
-    const left = clamp(Math.min(96 - width, spot.left + copy * step), SPOT_BAND.left.min, SPOT_BAND.left.max);
+    const spot = poseFor(MODULE_POSES, kind, copy);
 
     figures.push({
       src: moduleArt(kind),
-      left,
-      bottom: clamp(spot.bottom + copy * 4, SPOT_BAND.bottom.min, SPOT_BAND.bottom.max),
-      width,
-      z: spot.z + copy,
+      left: spot.left,
+      bottom: spot.bottom,
+      width: spot.width,
+      z: spot.z,
     });
   }
 

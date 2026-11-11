@@ -1,10 +1,33 @@
 {
-  "habitat": { "left": 28, "bottom": 30, "width": 20, "z": 4 },
-  "life-support": { "left": 28, "bottom": 4, "width": 20, "z": 5 },
-  "solar-array": { "left": 4, "bottom": 30, "width": 20, "z": 3 },
-  "batteries": { "left": 4, "bottom": 4, "width": 20, "z": 5 },
-  "greenhouse": { "left": 52, "bottom": 30, "width": 20, "z": 4 },
-  "ice-miner": { "left": 52, "bottom": 4, "width": 20, "z": 5 },
-  "regolith-shield": { "left": 76, "bottom": 30, "width": 18, "z": 3 },
-  "nuclear-unit": { "left": 76, "bottom": 4, "width": 18, "z": 5 }
+  "habitat": [
+    { "left": 28, "bottom": 30, "width": 20, "z": 4 }
+  ],
+  "life-support": [
+    { "left": 28, "bottom": 4, "width": 20, "z": 5 }
+  ],
+  "solar-array": [
+    { "left": 4, "bottom": 30, "width": 20, "z": 3 },
+    { "left": 14, "bottom": 32, "width": 17, "z": 4 },
+    { "left": 24, "bottom": 32, "width": 14, "z": 5 },
+    { "left": 34, "bottom": 32, "width": 11, "z": 6 }
+  ],
+  "batteries": [
+    { "left": 4, "bottom": 4, "width": 20, "z": 5 },
+    { "left": 14, "bottom": 8, "width": 17, "z": 6 },
+    { "left": 24, "bottom": 12, "width": 14, "z": 7 },
+    { "left": 34, "bottom": 16, "width": 11, "z": 8 }
+  ],
+  "greenhouse": [
+    { "left": 52, "bottom": 30, "width": 20, "z": 4 }
+  ],
+  "ice-miner": [
+    { "left": 52, "bottom": 4, "width": 20, "z": 5 }
+  ],
+  "regolith-shield": [
+    { "left": 76, "bottom": 30, "width": 18, "z": 3 },
+    { "left": 81, "bottom": 32, "width": 15, "z": 4 }
+  ],
+  "nuclear-unit": [
+    { "left": 76, "bottom": 4, "width": 18, "z": 5 }
+  ]
 }

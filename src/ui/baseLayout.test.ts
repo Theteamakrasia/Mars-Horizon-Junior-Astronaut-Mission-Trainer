@@ -2,16 +2,18 @@ import { describe, it, expect } from 'vitest';
 import { MODULE_CATALOGUE } from '../sim/modules';
 import raw from './baseLayout.json';
 import {
-  DEFAULT_SPOTS,
+  DEFAULT_POSES,
   LAYOUT_PROBLEMS,
-  MODULE_SPOT,
+  MODULE_POSES,
+  PANEL_RIGHT_EDGE,
   SPOT_BAND,
   buildLayoutJson,
   clamp,
   clampSpot,
   describeLayoutProblems,
   pointToPercent,
-  resolveSpots,
+  poseFor,
+  resolvePoses,
   roundSpot,
 } from './baseLayout';
 
@@ -23,7 +25,7 @@ describe('SPOT_BAND', () => {
   });
 
   it('matches the CSS clamp in styles/game-loop.css', () => {
-    // Rule 11 of check-imports.mjs compares the same numbers. This test is the
+    // Rule 11 of check-markup.mjs compares the same numbers. This test is the
     // other half: it fails here too, so a change is noticed even if the
     // checker is not run.
     expect(SPOT_BAND.left).toEqual({ min: 2, max: 92 });
@@ -60,69 +62,139 @@ describe('clampSpot', () => {
 
     expect(clampSpot(spot)).toEqual(spot);
   });
-});
 
-describe('resolveSpots', () => {
-  it('reads a complete layout', () => {
-    const spots = resolveSpots({ habitat: { left: 10, bottom: 20, width: 15, z: 2 } });
+  it('keeps a module from hanging off the right-hand edge', () => {
+    const spot = clampSpot({ left: 90, bottom: 30, width: 24, z: 3 });
 
-    expect(spots.habitat).toEqual({ left: 10, bottom: 20, width: 15, z: 2 });
+    expect(spot.left + spot.width).toBeLessThanOrEqual(PANEL_RIGHT_EDGE);
   });
 
-  it('gives every catalogue kind a spot even from nothing', () => {
-    const spots = resolveSpots({});
+  it('never shrinks a module below the smallest the band allows', () => {
+    const spot = clampSpot({ left: 95, bottom: 30, width: 24, z: 3 });
+
+    expect(spot.width).toBeGreaterThanOrEqual(SPOT_BAND.width.min);
+    expect(spot.left + spot.width).toBeLessThanOrEqual(PANEL_RIGHT_EDGE);
+  });
+});
+
+describe('roundSpot', () => {
+  it('rounds every number to one decimal', () => {
+    const spot = roundSpot({ left: 45.58845757471659, bottom: 20.244645987348527, width: 20.04, z: 4.6 });
+
+    expect(spot).toEqual({ left: 45.6, bottom: 20.2, width: 20, z: 5 });
+  });
+
+  it('leaves an already-round spot alone', () => {
+    const spot = { left: 28, bottom: 30, width: 20, z: 4 };
+
+    expect(roundSpot(spot)).toEqual(spot);
+  });
+});
+
+describe('resolvePoses', () => {
+  it('gives every kind one pose per copy the player can build', () => {
+    const poses = resolvePoses({});
 
     for (const spec of MODULE_CATALOGUE) {
-      expect(spots[spec.kind]).toBeDefined();
+      expect(poses[spec.kind]).toHaveLength(spec.maxCount);
     }
+  });
 
-    expect(spots.habitat).toEqual(DEFAULT_SPOTS.habitat);
+  it('reads a complete layout', () => {
+    const poses = resolvePoses({
+      habitat: [{ left: 10, bottom: 20, width: 15, z: 2 }],
+    });
+
+    expect(poses.habitat[0]).toEqual({ left: 10, bottom: 20, width: 15, z: 2 });
+  });
+
+  it('reads the old shape, where a kind held one pose', () => {
+    const poses = resolvePoses({
+      habitat: { left: 10, bottom: 20, width: 15, z: 2 },
+    });
+
+    expect(poses.habitat[0]).toEqual({ left: 10, bottom: 20, width: 15, z: 2 });
   });
 
   it('falls back to the default for a kind that is missing', () => {
-    const spots = resolveSpots({ habitat: { left: 10, bottom: 20, width: 15, z: 2 } });
+    const poses = resolvePoses({});
 
-    expect(spots.batteries).toEqual(DEFAULT_SPOTS.batteries);
+    expect(poses.habitat[0]).toEqual(DEFAULT_POSES.habitat[0]);
   });
 
-  it('falls back to the default for an entry that is not a spot', () => {
-    const spots = resolveSpots({ habitat: 'over there' });
+  it('falls back to the default for a pose that is not a spot', () => {
+    const poses = resolvePoses({ habitat: ['over there'] });
 
-    expect(spots.habitat).toEqual(DEFAULT_SPOTS.habitat);
+    expect(poses.habitat[0]).toEqual(DEFAULT_POSES.habitat[0]);
   });
 
-  it('falls back to the default for an entry with a missing number', () => {
-    const spots = resolveSpots({ habitat: { left: 10, bottom: 20, z: 2 } });
+  it('derives the copies a short list does not cover', () => {
+    const poses = resolvePoses({
+      'solar-array': [{ left: 4, bottom: 30, width: 20, z: 3 }],
+    });
 
-    expect(spots.habitat).toEqual(DEFAULT_SPOTS.habitat);
+    expect(poses['solar-array']).toHaveLength(4);
+    /* The derived copy steps right by half a slot and shrinks. */
+    expect(poses['solar-array'][1].left).toBe(14);
+    expect(poses['solar-array'][1].width).toBe(17);
   });
 
-  it('falls back to the default for an entry that is not finite', () => {
-    const spots = resolveSpots({ habitat: { left: Number.NaN, bottom: 20, width: 15, z: 2 } });
+  it('cuts the copies a long list does not need', () => {
+    const poses = resolvePoses({
+      habitat: [
+        { left: 10, bottom: 20, width: 15, z: 2 },
+        { left: 20, bottom: 20, width: 15, z: 3 },
+      ],
+    });
 
-    expect(spots.habitat).toEqual(DEFAULT_SPOTS.habitat);
-  });
-
-  it('clamps an out-of-range number rather than discarding the spot', () => {
-    const spots = resolveSpots({ habitat: { left: 400, bottom: 20, width: 15, z: 2 } });
-
-    expect(spots.habitat.left).toBe(SPOT_BAND.left.max);
-    expect(spots.habitat.bottom).toBe(20);
+    expect(poses.habitat).toHaveLength(1);
   });
 
   it('survives a source that is not an object at all', () => {
-    const spots = resolveSpots('nonsense');
+    const poses = resolvePoses('nonsense');
 
-    expect(spots.habitat).toEqual(DEFAULT_SPOTS.habitat);
+    expect(poses.habitat[0]).toEqual(DEFAULT_POSES.habitat[0]);
+  });
+});
+
+describe('poseFor', () => {
+  it('returns the pose the file records', () => {
+    const poses = resolvePoses({
+      'solar-array': [
+        { left: 1, bottom: 2, width: 10, z: 1 },
+        { left: 3, bottom: 4, width: 12, z: 2 },
+      ],
+    });
+
+    expect(poseFor(poses, 'solar-array', 1)).toEqual({ left: 3, bottom: 4, width: 12, z: 2 });
+  });
+
+  it('derives a pose the file does not have', () => {
+    const poses = resolvePoses({
+      'solar-array': [{ left: 1, bottom: 2, width: 10, z: 1 }],
+    });
+
+    const spot = poseFor(poses, 'solar-array', 3);
+
+    expect(spot.left).toBeGreaterThan(1);
+    expect(spot.width).toBeLessThan(10);
+  });
+
+  it('returns something for a kind the file never mentions', () => {
+    const poses = resolvePoses({});
+
+    expect(poseFor(poses, 'habitat', 0)).toEqual(DEFAULT_POSES.habitat[0]);
   });
 });
 
 describe('describeLayoutProblems', () => {
-  /** A layout with an entry for every kind, so only the thing under test is wrong. */
-  function complete(): Record<string, { left: number; bottom: number; width: number; z: number }> {
-    const layout: Record<string, { left: number; bottom: number; width: number; z: number }> = {};
+  /** A layout with the right number of poses for every kind, so only the thing under test is wrong. */
+  function complete(): Record<string, { left: number; bottom: number; width: number; z: number }[]> {
+    const layout: Record<string, { left: number; bottom: number; width: number; z: number }[]> = {};
 
-    for (const spec of MODULE_CATALOGUE) layout[spec.kind] = { left: 10, bottom: 20, width: 15, z: 2 };
+    for (const spec of MODULE_CATALOGUE) {
+      layout[spec.kind] = Array.from({ length: spec.maxCount }, () => ({ left: 10, bottom: 20, width: 15, z: 2 }));
+    }
 
     return layout;
   }
@@ -144,17 +216,40 @@ describe('describeLayoutProblems', () => {
   it('names a number that had to be clamped', () => {
     const layout = complete();
 
-    layout.habitat = { left: 400, bottom: 20, width: 15, z: 2 };
+    layout.habitat[0] = { left: 400, bottom: 20, width: 15, z: 2 };
 
     const problems = describeLayoutProblems(layout);
 
-    expect(problems.some((line) => line.includes('habitat.left') && line.includes('clamped'))).toBe(true);
+    expect(problems.some((line) => line.includes('habitat[0].left') && line.includes('clamped'))).toBe(true);
+  });
+
+  it('names a list with too few poses', () => {
+    const layout = complete();
+
+    layout['solar-array'] = [{ left: 10, bottom: 20, width: 15, z: 2 }];
+
+    const problems = describeLayoutProblems(layout);
+
+    expect(problems.some((line) => line.includes('solar-array') && line.includes('derived'))).toBe(true);
+  });
+
+  it('names a list with too many poses', () => {
+    const layout = complete();
+
+    layout.habitat = [
+      { left: 10, bottom: 20, width: 15, z: 2 },
+      { left: 12, bottom: 20, width: 15, z: 2 },
+    ];
+
+    const problems = describeLayoutProblems(layout);
+
+    expect(problems.some((line) => line.includes('habitat') && line.includes('ignored'))).toBe(true);
   });
 
   it('names a kind that is not in the catalogue', () => {
     const layout = complete();
 
-    layout['rocket-chair'] = { left: 1, bottom: 1, width: 1, z: 1 };
+    layout['rocket-chair'] = [{ left: 1, bottom: 1, width: 1, z: 1 }];
 
     const problems = describeLayoutProblems(layout);
 
@@ -163,20 +258,6 @@ describe('describeLayoutProblems', () => {
 
   it('reports a source that is not an object', () => {
     expect(describeLayoutProblems('nonsense')).toHaveLength(1);
-  });
-});
-
-describe('roundSpot', () => {
-  it('rounds every number to one decimal', () => {
-    const spot = roundSpot({ left: 45.58845757471659, bottom: 20.244645987348527, width: 20.04, z: 4.6 });
-
-    expect(spot).toEqual({ left: 45.6, bottom: 20.2, width: 20, z: 5 });
-  });
-
-  it('leaves an already-round spot alone', () => {
-    const spot = { left: 28, bottom: 30, width: 20, z: 4 };
-
-    expect(roundSpot(spot)).toEqual(spot);
   });
 });
 
@@ -201,22 +282,30 @@ describe('pointToPercent', () => {
 });
 
 describe('buildLayoutJson', () => {
-  it('writes one entry per catalogue kind, in catalogue order', () => {
-    const json = buildLayoutJson(MODULE_SPOT);
+  it('writes one list per catalogue kind, in catalogue order', () => {
+    const json = buildLayoutJson(MODULE_POSES);
     const parsed = JSON.parse(json) as Record<string, unknown>;
 
     expect(Object.keys(parsed)).toEqual(MODULE_CATALOGUE.map((spec) => spec.kind));
   });
 
-  it('rounds a position to one decimal', () => {
-    const json = buildLayoutJson({ ...MODULE_SPOT, habitat: { left: 28.12345, bottom: 30, width: 20, z: 4 } });
-    const parsed = JSON.parse(json) as { habitat: { left: number } };
+  it('writes one entry per copy', () => {
+    const parsed = JSON.parse(buildLayoutJson(MODULE_POSES)) as Record<string, unknown[]>;
 
-    expect(parsed.habitat.left).toBe(28.1);
+    for (const spec of MODULE_CATALOGUE) {
+      expect(parsed[spec.kind]).toHaveLength(spec.maxCount);
+    }
+  });
+
+  it('rounds a position to one decimal', () => {
+    const poses = { ...MODULE_POSES, habitat: [{ left: 28.12345, bottom: 30, width: 20, z: 4 }] };
+    const parsed = JSON.parse(buildLayoutJson(poses)) as { habitat: { left: number }[] };
+
+    expect(parsed.habitat[0].left).toBe(28.1);
   });
 
   it('ends with a newline, so the file is well formed', () => {
-    expect(buildLayoutJson(MODULE_SPOT).endsWith('}\n')).toBe(true);
+    expect(buildLayoutJson(MODULE_POSES).endsWith('}\n')).toBe(true);
   });
 });
 
@@ -232,16 +321,23 @@ describe('the layout file that ships with the game', () => {
     }
   });
 
+  it('has one pose per copy the player can build', () => {
+    for (const spec of MODULE_CATALOGUE) {
+      expect(MODULE_POSES[spec.kind]).toHaveLength(spec.maxCount);
+    }
+  });
+
   it('puts every module inside the band', () => {
     for (const spec of MODULE_CATALOGUE) {
-      const spot = MODULE_SPOT[spec.kind];
-
-      expect(spot.left).toBeGreaterThanOrEqual(SPOT_BAND.left.min);
-      expect(spot.left).toBeLessThanOrEqual(SPOT_BAND.left.max);
-      expect(spot.bottom).toBeGreaterThanOrEqual(SPOT_BAND.bottom.min);
-      expect(spot.bottom).toBeLessThanOrEqual(SPOT_BAND.bottom.max);
-      expect(spot.width).toBeGreaterThanOrEqual(SPOT_BAND.width.min);
-      expect(spot.width).toBeLessThanOrEqual(SPOT_BAND.width.max);
+      for (const spot of MODULE_POSES[spec.kind]) {
+        expect(spot.left).toBeGreaterThanOrEqual(SPOT_BAND.left.min);
+        expect(spot.left).toBeLessThanOrEqual(SPOT_BAND.left.max);
+        expect(spot.bottom).toBeGreaterThanOrEqual(SPOT_BAND.bottom.min);
+        expect(spot.bottom).toBeLessThanOrEqual(SPOT_BAND.bottom.max);
+        expect(spot.width).toBeGreaterThanOrEqual(SPOT_BAND.width.min);
+        expect(spot.width).toBeLessThanOrEqual(SPOT_BAND.width.max);
+        expect(spot.left + spot.width).toBeLessThanOrEqual(PANEL_RIGHT_EDGE);
+      }
     }
   });
 });
