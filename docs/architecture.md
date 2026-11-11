@@ -19,7 +19,7 @@ than eyeballed, and it is what `npm run check` protects.
 
 ## The invariant, and why it is enforced
 
-480 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
+492 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
 reference it would still work, and the cost would surface later as an untestable bug.
 Enforced as `no-dom-in-pure-zone`.
 
@@ -268,7 +268,10 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         kind the file cannot supply falls back to
     │   │                                         DEFAULT_POSES; an out-of-range number is
     │   │                                         clamped, not discarded.
-    │   ├── baseLayout.test.ts          complete   40 tests. Every input literal.
+    │   ├── baseLayout.test.ts          complete   47 tests. Every input literal.
+    │   ├── gameLoop.test.ts            complete   5 tests — the first for this file. Where each
+    │   │                                         copy of a module stands, and which way round it
+    │   │                                         faces.
     │   ├── baseLayoutEditor.ts         complete   the placement editor (D-049, D-050). Exports
     │   │                                         startLayoutEditor(root) -> teardown. Dev-only:
     │   │                                         a developer drags the fifteen copies of the
@@ -672,8 +675,8 @@ returns to `landing`, which keeps running behind the mounted screen.
 | `ui/gameLoop` | `gameScreen`, `gameWorld`, `gamePanel` | the shared frame from the Figma frames (D-038): one `.gl` root, the illustrated world panel, and the scrolling right-hand panel. Every word, number and variant arrives in an options object; no `sim/` rule is applied here |
 | | `gameHeader`, `gameHud`, `gameDock` | `gameHeader(sub?, onLeave?)`: without `onLeave` the right-hand label is plain decorative text; with it, it is a Menu button opening an in-screen leave dialog with Keep playing / Leave mission (D-044). `gameHud` draws the five resource cards (`HudStat`) and `gameDock` the three-tab dock. The pause/settings/BUILD pills and the dock are `aria-hidden` spans, not buttons (D-038) |
 | | `gameSection` | `(label, ...content) -> section`; an uppercase label and its body |
-| | `moduleFigures`, `moduleArt`, `MODULE_ART`, `WORLD_BACKGROUND`, `ASTRONAUT_SPRITE` | artwork placement and the bundled asset URLs; the only import site for the figures base, act and debrief share. The module layout comes from `ui/baseLayout` (D-049), one pose per copy (D-050) |
-| `ui/baseLayout` | `ModuleSpot`, `ModulePoses` | `{left, bottom, width, z}` for one module; and where every copy of every kind stands — one list per kind, in build order |
+| | `moduleFigures`, `moduleArt`, `MODULE_ART`, `WORLD_BACKGROUND`, `ASTRONAUT_SPRITE` | artwork placement and the bundled asset URLs; the only import site for the figures base, act and debrief share. The module layout comes from `ui/baseLayout` (D-049), one pose per copy (D-050), and a pose may be mirrored (D-051) |
+| `ui/baseLayout` | `ModuleSpot`, `ModulePoses` | `{left, bottom, width, z, flip?}` for one module; and where every copy of every kind stands — one list per kind, in build order. `flip` is optional and means mirrored left to right |
 | | `SPOT_BAND` | how far a module may be placed: left 2-92, bottom 2-32, width 6-24. The single source of truth; `styles/game-loop.css` clamps with the same numbers and `check-markup` Rule 11 fails the build if the two ever disagree |
 | | `PANEL_RIGHT_EDGE` | 100 — a module is never wider than the gap between where it starts and the right-hand edge of the panel |
 | | `DEFAULT_POSES` | the authored layout, used when `baseLayout.json` cannot supply one. One pose per copy the player can build |
@@ -682,7 +685,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `resolvePoses`, `describeLayoutProblems` | `(source) -> ModulePoses` and `(source) -> string[]`; the old single-pose shape reads as a list of one, a short list is padded by derivation, a long one is cut, and a kind the file cannot supply falls back to the default |
 | | `poseFor` | `(poses, kind, copy) -> ModuleSpot`; where the nth copy of a kind stands, derived from the last pose when the file has no entry for it |
 | | `clamp`, `clampSpot`, `roundSpot` | pull a number or a whole spot into the band, and round to one decimal so the toolbar and the file quote the same numbers |
-| | `buildLayoutJson` | `(poses) -> string`; the layout file, in catalogue order, one list per kind, two-space indented |
+| | `buildLayoutJson` | `(poses) -> string`; the layout file, in catalogue order, one list per kind, two-space indented. `flip` is written only for a module that is mirrored |
 | | `pointToPercent` | `(point, panelRect) -> {left, bottom}`; where a pointer is inside the outpost panel |
 | `ui/baseLayoutEditor` | `startLayoutEditor` | `(root) -> teardown`; the placement editor (D-049, D-050). Fifteen draggable handles — one per copy of every module — a corner grip on each that changes its width, a toolbar with the numbers and the JSON, and Download / Copy / Reset / Done. Dev-only: `main.ts` loads it with a dynamic import behind `import.meta.env.DEV`, so it never reaches a production bundle. The flag check lives in `main.ts`, which cannot import this module statically without pulling it into the bundle |
 | `features/base/model` | `BUILDABLE`, `canPlace`, `addModule`, `removeModule`, `pointsLeft` | build rules over the `sim/modules.ts` catalogue (D-032) |

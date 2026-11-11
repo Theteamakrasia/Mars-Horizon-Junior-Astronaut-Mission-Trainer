@@ -486,7 +486,7 @@ player decision, the sol loop, what is built and where a new event plugs in are 
 | Resource simulation and sol loop | **Built** — 12 sols, four scheduled events |
 | Crisis decisions and debrief verdicts | **Built** — flare, storm and supply pod |
 | Live flare strength | **Built** — NASA DONKI → NOAA SWPC → baked fallback |
-| Tests | **480 tests in 21 files** (`npm test`, 2026-11-11) |
+| Tests | **492 tests in 22 files** (`npm test`, 2026-11-11) |
 | Checks | **Clean** — import layers, banned APIs, markup, strict typecheck |
 | Save / resume | **Not built** — in-memory only (D-003) |
 | Login before `naming` | **Not built** — Supabase deferred (D-003, TASK-022) |
@@ -505,7 +505,7 @@ player decision, the sol loop, what is built and where a new event plugs in are 
 ### The one invariant
 
 `sim/` and each feature's `model.ts` are pure: no `document`, no `window`, no network. That
-is what lets 480 tests run in a few seconds with no browser and no mocks. It is enforced by
+is what lets 492 tests run in a few seconds with no browser and no mocks. It is enforced by
 `npm run check` (`scripts/check-imports.mjs`), not left to good intentions.
 
 ---
@@ -517,7 +517,7 @@ is what lets 480 tests run in a few seconds with no browser and no mocks. It is 
 npm install       # dev dependencies only — the game ships no runtime dependencies
 npm run dev       # Vite dev server, http://localhost:5173
 npm run check     # import-layer + banned-API + markup checks, then tsc --noEmit
-npm test          # Vitest, 480 tests in 21 files
+npm test          # Vitest, 492 tests in 22 files
 npm run build     # production bundle in dist/
 npm run preview   # serve the built bundle locally
 ```
@@ -543,14 +543,16 @@ open http://localhost:5173/?editlayout=1#/base
 
 Every copy of every module is on the panel at once — four solar arrays, four battery
 banks, two regolith shields and one of everything else. Drag one to move it; drag the
-orange grip on its corner to resize it. The toolbar shows the selected module's numbers,
-the JSON the editor would write, and buttons to download it, copy it, reset, or leave.
-Copies overlap, so the dropdown is how you pick the one underneath.
+orange grip on its corner to resize it; press **F** or use the **⇄ Mirror** button to
+turn it around. The toolbar shows the selected module's numbers, the JSON the editor
+would write, and buttons to download it, copy it, reset, or leave. Copies overlap, so
+the dropdown is how you pick the one underneath.
 
 Save the downloaded `baseLayout.json` into `src/ui/` and the game uses it. The file holds
 a pose list per kind — the nth entry is where the nth copy of that kind stands — so the
 same layout is used on the build, sol and debrief screens, and every copy the player
-builds lands where you put it.
+builds lands where you put it. A pose may also be `flip`ped, which turns the artwork
+around without moving it.
 
 This is a developer tool. It only exists in a dev build and is compiled out of a
 production bundle, so a player can never reach it.

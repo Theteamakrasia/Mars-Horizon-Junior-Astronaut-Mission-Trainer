@@ -8,6 +8,55 @@ than a documented one.
 
 ---
 
+## 2026-11-11 — Turn a module around
+
+**Did**
+
+- Added **mirroring** to the placement editor. A **⇄ Mirror** button in the toolbar toggles
+  the selected module, and the **F** key does the same on a focused one. The artwork
+  turns around in place — the mirror is about the picture's centre, so flipping a module
+  does not move it.
+- A mirrored module carries a small blue badge on the panel, always visible: whether a
+  module faces one way or the other is a state of the outpost, not a label you are
+  reading.
+- Added an optional `flip` to a pose. It is written to the layout file only for a module
+  that is actually mirrored, so the shipped file is unchanged and a missing `flip` still
+  means "not mirrored".
+- Added `src/ui/gameLoop.test.ts` — the first tests for that file — covering where each
+  copy of a module stands and which way round it faces.
+
+**Files**
+
+- `src/ui/baseLayout.ts`, `src/ui/baseLayout.test.ts`, `src/ui/gameLoop.ts`
+- `src/ui/gameLoop.test.ts` (new)
+- `src/ui/baseLayoutEditor.ts`, `src/ui/base-layout-editor.css`, `src/styles/game-loop.css`
+- `docs/architecture.md`, `docs/team/decisions.md`, `docs/team/tasks.md`, `AGENTS.md`, `README.md`
+
+**Problems**
+
+- The editor mirrors the **artwork**, not the handle. Mirroring the handle would have
+  flipped the resize grip to the bottom-left and the label with it. Mirroring the inner
+  image keeps the grip where the hand expects it, and makes the editor's picture match
+  the game's exactly.
+- `clampSpot` and `roundSpot` now normalise `flip` to a real boolean, so every pose that
+  comes out of the resolver has a definite answer. That changed six existing test
+  expectations, which is the right kind of change: the shape of a pose is now fixed.
+- Verified in headless Chrome over the DevTools Protocol: 14 checks that the button
+  flips, the F key flips, the badge shows only on mirrored modules, the resize grip stays
+  on the right, mirroring does not move the module, and — the one that matters — a
+  mirrored module renders mirrored **in the game**: flip a habitat, save the file,
+  reload, and the habitat is drawn turned around while the battery bank is not.
+  `npm run check` clean; `npm test` 492 passed in 22 files (was 480; +12 mirror tests and
+  +5 for the new game-loop file).
+
+**Next**
+
+- The module artwork was drawn for one facing each. If an outpost ends up with several
+  solar arrays all turned the same way, the array will read as a machine rather than a
+  field — the editor can now fix that, but the fix is a design pass.
+
+---
+
 ## 2026-11-11 — A pose per module copy, and a way to resize one
 
 **Did**
