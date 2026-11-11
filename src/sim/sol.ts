@@ -154,6 +154,9 @@ export function advanceSol(run: RunState): RunState {
 
   let panelHealth = run.panelHealth;
   let shieldingChange = -systems.shieldingErosion;
+  /* The erosion is always a loss; everything else is split by sign at the end. */
+  let shieldingGain = 0;
+  let shieldingLoss = systems.shieldingErosion;
   let foodChange = 0;
   let waterChange = 0;
   let oxygenChange = 0;
@@ -176,6 +179,7 @@ export function advanceSol(run: RunState): RunState {
       if (choice === 'water') waterChange += SUPPLY_AMOUNT;
       if (choice === 'spares') {
         shieldingChange += SPARES_SHIELDING;
+        shieldingGain += SPARES_SHIELDING;
         panelHealth = Math.min(1, panelHealth + SPARES_PANEL_REPAIR);
       }
       notes.push(`The supply pod brought ${choice === 'spares' ? 'spare parts' : choice}.`);
@@ -187,6 +191,7 @@ export function advanceSol(run: RunState): RunState {
         choice === 'shelter' ? SHELTER_FACTOR : choice === 'shield-up' ? SHIELD_UP_FACTOR : 1;
 
       shieldingChange -= base * factor;
+      shieldingLoss += base * factor;
       if (choice === 'shelter') greenhousePaused = true;
       if (choice === 'shield-up') extraPowerCost += SHIELD_UP_POWER_KWH;
       notes.push(
@@ -231,6 +236,8 @@ export function advanceSol(run: RunState): RunState {
     waterChange += activity.storeDelta.water ?? 0;
     oxygenChange += activity.storeDelta.oxygen ?? 0;
     shieldingChange += activity.storeDelta.shielding ?? 0;
+    shieldingGain += Math.max(0, activity.storeDelta.shielding ?? 0);
+    shieldingLoss += Math.max(0, -(activity.storeDelta.shielding ?? 0));
 
     if (activity.panelRepair !== undefined) {
       panelHealth = Math.min(1, panelHealth + activity.panelRepair);
@@ -307,6 +314,30 @@ export function advanceSol(run: RunState): RunState {
     shielding: shieldingChange,
   };
 
+  /* The same sol, as what was made and what was used. Each pair sums to the
+     net above, so the review can show both without the two disagreeing. */
+  const positive = (value: number): number => Math.max(0, value);
+  const generated = generatedDay + generatedNuclear;
+  const powerDrawn = demand - unmet;
+  const recycled = crewWater * systems.waterRecycling * powered;
+  const greenhouseDrink = greenhousePaused ? 0 : systems.greenhouseWater * powered;
+
+  const produced: ResourceStores = {
+    power: generated,
+    oxygen: systems.oxygenGenerated * powered + positive(oxygenChange),
+    water: recycled + systems.iceWater * powered + positive(waterChange),
+    food: (greenhousePaused ? 0 : systems.foodGrown * powered) + positive(foodChange),
+    shielding: shieldingGain,
+  };
+
+  const consumed: ResourceStores = {
+    power: powerDrawn,
+    oxygen: crewOxygen + positive(-oxygenChange),
+    water: crewWater + systems.electrolysisWater * powered + greenhouseDrink + positive(-waterChange),
+    food: crewFood + positive(-foodChange),
+    shielding: shieldingLoss,
+  };
+
   const stores = drainForSol(run.stores, net, capacity);
   const settled: ResourceStores = { ...stores, power: Math.max(0, Math.min(capacity, level)) };
   const after = clampStores(settled, capacity);
@@ -318,6 +349,8 @@ export function advanceSol(run: RunState): RunState {
     sol,
     stores: after,
     net,
+    produced,
+    consumed,
     powerGenerated: generatedDay + generatedNuclear,
     powerUsed: demand,
     powerWasted: wasted,
