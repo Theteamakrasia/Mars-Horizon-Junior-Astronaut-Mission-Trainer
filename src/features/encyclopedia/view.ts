@@ -32,7 +32,7 @@ export function mountEncyclopedia(
 
     /* "Back" means back to where the player was. Before the first build that is
        the build screen; once the outpost stands it is the day, and sending a
-       player mid-run to the build screen looks like a fresh start (ISS-067). */
+       player mid-run to the build screen looks like a fresh start (ISS-072). */
     const midRun = run !== null && run.modules.length > 0;
     const back = h('button', { class: 'gl__btn gl__btn--primary', type: 'button' }, midRun ? '← Back to the day' : '← Back to outpost');
     back.addEventListener('click', () => navigate(midRun ? 'act' : 'base'));

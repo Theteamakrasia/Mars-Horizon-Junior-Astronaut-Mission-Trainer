@@ -39,7 +39,7 @@ hides the glance.
 **The last sol's numbers are on the button.** The review tile carries the sol's net
 change as chips, so a change is never something you have to hunt for — and never only
 behind a button (ISS-057). The sol count is the panel head's kicker (`Sol 1 of 12`, the
-day being played, not the sols finished — ISS-068) and the science points sit in its top
+day being played, not the sols finished — ISS-073) and the science points sit in its top
 right. The mission bar is gone: a second header across the screen was saying what the
 panel's own head now says.
 

@@ -108,8 +108,12 @@ export function mountLandingSite(
    * removed on teardown with the rest of the screen. `onLeave` gives it the
    * working Menu control, which asks before throwing away the run - the same
    * affordance the other three screens offer.
+   *
+   * The bar takes one options object, not two arguments (D-070): the same
+   * header now carries the encyclopedia book and the guide's `?` as well as
+   * the Menu control, and one object says so better than three parameters.
    */
-  const header = gameHeader('LANDING SITE', () => navigate('naming'));
+  const header = gameHeader({ headerSub: 'LANDING SITE', onLeave: () => navigate('naming') });
 
   root.prepend(header);
 

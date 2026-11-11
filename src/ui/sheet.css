@@ -102,7 +102,7 @@
 /* The body scrolls, so its children must keep their own height.
    Without this a child taller than the space left is squeezed instead of
    overflowing, and a picture with a fixed aspect ratio pours over its own
-   caption (ISS-071). */
+   caption (ISS-076). */
 .sheet__body > * {
   flex: 0 0 auto;
 }
