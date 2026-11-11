@@ -667,9 +667,70 @@ export function nextSteps(run: RunState, limit = 2): readonly NextStep[] {
   const systems = systemsFor(run.modules, run.regionId);
   const nightNeed = Math.max(0, systems.loadKw - systems.nuclearKw) * NIGHT_HOURS;
   const ended = endedBy(run)[0];
+  const objectives = goalProgress(run);
 
-  if (ended === 'water' && countOf(run.modules, 'ice-miner') === 0) {
-    steps.push({ title: 'Add an ice miner', detail: 'Make water from nearby ice, instead of waiting for a supply pod.', art: 'ice-miner' });
+  /**
+   * A goal the crew actually missed: not earned, and it let a sol slip past
+   * that it could have counted. A run that was lost early missed every goal
+   * for that reason alone, and a goal that held on every sol it had is not
+   * something to give advice about.
+   */
+  const missed = (id: ScienceGoal): boolean => {
+    const objective = objectives.find((entry) => entry.id === id);
+
+    if (objective === undefined || objective.earned) return false;
+
+    return objective.held < Math.min(run.sol, objective.needed);
+  };
+
+  /* A goal the crew did not earn is worth a tip even in a run they won: the
+     run was survivable and the science was not. */
+  const goalTips = new Map<ScienceGoal, NextStep>();
+
+  if (missed('life-support') && countOf(run.modules, 'ice-miner') === 0) {
+    goalTips.set('life-support', { title: 'Add an ice miner', detail: 'Make water from nearby ice, instead of waiting for a supply pod.', art: 'ice-miner' });
+  }
+
+  if (missed('food') && countOf(run.modules, 'greenhouse') === 0) {
+    goalTips.set('food', { title: 'Add a greenhouse', detail: 'Grow food every sol so the stores stop falling.', art: 'greenhouse' });
+  }
+
+  if (missed('radiation')) {
+    goalTips.set(
+      'radiation',
+      countOf(run.modules, 'regolith-shield') < 2
+        ? {
+            title: 'Pile on more soil',
+            detail: 'The shield fell below 40 and stayed there. Another regolith shield starts you with more.',
+            art: 'regolith-shield',
+          }
+        : {
+            title: 'Pile soil on the habitat',
+            detail: 'The shield fell below 40 and stayed there. The activity adds 8 shielding a sol.',
+            art: 'regolith-shield',
+          },
+    );
+  }
+
+  if (missed('power') && systems.batteryKwh < nightNeed) {
+    goalTips.set('power', { title: 'Add a battery bank', detail: `One night needs about ${Math.round(nightNeed)} kWh. You had ${systems.batteryKwh}.`, art: 'batteries' });
+  }
+
+  /* The goal that ended the run comes first, because that is the one that
+     mattered. Then the pod, which is the one choice that was a mistake. */
+  const endedGoal: Readonly<Record<string, ScienceGoal>> = {
+    oxygen: 'life-support',
+    water: 'life-support',
+    food: 'food',
+    shielding: 'radiation',
+  };
+  const endedId = ended === undefined ? null : (endedGoal[ended] ?? null);
+  const order: readonly ScienceGoal[] = ['life-support', 'food', 'radiation', 'power'];
+
+  if (endedId !== null) {
+    const tip = goalTips.get(endedId);
+
+    if (tip !== undefined) steps.push(tip);
   }
 
   const pod = run.decisions.find((decision) => decision.crisisId.startsWith('supply-') && decision.optionId !== 'water');
@@ -679,16 +740,12 @@ export function nextSteps(run: RunState, limit = 2): readonly NextStep[] {
     steps.push({ title: 'Choose water from the pod', detail: `The pod on sol ${podSol} could have topped the tank up by 30.`, art: 'choice' });
   }
 
-  if (ended === 'food' && countOf(run.modules, 'greenhouse') === 0) {
-    steps.push({ title: 'Add a greenhouse', detail: 'Grow food every sol so the stores stop falling.', art: 'greenhouse' });
-  }
+  for (const id of order) {
+    if (id === endedId) continue;
 
-  if (ended === 'shielding' && countOf(run.modules, 'regolith-shield') < 2) {
-    steps.push({ title: 'Pile on more soil', detail: 'A regolith shield starts you with more radiation protection.', art: 'regolith-shield' });
-  }
+    const tip = goalTips.get(id);
 
-  if (systems.batteryKwh < nightNeed) {
-    steps.push({ title: 'Add a battery bank', detail: `One night needs about ${Math.round(nightNeed)} kWh. You had ${systems.batteryKwh}.`, art: 'batteries' });
+    if (tip !== undefined) steps.push(tip);
   }
 
   const caught = reviewDecisions(run).find((review) => review.verdict === 'caught');

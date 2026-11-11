@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { pendingCrisis } from '../../sim/crises';
+import { offerFor } from '../../sim/activities';
 import { flareIntensity, type ForecastEvent } from '../../sim/forecast';
 import { CORE_MODULES, type ModuleKind } from '../../sim/modules';
 import { newRun, startOutpost, withState, type RunState } from '../../sim/run';
@@ -206,9 +207,30 @@ describe('the rest of the debrief', () => {
 });
 
 describe('nextSteps', () => {
-  /** A finished run with a chosen cause of death, so the tip rules can be checked in isolation. */
+  /**
+   * A finished run that really did run the water down.
+   *
+   * The crew planted extra crops with nothing to water them, and opened the
+   * supply pod for food. The water goal was missed because the water really
+   * was low, not because the run was short: a run that is lost early has not
+   * missed anything, it has not finished.
+   */
   function endedByWater(extras: readonly ModuleKind[] = SOLAR): RunState {
-    const run = playOut(extras, SMART);
+    let run = startOutpost(withState(newRun('jezero', 'Test'), { forecast: fixedForecast() }), [...CORE_MODULES, ...extras]);
+
+    while (run.status === 'active') {
+      const crisis = pendingCrisis(run);
+
+      if (crisis !== null) {
+        run = decide(run, crisis.id, (crisis.kind === 'supply-pod' ? 'food' : SMART[crisis.kind]) ?? crisis.defaultOptionId);
+      }
+
+      const grow = offerFor(run, run.sol + 1).find((offer) => offer.available && offer.spec.id === 'grow-extra');
+
+      if (grow !== undefined) run = withState(run, { chosenActivity: 'grow-extra' });
+
+      run = advanceSol(run);
+    }
 
     return withState(run, { status: 'lost', stores: { ...run.stores, water: 0 } });
   }
