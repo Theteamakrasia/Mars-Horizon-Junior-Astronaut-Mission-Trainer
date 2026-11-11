@@ -23,6 +23,7 @@ import { earthAdvice, earthIsInTime, optionOf, pendingCrisis, type Crisis } from
 import { oneWayMinutes, roundTripMinutes } from '../../sim/comms';
 import { answerRoverFind, recordInspection, withState, type RunState } from '../../sim/run';
 import { makeInspection, type Inspection } from '../../ui/activityPlayer';
+import { guideButton, guidePanel } from '../../ui/guide';
 import { ENGINE_NAME, engineUnlocked, type EngineKind } from '../../sim/minigames';
 import { visibleForecast } from '../../sim/forecast';
 import { siteScore, regionById, SITE_AXES } from '../../sim/regions';
@@ -82,6 +83,8 @@ export function mountAct(
   let focusedCrisis: string | null = null;
   /** The tool open on the desk, if any. */
   let openTool: { activityId: string; tool: Inspection } | null = null;
+  /** Whether the how-to-play guide is open. */
+  let guideOpen = false;
   let clockNodes: { readonly bar: HTMLElement; readonly text: HTMLElement } | null = null;
   let pendingFocus: HTMLElement | null = null;
   /* NASA's live daily pictures. Empty when NASA did not answer, and the screen
@@ -839,8 +842,20 @@ export function mountAct(
       mission: {
         job: 'Your job: survive 12 Mars days and keep the five systems running.',
         progress: `Sol ${state.sol} of ${WIN_SOL} · ${science.points} points · ${science.rank.title}`,
+        help: guideButton(() => {
+          guideOpen = true;
+          render();
+        }),
       },
     });
+
+    /* The guide opens by itself on the first sol, because that is the one
+       time a player has no idea what they are looking at. After that it is
+       there whenever they need it. */
+    if (guideOpen) screen.append(guidePanel(() => {
+      guideOpen = false;
+      render();
+    }));
 
     mount.replaceChildren(screen);
 

@@ -20,16 +20,17 @@ export interface BriefingBeat {
 /**
  * The beats, in order.
  *
- * Six, not seven, and none longer than about ninety characters. An earlier
+ * Eight, not ten, and none longer than about ninety characters. An earlier
  * version ran seven beats to up to 124 characters each, which was three screens
  * of clicking before anything happened - long enough that a child stopped
  * reading and started mashing. The arc is the same, just compressed: who you
  * are, what you are building, that nobody is coming, the five things that have
- * to keep working, that none of it lasts, and go.
+ * to keep working, what a day is, that none of it lasts, that the rules keep
+ * coming, and go.
  *
- * The five-things beat is the one that matters most: it is the first time the
- * player hears what the job is, and it is the same five things the standing
- * orders build up on the outpost board.
+ * The five-things, loop and rules beats are the tutorial: they say what the
+ * player is about to do before they have to do it. The guide on the outpost
+ * screen says the same things again, for anyone who needs them later.
  *
  * There is no pacing field and no read-time calculation. The reader clicks NEXT
  * and the next line appears, so how long a line ought to sit on screen is the
@@ -56,8 +57,16 @@ export const BEATS: readonly BriefingBeat[] = [
     text: 'Five things have to keep working for twelve sols: the panels, the air, the water, the food and the shield.',
   },
   {
+    id: 'loop',
+    text: 'Each day you get three work orders on your desk. You check them, approve one, and the day happens.',
+  },
+  {
     id: 'balance',
     text: 'None of it lasts. Spend more of one and you have less of everything else.',
+  },
+  {
+    id: 'rules',
+    text: 'Every day two new rules arrive for you to work to. By the end there are twenty-four of them.',
   },
   {
     id: 'ready',

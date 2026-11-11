@@ -158,6 +158,8 @@ export interface MissionBarOptions {
   readonly job: string;
   /** The progress, in one line. */
   readonly progress: string;
+  /** The button that opens the guide, when the screen has one. */
+  readonly help?: HTMLElement | null;
 }
 
 /**
@@ -172,7 +174,12 @@ export function missionBar(options: MissionBarOptions): HTMLElement {
     'div',
     { class: 'gl__mission' },
     h('span', { class: 'gl__mission-job', text: options.job }),
-    h('span', { class: 'gl__mission-progress', text: options.progress }),
+    h(
+      'span',
+      { class: 'gl__mission-right' },
+      h('span', { class: 'gl__mission-progress', text: options.progress }),
+      options.help ?? null,
+    ),
   );
 }
 

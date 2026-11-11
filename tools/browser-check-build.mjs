@@ -237,6 +237,29 @@ try {
     goals.missing.join(' | '),
   );
 
+  // 7. The guide. It opens by itself the first time the player reaches the
+  //    build screen, and the button in the mission bar brings it back.
+  const guide = await evaluate(`(() => {
+    const panel = document.querySelector('#base .gl__guide');
+    return {
+      open: !!panel,
+      steps: panel ? panel.querySelectorAll('.gl__guide-step').length : 0,
+      button: !!document.querySelector('#base .gl__guide-button'),
+    };
+  })()`);
+
+  note('the guide is open on the first build screen', guide.open === true);
+  note('and it has steps in it', guide.steps >= 8, `${guide.steps} steps`);
+  note('the mission bar has a button to bring it back', guide.button === true);
+
+  await evaluate(`(() => { const b = document.querySelector('#base .gl__guide-close'); if (b) b.click(); })()`);
+  await sleep(400);
+  note('and it can be closed', (await evaluate(`!document.querySelector('#base .gl__guide')`)) === true);
+
+  await evaluate(`(() => { const b = document.querySelector('#base .gl__guide-button'); if (b) b.click(); })()`);
+  await sleep(400);
+  note('and opened again', (await evaluate(`!!document.querySelector('#base .gl__guide')`)) === true);
+
   // 7. The desk: the work orders and the standing orders.
   await clickIn('base', 'Land & start sol 1');
   await waitFor(`!!document.getElementById('act') && !document.getElementById('act').hidden`);

@@ -22,6 +22,7 @@ import { newRun, startOutpost, withState, type RunState } from '../../sim/run';
 import { regionById, siteScore } from '../../sim/regions';
 import { gamePanel, gameScreen, gameSection, gameWorld, moduleArt, moduleFigures, type SignalCard } from '../../ui/gameLoop';
 import { readButton } from '../../ui/readButton';
+import { guideButton, guidePanel } from '../../ui/guide';
 import { nextStop } from '../../ui/registry';
 import { navigate } from '../../ui/router';
 
@@ -100,6 +101,11 @@ export function mountBase(
       detail: loaded?.detail,
     };
   }
+
+  /** Whether the how-to-play guide is open. */
+  let guideOpen = false;
+  /** The guide has been offered once, so it never ambushes the player twice. */
+  let guideShown = false;
 
   /** Say what the player just did, and let it go after a few seconds. */
   function announce(message: string): void {
@@ -297,8 +303,26 @@ export function mountBase(
       mission: {
         job: 'Your job: build an outpost that keeps the crew alive for 12 sols.',
         progress: `${pointsLeft(extras)} points left · ${extras.length} modules on the ground`,
+        help: guideButton(() => {
+          guideOpen = true;
+          render();
+        }),
       },
     });
+
+    /* The guide opens by itself the first time the player reaches the build
+       screen, because that is the first screen with a mission bar and the
+       first one where they have to decide something. After that it is there
+       whenever they want it. */
+    if (!guideShown) {
+      guideShown = true;
+      guideOpen = true;
+    }
+
+    if (guideOpen) screen.append(guidePanel(() => {
+      guideOpen = false;
+      render();
+    }));
 
     live.textContent = toast;
     screen.append(live);
