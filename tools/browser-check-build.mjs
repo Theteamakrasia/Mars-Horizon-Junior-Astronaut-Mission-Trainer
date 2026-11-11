@@ -281,6 +281,22 @@ try {
     counts.join(', '),
   );
 
+  // 2b. The card counts the copy the lander brought (ISS-077). The solar array
+  //     is the clearest one: one array lands with the crew and three can be
+  //     added, so the card reads 1 / 4 before the player spends anything.
+  const solarBefore = await evaluate(`(() => {
+    const card = [...document.querySelectorAll('#base .gl__card')]
+      .find((c) => (c.querySelector('.gl__card-name')?.textContent ?? '') === 'Solar Array');
+    if (!card) return null;
+    return {
+      count: (card.querySelector('.gl__count')?.textContent ?? '').replace(/\\s+/g, ''),
+      lander: card.querySelector('.gl__card-lander')?.textContent ?? '',
+    };
+  })()`);
+
+  note('the solar card counts the lander copy: 1/4', solarBefore?.count === '1/4', solarBefore?.count ?? 'no card');
+  note('and says that copy came with the lander', (solarBefore?.lander ?? '').includes('lander'), solarBefore?.lander ?? '');
+
   // 3. The day-power card, before anything is built.
   const dayPowerBefore = await evaluate(`(() => {
     const stat = [...document.querySelectorAll('#base .gl__stat')]
@@ -330,10 +346,48 @@ try {
     };
   })()`);
 
-  note('the solar card reads 3/3', solar?.count.replace(/\s+/g, '') === '3/3', solar?.count ?? 'no card');
+  note('the solar card reads 4/4', solar?.count.replace(/\s+/g, '') === '4/4', solar?.count ?? 'no card');
   note('the add button is dead at the limit', solar?.addDisabled === true);
   note('the card says why the button is dead', (solar?.why ?? '').length > 0, solar?.why ?? '');
   note('the card is marked as at its limit', solar?.max === 'MAX');
+
+  // 4b. A press redraws the panel, and the panel must not jump back to the top
+  //     (ISS-080). Squash the viewport first: the panel is sized in vw, so at
+  //     the default 800x600 it fits and has nothing to scroll.
+  await send('Emulation.setDeviceMetricsOverride', { width: 1100, height: 380, deviceScaleFactor: 1, mobile: false });
+  await sleep(300);
+
+  const scroll = await evaluate(`(() => {
+    const scroller = document.querySelector('#base .gl__scroll');
+    if (!scroller) return { found: false, before: 0, after: 0 };
+    /* Not the very bottom: removing the array deletes the card's "why" line,
+       so the maximum offset shrinks and a bottom-anchored read would be
+       clamped by the content, not by the redraw. */
+    scroller.scrollTop = Math.min(200, scroller.scrollHeight);
+    const before = scroller.scrollTop;
+    const card = [...document.querySelectorAll('#base .gl__card')]
+      .find((c) => (c.querySelector('.gl__card-name')?.textContent ?? '') === 'Solar Array');
+    card?.querySelector('.gl__step:not(.gl__step--add)')?.click();
+    const after = document.querySelector('#base .gl__scroll')?.scrollTop ?? -1;
+    return { found: before > 0, before, after };
+  })()`);
+
+  note(
+    'a press keeps the panel where the player was',
+    scroll.found === true && Math.abs(scroll.after - scroll.before) <= 2,
+    `${scroll.before} then ${scroll.after}`,
+  );
+
+  /* Put the array back: the rest of the pass expects the build it built. */
+  await evaluate(`(() => {
+    const card = [...document.querySelectorAll('#base .gl__card')]
+      .find((c) => (c.querySelector('.gl__card-name')?.textContent ?? '') === 'Solar Array');
+    card?.querySelector('.gl__step--add')?.click();
+  })()`);
+  await sleep(400);
+
+  await send('Emulation.clearDeviceMetricsOverride');
+  await sleep(300);
 
   // 5. The click was announced, and a number moved.
   const toast = await evaluate(`document.querySelector('#base .gl__toast')?.textContent ?? ''`);
@@ -392,6 +446,32 @@ try {
 
   await evaluate(`(() => { const b = document.querySelector('#base .gl__guide-close'); if (b) b.click(); })()`);
   await sleep(300);
+
+  // 7b. Put the build back to the lander's own kit.
+  //
+  //     The act checks below need the outpost the game is hardest on: one
+  //     array and one battery, whose batteries really do reach zero after a
+  //     night. It also proves the lander's copy cannot be removed, because the
+  //     minus stops working at 1/4 (ISS-077).
+  for (let i = 0; i < 3; i += 1) {
+    await evaluate(`(() => {
+      const card = [...document.querySelectorAll('#base .gl__card')]
+        .find((c) => (c.querySelector('.gl__card-name')?.textContent ?? '') === 'Solar Array');
+      const remove = card?.querySelector('.gl__step:not(.gl__step--add)');
+      if (!remove || remove.disabled) return false;
+      remove.click();
+      return true;
+    })()`);
+    await sleep(300);
+  }
+
+  const backToOne = await evaluate(`(() => {
+    const card = [...document.querySelectorAll('#base .gl__card')]
+      .find((c) => (c.querySelector('.gl__card-name')?.textContent ?? '') === 'Solar Array');
+    return (card?.querySelector('.gl__count')?.textContent ?? '').replace(/\\s+/g, '');
+  })()`);
+
+  note("the lander's copy cannot be removed, so the count stops at 1/4", backToOne === '1/4', backToOne);
 
   // 8. The desk is a hub: six buttons, each a label and one line of state.
   await clickIn('base', 'Land & start sol 1');
@@ -545,6 +625,23 @@ try {
   const crisis = await evaluate(`!!document.querySelector('#act .gl__choices')`);
   note('the sol ran', crisis || (await evaluate(`!!document.querySelector('#act .act-tile')`)));
 
+  // 13b. The power card reads the batteries, not the projection (ISS-078). A
+  //      bare outpost needs more than its battery holds to get through a
+  //      night, so after one sol the store - and the card - are at zero, and
+  //      the meter's percentage agrees. The old card was a constant 200 kWh.
+  const powerCard = await evaluate(`(() => {
+    const stat = [...document.querySelectorAll('#act .gl__stat')]
+      .find((s) => s.querySelector('.gl__stat-label')?.textContent === 'Power stored');
+    return {
+      label: stat?.querySelector('.gl__stat-label')?.textContent ?? '',
+      value: stat?.querySelector('.gl__stat-value')?.textContent ?? '',
+      meter: stat?.querySelector('.gl__stat-bar')?.getAttribute('aria-valuenow') ?? '',
+    };
+  })()`);
+
+  note('the act power card reads stored kWh against capacity', /^\d+ \/ 100 kWh$/.test(powerCard?.value ?? ''), `${powerCard?.label || 'no card'} = ${powerCard?.value || 'nothing'}`);
+  note('and the bar follows the store, so a bare outpost reads empty', powerCard?.meter === '0', `meter ${powerCard?.meter ?? '?'}`);
+
   /* The forecast's timetable is rolled per page load (D-048), so a crisis
      lands on the next sol some of the time and the hub is not there. The
      player resolves the crisis and the hub comes back, so the check does the
@@ -555,6 +652,17 @@ try {
   }
 
   if (!crisis) {
+    /* The stats sheet says what the last sol did to the power, so the empty
+       batteries are explained rather than looking stuck (ISS-082). */
+    await openTile('stats');
+    const powerLine = await evaluate(`(() => {
+      const notes = [...document.querySelectorAll('#act .sheet__body .gl__note')].map((n) => n.textContent ?? '');
+      return notes.find((text) => text.includes('kWh')) ?? '';
+    })()`);
+
+    note('the stats sheet explains the empty batteries', /ran flat|panels made/.test(powerLine), powerLine);
+    await closeSheet();
+
     const review = await evaluate(`(() => {
       const tile = document.querySelector('#act .act-tile[data-tile="review"]');
       return {
