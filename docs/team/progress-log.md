@@ -8,6 +8,67 @@ than a documented one.
 
 ---
 
+## 2026-11-11 — A pose per module copy, and a way to resize one
+
+**Did**
+
+- Changed the layout file from one pose per kind to a **pose list per kind**: one entry
+  per copy the player could build, in build order. The second solar array the player
+  builds now stands on the second `solar-array` entry, so every copy can be placed on
+  its own instead of being derived by stepping right and shrinking.
+- `ui/gameLoop.ts`'s `moduleFigures` no longer derives anything — it asks
+  `poseFor(poses, kind, copy)` where each copy stands. The derivation survives only as a
+  fallback for a file with fewer poses than the player can build.
+- Gave the editor all fifteen copies at once — four solar arrays, four battery banks, two
+  regolith shields and one of everything else — each draggable on its own.
+- Added **scaling**: a grip on the bottom-right corner of every module that changes its
+  width when dragged sideways. The height follows the artwork's proportions, so width is
+  the only dimension. `+` and `-` do the same from the keyboard.
+- Added an **instance picker** to the toolbar, because copies overlap and a copy you
+  cannot see is a copy you cannot grab. Picking one selects it and brings it to the
+  front.
+- Took the **crewmate sprite off the build screen**. It stood exactly where the modules
+  go. The speech bubble stays — that is the crewmate's voice, not the picture.
+- The default file encodes the layout the game was already drawing, so nothing moves on
+  upgrade.
+
+**Files**
+
+- `src/ui/baseLayout.json`, `src/ui/baseLayout.ts`, `src/ui/baseLayout.test.ts`
+- `src/ui/baseLayoutEditor.ts`, `src/ui/base-layout-editor.css`
+- `src/ui/gameLoop.ts`, `src/features/base/view.ts`
+- `docs/architecture.md`, `docs/team/decisions.md`, `docs/team/tasks.md`, `AGENTS.md`, `README.md`
+
+**Problems**
+
+- The first draft gave `nuclear-unit` two poses, because it was copied from
+  `regolith-shield`. `nuclear-unit` has `maxCount: 1` — one nuclear unit, ever — so the
+  second pose would never have been drawn. The validator caught it by reporting the
+  surplus.
+- A module that started at 90% with a width of 24% hung off the right-hand edge of the
+  panel: the CSS clamp only knows the left edge. `clampSpot` now pulls the width in so
+  `left + width` never exceeds the panel.
+- Copies of a kind overlap by default, so clicking one can grab another. Raising the
+  selected copy to the front fixes it, and the picker makes it selectable at all.
+- `src/features/base/view.ts` already carried an uncommitted line from the encyclopedia
+  work. The sprite removal was staged as a patch so that line stayed in the working
+  tree — committing it would have taken the "needs" text off the cards without the
+  encyclopedia that replaces it.
+- Verified in headless Chrome over the DevTools Protocol: 20 checks on the editor (15
+  handles, per-copy dragging, the grip, the picker), 10 across the other screens, 9 on a
+  screen re-render, and 6 on the round trip (drag the third solar array → save the file
+  → reload → build three solar arrays → the third stands at 33.9%, exactly where the
+  file says). `npm run check` clean; `npm test` 480 passed in 21 files (was 471; +9 layout
+  tests).
+
+**Next**
+
+- The fifteen copies now sit where the old derivation put them, which means they
+  overlap. Spreading them out is a design job, not a code one — and it is the reason the
+  editor exists.
+
+---
+
 ## 2026-11-11 — Move the outpost layout into a file, and add the placement editor
 
 **Did**

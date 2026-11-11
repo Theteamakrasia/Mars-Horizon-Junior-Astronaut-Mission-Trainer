@@ -7,6 +7,7 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 
 | id | task | goal | owner | status | blocked by | notes |
 | --- | --- | --- | --- | --- | --- | --- |
+| TASK-065 | A pose per module copy, and a way to resize a module | G-4 | agent | done | - | D-050; `baseLayout.json` holds a list per kind; the editor places and scales all 15 copies; crewmate sprite off the build screen; 480 tests |
 | TASK-064 | Move the outpost module layout out of source into a JSON file, with a developer placement editor | G-4 | agent | done | - | D-049; `src/ui/baseLayout.json`, `baseLayout.ts`, `baseLayoutEditor.ts`; `?editlayout=1`; 471 tests. Verified in headless Chrome, including the file round trip |
 | TASK-063 | Grid the outpost modules, cut catalogue cards to one line, add an encyclopedia | G-4 | agent | done | - | `MODULE_SPOT` 4×2 grid in `ui/gameLoop.ts`; new `features/encyclopedia/`; 440 tests. Browser check outstanding (TASK-049) |
 | TASK-062 | Roll each mission's hazards from a seed instead of a fixed schedule | G-4 | agent | done | - | D-048; `sim/forecast.ts`, `dom/forecastLoader.ts`, `data/spaceweather.ts`, base + act wiring; 434 tests |
