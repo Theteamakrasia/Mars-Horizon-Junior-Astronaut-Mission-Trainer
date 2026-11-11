@@ -11,6 +11,7 @@ import {
   PARTS,
   PRESS_SHOT,
   resolveBeatStart,
+  tourActionFor,
   SHOTS,
   TITLE,
   TITLE_DURATION_MS,
@@ -172,15 +173,27 @@ describe('TOTAL_DURATION_MS', () => {
 });
 
 describe('PARTS', () => {
-  it('is five slides: overview then one part at a time', () => {
+  it('is five slides: one part at a time, and the assembled craft last', () => {
     expect(PARTS).toHaveLength(5);
     expect(PARTS.map((part) => part.id)).toEqual([
-      'overview',
       'propulsion',
       'habitat',
       'logistics',
       'orion',
+      'overview',
     ]);
+  });
+
+  /*
+    The assembled craft is the payoff, not the introduction: it is the one slide
+    that shows every part, so it belongs at the end. It used to open the tour
+    as well as close it, which put the same picture on screen twice.
+  */
+  it('shows the assembled craft once, and last', () => {
+    const ids = PARTS.map((part) => part.id);
+
+    expect(ids.filter((id) => id === 'overview')).toHaveLength(1);
+    expect(ids[ids.length - 1]).toBe('overview');
   });
 
   it('gives every part a name, description and accent colour', () => {
@@ -275,5 +288,23 @@ describe('the camera flashes', () => {
   it('finishes each flash before the shot does', () => {
     const lastEnd = FLASH_TIMES[FLASH_TIMES.length - 1] + FLASH_RISE_PCT + FLASH_FALL_PCT;
     expect(lastEnd).toBeLessThan(100);
+  });
+});
+describe('tourActionFor', () => {
+  it('advances while there are parts left', () => {
+    for (let index = 0; index < PARTS.length - 1; index += 1) {
+      expect(tourActionFor(index)).toBe('advance');
+    }
+  });
+
+  it('continues on the last slide, where the tour ends', () => {
+    // The assembled craft is the last slide, so this is where the tour ends and
+    // where Enter carries the player out of it.
+    expect(tourActionFor(PARTS.length - 1)).toBe('continue');
+    expect(PARTS[PARTS.length - 1].id).toBe('overview');
+  });
+
+  it('treats a slide past the end as the end too', () => {
+    expect(tourActionFor(PARTS.length)).toBe('continue');
   });
 });

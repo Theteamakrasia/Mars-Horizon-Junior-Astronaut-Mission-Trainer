@@ -8,6 +8,118 @@ than a documented one.
 
 ---
 
+## 2026-11-11 — One navigation bar, a stable launch image, and a screen that scales
+
+**Did**
+
+- **Reduced the app to ONE navigation bar.** It had four: `naming__header` (32px, a
+  floating bar inset into the page), `briefing__header` (50px, the same idea),
+  `landing-site__header` (60px, its own full-bleed design) and `.gl__header`, the shared
+  one from `ui/gameLoop.ts` that `base`, `act` and `debrief` already used. The shared
+  bar is now the only one: `landing-site` draws it through `gameHeader()` like the
+  other three, and the entry screens (`naming`, `briefing`) carry none at all. To make
+  that possible the `--gl-*` design tokens moved from `.gl` to `:root`, because a rule
+  like `.gl__brand-mark { background: var(--gl-orange) }` resolved to nothing on a
+  screen that is not inside `.gl`.
+- **Stopped the launch parts-tour image shaking.** It carried an endless one-pixel,
+  0.15-degree wobble (`launch-parts-shake`), and `launch.css` held the whole parts
+  panel TWICE — the panel, the card, the header, the image and the controls, once from
+  line 314 and again from 446, which is why the shake rule appeared twice. Both copies
+  of the block are gone. The cinematic's slow camera push is untouched: that one is
+  model-driven and is the shot the reel is built around.
+- **Made the launch stage fill the screen.** It was locked to 16:9 and centred, so on
+  any window that was not 16:9 the cinematic sat in a letterbox with black bars. It is
+  now the viewport, and the stills and films are `object-fit: cover` — they grow to
+  meet the window and crop a little on the long axis, never stretch.
+- **Gave the launch controls their own bar.** Prev / Next / Continue were inside the
+  card, below the artwork, so their position depended on the card's height and they
+  were pushed off the bottom of the panel on a short window (ISS-041). They are now a
+  sibling of the card, pinned along the bottom of the screen, always in the same place
+  and never over the picture.
+- **Swapped the launch button colours.** NEXT is the orange one — the same `#FA6200`
+  fill, `#150800` text and `#ff7b33` hover as the naming page's START MISSION — and
+  CONTINUE is the quiet dark button. Two orange buttons on one row was one too many.
+- **Made the parts-tour artwork the screen, on a second pass.** It was a small card
+  floating in the middle of a black page, and the controls were cut off at the
+  bottom of the window. The picture is now the full-bleed backdrop, edge to edge,
+  with the name over the top of it and the description and the NASA fact over the
+  bottom; the controls are pinned to the bottom of the viewport rather than riding
+  on the card's height, so they are always wholly on screen. A screen narrower than
+  16:9 is fitted whole instead, because a horizontal crop there would take the
+  callout labels off the picture.
+- **Made CONTINUE take the orange accent once the tour is over.** NEXT is orange
+  while there are slides left; the moment NEXT is greyed out — the player has been
+  all the way round the five parts — CONTINUE becomes the orange one, because it is
+  then the only way forward. One orange button on the row at a time, always the one
+  that moves the player on: stepping back with PREV hands the accent back to NEXT.
+- **Put the words in a dock, off the picture.** With the artwork full-bleed, the
+  description and the NASA fact were laid out over the lower half of it, straight
+  through the "LOGISTICS / SAFE HAVEN" callout, and the fact was clipped by the
+  button bar. They now sit in a solid dock along the bottom with the controls,
+  below the picture. The artwork is left with nothing over it but its own name,
+  on a plate at the top, and every word of the caption is on its own ground where
+  nothing can cover it.
+- **Made the parts tour answer the Enter key.** It could only be moved through
+  with the mouse. It now answers Enter the same way the ration check does: while
+  there are parts left it moves to the next one, and on the last slide — the
+  assembled craft — the same key carries the player out of the tour, which is
+  what CONTINUE does and why CONTINUE is the orange button there. The cinematic
+  still has no skip: the key is only answered once the tour is open.
+  The two rules that decide this — a plain Enter, and not when a focused button
+  already deals with Enter itself — moved out of the ration check's model into
+  `src/dom/keys.ts`, because the launch screen could not have had them where they
+  were (R-5). Their tests moved with them. The decision itself, what Enter does
+  on a given slide, is `tourActionFor` in `launch/model.ts`, so it is tested
+  without a browser.
+- **Stopped the parts tour showing the assembled-craft picture twice.** The tour
+  opened on the whole spacecraft and then **wrapped** back to it at the end, so
+  the same picture was on screen at the start and the finish with the four parts
+  it names in between — and the picture that shows all four parts was the one
+  shown before the player had seen any of them. The tour is now a straight walk:
+  propulsion, habitat, logistics, Orion, and then the assembled craft last. NEXT
+  on the last slide is greyed out instead of wrapping, the `partsLooped` flag is
+  gone, and CONTINUE takes the orange accent there. The assembled-craft picture
+  is shown exactly once, and it is the payoff of the tour rather than its
+  introduction.
+- **Made the landing-site screen scale.** Every size on it was fixed rem and px, so
+  nothing grew with the window: a pin label was 13.33px at 1024, 1600 and 1920 alike,
+  while the rest of the app scaled. They are now `clamp()`s against the viewport, the
+  way the naming page and the game-loop screens write theirs.
+
+**Files**
+
+- `index.html` — the three bespoke headers removed; the launch parts panel restructured
+- `src/styles/game-loop.css` — the `--gl-*` tokens moved to `:root`
+- `src/features/naming/naming.css`, `src/features/briefing/briefing.css` — the dead
+  header rules deleted
+- `src/features/landing-site/landing-site.css`, `src/features/landing-site/view.ts`
+- `src/features/launch/launch.css`
+- `docs/architecture.md`, `docs/team/issues.md`, `docs/team/progress-log.md`
+
+**Problems**
+
+- The branch this started from, `feat/five-mars-locations`, had **diverged from
+  `origin/main`**: main had gained the encyclopedia, the placement editor, the
+  minigames and the guide, while the branch had the rover, the region events and the
+  per-region world art. The reference design the owner asked for — the orange
+  rocket badge in the navy header — only exists on `main`, and the branch had already
+  replaced it with a Mars planet in a circle. The work was rebased onto `origin/main`
+  so the pull request is small and matches what is deployed. **`feat/five-mars-locations`
+  is untouched** and still holds the rover work.
+- `launch.css` is a CRLF file and the editor could not match multi-line blocks in it,
+  so the parts-panel rewrite was done by writing the whole stylesheet and copying it
+  back with its line endings intact (R-16).
+- The journey check (`tools/browser-check-journey.mjs`) still fails — and it fails
+  **identically on `origin/main`**, checked in a clean worktree. It is main's own
+  pre-existing failure, not something this work caused.
+
+**Next**
+
+- Open the pull request against `main` and demo the four screens that carry the bar
+  next to the two that do not.
+
+---
+
 ## 2026-11-11 — Merge main, and put the how-to-play panel above the outpost
 
 **Did**

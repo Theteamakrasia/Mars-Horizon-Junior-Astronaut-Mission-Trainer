@@ -60,7 +60,14 @@
 
          The stage is the first child of the section, not of the body, because it
          is the backdrop for the WHOLE screen: the planet runs off the top and
-         right edges and the header sits on top of it. -->
+         right edges.
+
+         There is no navigation bar here, and there is no menu in it either. This
+         is the entry screen: the player arrives, names their astronaut and goes.
+         A header above it would only offer a way out of the one screen that has
+         not started yet. The one navigation bar in the app lives in
+         ui/gameLoop.ts (gameHeader) and is drawn by landing-site, base, act and
+         debrief - the screens a player reaches once they are under way. -->
     <section id="naming" class="naming" aria-labelledby="naming-title">
       <div class="naming__stage" aria-hidden="true">
         <img
@@ -78,17 +85,6 @@
           decoding="async"
         />
       </div>
-
-      <header class="naming__header">
-        <div class="naming__brand">
-          <span class="naming__brand-mark" aria-hidden="true"></span>
-          <span class="naming__brand-text">
-            <span class="naming__brand-name">MARS HORIZON</span>
-            <span class="naming__brand-sub">TRAINER MODE</span>
-          </span>
-        </div>
-        <nav class="naming__nav" aria-label="Primary">Mission Control / Main Menu</nav>
-      </header>
 
       <div class="naming__body">
         <div class="naming__panel">
@@ -156,7 +152,11 @@
          No src on the image, on purpose: briefing/view.ts imports the WebP as a
          module so Vite fingerprints and bundles it, and assigns it itself. A
          hand-written path would be a second place to update and would 404 in the
-         build. -->
+         build.
+
+         There is no navigation bar here either. The briefing is one unbroken
+         scene with one line of dialogue at a time, and a header above it would
+         compete with the artwork for the eye. -->
     <section id="briefing" class="briefing" aria-labelledby="briefing-title">
       <!-- The artwork is the scene; the briefing is one line over it at a time.
            It carries a real alt rather than being hidden from a screen reader. -->
@@ -166,17 +166,6 @@
         alt="A cheerful cartoon astronaut in a white spacesuit, waving in front of Earth and Mars"
         decoding="async"
       />
-
-      <header class="briefing__header">
-        <div class="briefing__brand">
-          <span class="briefing__brand-mark" aria-hidden="true">&#128640;</span>
-          <span class="briefing__brand-text">
-            <span class="briefing__brand-name">MARS HORIZON</span>
-            <span class="briefing__brand-sub">MISSION BRIEFING</span>
-          </span>
-        </div>
-        <nav class="briefing__nav" aria-label="Primary">Mission Control / Main Menu</nav>
-      </header>
 
       <div class="briefing__body">
         <h1 class="briefing__title" id="briefing-title">Mission Briefing</h1>
@@ -409,32 +398,60 @@
       </div>
 
       <!-- The parts tour panel. A direct child of .launch, NOT of .launch__stage:
-           the stage is a 16:9 letterboxed box, and the panel inside it inherited
-           that box. On any viewport whose stage is shorter than the card, the
-           panel's overflow:hidden clipped the part name and the Prev / Next /
-           Continue controls, leaving the player stuck with no way forward
-           (ISS-041). As a child of .launch it covers the whole viewport. -->
+           the stage is the cinematic's own layer, and the panel inside it
+           inherited that box. On any viewport whose stage was shorter than the
+           card, the panel's overflow:hidden clipped the part name and the Prev /
+           Next / Continue controls, leaving the player stuck with no way forward
+           (ISS-041). As a child of .launch it covers the whole viewport.
+
+           THE ARTWORK IS THE SCREEN. The picture is the full-bleed backdrop and
+           the words sit on top of it.
+
+           The words are NOT over the picture, though. The description and the
+           NASA fact used to be laid out over the lower half of the artwork,
+           where they ran straight through the "LOGISTICS / SAFE HAVEN" callout
+           and the fact was clipped by the button bar. They now live in a solid
+           dock along the bottom, above the controls, so the picture is never
+           covered by text and the text is never covered by the picture.
+
+           The part name stays at the top of the picture, on its own plate. -->
       <div
         class="launch__parts-panel"
         data-launch-parts-panel
         hidden
       >
+        <img
+          class="launch__parts-image"
+          data-launch-parts-image
+          alt=""
+          aria-hidden="true"
+          decoding="async"
+        />
+
         <div class="launch__parts-card">
           <div class="launch__parts-header">
             <span class="launch__parts-dot" aria-hidden="true"></span>
             <h2 class="launch__parts-name" data-launch-parts-name></h2>
           </div>
-          <img
-            class="launch__parts-image"
-            data-launch-parts-image
-            alt=""
-            aria-hidden="true"
-            decoding="async"
-          />
-          <p class="launch__parts-description" data-launch-parts-description></p>
+        </div>
 
-          <!-- A short NASA fact per part, so the tour teaches while it shows. -->
-          <p class="launch__parts-fact" data-launch-parts-fact></p>
+        <!-- The dock: what is being said, and the controls to move on. One
+             solid bar along the bottom of the screen, in one fixed place, so
+             nothing is ever over the picture and nothing is ever clipped.
+             Inside the card they were pushed off the bottom of the panel on a
+             short window and clipped away (ISS-041).
+
+             NEXT is the orange one, the same accent fill as the naming page's
+             START MISSION. CONTINUE is the quiet one until the tour is over:
+             only one button on a row should be the orange action. -->
+        <div class="launch__parts-dock">
+          <div class="launch__parts-caption">
+            <p class="launch__parts-description" data-launch-parts-description></p>
+
+            <!-- A short NASA fact per part, so the tour teaches while it shows. -->
+            <p class="launch__parts-fact" data-launch-parts-fact></p>
+          </div>
+
           <div class="launch__parts-controls">
             <button
               class="launch__parts-button launch__parts-button--prev"
@@ -453,7 +470,7 @@
               Next ▶
             </button>
             <button
-              class="launch__parts-button launch__parts-button--primary"
+              class="launch__parts-button launch__parts-button--continue"
               type="button"
               data-launch-parts-continue
             >
@@ -644,20 +661,14 @@
          chosen region becomes part of RunState and is handed to the next
          screen, so this screen never imports base/ or act/.
 
+         The navigation bar is NOT in the markup. It is drawn by
+         features/landing-site/view.ts through ui/gameLoop.ts (gameHeader), the
+         same shared bar base, act and debrief use, so all four screens carry a
+         byte-identical header instead of four separate ones.
+
          Every element landing-site/view.ts queries carries a data hook below.
          scripts/check-markup.mjs fails the build if one is removed. -->
     <section id="landing-site" class="landing-site" aria-labelledby="landing-site-title">
-      <header class="landing-site__header">
-        <div class="landing-site__brand">
-          <span class="landing-site__brand-mark" aria-hidden="true">&#128640;</span>
-          <span class="landing-site__brand-text">
-            <span class="landing-site__brand-name">MARS HORIZON</span>
-            <span class="landing-site__brand-sub">LANDING SITE</span>
-          </span>
-        </div>
-        <nav class="landing-site__nav" aria-label="Primary">Mission Control / Main Menu</nav>
-      </header>
-
       <div class="landing-site__body">
         <!-- The map stage, locked to 16:9 so pins stay on the same feature at
              any window size. Pins are positioned in stage percentages. -->

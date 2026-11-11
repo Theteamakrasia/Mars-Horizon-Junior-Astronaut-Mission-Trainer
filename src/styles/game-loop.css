@@ -1,11 +1,16 @@
 /* ==========================================================================
-   GAME LOOP — the shared shell for base, act and debrief.
+   GAME LOOP — the shared shell for base, act and debrief, and the app's one
+   navigation bar.
 
    The Figma frames (nodes 66:14 … 66:50) draw one screen chrome: a navy header,
    five resource cards, an illustrated Mars panel on the left, and a cream
    interaction panel on the right. All three screens use it, so it lives here
    rather than in one feature. Feature-specific rules stay in
    features/<name>/<name>.css (R-15).
+
+   The header itself is shared further than that: `landing-site` draws the same
+   `gameHeader()` and gets the same bar, so the app has ONE navigation bar
+   rather than the four it used to have.
 
    Every size is derived from the 1920×1080 design and written as a clamp(), so
    the layout keeps its proportions on a laptop without becoming unreadable on a
@@ -31,9 +36,21 @@
    screen draws over the panel may sit below it — which is exactly what
    happened when the modules grew their depth bands and the guide stayed at
    40: the battery bank painted over the how-to-play panel.
+   THE NAVIGATION BAR
+   ------------------
+   The header below is the app's one navigation bar, and it is not tied to the
+   `.gl` root: `landing-site` draws the same `gameHeader()` from ui/gameLoop.ts
+   and gets the same bar. That is why the design tokens live on `:root` rather
+   than on `.gl` - a rule like `.gl__brand-mark { background: var(--gl-orange) }`
+   would otherwise resolve to nothing on a screen that is not inside `.gl`.
+
    ========================================================================== */
 
-.gl {
+/*
+  The shared palette. On `:root` so every screen that draws part of the game
+  loop's chrome reads the same colours, whether or not it is wrapped in `.gl`.
+*/
+:root {
   --gl-cream: #f5f0e3;
   --gl-panel: #fff9ec;
   --gl-navy: #1d2d46;
@@ -54,7 +71,9 @@
   --gl-line: rgba(34, 50, 74, 0.1);
   --gl-display: 'Outfit', 'Segoe UI', system-ui, sans-serif;
   --gl-body: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+}
 
+.gl {
   position: fixed;
   inset: 0;
   z-index: 10;

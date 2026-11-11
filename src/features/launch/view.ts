@@ -36,6 +36,7 @@ import { nextStop } from '../../ui/registry';
 import { navigate } from '../../ui/router';
 import type { RunState } from '../../sim/run';
 import { factFor } from '../../data/nasaGallery';
+import { focusHandlesEnter, isPlainEnter } from '../../dom/keys';
 
 import './launch.css';
 
@@ -65,6 +66,7 @@ import {
   VIDEO_DESCRIPTION,
   VIDEO_DURATION_MS,
   resolveBeatStart,
+  tourActionFor,
   type Shot,
 } from './model';
 
@@ -321,16 +323,16 @@ export function mountLaunch(
   const destination = nextStop('launch');
   let handedOff = false;
   let handOffTimer: number | null = null;
-  /** Which part slide is showing: 0 = overview … 4 = Orion. */
+  /** Which part slide is showing: 0 = propulsion … 4 = the assembled craft. */
   let partsIndex = 0;
   /** Whether the parts panel is currently open. */
   let partsOpen = false;
-  /** Whether the tour has wrapped from Orion back to the overview. */
-  let partsLooped = false;
   /** Button listeners, so teardown can remove them. */
   let partsPrevHandler: (() => void) | null = null;
   let partsNextHandler: (() => void) | null = null;
   let partsContinueHandler: (() => void) | null = null;
+  /** The Enter key listener, so teardown can remove it. */
+  let partsKeyHandler: ((event: KeyboardEvent) => void) | null = null;
 
   /** The screen's only exit: the next stop, once and only once. */
   const handOff = (): void => {
@@ -458,10 +460,28 @@ export function mountLaunch(
     if (dot instanceof HTMLElement) {
       dot.style.backgroundColor = part.accent;
     }
-    // After wrapping from Orion back to the overview, Prev is enabled and Next is
-    // disabled so the player can look back one last time before continuing.
-    partsPrev.disabled = index === 0 && !partsLooped;
-    partsNext.disabled = index === 0 && partsLooped;
+    /*
+      The tour is a straight walk: one part at a time, and the assembled craft
+      last.
+
+      PREV is greyed out on the first slide and NEXT on the last, so the ends of
+      the tour are marked. It used to wrap instead - NEXT on the last slide
+      jumped back to the first - which is what put the assembled-craft picture
+      on screen twice, once to open the tour and again when it wrapped round to
+      it. The wrap is gone, and so is the double showing.
+
+      Once the player reaches the last slide there is nothing left to look at:
+      NEXT is greyed out and CONTINUE is the only action left. So CONTINUE takes
+      the orange accent then, and only then - there is one orange button on the
+      row at a time, and it is always the one that moves the player forward.
+
+      The test is NEXT's own state rather than a separate flag, so stepping
+      back with PREV gives the accent back to NEXT: there are slides left to
+      move forward through, so NEXT is the way forward again.
+    */
+    partsPrev.disabled = index === 0;
+    partsNext.disabled = index === PARTS.length - 1;
+    partsContinue.classList.toggle('is-primary', partsNext.disabled);
   };
 
   /** Open the interactive parts tour after the docking clip ends. */
@@ -475,36 +495,62 @@ export function mountLaunch(
     const onPrev = (): void => {
       if (partsIndex > 0) {
         partsIndex -= 1;
-      } else if (partsLooped) {
-        // After wrapping from Orion to overview, go to Orion to review
-        partsIndex = PARTS.length - 1;
+        renderPart(partsIndex);
       }
-      renderPart(partsIndex);
     };
 
     const onNext = (): void => {
+      // A straight walk to the end of the tour. It used to wrap round to the
+      // first slide here, which is what showed the assembled-craft picture
+      // twice; the ends of the tour are marked by the buttons instead.
       if (partsIndex < PARTS.length - 1) {
         partsIndex += 1;
-      } else {
-        // Wrap from Orion back to the overview so the player can see the full
-        // assembled craft one more time before continuing.
-        partsIndex = 0;
-        partsLooped = true;
+        renderPart(partsIndex);
       }
-      renderPart(partsIndex);
     };
 
     const onContinue = (): void => {
       handOff();
     };
 
+    /*
+      Enter moves the tour on, the same way it moves the ration check on: a
+      plain Enter, and only when the focus is not already on something that
+      deals with Enter itself - a focused button already fires a click, and
+      answering that here as well would move the tour twice on one press.
+
+      On the last slide there is nothing left to look at, so the same key that
+      moves the tour along is the one that carries the player out of it. That is
+      what CONTINUE does, and it is why CONTINUE is the orange button there.
+    */
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (!isPlainEnter(event.key, { alt: event.altKey, ctrl: event.ctrlKey, meta: event.metaKey })) return;
+
+      const target = event.target as HTMLElement | null;
+      if (target !== null && focusHandlesEnter(target.tagName)) return;
+
+      event.preventDefault();
+
+      if (tourActionFor(partsIndex) === 'continue') {
+        onContinue();
+        return;
+      }
+
+      onNext();
+    };
+
     partsPrev.addEventListener('click', onPrev);
     partsNext.addEventListener('click', onNext);
     partsContinue.addEventListener('click', onContinue);
 
+    // The key is only answered once the tour is open: the cinematic has no skip,
+    // and Enter must not be a way out of it.
+    window.addEventListener('keydown', onKeyDown);
+
     partsPrevHandler = onPrev;
     partsNextHandler = onNext;
     partsContinueHandler = onContinue;
+    partsKeyHandler = onKeyDown;
   };
 
   /**
@@ -624,6 +670,15 @@ export function mountLaunch(
     if (partsPrevHandler !== null) partsPrev.removeEventListener('click', partsPrevHandler);
     if (partsNextHandler !== null) partsNext.removeEventListener('click', partsNextHandler);
     if (partsContinueHandler !== null) partsContinue.removeEventListener('click', partsContinueHandler);
+
+    // The key listener lives on the window, so it has to come off again here:
+    // left in place it would keep answering Enter for the launch screen after
+    // the player had left it, and fight the next screen's own Enter handler.
+    if (partsKeyHandler !== null) {
+      window.removeEventListener('keydown', partsKeyHandler);
+      partsKeyHandler = null;
+    }
+
     root.classList.remove('launch__cinematic-dimmed');
     partsPanel.hidden = true;
   };

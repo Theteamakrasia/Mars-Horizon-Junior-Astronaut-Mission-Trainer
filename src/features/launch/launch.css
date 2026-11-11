@@ -44,17 +44,23 @@
 }
 
 /* ---------- THE STAGE ----------
-   Locked to 16:9 like the supply screen, so the two read as one product.
-   The cinematic art is 1670x942 — 0.28% off 16:9, about 4.7px across, which the
-   letterbox absorbs entirely. The film is 1920x1080, which fills it exactly.
-*/
+   The whole screen. The stage used to be locked to 16:9 and centred, which
+   meant the cinematic sat in a letterbox with black bars above and below on any
+   window that was not 16:9 - the same blank-space problem the naming page
+   solved by simply filling the window.
+
+   Now the stage is the viewport and the artwork fills it: the stills and the
+   films are `object-fit: cover`, so the picture grows to meet the window and
+   crops a little on the long axis rather than being letterboxed. Nothing is
+   stretched and nothing is squashed - cover keeps the artwork's own proportions
+   and only ever takes pixels off the edge.
+
+   The cinematic art is 1670x942 - 0.28% off 16:9, about 4.7px across, which the
+   crop absorbs entirely. The film is 1920x1080, which fills it exactly.
+ */
 .launch__stage {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: min(100vw, calc(100vh * 16 / 9));
-  aspect-ratio: 16 / 9;
+  inset: 0;
   overflow: hidden;
   background: var(--l-black);
 }
@@ -65,7 +71,7 @@
    It never fades back out: the next shot fades in *on top of* it, which is the
    cross-dissolve, and an outgoing fade would only fight it. A two-shot sequence
    gets this for free; it would need revisiting at three or more.
-*/
+ */
 .launch__shot {
   position: absolute;
   inset: 0;
@@ -87,7 +93,11 @@
 /* ---------- THE CAMERA ----------
    A slow push on the press conference, a slow pan across the pad. Both are plain
    scale and translate, written by the model.
-*/
+
+   This one is deliberate and stays: it is the camera move the reel is built
+   around, it is driven by the model rather than by a decoration, and it is
+   removed under reduced motion with everything else that moves.
+ */
 .launch__img {
   position: absolute;
   inset: 0;
@@ -111,13 +121,13 @@
    Camera flashes from the crowd, which sits along the bottom edge of the frame.
 
    Three spikes, hand-placed. They mirror FLASH_TIMES in launch/model.ts, and
-   check-markup.mjs fails the build if the two ever stop matching - the spacing is
-   the photosensitivity guarantee, so it is checked rather than trusted.
+   check-markup.mjs fails the build if the two ever stop matching - the spacing
+   is the photosensitivity guarantee, so it is checked rather than trusted.
 
    No pointer-events here either, deliberately: it is decorative and must never
    intercept anything, and the ancestor rule that silently killed the supply
    screen's NEXT button is exactly what this avoids.
-*/
+ */
 .launch__flash {
   position: absolute;
   inset: 0;
@@ -135,7 +145,7 @@
 
 /*
   Three spikes at 12, 33 and 59, each rising over 4% and falling over the 9%
-  after that — so 12/16/25, 33/37/46, 59/63/72. Derived from FLASH_TIMES,
+  after that - so 12/16/25, 33/37/46, 59/63/72. Derived from FLASH_TIMES,
   FLASH_RISE_PCT and FLASH_FALL_PCT in the model; check-markup.mjs fails the build
   if these stops stop matching, because the spacing is a photosensitivity guarantee.
 */
@@ -172,7 +182,7 @@
    shot the way the stills cross over each other. Its resting state is hidden for
    the same reason a shot's is: before its delay there is nothing to show, and if
    the animation never runs the walk shot is still on screen underneath.
-*/
+ */
 .launch__video {
   position: absolute;
   inset: 0;
@@ -184,8 +194,8 @@
      if the reveal never runs the shot underneath is still on screen.
 
      The fade is a transition rather than a delayed animation, because a delayed
-     animation starts on the clock whether or not the clip has buffered — which is
-     how the reel revealed black on a slow connection. `launch__on` is added by
+     animation starts on the clock whether or not the clip has buffered - which
+     is how the reel revealed black on a slow connection. `launch__on` is added by
      launch/view.ts at the moment the clip is actually ready, so the dissolve
      starts when there is a picture to dissolve into. */
   opacity: 0;
@@ -199,11 +209,11 @@
 
 /* ---------- THE FOLLOWING CLIPS ----------
    The docking clip and the spacecraft tour, one layer above the launch film each.
-   Same resting state as the film — hidden until its beat — and the same class
+   Same resting state as the film - hidden until its beat - and the same class
    transition, because both clips open on black: the fade reads as a fade through
    black rather than a cut. view.ts adds `launch__on` when the clip is ready, so
    the two clips cannot appear before their turn.
-*/
+ */
 .launch__clip {
   position: absolute;
   inset: 0;
@@ -225,7 +235,7 @@
 /* ---------- THE TITLE CARD ----------
    Black, holding, then fading to reveal the first shot underneath. Its fade-out is
    timed to land exactly where the first shot's fade-in begins.
-*/
+ */
 .launch__title-card {
   position: absolute;
   inset: 0;
@@ -263,8 +273,8 @@
    accommodation is for.
 
    What goes is the *movement*: the camera pushes and pans, and the flashes. What
-   stays is every opacity fade, because the fades are how the sequence is timed —
-   the title lifting, the stills cross-dissolving, each film arriving — and an
+   stays is every opacity fade, because the fades are how the sequence is timed -
+   the title lifting, the stills cross-dissolving, each film arriving - and an
    opacity change is not the kind of motion the setting exists for. The launch
    film and the docking clip are parked on one frame by view.ts; the tour plays,
    because its content is four captions in sequence and a held frame would show
@@ -272,7 +282,7 @@
 
    Every `animation: none` here leaves the element at its declared CSS state, which
    is why the base rules above are written to be correct on their own.
-*/
+ */
 .launch[data-launch-motion='reduced'] .launch__img {
   animation: none;
   transform: none;
@@ -286,7 +296,7 @@
    The same fallback when the setting is on but the feature has not been told. A
    URL can be opened before mount, and the OS preference should hold regardless of
    what JavaScript got to.
-*/
+ */
 @media (prefers-reduced-motion: reduce) {
   .launch__img {
     animation: none;
@@ -314,9 +324,25 @@
 /* ---------- THE PARTS TOUR PANEL ----------
 
    The whole screen once the docking clip ends. One part slide at a time:
-   name, marked-up image, description, and Prev / Next / Continue.
+   name, marked-up image, description, and a row of controls along the bottom.
+
+   THE ARTWORK IS THE SCREEN. The picture is not a card floating in the
+   middle of a black page - it is the full-bleed backdrop, edge to edge, with
+   the words over it and the controls in a bar along the bottom. The five
+   parts pictures are all 16:9 (1364x768 and 1671x941), so `object-fit:
+   contain` fills a 16:9 window completely and only ever letterboxes a window
+   of some other shape, where the bars are the picture's own black space
+   rather than a frame around a small image.
+
+   The controls are a SIBLING of the card, pinned to the bottom of the
+   viewport. They used to sit inside the card, below the artwork, so their
+   position depended on how tall the card happened to be: on a short window
+   they were pushed off the bottom of the panel and clipped away, which is the
+   failure ISS-041 was filed about. A bar of their own cannot be cropped by
+   the panel, and it never sits over the picture's labels.
+
    Starts hidden, shown by view.ts when the tour begins.
-*/
+ */
 .launch__parts-panel {
   position: absolute;
   inset: 0;
@@ -327,8 +353,8 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  align-items: stretch;
+  justify-content: flex-start;
 }
 
 .launch__parts-panel[hidden] {
@@ -346,15 +372,22 @@
   visibility: hidden;
 }
 
+/*
+  The part name, on its own plate at the top of the picture.
+
+  It carries a solid plate behind it so it reads as a label rather than as
+  letters tangled up with the artwork behind them - the solar array of the
+  assembled craft runs straight through the middle of the title otherwise.
+*/
 .launch__parts-card {
+  position: relative;
+  z-index: 2;
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1rem;
-  padding: 2.5rem;
-  max-width: min(96vw, 1100px);
-  width: 100%;
-  box-sizing: border-box;
+  padding: clamp(0.75rem, 2vmin, 1.5rem) 1rem;
   text-align: center;
 }
 
@@ -363,7 +396,9 @@
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
-  margin-bottom: 0.5rem;
+  padding: 0.35rem 1.1rem;
+  border-radius: 999px;
+  background: rgba(5, 7, 13, 0.72);
 }
 
 .launch__parts-dot {
@@ -374,185 +409,105 @@
 
 .launch__parts-name {
   margin: 0;
-  font-size: clamp(1.75rem, 6vmin, 2.5rem);
+  font-size: clamp(1.4rem, 5vmin, 2.5rem);
   font-weight: 700;
   letter-spacing: 0.22em;
   text-transform: uppercase;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.9);
 }
 
+/*
+  The artwork, full-bleed behind everything else on the screen.
+
+  It is positioned against the PANEL, not against the card: the card is left
+  unpositioned on purpose, so `inset: 0` here means the whole viewport rather
+  than the strip above the controls bar.
+
+  `cover` so it fills the screen edge to edge. The five parts pictures are all
+  16:9, and the labelled callouts sit well inside the picture's own black
+  space, so a screen wider than 16:9 crops that space and nothing else.
+
+  It has no animation of any kind. It used to carry an endless one-pixel shake,
+  which moved the picture under the text a child is trying to read; removing it
+  is what makes the slide stable (ISS-067).
+*/
 .launch__parts-image {
-  width: auto;
-  height: auto;
-  /* Capped by height as well as width so the whole card — name, image,
-     description, controls — fits the viewport on short windows. Without the
-     height cap the 16:9 image alone could exceed the panel and the controls
-     were clipped off screen (ISS-041). */
-  max-width: min(88vw, 900px);
-  max-height: 52vh;
-  border-radius: 8px;
-  display: block;
-  background: #152029;
-  animation: launch-parts-shake 0.3s ease-in-out infinite;
-}
-
-@keyframes launch-parts-shake {
-  0%, 100% {
-    transform: translate(0, 0) rotate(0deg);
-  }
-  25% {
-    transform: translate(-1px, 0.5px) rotate(-0.15deg);
-  }
-  50% {
-    transform: translate(1px, -0.5px) rotate(0.15deg);
-  }
-  75% {
-    transform: translate(-0.5px, 1px) rotate(-0.075deg);
-  }
-}
-
-.launch[data-launch-motion='reduced'] .launch__flash {
-  display: none;
-}
-
-/* ---------- OS REDUCED MOTION ----------
-   The same fallback when the setting is on but the feature has not been told. A
-   URL can be opened before mount, and the OS preference should hold regardless of
-   what JavaScript got to.
-*/
-@media (prefers-reduced-motion: reduce) {
-  .launch__img {
-    animation: none;
-    transform: none;
-  }
-
-  .launch__flash {
-    display: none;
-  }
-}
-
-/* ---------- VISUALLY HIDDEN ---------- */
-
-.launch__visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
-/* ---------- THE PARTS TOUR PANEL ----------
-
-   The whole screen once the docking clip ends. One part slide at a time:
-   name, marked-up image, description, and Prev / Next / Continue.
-   Starts hidden, shown by view.ts when the tour begins.
-*/
-.launch__parts-panel {
   position: absolute;
   inset: 0;
-  z-index: 6;
-  background: var(--l-black);
-  color: var(--l-text);
-  font-family: var(--font-display);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.launch__parts-panel[hidden] {
-  display: none;
-}
-
-/* When the parts tour is open, the cinematic behind the panel must be hidden so
-   nothing leaks through at the edges. Covers stills, the launch film, the docking
-   clip, and the flash overlays. */
-.launch__cinematic-dimmed .launch__shot,
-.launch__cinematic-dimmed .launch__video,
-.launch__cinematic-dimmed .launch__clip,
-.launch__cinematic-dimmed .launch__flash {
-  opacity: 0;
-  visibility: hidden;
-}
-
-.launch__parts-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  padding: 2.5rem;
-  max-width: min(96vw, 1100px);
+  z-index: 0;
   width: 100%;
-  box-sizing: border-box;
-  text-align: center;
-}
-
-.launch__parts-header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  margin-bottom: 0.5rem;
-}
-
-.launch__parts-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-}
-
-.launch__parts-name {
-  margin: 0;
-  font-size: clamp(1.75rem, 6vmin, 2.5rem);
-  font-weight: 700;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-}
-
-.launch__parts-image {
-  width: auto;
-  height: auto;
-  /* Capped by height as well as width so the whole card — name, image,
-     description, controls — fits the viewport on short windows. Without the
-     height cap the 16:9 image alone could exceed the panel and the controls
-     were clipped off screen (ISS-041). */
-  max-width: min(88vw, 900px);
-  max-height: 52vh;
-  border-radius: 8px;
+  height: 100%;
+  object-fit: cover;
   display: block;
-  background: #152029;
-  animation: launch-parts-shake 0.3s ease-in-out infinite;
+  background: var(--l-black);
 }
 
-
-/* Reduced motion: no shake on the part image. */
-.launch[data-launch-motion='reduce'] .launch__parts-image {
-  animation: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
+/*
+  A screen narrower than 16:9 would have the crop take the callout labels off
+  the left and right of the picture, and a label that names the part is the
+  whole point of the picture. There the artwork is fitted whole instead, and
+  the bars are the picture's own black space rather than a frame around a
+  small image.
+*/
+@media (max-aspect-ratio: 16 / 9) {
   .launch__parts-image {
-    animation: none;
+    object-fit: contain;
   }
+}
+
+/* ---------- THE DOCK ----------
+   One solid bar along the bottom of the viewport: what is being said, and the
+   controls to move on.
+
+   The description and the NASA fact used to be laid out over the lower half of
+   the artwork, where they ran straight through the "LOGISTICS / SAFE HAVEN"
+   callout, and the fact was clipped by the button bar. Here they are on their
+   own solid ground, below the picture, and the picture is left alone.
+
+   The dock is pinned to the bottom of the viewport, so it is always in the
+   same place and always wholly on screen, whatever the artwork above is doing.
+ */
+.launch__parts-dock {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(0.5rem, 1.2vmin, 0.9rem);
+  padding: clamp(0.75rem, 2vmin, 1.25rem) 1rem;
+  border-top: 1px solid #2E3C45;
+  background: rgba(5, 7, 13, 0.95);
+}
+
+.launch__parts-caption {
+  width: 100%;
+  text-align: center;
 }
 
 .launch__parts-description {
-  margin: 0;
-  font-size: clamp(1rem, 3vmin, 1.25rem);
-  line-height: 1.6;
-  color: #9FB0BA;
+  margin: 0 auto;
+  max-width: min(92%, 48rem);
+  font-size: clamp(0.9rem, 2.4vmin, 1.15rem);
+  line-height: 1.5;
+  color: #c3ced6;
+}
+
+.launch__parts-fact {
+  margin: 0.3rem auto 0;
+  max-width: min(92%, 48rem);
+  font-size: clamp(0.68rem, 1.4vmin, 0.85rem);
+  line-height: 1.45;
+  color: #8a99a6;
 }
 
 .launch__parts-controls {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
-  width: 100%;
-  margin-top: 0.5rem;
+  gap: clamp(0.5rem, 1.2vmin, 1rem);
   flex-wrap: wrap;
 }
 
@@ -561,15 +516,18 @@
   border: 1px solid #2E3C45;
   border-radius: 8px;
   padding: 0.6rem 1.25rem;
+  /* A comfortable target for a child on a touchscreen. */
+  min-height: 44px;
   font-family: var(--font-display);
   font-size: 0.95rem;
   font-weight: 600;
   color: var(--l-text);
   background: #152029;
   cursor: pointer;
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
 }
 
-.launch__parts-button:hover {
+.launch__parts-button:hover:not(:disabled) {
   border-color: #FA6200;
 }
 
@@ -584,27 +542,100 @@
   border-color: #2E3C45;
 }
 
-.launch__parts-button--primary {
+/*
+  NEXT is the primary action on this screen: it is the button that moves the
+  tour along, and the one a child presses most. It carries the same accent fill
+  as the naming page's START MISSION - the same orange, the same dark text on
+  it, and the same lighter orange on hover - so the button that matters is the
+  one that lights up, on this screen and on the first.
+*/
+.launch__parts-button--next {
   background: #FA6200;
   border-color: #FA6200;
-  color: #05070d;
+  color: #150800;
+  font-weight: 700;
 }
 
-.launch__parts-button--primary:hover {
+.launch__parts-button--next:hover:not(:disabled) {
   background: #ff7b33;
+  border-color: #ff7b33;
+  color: #150800;
+}
+
+/* The accent fill would swallow an accent outline, so the orange button gets a
+   light one instead: the keyboard focus has to be visible. */
+.launch__parts-button--next:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+/*
+  A disabled NEXT goes back to being an ordinary dark button rather than a dim
+  orange one. Once the tour is over the orange belongs to CONTINUE, and a
+  dimmed orange on the row as well would say there were two choices.
+*/
+.launch__parts-button--next:disabled {
+  background: #152029;
+  border-color: #2E3C45;
+  color: var(--l-text);
+}
+
+/*
+  CONTINUE is the quiet one to begin with. It used to be the orange button,
+  which put two competing emphases on one row and made the button that moves
+  the tour along the least noticeable of the three. Now it is the ordinary dark
+  button, and the only orange thing on the screen is NEXT.
+*/
+.launch__parts-button--continue {
+  background: #152029;
+  border-color: #2E3C45;
+  color: var(--l-text);
+}
+
+.launch__parts-button--continue:hover:not(:disabled) {
+  border-color: #FA6200;
+}
+
+/*
+  ...until the tour is over. Once the player has been all the way round the
+  five parts there is nothing left to look at: NEXT is greyed out and CONTINUE
+  is the only action left, so it takes the same orange accent NEXT has had.
+  view.ts adds `is-primary` when that happens.
+*/
+.launch__parts-button--continue.is-primary {
+  background: #FA6200;
+  border-color: #FA6200;
+  color: #150800;
+  font-weight: 700;
+}
+
+.launch__parts-button--continue.is-primary:hover:not(:disabled) {
+  background: #ff7b33;
+  border-color: #ff7b33;
+  color: #150800;
+}
+
+/* The accent fill would swallow an accent outline here too. */
+.launch__parts-button--continue.is-primary:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
 }
 
 /* ---------- SHORT VIEWPORTS ----------
-   On a short window the centred card can still exceed the panel. Tighten the
-   padding and gap, and cap the image harder, so the controls stay on screen —
-   the same failure as ISS-041 at the other end of the size range. */
+   On a short window the dock has less room. Tighten its padding and the type,
+   so the controls and the caption both stay on screen — the same failure as
+   ISS-041 at the other end of the size range. */
 @media (max-height: 560px) {
-  .launch__parts-card {
-    padding: 1rem;
-    gap: 0.5rem;
+  .launch__parts-dock {
+    gap: 0.4rem;
+    padding: 0.6rem 1rem;
   }
 
-  .launch__parts-image {
-    max-height: 44vh;
+  .launch__parts-description {
+    font-size: clamp(0.8rem, 2.2vmin, 1rem);
+  }
+
+  .launch__parts-fact {
+    font-size: clamp(0.62rem, 1.3vmin, 0.78rem);
   }
 }

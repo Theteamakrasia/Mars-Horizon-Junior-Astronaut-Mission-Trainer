@@ -40,12 +40,12 @@ import questionUrl from '../../../Assets/images/supply/question.webp';
 import rightUrl from '../../../Assets/images/supply/right.webp';
 import wrongUrl from '../../../Assets/images/supply/wrong.webp';
 
+import { focusHandlesEnter, isPlainEnter } from '../../dom/keys';
+
 import {
   SUPPLY_BEATS,
-  focusHandlesEnter,
   hintFor,
   isCorrect,
-  isPlainEnter,
   judge,
   puzzleFor,
   successSentence,
