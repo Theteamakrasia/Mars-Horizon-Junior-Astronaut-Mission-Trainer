@@ -17,7 +17,6 @@
 export interface ScienceRank {
   readonly id: string;
   readonly title: string;
-  readonly icon: string;
   /** The lowest score that earns this rank. */
   readonly min: number;
 }
@@ -32,11 +31,11 @@ export interface ScienceRank {
  * the day logs — scores 52, so the top band starts just below it.
  */
 export const SCIENCE_RANKS: readonly ScienceRank[] = [
-  { id: 'explorer', title: 'Explorer', icon: '🌱', min: 0 },
-  { id: 'field-scientist', title: 'Field Scientist', icon: '🔬', min: 14 },
-  { id: 'research-lead', title: 'Research Lead', icon: '🧪', min: 28 },
-  { id: 'senior-scientist', title: 'Senior Scientist', icon: '🛰️', min: 41 },
-  { id: 'chief-scientist', title: 'Chief Martian Scientist', icon: '🏅', min: 50 },
+  { id: 'explorer', title: 'Explorer', min: 0 },
+  { id: 'field-scientist', title: 'Field Scientist', min: 14 },
+  { id: 'research-lead', title: 'Research Lead', min: 28 },
+  { id: 'senior-scientist', title: 'Senior Scientist', min: 41 },
+  { id: 'chief-scientist', title: 'Chief Martian Scientist', min: 50 },
 ];
 
 /**

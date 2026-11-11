@@ -25,6 +25,7 @@
      95       the hint line, on the panel.
      98       the bubbles over the panel: the place, the weather, the speech.
     100       the how-to-play panel.
+    105       a section sheet, over the panel.
     110       the leave-mission dialog, over everything.
 
    The gap at 80 is deliberate. A module may reach 79, and nothing the
@@ -112,7 +113,7 @@
   border-radius: 5px;
   background: var(--gl-orange);
   color: #fff;
-  font-size: clamp(0.7rem, 1vw, 1.1rem);
+  font-size: clamp(0.7rem, 1.05vw, 1.15rem);
   line-height: 1;
   flex: 0 0 auto;
 }
@@ -149,6 +150,36 @@
   text-transform: uppercase;
   font-size: clamp(0.55rem, 0.7vw, 0.9rem);
   white-space: nowrap;
+}
+
+/* The screen's controls, right-aligned: the reference, the help, and Menu. */
+.gl__actions {
+  display: flex;
+  align-items: center;
+  gap: clamp(5px, 0.55vw, 10px);
+}
+
+/* An icon-only control. Its meaning lives in the label and the tooltip, so the
+   button carries a visible shape rather than a word. */
+.gl__icon-button {
+  display: grid;
+  place-items: center;
+  width: clamp(24px, 2.15vw, 36px);
+  height: clamp(24px, 2.15vw, 36px);
+  padding: 0;
+  border: 1px solid rgba(236, 241, 248, 0.28);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(236, 241, 248, 0.88);
+  font-size: clamp(0.72rem, 0.95vw, 1.15rem);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.gl__icon-button:hover {
+  background: var(--gl-orange);
+  border-color: var(--gl-orange);
+  color: #fff;
 }
 
 /* The real Menu control. Everything below is the leave-the-run dialog. */
@@ -219,49 +250,6 @@
 
 .gl__menu-actions .gl__btn {
   flex: 1 1 8rem;
-}
-
-/* ------------------------------------------------------------- mission bar -- */
-
-/*
- * One line, always on screen, saying what the player is playing.
- *
- * The game is about keeping five systems running for twelve sols, and nothing
- * else on the screen said so. A child could play the whole run without ever
- * being told what the job was.
- */
-.gl__mission {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: clamp(6px, 0.8vw, 16px);
-  margin: 0 clamp(12px, 1.25vw, 24px);
-  padding: clamp(5px, 0.55vw, 10px) clamp(9px, 1vw, 18px);
-  border-radius: clamp(7px, 0.65vw, 12px);
-  background: var(--gl-navy);
-  color: var(--gl-panel);
-}
-
-.gl__mission-job {
-  font-family: var(--gl-display);
-  font-weight: 800;
-  font-size: clamp(0.6rem, 0.8vw, 0.95rem);
-  letter-spacing: 0.01em;
-  line-height: 1.2;
-}
-
-.gl__mission-progress {
-  flex: 0 0 auto;
-  color: var(--gl-orange);
-  font-weight: 800;
-  font-size: clamp(0.56rem, 0.72vw, 0.86rem);
-  white-space: nowrap;
-}
-
-.gl__mission-right {
-  display: flex;
-  align-items: center;
-  gap: clamp(5px, 0.6vw, 12px);
 }
 
 /* ------------------------------------------------------------- the guide -- */
@@ -364,27 +352,6 @@
   font-size: clamp(0.62rem, 0.78vw, 0.94rem);
   font-weight: 600;
   line-height: 1.35;
-}
-
-/* The little button that opens the guide. */
-.gl__guide-button {
-  flex: 0 0 auto;
-  display: grid;
-  place-items: center;
-  width: clamp(20px, 2vw, 34px);
-  height: clamp(20px, 2vw, 34px);
-  border: 0;
-  border-radius: 50%;
-  background: var(--gl-orange);
-  color: var(--gl-navy);
-  font: inherit;
-  font-weight: 900;
-  font-size: clamp(0.7rem, 0.9vw, 1rem);
-  cursor: pointer;
-}
-
-.gl__guide-button:hover {
-  background: var(--gl-panel);
 }
 
 /* ------------------------------------------------------------------- HUD -- */
@@ -722,6 +689,14 @@
 
 .gl__panel-head {
   flex: 0 0 auto;
+}
+
+/* The kicker on the left, and the screen's one fact on the right. */
+.gl__panel-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: clamp(6px, 0.8vw, 16px);
 }
 
 .gl__kicker {

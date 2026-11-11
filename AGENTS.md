@@ -13,7 +13,7 @@ demo **Nov 14-15**.
 **The one invariant: `sim/` and each feature's `model.ts` are pure — no `document`, no
 `window`, no network.**
 
-That is what lets 772 tests run in a few seconds with no browser and no mocks, so the game
+That is what lets 785 tests run in a few seconds with no browser and no mocks, so the game
 can be asserted on rather than eyeballed. Everything else here exists to protect it. If
 you are unsure where code goes: if it touches the DOM it is not pure.
 
@@ -88,7 +88,7 @@ human upholds it and nothing catches you.
 | R-10 | No `on*="..."` inline handlers in markup | **enforced** | `no-inline-handler` |
 | R-11 | A relative import that resolves to nothing is an error | **enforced** | `unresolved-import` |
 | R-12 | Typecheck clean; `strict`, `noUnusedLocals` | **enforced** | `npm run check` |
-| R-13 | Tests pass (772 today) | **enforced** | `npm test`, watch ISS-015 |
+| R-13 | Tests pass (785 today) | **enforced** | `npm test`, watch ISS-015 |
 | R-14 | No `index.ts` barrel files — import concrete paths | convention | nothing |
 | R-15 | Feature CSS is imported by its own `view.ts`, never added to `style.css` | convention | nothing |
 | R-16 | Files are UTF-8, LF, no BOM. Preserve a file's existing endings | convention | **nothing** — ISS-005 |
@@ -126,14 +126,15 @@ loop to leak when you navigate away.
 **The day's loop, and where each piece of it lives:**
 
 ```
-act → the three work orders for today          sim/activities.ts
+act → the hub: five buttons, six once a sol has run       features/act/model.ts
+    → today's tasks opens the three work orders for today  sim/activities.ts
     → the player checks the two readings on each and may work one with a tool
       (the stars only multiply the science the order is worth)  sim/minigames.ts
     → advanceSol applies the cost and the gain, deploys the rover if the
       order was the exploring one, and grows the board by two
                                                    sim/standingOrders.ts
-    → the recap at the top of the panel is built from the log, and the
-      guide (sim/guide.ts) is one button away
+    → the review button carries the sol's net change as chips, and the guide
+      (sim/guide.ts) is an icon button in the header
 ```
 
 **No save, and two live network paths.** The whole run — name, region, stores, modules,
@@ -264,14 +265,18 @@ opening its folder — that is the whole point of the layout.
 | The rotating Mars-behind-astronaut stage | `src/features/naming/naming.css` |
 | **Choosing where to land on Mars** | `src/features/landing-site/` — **built** (TASK-028 done) |
 | **Building the outpost between sols** | `src/features/base/` — **built**, 23 tests |
-| **Advancing a sol, and picking the day's activity** | `src/features/act/` — **built**, 31 tests |
+| **Advancing a sol, and picking the day's activity** | `src/features/act/` — **built**, 38 tests |
+| **The desk as a hub of buttons, and what each one says** | `src/features/act/model.ts` — `hubTiles`; pure words, no icons (D-070) |
 | **Why the run was won or lost, and the science score** | `src/features/debrief/` — **built**, 32 tests |
 | **Reading what each module does, with NASA facts** | `src/features/encyclopedia/` — **built** |
 | **Where each copy of a module stands on the outpost panel** | `src/ui/baseLayout.json` — a pose list per kind; drag them on the real screen with `?editlayout=1` (D-065, D-066). A pose may be mirrored (`flip`). The stacking order is a rule in `ui/baseLayout.ts` (D-069), not a number in the file: the copies of a kind recede from the camera, so the first copy is the nearest. The editor opens showing the file on disk, and a file with problems is listed in the console (D-068) |
 | The placement editor itself | `src/ui/baseLayoutEditor.ts` — dev-only, compiled out of a production build |
 | **The rover, and what it finds** | `src/sim/rover.ts` — **built**, 31 tests; its state is `RunState.rover` |
 | **The work-order player and the six tools** | `src/ui/activityPlayer.ts`, `src/sim/minigames.ts` — **built** |
-| **The how-to-play guide** | `src/ui/guide.ts`, `src/sim/guide.ts` — **built** |
+| **The how-to-play guide** | `src/ui/guide.ts`, `src/sim/guide.ts` — **built**; the `?` icon beside Menu |
+| **The pictograms** (34 line drawings, the five stores, the five ranks) | `src/ui/icons.ts` — `IconName`, `ICON_PATHS`, `icon()`; drawn through `src/dom/svg.ts` (D-070) |
+| **A section opened over a screen** (the desk's six buttons) | `src/ui/sheet.ts` — backdrop, header, scrolling body, close, `Escape` and a Tab trap (D-070) |
+| **The header's book / help / Menu, and the panel's corner fact** | `src/ui/gameLoop.ts` — `HeaderOptions`, `ScreenOptions.help`, `PanelOptions.corner` |
 | **Is the game still winnable?** | `npm run balance` — `tools/balance-check.mts`; fails if a site cannot hold all five systems |
 | **Checking the build screen and the desk in a real browser** | `tools/browser-check-build.mjs` — the limits, the reasons, the tools, the guide |
 | **Checking the whole journey in a real browser** | `tools/browser-check-journey.mjs` — naming to the outpost, with no console errors |
@@ -304,7 +309,7 @@ opening its folder — that is the whole point of the layout.
 npm install
 npm run dev        # Vite dev server
 npm run check      # layer + banned-API check, then tsc --noEmit   <- run this
-npm test           # vitest, 772 tests                            <- 40% flaky, ISS-015
+npm test           # vitest, 785 tests                            <- 40% flaky, ISS-015
 npm run build      # to dist/
 npm run preview    # serve the build
 npm run balance    # is the game still winnable?  <- run this after touching sim/

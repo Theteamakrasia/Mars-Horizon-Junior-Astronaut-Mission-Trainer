@@ -7,6 +7,7 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 
 | id | task | goal | owner | status | blocked by | notes |
 | --- | --- | --- | --- | --- | --- | --- |
+| TASK-093 | Make the act screen's panel a hub of buttons, and draw every pictogram instead of borrowing one | G-4 | agent | done | - | D-070, ISS-057, ISS-067, ISS-068, ISS-069. `ui/sheet.ts`, `ui/icons.ts`, `dom/svg.ts`; the mission bar is gone; the emoji are out of `sim/`; 785 tests |
 | TASK-092 | A fixed stacking order for the outpost modules, and the NASA button beside the region name | G-4 | agent | done | - | D-069; `DEPTH_ORDER` and `depthFor`; `z` out of the layout file; the NASA button moved and given the game's orange; 503 tests |
 | TASK-091 | Warn when the layout file has a problem, and stop the editor from overwriting it | G-4 | agent | done | - | D-068; console warning + editor banner; the editor now opens from the file on disk; two bugs fixed. 492 tests |
 | TASK-090 | Mirror a module in the placement editor | G-4 | agent | done | - | D-067; optional `flip` on a pose; Mirror button and F key; first tests for `ui/gameLoop.ts`; 492 tests |

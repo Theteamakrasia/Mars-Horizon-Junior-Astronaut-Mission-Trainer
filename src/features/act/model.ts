@@ -105,17 +105,16 @@ export type MeterTone = 'ok' | 'low' | 'critical';
 export interface MeterRow {
   readonly name: ResourceName;
   readonly label: string;
-  readonly emoji: string;
   readonly percent: number;
   readonly tone: MeterTone;
 }
 
-export const RESOURCE_LABELS: Readonly<Record<ResourceName, { readonly label: string; readonly emoji: string }>> = {
-  power: { label: 'Power', emoji: '⚡' },
-  oxygen: { label: 'Oxygen', emoji: '🫁' },
-  water: { label: 'Water', emoji: '💧' },
-  food: { label: 'Food', emoji: '🍞' },
-  shielding: { label: 'Shielding', emoji: '🛡️' },
+export const RESOURCE_LABELS: Readonly<Record<ResourceName, { readonly label: string }>> = {
+  power: { label: 'Power' },
+  oxygen: { label: 'Oxygen' },
+  water: { label: 'Water' },
+  food: { label: 'Food' },
+  shielding: { label: 'Shielding' },
 };
 
 /** How worried a meter should look. Below a quarter is low; below a tenth is critical. */
@@ -141,7 +140,6 @@ export function meterRows(run: RunState): readonly MeterRow[] {
 export interface ChangeRow {
   readonly name: ResourceName;
   readonly label: string;
-  readonly emoji: string;
   /** Signed and unit-bearing, e.g. `+14 kWh` or `−3%`. */
   readonly text: string;
   readonly tone: 'gain' | 'cost' | 'flat';
@@ -227,7 +225,6 @@ export interface ActivityRow {
   readonly id: string;
   readonly title: string;
   readonly detail: string;
-  readonly icon: string;
   readonly topic: ScienceTopic;
   readonly science: number;
   /** The kWh this activity takes out of the batteries. */
@@ -367,7 +364,6 @@ export function activityRows(run: RunState, sol: number): readonly ActivityRow[]
       id: offer.spec.id,
       title: offer.spec.title,
       detail: offer.spec.detail,
-      icon: offer.spec.icon,
       topic: offer.spec.topic,
       science: offer.spec.science,
       powerCost: offer.spec.powerCostKwh,
@@ -511,6 +507,131 @@ export function deskNote(sol: number): DeskNoteRow | null {
     text: note.text,
     minutes: oneWayMinutes(sol),
   };
+}
+
+/* --------------------------------------------------------------- the hub -- */
+
+/**
+ * The panel's buttons.
+ *
+ * The desk used to be one long scroll: the orders, the board, the notes, the
+ * rover, the diagram, NASA's picture, then the button that ran the day. A
+ * child looking for one thing had to read past everything else to find it
+ * (ISS-057's cousin, and the reason this screen is now a hub). Each button is
+ * a label and one line of state; the thing itself opens over the desk.
+ */
+export type HubSection = 'tasks' | 'desk' | 'orders' | 'stats' | 'data' | 'review';
+
+/** One button on the hub. */
+export interface HubTile {
+  readonly id: HubSection;
+  readonly label: string;
+  /** The single line under the label: what is in there, and how much of it. */
+  readonly status: string;
+  /** True when the tile is asking the player to do something. */
+  readonly attention: boolean;
+  /**
+   * The sol's net change, on the review tile.
+   *
+   * The review is behind a button now, so the one thing the screen must never
+   * hide — what the last sol did — is printed on the button itself.
+   */
+  readonly chips: readonly ChangeRow[];
+}
+
+/** What the hub needs that the run cannot know: whether NASA answered. */
+export interface HubContext {
+  readonly nasaToday: boolean;
+}
+
+const plural = (count: number, one: string, many = `${one}s`): string =>
+  `${count} ${count === 1 ? one : many}`;
+
+/**
+ * The hub's buttons for this sol.
+ *
+ * Worded here rather than in the view, because these are the screen's claims:
+ * "one stamped" and "2 new" have to agree with the model, and a view that
+ * counts for itself is a second source of truth.
+ */
+export function hubTiles(run: RunState, context: HubContext): readonly HubTile[] {
+  const sol = run.sol + 1;
+  const tiles: HubTile[] = [];
+
+  const orders = activityRows(run, sol);
+  const chosen = orders.find((row) => row.chosen);
+
+  tiles.push({
+    id: 'tasks',
+    label: "Today's tasks",
+    status:
+      orders.length === 0
+        ? 'Nothing to decide today'
+        : chosen === undefined
+          ? `${plural(orders.length, 'order')} · choose one`
+          : `${plural(orders.length, 'order')} · one stamped`,
+    attention: orders.length > 0 && chosen === undefined,
+    chips: [],
+  });
+
+  const note = deskNote(sol);
+  const find = roverDocument(run);
+  const waiting: string[] = [];
+
+  if (find !== null) waiting.push('a find to answer');
+  if (note !== null) waiting.push('a note');
+
+  tiles.push({
+    id: 'desk',
+    label: 'Check the desk',
+    status: waiting.length === 0 ? 'Nothing new' : waiting.join(' · '),
+    attention: find !== null,
+    chips: [],
+  });
+
+  const board = boardRows(run);
+  const fresh = board.filter((row) => row.isNew).length;
+
+  tiles.push({
+    id: 'orders',
+    label: 'Standing orders',
+    status: `${plural(board.length, 'rule')}${fresh > 0 ? ` · ${fresh} new` : ''}`,
+    attention: fresh > 0,
+    chips: [],
+  });
+
+  const meters = meterRows(run);
+  const lowest = meters.reduce((low, row) => (row.percent < low.percent ? row : low));
+
+  tiles.push({
+    id: 'stats',
+    label: 'Colony stats',
+    status: `Lowest: ${lowest.label} ${lowest.percent}%`,
+    attention: meters.some((row) => row.tone === 'critical'),
+    chips: [],
+  });
+
+  tiles.push({
+    id: 'data',
+    label: 'Real data',
+    status: context.nasaToday ? "Today's NASA picture" : 'Saved NASA picture',
+    attention: false,
+    chips: [],
+  });
+
+  const last = run.log[run.log.length - 1];
+
+  if (last !== undefined) {
+    tiles.push({
+      id: 'review',
+      label: `Sol ${last.sol} in review`,
+      status: last.activity === null ? 'A quiet sol' : last.activity.title,
+      attention: false,
+      chips: changeRows(last.net).filter((row) => row.tone !== 'flat'),
+    });
+  }
+
+  return tiles;
 }
 
 /* ---------------------------------------------------------------- science -- */

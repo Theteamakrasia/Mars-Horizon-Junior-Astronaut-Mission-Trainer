@@ -8,6 +8,75 @@ than a documented one.
 
 ---
 
+## 2026-11-11 — The desk becomes a hub of buttons, and every picture is drawn by the game
+
+**Did**
+
+- **Turned the act screen's panel into a hub of buttons** (D-070). Five of them before
+  the first sol — Today's tasks, Check desk, Standing orders, Colony stats, View real
+  data — and a sixth, *Sol N in review*, once a sol has run. Each is a label and one line
+  of state, and each opens its section as a **sheet** over the desk: a dialog with its own
+  header, a scrolling body and one close. Nothing opens by itself — the panel's job is to
+  be readable at a glance, and a dialog that opens itself hides the glance.
+- **Removed the mission bar.** The sol count moved into the panel head's kicker (`Sol 1 of
+  12`, not `Sol 0 of 12` — ISS-068) and the science points into its top right corner. The
+  header gained two icon buttons beside Menu: a `?` for the guide and a book for the
+  encyclopedia. The encyclopedia's Back button now returns to the day mid-run instead of to
+  the build screen (ISS-067).
+- **Put the last sol's numbers on the tile itself.** The review button carries the sol's
+  net change as chips, so a change is never only behind a button (ISS-057).
+- **Drew every pictogram instead of borrowing one.** 34 stroked line drawings in
+  `ui/icons.ts`, built through `dom/svg.ts`, replacing the emoji on the act screen, the
+  HUD, the world signals and the debrief. `sim/activities.ts`, `sim/science.ts` and
+  `sim/patches.ts` no longer carry an `icon` field at all: a model may not import `ui/`,
+  so the mapping from an id to a picture lives in the view.
+
+**Files**
+
+- `src/ui/sheet.ts`, `src/ui/sheet.css`, `src/ui/icons.ts`, `src/ui/icons.css`,
+  `src/ui/icons.test.ts`, `src/dom/svg.ts` — new
+- `src/ui/gameLoop.ts`, `src/ui/guide.ts`, `src/styles/game-loop.css` — the mission bar
+  gone, the header's actions in
+- `src/features/act/model.ts`, `src/features/act/view.ts`, `src/features/act/act.css`,
+  `src/features/act/model.test.ts` — the hub
+- `src/features/base/view.ts`, `src/features/debrief/view.ts`,
+  `src/features/encyclopedia/view.ts`, `src/sim/activities.ts`, `src/sim/science.ts`,
+  `src/sim/patches.ts`, `src/sim/patches.test.ts`
+- `tools/browser-check-build.mjs`, `tools/browser-check-rover.mjs`,
+  `tools/browser-check-journey.mjs` — the build check opens tiles instead of reading the
+  scroll, the rover check opens the task sheet to stamp an order, and the journey check
+  was pointing at the wrong address (ISS-069)
+- `docs/architecture.md`, `docs/game-flow.md`, `docs/team/decisions.md`,
+  `docs/team/issues.md`, `docs/team/progress-log.md`, `docs/team/tasks.md`, `AGENTS.md`
+
+**Problems**
+
+- **`sim/` could not hold a picture.** The emoji lived in `sim/activities.ts`,
+  `sim/science.ts` and `sim/patches.ts` because the screens wanted them there, and a
+  model may not import `ui/`. The fix was to delete the field and map the id in the view
+  (`ORDER_ICON`, `PATCH_ICON`, `RANK_ICON`), which means a new activity or rank has no
+  picture until someone adds the mapping — the compiler cannot catch that, and the
+  fallback ('clipboard', 'star') is what covers it.
+- **The journey check was not broken — it was pointing at nothing.** It asked for
+  `127.0.0.1:5173` while Vite listens on the IPv6 loopback, so every step printed `none`
+  and the check ended with no errors: it could not fail and could not pass. It had been
+  reporting that way on `origin/main` for days and it had been read as a game problem
+  (ISS-069). With `localhost` the whole journey runs — naming → briefing → supply →
+  launch → interior → landing-site → base — with no console errors.
+- **The panel's kicker was off by one** because `RunState.sol` counts the sols *completed*.
+  It did not show until the number moved next to the button that names the day.
+- **An icon test threshold was too strict.** `icons.test.ts` demanded eight characters of
+  path data per shape, which failed on `M12 12v8`. It now demands four: long enough to be
+  a path, not so long that a short line cannot be drawn.
+
+**Next**
+
+- The hub has five sections and a crisis panel. The **standing orders** are the one that
+  grows every sol, and they are still a list inside a sheet — a child has to open the
+  sheet to learn that two new rules arrived.
+
+---
+
 ## 2026-11-11 — Merge main, and put the how-to-play panel above the outpost
 
 **Did**

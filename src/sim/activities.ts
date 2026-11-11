@@ -51,8 +51,6 @@ export interface ActivitySpec {
    * them, so a cost can never disagree with the sentence describing it.
    */
   readonly detail: string;
-  /** The picture on the card. */
-  readonly icon: string;
   /** What the activity is about, so the right NASA fact can sit beside it. */
   readonly topic: ScienceTopic;
   /**
@@ -145,7 +143,6 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     engine: 'sequence',
     title: 'Rest and watch the sunset',
     detail: 'The crew rests and looks at the sky. Nothing breaks.',
-    icon: '🌅',
     topic: 'missions',
     science: 3,
     powerCostKwh: 0,
@@ -156,7 +153,6 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     engine: 'radar',
     title: 'Send the rover out to survey',
     detail: 'The rover drives out and maps the ground around the outpost.',
-    icon: '🤖',
     topic: 'missions',
     science: 4,
     powerCostKwh: 25,
@@ -168,7 +164,6 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     engine: 'pack',
     title: 'Run a science experiment',
     detail: 'A real experiment, run by real people, on real Mars.',
-    icon: '🔬',
     topic: 'missions',
     science: 6,
     powerCostKwh: 15,
@@ -179,7 +174,6 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     engine: 'sort',
     title: 'Map the ground around the outpost',
     detail: 'You chart the ground so nothing gets lost out there.',
-    icon: '🗺',
     topic: 'missions',
     science: 4,
     powerCostKwh: 14,
@@ -190,7 +184,6 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     engine: 'timing',
     title: 'Clean the solar panels',
     detail: 'You wipe the dust off the panels so they catch more sun.',
-    icon: '🧹',
     topic: 'dust',
     goal: 'dust-storm',
     system: { goal: 'dust-storm', label: 'Panels', store: 'panels' },
@@ -205,7 +198,6 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     engine: 'pack',
     title: 'Grow an extra crop',
     detail: 'You plant an extra batch of food. Growing food uses water.',
-    icon: '🌱',
     topic: 'food',
     goal: 'food',
     system: { goal: 'food', label: 'Food', store: 'food' },
@@ -219,7 +211,6 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     engine: 'sort',
     title: 'Collect a rock sample',
     detail: 'You pick up a rock and study it. Mars rocks are full of surprises.',
-    icon: '🪨',
     topic: 'missions',
     science: 4,
     powerCostKwh: 10,
@@ -230,7 +221,6 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     engine: 'radar',
     title: 'Dig for water ice',
     detail: 'You dig up buried ice and melt it into water.',
-    icon: '⛏️',
     topic: 'water',
     goal: 'life-support',
     system: { goal: 'life-support', label: 'Water', store: 'water' },
@@ -244,7 +234,6 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     engine: 'match',
     title: 'Tune the water recycler',
     detail: 'You tune the recycler so less of the water is wasted.',
-    icon: '♻️',
     topic: 'water',
     goal: 'life-support',
     system: { goal: 'life-support', label: 'Water', store: 'water' },
@@ -257,7 +246,6 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     engine: 'timing',
     title: 'Pile soil on the habitat',
     detail: 'You pile Martian soil over the habitat to block radiation.',
-    icon: '🛡️',
     topic: 'radiation',
     goal: 'radiation',
     system: { goal: 'radiation', label: 'Shielding', store: 'shielding' },
@@ -270,7 +258,6 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     engine: 'sequence',
     title: 'Mend the spacesuits',
     detail: 'You mend and patch the spacesuits so they keep their cover.',
-    icon: '🧑‍🚀',
     topic: 'radiation',
     goal: 'radiation',
     system: { goal: 'radiation', label: 'Shielding', store: 'shielding' },
@@ -283,7 +270,6 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     engine: 'match',
     title: 'Test the airlock and the suits',
     detail: 'You test the airlock and every suit, before they need it.',
-    icon: '🫁',
     topic: 'missions',
     goal: 'life-support',
     system: { goal: 'life-support', label: 'Air', store: 'oxygen' },

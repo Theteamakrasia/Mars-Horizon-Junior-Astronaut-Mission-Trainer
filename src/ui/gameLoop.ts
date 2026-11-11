@@ -14,6 +14,7 @@
 
 import { h } from '../dom/h';
 import { navigate } from './router';
+import { icon, type IconName } from './icons';
 import type { ModuleKind } from '../sim/modules';
 import { MODULE_POSES, depthFor, poseFor } from './baseLayout';
 
@@ -124,7 +125,7 @@ export function moduleFigures(kinds: readonly ModuleKind[]): readonly WorldFigur
 
 /** One HUD card: an icon, a name, a value, and optionally a 0-100 bar. */
 export interface HudStat {
-  readonly icon: string;
+  readonly icon: IconName;
   readonly label: string;
   readonly value: string;
   /** Renders the thin bar under the value when present. */
@@ -134,7 +135,7 @@ export interface HudStat {
 
 /** A card in the world's top-right stack: a fact the crew should notice. */
 export interface SignalCard {
-  readonly icon: string;
+  readonly icon: IconName;
   readonly kicker?: string;
   readonly text: string;
   readonly detail?: string;
@@ -149,8 +150,8 @@ export interface WorldOptions {
   readonly label: string;
   /** The weather pill under it. */
   readonly weather: string;
-  /** The glyph before the weather text. A sun unless the screen says otherwise. */
-  readonly weatherIcon?: string;
+  /** The pictogram before the weather text. A sun unless the screen says otherwise. */
+  readonly weatherIcon?: IconName;
   /** What the crewmate says. */
   readonly crew: string;
   readonly crewLabel?: string;
@@ -168,39 +169,14 @@ export interface PanelOptions {
   readonly kicker: string;
   readonly title: string;
   readonly sub?: string;
+  /**
+   * A small fact in the top right of the head: the science points on the desk,
+   * the build points on the base screen. The kicker owns the left, so the two
+   * never compete for the same line.
+   */
+  readonly corner?: Node | null;
   readonly body?: readonly (Node | null | false)[];
   readonly footer?: readonly (Node | null | false)[];
-}
-
-/** The one line that says what the player is playing. */
-export interface MissionBarOptions {
-  /** The job, in one line. */
-  readonly job: string;
-  /** The progress, in one line. */
-  readonly progress: string;
-  /** The button that opens the guide, when the screen has one. */
-  readonly help?: HTMLElement | null;
-}
-
-/**
- * The mission bar: one line, always on screen.
- *
- * The game is a strategy game about keeping five systems running, and nothing
- * on the screen ever said so. A child could play twelve sols and never have
- * been told what the job was.
- */
-export function missionBar(options: MissionBarOptions): HTMLElement {
-  return h(
-    'div',
-    { class: 'gl__mission' },
-    h('span', { class: 'gl__mission-job', text: options.job }),
-    h(
-      'span',
-      { class: 'gl__mission-right' },
-      h('span', { class: 'gl__mission-progress', text: options.progress }),
-      options.help ?? null,
-    ),
-  );
 }
 
 /** The whole screen: header, HUD, world, panel. */
@@ -220,21 +196,31 @@ export interface ScreenOptions {
    * Screens without a run omit it, and the header keeps the plain label.
    */
   readonly onLeave?: () => void;
-  /** The line that says what the player is playing. */
-  readonly mission?: MissionBarOptions;
+  /**
+   * The screen's own help control, drawn beside Menu. It is passed in rather
+   * than built here because the guide belongs to the screen: the desk and the
+   * build screen each own whether theirs is open.
+   */
+  readonly help?: HTMLElement | null;
+  /** Set false on the encyclopedia itself, where the book would link to itself. */
+  readonly showEncyclopedia?: boolean;
 }
+
+/** The header's arguments. */
+export interface HeaderOptions extends Pick<ScreenOptions, 'headerSub' | 'onLeave' | 'help' | 'showEncyclopedia'> {}
 
 /**
  * The header.
  *
  * Drawn as the standard page header: a rocket mark, the MARS HORIZON brand,
- * the screen name, and a control on the right. With `onLeave` that control is a
- * real Menu button that asks before abandoning an unsaved run. Without it, the
- * header keeps the old non-interactive label, because a screen with nothing to
- * leave should not offer a control that does nothing.
+ * the screen name, and its controls on the right. With `onLeave` those controls
+ * are the reference (a book), the screen's help, and a Menu button that asks
+ * before abandoning an unsaved run. Without it, the header keeps the old
+ * non-interactive label, because a screen with nothing to leave should not
+ * offer a control that does nothing.
  */
-export function gameHeader(sub?: string, onLeave?: () => void): HTMLElement {
-  const subtitle = sub ?? 'GAME LOOP';
+export function gameHeader(options: HeaderOptions = {}): HTMLElement {
+  const subtitle = options.headerSub ?? 'GAME LOOP';
 
   const header = h(
     'header',
@@ -242,7 +228,7 @@ export function gameHeader(sub?: string, onLeave?: () => void): HTMLElement {
     h(
       'div',
       { class: 'gl__brand' },
-      h('span', { class: 'gl__brand-mark', 'aria-hidden': 'true', text: '🚀' }),
+      h('span', { class: 'gl__brand-mark', 'aria-hidden': 'true' }, icon('rocket')),
       h(
         'span',
         { class: 'gl__brand-text' },
@@ -252,19 +238,34 @@ export function gameHeader(sub?: string, onLeave?: () => void): HTMLElement {
     ),
   );
 
-  if (onLeave === undefined) {
+  if (options.onLeave === undefined) {
     header.append(h('nav', { class: 'gl__nav', 'aria-label': 'Primary', text: 'Mission Control / Main Menu' }));
 
     return header;
   }
 
   const keep = h('button', { class: 'gl__btn gl__btn--primary', type: 'button' }, 'Keep playing');
-  const encyclopedia = h('button', { class: 'gl__btn', type: 'button' }, '📖 Encyclopedia');
   const leave = h('button', { class: 'gl__btn gl__btn--navy', type: 'button' }, 'Leave mission');
   const button = h(
     'button',
     { class: 'gl__menu-button', type: 'button', 'aria-haspopup': 'dialog', 'aria-expanded': 'false' },
     '☰ Menu',
+  );
+
+  const book = h(
+    'button',
+    { class: 'gl__icon-button', type: 'button', 'aria-label': 'Encyclopedia', title: 'Encyclopedia' },
+    icon('book'),
+  );
+
+  book.addEventListener('click', () => navigate('encyclopedia'));
+
+  const actions = h(
+    'nav',
+    { class: 'gl__actions', 'aria-label': 'Screen controls' },
+    options.showEncyclopedia === false ? null : book,
+    options.help ?? null,
+    button,
   );
 
   const card = h(
@@ -276,7 +277,7 @@ export function gameHeader(sub?: string, onLeave?: () => void): HTMLElement {
       class: 'gl__menu-text',
       text: 'Your run is not saved. Leaving now returns to the main menu, and the next mission starts again from sol 1.',
     }),
-    h('div', { class: 'gl__menu-actions' }, keep, encyclopedia, leave),
+    h('div', { class: 'gl__menu-actions' }, keep, leave),
   );
 
   const backdrop = h('div', { class: 'gl__menu-backdrop', hidden: true }, card);
@@ -286,11 +287,6 @@ export function gameHeader(sub?: string, onLeave?: () => void): HTMLElement {
     button.setAttribute('aria-expanded', 'false');
     button.focus();
   };
-
-  encyclopedia.addEventListener('click', () => {
-    close();
-    navigate('encyclopedia');
-  });
 
   const open = (): void => {
     backdrop.hidden = false;
@@ -302,7 +298,7 @@ export function gameHeader(sub?: string, onLeave?: () => void): HTMLElement {
   keep.addEventListener('click', close);
   leave.addEventListener('click', () => {
     close();
-    onLeave();
+    options.onLeave?.();
   });
   backdrop.addEventListener('click', (event) => {
     if (event.target === backdrop) close();
@@ -327,7 +323,7 @@ export function gameHeader(sub?: string, onLeave?: () => void): HTMLElement {
     }
   });
 
-  header.append(button, backdrop);
+  header.append(actions, backdrop);
 
   return header;
 }
@@ -341,7 +337,7 @@ export function gameHud(stats: readonly HudStat[]): HTMLElement {
       h(
         'div',
         { class: 'gl__stat', 'data-tone': stat.tone ?? 'ok' },
-        h('span', { class: 'gl__stat-icon', 'aria-hidden': 'true', text: stat.icon }),
+        h('span', { class: 'gl__stat-icon', 'aria-hidden': 'true' }, icon(stat.icon)),
         h(
           'div',
           { class: 'gl__stat-body' },
@@ -375,7 +371,7 @@ export function gameWorld(options: WorldOptions): HTMLElement {
     'div',
     { class: 'gl__world-col' },
     h('span', { class: 'gl__location', text: options.label }),
-    h('span', { class: 'gl__weather' }, h('span', { 'aria-hidden': 'true', text: options.weatherIcon ?? '☀' }), options.weather),
+    h('span', { class: 'gl__weather' }, icon(options.weatherIcon ?? 'sun'), options.weather),
     h(
       'div',
       { class: 'gl__crew' },
@@ -393,7 +389,7 @@ export function gameWorld(options: WorldOptions): HTMLElement {
       h(
         'div',
         { class: classes, 'data-tone': signal.tone ?? 'plain' },
-        h('span', { class: 'gl__signal-icon', 'aria-hidden': 'true', text: signal.icon }),
+        h('span', { class: 'gl__signal-icon', 'aria-hidden': 'true' }, icon(signal.icon)),
         h(
           'div',
           { class: 'gl__signal-body' },
@@ -439,7 +435,12 @@ export function gamePanel(options: PanelOptions): HTMLElement {
   const head = h(
     'header',
     { class: 'gl__panel-head' },
-    h('p', { class: 'gl__kicker', text: options.kicker }),
+    h(
+      'div',
+      { class: 'gl__panel-top' },
+      h('p', { class: 'gl__kicker', text: options.kicker }),
+      options.corner ?? null,
+    ),
     h('h1', { class: 'gl__title', text: options.title }),
     options.sub === undefined ? null : h('p', { class: 'gl__sub', text: options.sub }),
   );
@@ -462,8 +463,12 @@ export function gameScreen(options: ScreenOptions): HTMLElement {
   return h(
     'div',
     { class: options.variant === undefined ? 'gl' : `gl ${options.variant}` },
-    gameHeader(options.headerSub, options.onLeave),
-    options.mission === undefined ? null : missionBar(options.mission),
+    gameHeader({
+      headerSub: options.headerSub,
+      onLeave: options.onLeave,
+      help: options.help ?? null,
+      showEncyclopedia: options.showEncyclopedia,
+    }),
     gameHud(options.hud),
     main,
   );

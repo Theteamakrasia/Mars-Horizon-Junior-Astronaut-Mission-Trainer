@@ -2,13 +2,14 @@ import { describe, expect, it } from 'vitest';
 
 import { newRun, startOutpost, withState } from '../../sim/run';
 import { CORE_MODULES } from '../../sim/modules';
-import { WIN_SOL } from '../../sim/sol';
+import { WIN_SOL, advanceSol } from '../../sim/sol';
 import {
   activityCosts,
   activityRows,
   boardRows,
   changeRows,
   deskNote,
+  hubTiles,
   meterRows,
   missionHeadline,
   orderChecks,
@@ -19,6 +20,8 @@ import {
   scienceSummary,
   secondsLeft,
   toneFor,
+  type HubSection,
+  type HubTile,
 } from './model';
 
 const run = startOutpost(newRun('jezero', 'Test'), CORE_MODULES);
@@ -127,7 +130,6 @@ describe('the daily activity', () => {
       id: 'test',
       title: 'Test',
       detail: 'Test',
-      icon: '🧪',
       topic: 'missions',
       science: 2,
       powerCostKwh: 8,
@@ -266,5 +268,67 @@ describe('the science score', () => {
 
     expect(scienceSentence(summary)).toBe('10 science points. Your rank is Explorer. 4 more points to reach Field Scientist.');
     expect(scienceSentence(scienceSummary({ ...run, science: 52 }))).toContain('That is the top rank.');
+  });
+});
+
+describe('the hub', () => {
+  const context = { nasaToday: false };
+  const find = (tiles: readonly HubTile[], id: HubSection): HubTile | undefined =>
+    tiles.find((tile) => tile.id === id);
+
+  it('is five buttons before a sol has run, because the review has nothing to review', () => {
+    const tiles = hubTiles(run, context);
+
+    expect(tiles.map((tile) => tile.id)).toEqual(['tasks', 'desk', 'orders', 'stats', 'data']);
+    expect(find(tiles, 'review')).toBeUndefined();
+  });
+
+  it('gives every button a label and one line of state', () => {
+    for (const tile of hubTiles(run, context)) {
+      expect(tile.label.length, tile.id).toBeGreaterThan(2);
+      expect(tile.status.length, tile.id).toBeGreaterThan(0);
+    }
+  });
+
+  it('asks for attention before an order is stamped, and stops once one is', () => {
+    expect(find(hubTiles(run, context), 'tasks')?.attention).toBe(true);
+    expect(find(hubTiles(run, context), 'tasks')?.status).toContain('choose one');
+
+    const picked = hubTiles(withState(run, { chosenActivity: 'rest' }), context);
+
+    expect(find(picked, 'tasks')?.attention).toBe(false);
+    expect(find(picked, 'tasks')?.status).toContain('one stamped');
+  });
+
+  it('names the lowest store on the stats button', () => {
+    const drained = withState(run, { stores: { ...run.stores, water: 12 } });
+    const stats = find(hubTiles(drained, context), 'stats');
+
+    expect(stats?.status).toContain('Water');
+    expect(stats?.status).toContain('12%');
+    expect(stats?.attention).toBe(false);
+  });
+
+  it('says whether the picture on the data button is today\'s or the saved one', () => {
+    expect(find(hubTiles(run, { nasaToday: true }), 'data')?.status).toContain('NASA picture');
+    expect(find(hubTiles(run, { nasaToday: false }), 'data')?.status).toContain('Saved');
+  });
+
+  it('adds the review once a sol has run, and prints its net change on the button', () => {
+    const after = hubTiles(advanceSol(run), context);
+    const review = find(after, 'review');
+
+    /* Six buttons, and the review's label names the sol it is about rather
+       than saying "Review" and making the player open it to find out. */
+    expect(after).toHaveLength(6);
+    expect(review?.label).toContain('in review');
+    expect(review?.status.length).toBeGreaterThan(0);
+    expect(review?.attention).toBe(false);
+  });
+
+  it('keeps flat changes off the review button, because a chip that says 0 is noise', () => {
+    const review = find(hubTiles(advanceSol(run), context), 'review');
+
+    expect(review?.chips.every((chip) => chip.tone !== 'flat')).toBe(true);
   });
 });

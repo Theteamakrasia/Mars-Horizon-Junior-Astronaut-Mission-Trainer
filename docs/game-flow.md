@@ -115,7 +115,7 @@ The other sols are the player's: the desk offers three orders and the player app
 
 ```mermaid
 flowchart TD
-    A["Open the desk"] --> P["Three work orders;<br/>check the two readings on each"]
+    A["Open the desk<br/>(the hub of buttons)"] --> P["Today's tasks → three work orders;<br/>check the two readings on each"]
     P --> W{"a tool to work?"}
     W -->|"yes"| W2["Work it → stars"]
     W -->|"no"| Q
@@ -177,6 +177,12 @@ shows the same fact as the power goal.
 Every sol is a **desk** (D-060). On the eight calm sols `act` offers three work orders and
 the player approves one; on a crisis sol the crisis replaces the desk, so the crisis *is*
 that day's activity. The catalogue and the twelve sol plans live in `src/sim/activities.ts`.
+
+The desk itself is a **hub of buttons** (D-070): today's tasks, the desk, the standing
+orders, the colony stats, NASA's real data, and — once a sol has run — the review of the
+last sol. Each button carries one line of state, and each opens its section as a sheet
+over the desk, so the day is readable at a glance and the player opens only the part they
+came for.
 
 | Step | What happens |
 | --- | --- |
@@ -400,7 +406,8 @@ totals within 1 of 17/25, so there is no perfect landing spot.
 | The rover | Built | `sim/rover.ts` (rules **and** catalogue) | `sim/run.ts` (`rover`), `sim/sol.ts` (deploys it) |
 | The notes on the desk | Built | `sim/deskNotes.ts` | view only |
 | The patches a run earns | Built | `sim/patches.ts` | `features/debrief/view.ts` |
-| The how-to-play guide | Built | `sim/guide.ts` | `ui/guide.ts`, the mission bar's `?` button |
+| The how-to-play guide | Built | `sim/guide.ts` | `ui/guide.ts`, the header's `?` icon button |
+| The desk as a hub of buttons | Built | `features/act/model.ts` (`hubTiles`) | `features/act/view.ts`; each button opens a `ui/sheet.ts` section (D-070) |
 | The balance | **Checked** | `sim/modules.ts` | `npm run balance` — fails if a site cannot hold all five systems |
 | Live NASA daily pictures | Built | `data/nasaDaily.ts` | `features/act/view.ts`, `ui/nasaFeedCard.ts` |
 | Debrief verdicts | Built | `features/debrief/model.ts` | read only |

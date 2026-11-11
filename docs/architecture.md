@@ -24,7 +24,7 @@ than eyeballed, and it is what `npm run check` protects.
 
 ## The invariant, and why it is enforced
 
-772 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
+785 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
 reference it would still work, and the cost would surface later as an untestable bug.
 Enforced as `no-dom-in-pure-zone`.
 
@@ -249,7 +249,10 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         offerFor, offerForSpec. The twelve activities and
     │   │                                         the twelve sol plans (D-051, D-054) — a curriculum,
     │   │                                         not a random draw, which is why the orders are not
-    │   │                                         procedural (D-060). 18 tests.
+    │   │                                         procedural (D-060). 18 tests. Carries no picture:
+    │   │                                         an activity's icon is mapped by id in
+    │   │                                         `features/act/view.ts`, because a model may not
+    │   │                                         import `ui/` (D-070).
     │   ├── standingOrders.ts           complete   StandingOrder, STANDING_ORDERS, ordersThrough,
     │   │                                         ordersForSol, orderById. The twenty-four rules the
     │   │                                         player works to, two arriving every sol (D-060).
@@ -269,12 +272,16 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         be read and tested without a browser (D-060). 6 tests.
     │   ├── patches.ts                  complete   Patch, patchesFor, PATCH_COUNT. The ten badges a
     │   │                                         run earns, worked out from the run itself. 7 tests.
+    │   │                                         No picture: `features/debrief/view.ts` maps a
+    │   │                                         patch id to an `IconName` (D-070).
     │   ├── deskNotes.ts                complete   NoteFrom, DeskNote, DESK_NOTES, noteForSol. The
     │   │                                         notes from home and the crew that land on the desk.
     │   │                                         8 tests.
     │   ├── science.ts                  complete   ScienceRank, SCIENCE_RANKS, SOL_LOG_POINTS,
     │   │                                         rankFor, rankProgress. The score and the rank
-    │   │                                         ladder (D-052). 11 tests.
+    │   │                                         ladder (D-052). 11 tests. No picture:
+    │   │                                         `ui/icons.ts`'s RANK_ICON maps a rank id to a
+    │   │                                         pictogram (D-070).
     │   ├── goals.ts                    complete   ScienceGoal, GoalSpec, GoalStatus, GoalReading,
     │   │                                         GoalObjective, SCIENCE_GOALS, goalById, goalProgress,
     │   │                                         goalReadings, GOAL_AIMS, and the floor constants.
@@ -393,8 +400,9 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         tool it uses and the two readings it asks for.
     │   │                                         The grading is in sim/minigames.ts (D-060).
     │   ├── guide.ts                  complete   guidePanel(onClose), guideButton(onOpen). The
-    │   │                                         how-to-play panel and the ? button in the mission
-    │   │                                         bar. The words come from sim/guide.ts.
+    │   │                                         how-to-play panel and the `?` icon button in
+    │   │                                         the header, beside Menu. The words come from
+    │   │                                         sim/guide.ts.
     │   ├── icons.ts                  complete   IconName, ICON_PATHS, RESOURCE_ICON, RANK_ICON,
     │   │                                         icon(name, label?). The game's whole pictogram
     │   │                                         set: 34 stroked 24×24 line drawings, coloured
@@ -464,9 +472,13 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │                                             the shared artwork imports so base, act and
     │                                             debrief do not copy them. `gameHeader` takes an
     │                                             optional `onLeave`: with it the right-hand label
-    │                                             becomes a Menu button opening an in-screen
-    │                                             leave dialog (D-044); without it the old plain
-    │                                             label stays.
+    │                                             becomes a book, the screen's own help button and
+    │                                             a Menu button opening an in-screen leave dialog
+    │                                             (D-044, D-070); without it the old plain label
+    │                                             stays. `gamePanel` takes an optional `corner` for
+    │                                             the one fact in the head's top right. The HUD,
+    │                                             the signals and the weather pill take an
+    │                                             `IconName`, not a glyph.
     │
     ├── dom/                            landing-page side effects only. Untested (ISS-011).
     │   ├── floatAstronaut.ts           complete   218 lines. The rAF loop, the two transforms, the
@@ -618,21 +630,31 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │   ├── model.ts                 complete   missionHeadline, meterRows, toneFor,
     │   │   │                                     changeRows, progressPercent, secondsLeft,
     │   │   │                                     powerSentence, activityCosts, activityRows,
-    │   │   │                                     scienceSummary, scienceSentence, powerToday.
-    │   │   │                                     Pure, 31 tests.
-    │   │   ├── model.test.ts            complete   31 literal-input tests
+    │   │   │                                     scienceSummary, scienceSentence, powerToday,
+    │   │   │                                     hubTiles, HubSection, HubTile, HubContext.
+    │   │   │                                     Pure, 38 tests. It words the hub's buttons
+    │   │   │                                     and never touches an icon: a model may not
+    │   │   │                                     import ui/ (D-070).
+    │   │   ├── model.test.ts            complete   38 literal-input tests
     │   │   ├── view.ts                  complete   mountAct(root, run, setRun) -> teardown.
-    │   │   │                                     The desk: three work orders, each with two
-    │   │   │                                     readings to check and a tool to work it
-    │   │   │                                     with; the board of standing orders; the notes
-    │   │   │                                     from home; the rover's document; the sol recap
-    │   │   │                                     at the top (D-060). Run sol -> advanceSol; on a
+    │   │   │                                     **The desk is a hub of five or six buttons**,
+    │   │   │                                     each a label and one line of state, and each
+    │   │   │                                     opens its section as a sheet over the desk
+    │   │   │                                     (D-070): today's tasks, the desk, the standing
+    │   │   │                                     orders, the colony stats, NASA's real data, and
+    │   │   │                                     the review of the last sol. The review button
+    │   │   │                                     carries the sol's net-change chips, because a
+    │   │   │                                     change behind a button is still a change on
+    │   │   │                                     screen (ISS-057). The science points sit in the
+    │   │   │                                     panel head's top right, the sol count in its
+    │   │   │                                     kicker (ISS-068). Run sol -> advanceSol; on a
     │   │   │                                     finished run, setRun then navigate to
-    │   │   │                                     `debrief`. A crisis replaces the mission
-    │   │   │                                     panel (D-040). The mission bar says what the
-    │   │   │                                     player is playing, and the guide is one button
-    │   │   │                                     away.
-    │   │   └── act.css                  complete   crisis option artwork and the work-order cards
+    │   │   │                                     `debrief`. A crisis replaces the hub (D-040).
+    │   │   │                                     Every pictogram is an `IconName`; the mapping
+    │   │   │                                     from an activity id to its icon lives here,
+    │   │   │                                     not in sim/.
+    │   │   └── act.css                  complete   the hub tiles and chips, the tool, the crisis
+    │   │                                             option artwork and the work-order cards
     │   └── debrief/                    COMPLETE   TASK-031. Why the run was won or lost.
     │       ├── README.md                           the contract
     │       ├── model.ts                 complete   Explanation, ConsumptionSummary, NextStep,
@@ -662,9 +684,9 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
         │                                         block. Lines 100-101 contradict 110-113 — ISS-003.
         └── game-loop.css               complete   the `.gl` frame for base, act and debrief (D-038):
                                                   header, HUD cards, world, dock, panel, cards,
-                                                  choices, clock, journal, mission bar and the
-                                                  how-to-play guide; imported by each
-                                                  feature's view.ts (R-15)
+                                                  choices, clock, journal, the header's icon
+                                                  buttons and the how-to-play guide; imported by
+                                                  each feature's view.ts (R-15)
 ```
 
 ### The shape of a feature
@@ -758,14 +780,15 @@ point and no registry entry, and `main.ts` loads it with a dynamic import behind
 **The day's loop** — the part a player lives, and where each piece of it lives:
 
 ```
-act → the three work orders for today          sim/activities.ts
+act → the hub: five buttons, or six once a sol has run     features/act/model.ts
+    → today's tasks opens the three work orders for today    sim/activities.ts
     → the player checks the two readings on each and may work one with a tool
       (the stars only multiply the science the order is worth)  sim/minigames.ts
     → advanceSol applies the cost and the gain, deploys the rover if the
       order was the exploring one, and grows the board by two
                                                    sim/standingOrders.ts
-    → the recap at the top of the panel is built from the log, and the
-      guide (sim/guide.ts) is one button away
+    → the review button carries the sol's net-change chips, and the
+      guide (sim/guide.ts) is an icon button in the header
 ```
 
 The rotation behind the menu is **CSS keyframes**, not JavaScript: `naming-mars-turn`
@@ -863,7 +886,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 | `ui/nasaCard` | `nasaCard` | `(card: NasaFigure, kicker?) -> figure`; picture, alt, caption, "Did you know?", credit and source link, plus the shared read-aloud control only when `canReadAloud()` is true. The kicker defaults to the sol for a `NasaCard` and to a plain NASA label otherwise |
 | `ui/nasaFeedCard` | `nasaFeedCard` | `(fact: DailyFact, kicker?) -> figure`; the live NASA picture in the same card as the curated one. The picture is optional — a video day keeps its words |
 | `ui/activityPlayer` | `Inspection`, `InspectionResult`, `makeInspection` | `(engine, sol) -> Inspection`; the work-order player for one order: which tool it uses, what the two readings ask for, and how it is graded. The grading itself is in `sim/minigames.ts`, so the rules stay pure (D-060). `Inspection.done()` reports whether the player has finished; nothing gates on it yet, so the Finish button is always there |
-| `ui/guide` | `guidePanel`, `guideButton` | `guidePanel(onClose) -> HTMLElement`; the how-to-play panel, with each step saying where it happens. `guideButton(onOpen) -> HTMLButtonElement`; the `?` in the mission bar. The words are in `sim/guide.ts` (D-060) |
+| `ui/guide` | `guidePanel`, `guideButton` | `guidePanel(onClose) -> HTMLElement`; the how-to-play panel, with each step saying where it happens. `guideButton(onOpen) -> HTMLButtonElement`; the `?` icon button in the header, beside Menu, on every screen that opts in with `ScreenOptions.help`. The words are in `sim/guide.ts` (D-060, D-070) |
 | `ui/icons` | `IconName`, `ICON_PATHS`, `RESOURCE_ICON`, `RANK_ICON`, `icon` | `ICON_PATHS: Record<IconName, readonly Shape[]>` — the game's 34 stroked 24×24 line drawings, drawn through `dom/svg.svg`. `icon(name, label?) -> SVGSVGElement`: decorative and hidden from a screen reader unless `label` is given, in which case it becomes an `img` with that name. `RESOURCE_ICON` maps the five stores, `RANK_ICON` the five science ranks. Pure data plus one DOM builder, so a test can read every path without a browser (D-070) |
 | `ui/sheet` | `SheetOptions`, `sheet`, `sheetCloseButton` | `(options: {icon, kicker?, title, body, footer?, doneLabel?, onClose}) -> HTMLElement`; one section of a screen as a dialog over it: backdrop, card, header bar, scrolling `.sheet__body`, closing button, and one `onClose` for the close button, the done button, the backdrop and `Escape`. A Tab trap keeps focus inside. `sheetCloseButton(mounted) -> HTMLElement \| null` finds the button to focus once it is in the document. The act hub's five or six tiles open into it (D-070) |
 | `sim/drift` | `stepDrift` | `(state, dt, size, viewport) -> DriftResult`; reflects off walls, returns the fastest `Impact` or null |
@@ -917,12 +940,12 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `crisisForEvent`, `pendingCrisis` | the crisis for a forecast event, and the one waiting before the next sol |
 | | `optionOf` | `(crisis, optionId) -> CrisisOption \| null` |
 | | `earthIsInTime`, `earthAdvice` | the "Earth cannot answer in time" copy, and what Mission Control would suggest |
-| `sim/activities` | `ActivitySpec`, `ActivityOffer`, `ActivityStores`, `ActivityStoreName`, `ActivityRequirement`, `SolPlan` | one activity the crew can spend a sol on, and the shape of a sol plan |
+| `sim/activities` | `ActivitySpec`, `ActivityOffer`, `ActivityStores`, `ActivityStoreName`, `ActivityRequirement`, `SolPlan` | one activity the crew can spend a sol on, and the shape of a sol plan. No `icon`: the pictogram is mapped by id in `features/act/view.ts` (D-070) |
 | | `ACTIVITY_CATALOGUE` | the twelve activities: cost, gain, science points, topic, the science goal it serves, and the build gate that can lock one |
 | | `SOL_PLANS` | the twelve sol plans: headline, subtitle, and the three activity ids offered. The schedule is fixed, so a demo repeats |
 | | `activityById`, `planForSol` | lookups; both return `null` for something unknown |
 | | `lockedReason`, `offerForSpec`, `offerFor` | whether the outpost is ready for an activity today, and the three offered on a sol (D-051) |
-| `sim/science` | `ScienceRank`, `SCIENCE_RANKS`, `SOL_LOG_POINTS` | the rank ladder and the point for a sol log |
+| `sim/science` | `ScienceRank`, `SCIENCE_RANKS`, `SOL_LOG_POINTS` | the rank ladder and the point for a sol log. A rank is an id, a title and a threshold — the pictogram is `ui/icons.ts`'s `RANK_ICON`, so this file stays free of the DOM (D-070) |
 | | `rankFor` | `(points) -> ScienceRank`; never throws, a broken score is the bottom rank |
 | | `rankProgress` | `(points) -> { current, next, percent, toNext }`; the road to the next rank, with no NaN at the top (D-052) |
 | `sim/topics` | `ScienceTopic`, `SCIENCE_TOPICS`, `TOPIC_LABEL`, `isScienceTopic` | the vocabulary the activities and the NASA facts share, so a screen can show the fact about the system it is teaching. One topic per science goal, plus `missions` for the science that is not about a system |
@@ -938,7 +961,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `engineUnlocked` | `(engine, sol) => boolean` |
 | | `gradeSequence`, `gradeRadar`, `gradeTiming`, `gradeSort`, `gradePack`, `gradeMatch` | how each tool is graded, and how many stars it won. The stars multiply the science an order is worth and never touch a store (D-063) |
 | `sim/guide` | `GuideWhere`, `GuideStep`, `GUIDE_STEPS`, `guideStep` | the how-to-play guide: ten steps, each saying where it happens and what to do about it. The words live here so they can be read and tested without a browser (D-060) |
-| `sim/patches` | `Patch`, `patchesFor`, `PATCH_COUNT` | the ten badges a run earns, worked out from the run itself; the debrief prints the ones that were earned (D-060) |
+| `sim/patches` | `Patch`, `patchesFor`, `PATCH_COUNT` | the ten badges a run earns, worked out from the run itself; the debrief prints the ones that were earned (D-060). No `icon`: `features/debrief/view.ts` maps a patch id to an `IconName` (D-070) |
 | `sim/deskNotes` | `NoteFrom`, `DeskNote`, `DESK_NOTES`, `noteForSol` | the notes from home and the crew that land on the desk; one per sol, and none twice |
 | `sim/comms` | `REAL_MIN_ONE_WAY_MINUTES`, `REAL_MAX_ONE_WAY_MINUTES` | the real 3-22 minute range, for the approximation note |
 | | `oneWayMinutes`, `roundTripMinutes`, `earthCanAnswerInTime` | a simplified rising delay over the run; labelled approximate in the UI |
@@ -986,22 +1009,23 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `totalScore` | `(score) -> number`, 0-25 |
 | | `strengthAndWeakness` | `(score) -> {strength, weakness}` axes |
 | `features/landing-site/view` | `mountLandingSite` | `(root, run, setRun) -> teardown`; map + five pins + Site Analysis panel, LAND HERE calls `landAt` then navigates to `nextStop('landing-site')`. Selecting a pin also shows that region's real NASA photo and fact (`regionCard`) |
-| `ui/gameLoop` | `gameScreen`, `gameWorld`, `gamePanel`, `gameSection`, `gameHeader`, `gameHud` | the shared frame from the Figma frames (D-038): one `.gl` root, the illustrated world panel, and the scrolling right-hand panel. Every word, number and variant arrives in an options object; no `sim/` rule is applied here |
+| `ui/gameLoop` | `gameScreen`, `gameWorld`, `gamePanel`, `gameSection`, `gameHeader`, `gameHud`, `HeaderOptions`, `PanelOptions`, `ScreenOptions`, `HudStat`, `SignalCard`, `WorldOptions` | the shared frame from the Figma frames (D-038): one `.gl` root, the illustrated world panel, and the scrolling right-hand panel. Every word, number and variant arrives in an options object; no `sim/` rule is applied here. `HudStat.icon`, `SignalCard.icon` and `WorldOptions.weatherIcon` are `IconName`, never a glyph (D-070) |
 | | `moduleFigures`, `moduleArt`, `MODULE_ART`, `WORLD_BACKGROUND`, `ASTRONAUT_SPRITE` | the artwork the world panel draws, owned here so `base`, `act` and `debrief` do not copy the imports |
-| | `gameHeader`, `gameHud`, `gameDock` | `gameHeader(sub?, onLeave?)`: without `onLeave` the right-hand label is plain decorative text; with it, it is a Menu button opening an in-screen leave dialog with Keep playing / Leave mission (D-044). `gameHud` draws the five resource cards (`HudStat`) and `gameDock` the three-tab dock. The pause/settings/BUILD pills and the dock are `aria-hidden` spans, not buttons (D-038) |
+| | `gameHeader`, `gameHud`, `gameDock` | `gameHeader(options: HeaderOptions)`; without `onLeave` the right-hand label is plain decorative text; with it, the right side becomes the book (encyclopedia), the screen's own `help` button and a Menu button opening an in-screen leave dialog with Keep playing / Leave mission (D-044). `showEncyclopedia: false` hides the book on the page the book leads to (ISS-067). `gameHud` draws the five resource cards (`HudStat`) and `gameDock` the three-tab dock. The pause/settings/BUILD pills and the dock are `aria-hidden` spans, not buttons (D-038) |
 | | `gameSection` | `(label, ...content) -> section`; an uppercase label and its body |
-| | `gameScreen` | `(options) -> section`; takes `mission?: MissionBarOptions`, whose `help` slot carries the guide's `?` button (D-060). The rover button is gone: the rover is part of the run now, not a widget on the wall (D-062) |
+| | `gameScreen` | `(options: ScreenOptions) -> section`; `help` carries the guide's `?` icon button in the header (D-060, D-070), and `panel.corner` puts the panel head's one right-hand fact in place (the science points, on `act`). There is no mission bar: it was removed in D-070, so the panel's own kicker names the day. The rover button is gone: the rover is part of the run now, not a widget on the wall (D-062) |
 | | `moduleFigures`, `moduleArt`, `MODULE_ART`, `WORLD_BACKGROUND`, `ASTRONAUT_SPRITE` | artwork placement and the bundled asset URLs; the only import site for the figures base, act and debrief share |
 | `features/base/model` | `BUILDABLE`, `canPlace`, `addModule`, `removeModule`, `pointsLeft` | build rules over the `sim/modules.ts` catalogue (D-032) |
 | | `previewFor`, `previewSummary`, `upkeepFor`, `upcomingWarnings` | the calm-sol projection. `previewSummary` gives the five resource cards one number each, from the same projection as the sentences |
 | `features/base/view` | `mountBase` | `(root, run, setRun) -> teardown`; the outpost on Mars, the catalogue steppers, and Land & start sol 1 → `startOutpost` then `act`. Holds a mutable local `extras` so a second build is not applied to stale data; it also shows a rotating NASA fact beside the build panel from `factFor`. Each card says why its button is dead and counts the extras against the same limit the game uses (ISS-054, ISS-055), the HUD carries a Day power card that moves as the panels go in (ISS-056), and the guide opens here the first time the player arrives (D-060) |
 | `features/supply/model` | `SUPPLY_BEATS`, `packsFor`, `judge`, `hintFor`, `workingSentence`, `approximateTotalKg` | the ration check over `sim/modules.ts`; the crew size is read from the sim, not typed in, so it agrees with the briefing (ISS-044) |
 | | `seedFrom`, `questionFor`, `choicesFor`, `promptFor`, `puzzleFor` | the question and its four options for one run. The mission length, the answer and the button order all vary, seeded from the astronaut name so a demo repeats and a test can pin it (D-057) |
-| `features/act/model` | `missionHeadline`, `meterRows`, `changeRows`, `toneFor`, `secondsLeft`, `powerSentence` | presentation helpers over `sim/sol`; `meterRows` carries `percent`, `tone` and `emoji` for the HUD |
+| `features/act/model` | `missionHeadline`, `meterRows`, `changeRows`, `toneFor`, `secondsLeft`, `powerSentence` | presentation helpers over `sim/sol`; `meterRows` carries `percent` and `tone` for the stats sheet |
 | | `activityRows`, `activityCosts` | the three work orders offered on a sol, and what each costs and gives |
+| | `hubTiles(run, context)`, `HubSection`, `HubTile`, `HubContext` | the desk as five buttons, or six once a sol has run: each a label, one line of state, a `chips` list for the review, and whether it `attention`s. Pure words — no icon, because a model may not import `ui/` (D-070) |
 | | `scienceSummary`, `scienceSentence` | the score, the rank, and the road to the next one |
 | | `powerToday` | `(run) => number`; the power the crew can actually spend today — what is left after the panels have filled the batteries and the systems have taken their share. It is the number the order prices come out of, and the number the power card shows (ISS-060) |
-| `features/act/view` | `mountAct` | `(root, run, setRun) -> teardown`; the desk: three work orders, each with two readings to check and a tool to work it with; the board of standing orders; the notes; the rover's document; the sol recap first (D-060). Run sol calls `advanceSol`, then `setRun`; a finished run navigates to `debrief`. A crisis replaces the mission panel in place, with its countdown and "take your time" switch (D-040). The mission bar says what the player is playing and the guide is one button away |
+| `features/act/view` | `mountAct` | `(root, run, setRun) -> teardown`; **the desk is a hub of five buttons, or six after a sol** (D-070): today's tasks, the desk, the standing orders, the colony stats, NASA's real data, and the review of the last sol. Each is a label and one line of state, and each opens its section as a `ui/sheet` over the desk. The review tile carries the sol's net-change chips, so a change is never only behind a button (ISS-057). The science points sit in the panel head's top right and `Sol N of 12` in its kicker (ISS-068). Run sol calls `advanceSol`, then `setRun`; a finished run navigates to `debrief`. A crisis replaces the hub in place, with its countdown and "take your time" switch (D-040). An activity's pictogram is mapped from its id here, not in `sim/` |
 | `features/debrief/model` | `explainOutcome` | `(run) -> {headline, detail, confident}`; conservative ledger attribution — only claims a cause when a logged fact establishes it, otherwise `confident: false` and the screen points at the timeline |
 | | `scienceReport`, `scienceHeadline`, `scienceDetail`, `scienceSentence` | what science the run did, the rank it earned, and every activity the crew chose. Measures the science, not the outcome (D-052) |
 | | `consumptionSummary`, `lowestPoints`, `blackoutSols`, `reviewDecisions`, `timeline` | arithmetic over the log; per-decision verdicts from fixed option rules; one row per sol |

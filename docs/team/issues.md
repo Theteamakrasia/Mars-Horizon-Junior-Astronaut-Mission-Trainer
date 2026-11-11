@@ -12,6 +12,8 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
 | ISS-069 | The journey check never found the naming screen, so it could not fail and could not pass | medium | agent | fixed | this branch |
+| ISS-068 | The panel said "Sol 0 of 12" on the first day, while the button under it said "Run sol 1" | low | agent | fixed | this branch |
+| ISS-067 | The encyclopedia's "Back to outpost" always went to the build screen, even mid-run | low | agent | fixed | this branch |
 | ISS-066 | The `drag-editor` placement WIP was unreachable, failed `tsc` and failed `check-markup`, and copies of it sat at the repo root | high | agent | fixed | c9b8904 |
 | ISS-065 | Sol 3 had no tool to work at all, and the sorting tool could never earn three stars | medium | agent | fixed | this branch |
 | ISS-064 | The build screen's browser check failed on a third of runs, because it assumed a desk that was always there | low | agent | fixed | this branch |
@@ -81,7 +83,8 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ## ISS-069 — The journey check never found the naming screen, so it could not fail and could not pass
 
-- **Reported by:** agent, 2026-11-11, while re-running the journey browser check.
+- **Reported by:** agent, 2026-11-11, while re-running the browser checks after the act
+  screen's hub (D-070).
 - **Where:** `tools/browser-check-journey.mjs` (the `Page.navigate` URL).
 - **Problem:** the check asked for `http://127.0.0.1:5173/#naming`. Vite's dev server binds
   the **IPv6** loopback by default, so the IPv4 address answers nothing: every step printed
@@ -97,6 +100,48 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
   journey now runs: naming → briefing → supply → launch → interior → landing-site → base,
   with no console errors.
 - **Pre-existing:** yes; the address dates from the check's first version.
+
+---
+
+## ISS-068 — The panel said "Sol 0 of 12" on the first day, while the button under it said "Run sol 1"
+
+- **Reported by:** agent, 2026-11-11, while moving the sol count from the removed mission
+  bar to the panel's own head.
+- **Where:** `src/features/act/view.ts` (`hubPanel`'s `kicker`), formerly the act mission
+  bar's `progress` line.
+- **Problem:** `RunState.sol` counts the sols **completed**, so before the first press it is
+  0. The kicker printed it raw, so the first screen of the game said "Sol 0 of 12" while
+  the button directly under it said "Run sol 1". A child reading both is told the day is
+  day zero, and the game has no sol zero.
+- **Cause:** the number was printed as state rather than as the day being played. It sat in
+  the mission bar where it was one of several facts and nobody read it closely; making it
+  the panel's own line put it next to the button and made the contradiction plain.
+- **Fix:** the kicker is `Sol ${state.sol + 1} of ${WIN_SOL}`, the same day the button names.
+  The sheet header uses the same expression, so a section opened over the desk cannot
+  disagree with the desk.
+- **Pre-existing:** yes; the off-by-one arrived with the mission bar.
+
+---
+
+## ISS-067 — The encyclopedia's "Back to outpost" always went to the build screen, even mid-run
+
+- **Reported by:** agent, 2026-11-11, while adding the encyclopedia to the header of every
+  game screen.
+- **Where:** `src/features/encyclopedia/view.ts` (line 34, `navigate('base')`).
+- **Problem:** the button said "Back to outpost" and went to `base`, the build screen. Once
+  the outpost is built that is the wrong screen: the player is on `act`, running sols, and
+  pressing Back threw them out of the day and onto a screen that rebuilds the outpost. The
+  run was not lost — `base` reads the same `RunState` — but the player was put in front of a
+  build screen in the middle of a mission, with no explanation and no way to tell it was
+  not a fresh start.
+- **Cause:** `base` was the only screen that linked to the encyclopedia when the screen was
+  built, so "back" was hard-coded to the one place it was reachable from. The encyclopedia
+  then became reachable from every game screen's header, and the button did not follow.
+- **Fix:** the back button goes to whichever screen the player came from: `act` once the
+  outpost stands (`run.modules.length > 0`), `base` before that. The encyclopedia also
+  passes `showEncyclopedia: false`, so the header does not offer a book that links to the
+  page it is already on.
+- **Pre-existing:** yes; the hard-coded target arrived with the screen.
 
 ---
 
