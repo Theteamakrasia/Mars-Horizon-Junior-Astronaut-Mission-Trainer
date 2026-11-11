@@ -406,7 +406,7 @@ totals within 1 of 17/25, so there is no perfect landing spot.
 | The rover | Built | `sim/rover.ts` (rules **and** catalogue) | `sim/run.ts` (`rover`), `sim/sol.ts` (deploys it) |
 | The notes on the desk | Built | `sim/deskNotes.ts` | view only |
 | The patches a run earns | Built | `sim/patches.ts` | `features/debrief/view.ts` |
-| The how-to-play guide | Built | `sim/guide.ts` | `ui/guide.ts`, the header's `?` icon button |
+| The how-to-play guide | Built | `sim/guide.ts` | `ui/guide.ts`, the header's `?` icon button; a popup with the astronaut and a speech bubble, one step per page (D-073) |
 | The desk as a hub of buttons | Built | `features/act/model.ts` (`hubTiles`) | `features/act/view.ts`; each button opens a `ui/sheet.ts` section (D-070) |
 | The balance | **Checked** | `sim/modules.ts` | `npm run balance` — fails if a site cannot hold all five systems |
 | Live NASA daily pictures | Built | `data/nasaDaily.ts` | `features/act/view.ts`, `ui/nasaFeedCard.ts` |

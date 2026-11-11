@@ -293,6 +293,13 @@ The **how-to-play guide** opens by itself the first time you reach this screen, 
 button in the header brings it back on any later sol — beside the encyclopedia book and
 the Menu.
 
+It is a **popup with the astronaut doing the talking**: he stands on the left and the
+words are in a speech bubble on the right, **one step per page**, with a Next button, a
+Back button, ten page dots and a **Read aloud** button that speaks the page in the
+browser's own voice. The screen behind it is dimmed, and the whole thing is a dialog:
+`Escape` closes it, the arrow keys turn the pages, and it stays open while the screen
+behind it redraws (D-073).
+
 The run's hazards are rolled from a seed, so each mission is a little different: a flare
 here, a dust storm there, at least one sol of quiet between them (D-048, D-056). This screen
 is where you prepare for what you can see. Press **Land & start sol 1** when you are ready.
@@ -561,7 +568,9 @@ This game is built for young players first, and every decision follows from that
 - **A guide, and a desk you can read.** The desk is a hub of buttons, each one line of
   state, so the whole day is visible at a glance (D-070). The guide says where everything
   is; it opens by itself the first time you reach the outpost and comes back from a `?`
-  button whenever you need it.
+  button whenever you need it. It is a popup with the astronaut standing beside a speech
+  bubble, one step per page, so a child reads one thing at a time rather than a wall of
+  text (D-073).
 - **No punishing complexity.** A child can land, survive several sols and understand *why*
   they made the choices they did — without reading a manual.
 - **Losing is informative.** There's no game-over screen that just says "you failed." You get a
@@ -596,7 +605,7 @@ player decision, the sol loop, what is built and where a new event plugs in are 
 | Live flare strength | **Built** — NASA DONKI → NOAA SWPC → baked fallback |
 | Live NASA daily pictures | **Built** — Astronomy Picture of the Day → the saved gallery |
 | The rover | **Built** — part of the run: sent out by an order, comes back with a document (D-062) |
-| The how-to-play guide | **Built** — ten steps; it opens by itself at the build screen |
+| The how-to-play guide | **Built** — a popup with the astronaut and a speech bubble, ten steps one page at a time (D-073); it opens by itself at the build screen |
 | The balance | **Checked, not assumed** — `npm run balance` fails if a site cannot hold all five systems (D-064) |
 | Tests | **801 tests in 37 files** (`npm test`, 2026-11-11) |
 | Checks | **Clean** — import layers, banned APIs, markup, strict typecheck |
@@ -753,8 +762,9 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   ├── baseLayout.ts        ← loads and validates that layout
     │   ├── baseLayoutEditor.ts  ← the ?editlayout=1 placement editor (dev only)
     │   ├── activityPlayer.ts    ← the work-order player
-    │   ├── guide.ts             ← the how-to-play panel and its button
-    │   ├── icons.ts             ← the 34 pictograms the game draws
+    │   ├── guide.ts             ← the how-to-play popup and its button
+    │   ├── guide.css            ← the bubble, the astronaut and the page controls
+    │   ├── icons.ts             ← the 35 pictograms the game draws
     │   ├── sheet.ts             ← a section opened over a screen
     │   ├── nasaCard.ts · nasaFeedCard.ts ← the curated and the live NASA cards
     │   └── button-strip.ts · button-strip.css

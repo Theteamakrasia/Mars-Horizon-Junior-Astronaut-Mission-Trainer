@@ -11,6 +11,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
+| ISS-077 | The guide was rebuilt on every redraw, so the page a child was reading was thrown back to the first | medium | agent | fixed | this branch |
 | ISS-076 | The sheet squashed what was inside it, so a NASA picture covered its own caption | medium | agent | fixed | this branch |
 | ISS-075 | The "Real data" section showed one picture, so the game looked like it owned one NASA picture | low | agent | fixed | this branch |
 | ISS-074 | The journey check never found the naming screen, so it could not fail and could not pass | medium | agent | fixed | this branch |
@@ -84,6 +85,31 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | ISS-012 | No CI; nothing runs checks on push | low | agent | fixed | adc5767 |
 | ISS-013 | Vitest runs node-env, no jsdom, so DOM is untestable | low | unassigned | open | — |
 | ISS-014 | `base.css` calls the page non-interactive while draggable | low | agent | fixed | this branch |
+
+---
+
+## ISS-077 — The guide was rebuilt on every redraw, so the page a child was reading was thrown back to the first
+
+- **Reported by:** agent, 2026-11-12, while driving the new how-to-play popup in a headless
+  browser and watching it go back to page one.
+- **Where:** `src/features/base/view.ts` and `src/features/act/view.ts` (the `guidePanel` call inside
+  `render()`), and `src/ui/guide.ts`.
+- **Problem:** both screens rebuild their whole DOM on every `render()`, and the guide was created
+  inside that render. The build screen redraws when the **live space weather** arrives — about two
+  seconds after the screen opens — and the desk redraws on its own clock and on every sol. So a
+  child who had pressed Next twice and was reading page three was **thrown back to page one** by a
+  network request they never asked for, and the popup's entrance animation played again over the
+  top of them.
+- **Cause:** the guide was a single scrolling list, so being rebuilt was invisible: the words were
+  all on screen either way and the animation was a fade nobody could catch. **Paging turned a
+  harmless rebuild into a fault** — the page number is state, and the state was being thrown away
+  with the DOM.
+- **Fix:** the popup is mounted on `document.body` instead of inside the screen, and both screens
+  keep a `guideEl` that is created once and removed when the guide is closed or the screen is
+  unmounted. A redraw behind it changes nothing: the page stays, the voice stops and the entrance
+  does not repeat. Verified in a headless browser — the page held at three through a redraw.
+- **Pre-existing:** yes, the rebuild was always there. It only became visible when the guide
+  started remembering which page it was on.
 
 ---
 
@@ -1412,7 +1438,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-**Next free id: ISS-077.**
+**Next free id: ISS-078.**
 
 
 ---

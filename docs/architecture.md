@@ -63,6 +63,12 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
 │   ├── images/docking/                 complete   3 WebP stills, ~150 KB each: the separated
 │   │                                             spacecraft, the docked craft and the assembled
 │   │                                             station. Read by tools/render-docking.py.
+│   ├── images/guide/                   complete   astronaut.png (74 KB, 260x340): the cutout
+│   │                                             that stands beside the speech bubble in the
+│   │                                             how-to-play popup. Imported from TS so Vite
+│   │                                             fingerprints it. A transparent background is
+│   │                                             what makes it work: the figure has to sit on
+│   │                                             the dimmed screen, not inside a box.
 │   ├── images/naming/                  complete   mars.webp (358 KB, 1818x1860) and
 │   │                                             astronaut.webp (130 KB, 1240x1236): the
 │   │                                             planet and the astronaut of the start
@@ -400,16 +406,28 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         tool it uses and the two readings it asks for.
     │   │                                         The grading is in sim/minigames.ts (D-060).
     │   ├── guide.ts                  complete   guidePanel(onClose), guideButton(onOpen). The
-    │   │                                         how-to-play panel and the `?` icon button in
-    │   │                                         the header, beside Menu. The words come from
-    │   │                                         sim/guide.ts.
+    │   │                                         how-to-play popup and the `?` icon button in
+    │   │                                         the header, beside Menu. The astronaut stands
+    │   │                                         on the left and the words are in a speech bubble
+    │   │                                         on the right, one step per page, with Next,
+    │   │                                         Back, page dots and Read aloud (D-073).
+    │   │                                         `guidePanel` returns the BACKDROP, so the
+    │   │                                         caller mounts it on document.body and a redraw
+    │   │                                         cannot reset the page (ISS-077). The words
+    │   │                                         themselves come from sim/guide.ts.
+    │   ├── guide.css                 complete   the backdrop, the astronaut's stage, the bubble
+    │   │                                         and its tail, the header pill, the page dots and
+    │   │                                         the footer row. `position: fixed`, so it is
+    │   │                                         not affected by the panel's own scroll.
+    │   │                                         Imported by guide.ts only.
     │   ├── icons.ts                  complete   IconName, ICON_PATHS, RESOURCE_ICON, RANK_ICON,
     │   │                                         icon(name, label?). The game's whole pictogram
-    │   │                                         set: 34 stroked 24×24 line drawings, coloured
+    │   │                                         set: 35 stroked 24×24 line drawings, coloured
     │   │                                         by currentColor, drawn into the SVG namespace
     │   │                                         by dom/svg.ts. The data and the drawing live in
     │   │                                         one file so a test can read the paths without
-    │   │                                         a browser (D-070).
+    │   │                                         a browser (D-070). The `bulb` mark on the
+    │   │                                         guide's header pill is one of them (D-073).
     │   ├── icons.css                 complete   one rule: an icon is 1em square and follows
     │   │                                         the text. Imported by icons.ts only.
     │   ├── icons.test.ts             complete   6 tests: every name draws something, no shape
@@ -922,8 +940,8 @@ returns to `landing`, which keeps running behind the mounted screen.
 | `ui/nasaCard` | `nasaCard` | `(card: NasaFigure, kicker?) -> figure`; picture, alt, caption, "Did you know?", credit and source link, plus the shared read-aloud control only when `canReadAloud()` is true. The kicker defaults to the sol for a `NasaCard` and to a plain NASA label otherwise |
 | `ui/nasaFeedCard` | `nasaFeedCard` | `(fact: DailyFact, kicker?) -> figure`; the live NASA picture in the same card as the curated one. The picture is optional — a video day keeps its words |
 | `ui/activityPlayer` | `Inspection`, `InspectionResult`, `makeInspection` | `(engine, sol) -> Inspection`; the work-order player for one order: which tool it uses, what the two readings ask for, and how it is graded. The grading itself is in `sim/minigames.ts`, so the rules stay pure (D-060). `Inspection.done()` reports whether the player has finished; nothing gates on it yet, so the Finish button is always there |
-| `ui/guide` | `guidePanel`, `guideButton` | `guidePanel(onClose) -> HTMLElement`; the how-to-play panel, with each step saying where it happens. `guideButton(onOpen) -> HTMLButtonElement`; the `?` icon button in the header, beside Menu, on every screen that opts in with `ScreenOptions.help`. The words are in `sim/guide.ts` (D-060, D-070) |
-| `ui/icons` | `IconName`, `ICON_PATHS`, `RESOURCE_ICON`, `RANK_ICON`, `icon` | `ICON_PATHS: Record<IconName, readonly Shape[]>` — the game's 34 stroked 24×24 line drawings, drawn through `dom/svg.svg`. `icon(name, label?) -> SVGSVGElement`: decorative and hidden from a screen reader unless `label` is given, in which case it becomes an `img` with that name. `RESOURCE_ICON` maps the five stores, `RANK_ICON` the five science ranks. Pure data plus one DOM builder, so a test can read every path without a browser (D-070) |
+| `ui/guide` | `guidePanel`, `guideButton` | `guidePanel(onClose) -> HTMLElement`; the how-to-play **popup**, returned as the **backdrop** so the caller can mount it on `document.body`. The astronaut stands on the left and the words are in a speech bubble on the right, **one step per page**, with a header pill, a tail pointing at him, Next, Back, page dots, Read aloud and a close button. It owns `Escape`, the backdrop click, a Tab trap, `ArrowLeft`/`ArrowRight` to turn pages, and hands the focus back to the `?` button when it closes. Mounted on the document rather than inside the screen, so a redraw behind it cannot reset the page (ISS-077). `guideButton(onOpen) -> HTMLButtonElement`; the `?` icon button in the header, beside Menu, on every screen that opts in with `ScreenOptions.help`. The words are in `sim/guide.ts` (D-060, D-070, D-073) |
+| `ui/icons` | `IconName`, `ICON_PATHS`, `RESOURCE_ICON`, `RANK_ICON`, `icon` | `ICON_PATHS: Record<IconName, readonly Shape[]>` — the game's 35 stroked 24×24 line drawings, drawn through `dom/svg.svg`. `icon(name, label?) -> SVGSVGElement`: decorative and hidden from a screen reader unless `label` is given, in which case it becomes an `img` with that name. `RESOURCE_ICON` maps the five stores, `RANK_ICON` the five science ranks. Pure data plus one DOM builder, so a test can read every path without a browser (D-070) |
 | `ui/sheet` | `SheetOptions`, `sheet`, `sheetCloseButton` | `(options: {icon, kicker?, title, body, footer?, doneLabel?, onClose}) -> HTMLElement`; one section of a screen as a dialog over it: backdrop, card, header bar, scrolling `.sheet__body`, closing button, and one `onClose` for the close button, the done button, the backdrop and `Escape`. A Tab trap keeps focus inside. The body's children keep their own heights and the body scrolls, so a picture is never clipped by its own card (ISS-076). `sheetCloseButton(mounted) -> HTMLElement \| null` finds the button to focus once it is in the document. The act hub's five or six tiles open into it (D-070) |
 | `sim/drift` | `stepDrift` | `(state, dt, size, viewport) -> DriftResult`; reflects off walls, returns the fastest `Impact` or null |
 | | `createInitialDrift` | `(size, viewport, speed) -> DriftState`; random 30-45 degree diagonal. **5 `Math.random()` calls** |

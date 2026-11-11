@@ -7,6 +7,7 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 
 | id | task | goal | owner | status | blocked by | notes |
 | --- | --- | --- | --- | --- | --- | --- |
+| TASK-096 | Make the how-to-play guide a popup with the astronaut reading it, one step per page | G-7 | agent | done | - | D-073, ISS-077. `ui/guide.ts` + `ui/guide.css`; the astronaut on the left, a speech bubble on the right, Next / Back / page dots / Read aloud; mounted on `document.body` so a redraw cannot reset the page; 801 tests |
 | TASK-095 | Give the launch reel a skip, so a player can cut the films and get on with the mission | G-7 | agent | done | - | D-072; the button appears 2.6s in, halfway through the departure, and opens the parts tour; the reel stops properly and the tour takes the focus |
 | TASK-094 | Make the "Real data" section the whole NASA layer, and stop the sheet squashing what is inside it | G-5 | agent | done | - | D-071, ISS-075, ISS-076. The region's own photo, NASA's live flare readings and two facts; `strongestFlares`; 795 tests |
 | TASK-093 | Make the act screen's panel a hub of buttons, and draw every pictogram instead of borrowing one | G-4 | agent | done | - | D-070, ISS-057, ISS-072, ISS-073, ISS-074. `ui/sheet.ts`, `ui/icons.ts`, `dom/svg.ts`; the mission bar is gone; the emoji are out of `sim/`; 785 tests |

@@ -24,6 +24,8 @@ Versions will be assigned when the project begins publishing releases.
 
 ### Changed
 
+- **The how-to-play guide is now a popup the astronaut reads.** It was a list of ten panels stacked in a scroll; it is now the crewmate standing on the left with a speech bubble on the right, one step per page, with Next, Back, page dots and a Read aloud button. The ten steps and their words are unchanged — only the delivery is. The screen behind is dimmed, the arrow keys turn the pages, and `Escape` closes it (D-073).
+- The guide used to be rebuilt every time the screen behind it redraws, so the live space weather arriving threw a child reading page three back to page one. It now stays where it is (ISS-077).
 - **The game is now a Papers Please game about Mars.** Each sol the player is the duty officer at the outpost: three work orders land on the desk, each carries two readings to check and some have a tool to work them with, and the player approves one. Six tools, one new one every sol for the first six days.
 - **The five science goals are the learning outcomes, not a score.** The counters that graded them are gone. The goals now arrive as the standing orders — a rule book that grows two rules a sol until there are twenty-four — and the debrief prints them as a record of what the player kept running.
 - **The rover is part of the run.** It is sent out by a work order, it drives on sol time, and it comes back with a document on the desk: a real NASA picture, a place from the past, or a rare rock to log, take or leave. It still touches no resource.
@@ -34,6 +36,7 @@ Versions will be assigned when the project begins publishing releases.
 ### Added
 
 - **A how-to-play guide.** Ten steps, each one saying where it happens and what to do about it. It opens by itself the first time the player reaches the build screen, and a `?` button in the mission bar brings it back on any later sol.
+- The guide's own cutout: the astronaut who stands beside the speech bubble, and a lightbulb pictogram for the header pill.
 - **A mission bar** on every play screen, saying in one line what the player is playing.
 - The briefing now says what a day is before the player has to live one: three work orders, approve one, the day happens.
 - The debrief prints a certificate, the patches the run earned, and the standing orders the player worked under.
