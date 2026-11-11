@@ -15,7 +15,7 @@
 import { h } from '../dom/h';
 import { navigate } from './router';
 import type { ModuleKind } from '../sim/modules';
-import { MODULE_POSES, poseFor } from './baseLayout';
+import { MODULE_POSES, depthFor, poseFor } from './baseLayout';
 
 /* The artwork is bundled by Vite, never fetched: the Figma asset URLs expire. */
 import astronautUrl from '../../Assets/images/interior/sprite/interact-alt.webp';
@@ -113,7 +113,7 @@ export function moduleFigures(kinds: readonly ModuleKind[]): readonly WorldFigur
       left: spot.left,
       bottom: spot.bottom,
       width: spot.width,
-      z: spot.z,
+      z: depthFor(kind, copy),
       flip: spot.flip === true,
     });
   }

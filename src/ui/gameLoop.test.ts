@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { moduleFigures } from './gameLoop';
+import { DEPTH_ORDER, depthFor } from './baseLayout';
 import type { ModuleKind } from '../sim/modules';
 
 /**
@@ -51,5 +52,38 @@ describe('moduleFigures', () => {
 
     expect(figures[0]).toHaveProperty('flip');
     expect(typeof figures[0].flip).toBe('boolean');
+  });
+
+  it('stacks the modules in the fixed depth order', () => {
+    const [habitat, solar] = moduleFigures([KINDS.habitat, KINDS['solar-array'], KINDS.batteries]);
+
+    /* The habitat is the nearest thing and the solar array is behind it. */
+    expect(habitat.z).toBe(depthFor('habitat', 0));
+    expect(solar.z).toBe(depthFor('solar-array', 0));
+    expect(habitat.z).toBeGreaterThan(solar.z ?? 0);
+  });
+
+  it('stacks each copy of a kind in the order the rule says', () => {
+    const figures = moduleFigures([KINDS['solar-array'], KINDS['solar-array'], KINDS['solar-array']]);
+
+    expect(figures[0].z).toBe(depthFor('solar-array', 0));
+    expect(figures[1].z).toBe(depthFor('solar-array', 1));
+    expect(figures[2].z).toBe(depthFor('solar-array', 2));
+  });
+
+  it('gives the two regolith shields the same depth', () => {
+    const figures = moduleFigures(['regolith-shield', 'regolith-shield']);
+
+    expect(figures[0].z).toBe(figures[1].z);
+  });
+
+  it('follows the whole depth order', () => {
+    const kinds = DEPTH_ORDER.map((entry) => entry.kind);
+
+    for (let i = 0; i < kinds.length - 1; i += 1) {
+      const figures = moduleFigures([kinds[i], kinds[i + 1]]);
+
+      expect(figures[0].z).toBeLessThan(figures[1].z ?? 0);
+    }
   });
 });

@@ -284,6 +284,22 @@
   font: 12px/1.3 ui-monospace, 'Cascadia Mono', Consolas, monospace;
 }
 
+/*
+ * A value the developer cannot change.
+ *
+ * The stacking order is fixed, so the toolbar says where a module sits in it
+ * rather than offering a number that could only be wrong.
+ */
+.ble__num--fixed {
+  display: inline-block;
+  box-sizing: border-box;
+  border-style: dashed;
+  border-color: rgba(245, 240, 227, 0.2);
+  background: rgba(0, 0, 0, 0.28);
+  color: rgba(245, 240, 227, 0.7);
+  text-align: center;
+}
+
 .ble__label {
   margin: 0 0 4px;
   font-size: 11px;

@@ -28,11 +28,13 @@ import { h } from '../dom/h';
 import { MODULE_CATALOGUE, type ModuleKind } from '../sim/modules';
 import {
   DEFAULT_POSES,
+  DEPTH_ORDER,
   LAYOUT_PROBLEMS,
   MODULE_POSES,
   SPOT_BAND,
   buildLayoutJson,
   clampSpot,
+  depthFor,
   pointToPercent,
   roundSpot,
   type ModuleSpot,
@@ -92,6 +94,21 @@ function buildInstances(): Instance[] {
 interface NumberField {
   readonly input: HTMLInputElement;
   readonly row: HTMLElement;
+}
+
+/**
+ * Where a module stands in the fixed stacking order, in words.
+ *
+ * The order is not editable, so the toolbar shows where a module sits rather
+ * than offering a number the developer can only get wrong.
+ */
+function depthLabel(kind: ModuleKind): string {
+  const rank = DEPTH_ORDER.findIndex((entry) => entry.kind === kind);
+
+  if (rank <= 0) return 'farthest';
+  if (rank === DEPTH_ORDER.length - 1) return 'nearest';
+
+  return `${rank + 1} of ${DEPTH_ORDER.length}`;
 }
 
 /**
@@ -237,7 +254,16 @@ export function startLayoutEditor(root: HTMLElement): () => void {
   const left = numberField('left %', SPOT_BAND.left.min, SPOT_BAND.left.max);
   const bottom = numberField('bottom %', SPOT_BAND.bottom.min, SPOT_BAND.bottom.max);
   const width = numberField('width %', SPOT_BAND.width.min, SPOT_BAND.width.max);
-  const depth = numberField('depth', 0, 20);
+
+  /* The stacking order is fixed, so there is nothing to edit here — but the
+   * developer still wants to know where a module sits in it. */
+  const depth = h('span', { class: 'ble__num ble__num--fixed', text: '—' });
+  const depthRow = h(
+    'label',
+    { class: 'ble__field' },
+    h('span', { class: 'ble__field-label', text: 'depth' }),
+    depth,
+  );
 
   const readout = h('p', { class: 'ble__readout', text: 'Pick a module.' });
   const jsonArea = h('textarea', { class: 'ble__json', rows: '12', readonly: true, spellcheck: false });
@@ -259,7 +285,7 @@ export function startLayoutEditor(root: HTMLElement): () => void {
     }),
     picker,
     readout,
-    h('div', { class: 'ble__fields' }, left.row, bottom.row, width.row, depth.row),
+    h('div', { class: 'ble__fields' }, left.row, bottom.row, width.row, depthRow),
     h('p', { class: 'ble__label', text: 'baseLayout.json — save it into src/ui/' }),
     jsonArea,
     h('div', { class: 'ble__buttons' }, mirror, download, copy, reset, done),
@@ -284,10 +310,9 @@ export function startLayoutEditor(root: HTMLElement): () => void {
       handle.style.setProperty('--ble-flip', spot.flip === true ? '-1' : '1');
       handle.classList.toggle('ble__handle--mirrored', spot.flip === true);
 
-      /* The selected copy is drawn in front of the others. Copies of a kind
-       * overlap, and a copy you cannot see is a copy you cannot grab — so
-       * picking it from the toolbar brings it to the front. */
-      handle.style.setProperty('--ble-z', instance.key === selected ? '999' : String(spot.z));
+      /* The same stacking order the game draws with, so the editor is a
+       * picture of the outpost rather than a different one. */
+      handle.style.setProperty('--ble-z', instance.key === selected ? '999' : String(depthFor(instance.kind, instance.copy)));
     }
 
     jsonArea.value = buildLayoutJson(poses);
@@ -331,7 +356,7 @@ export function startLayoutEditor(root: HTMLElement): () => void {
     left.input.value = String(spot.left);
     bottom.input.value = String(spot.bottom);
     width.input.value = String(spot.width);
-    depth.input.value = String(spot.z);
+    depth.textContent = depthLabel(instance.kind);
 
     mirror.setAttribute('aria-pressed', flipped ? 'true' : 'false');
 
@@ -501,7 +526,6 @@ export function startLayoutEditor(root: HTMLElement): () => void {
       left: Number(left.input.value),
       bottom: Number(bottom.input.value),
       width: Number(width.input.value),
-      z: Number(depth.input.value),
     });
   }
 
@@ -561,7 +585,7 @@ export function startLayoutEditor(root: HTMLElement): () => void {
     stop();
   }
 
-  for (const field of [left, bottom, width, depth]) {
+  for (const field of [left, bottom, width]) {
     field.input.addEventListener('change', onFieldChange);
   }
 

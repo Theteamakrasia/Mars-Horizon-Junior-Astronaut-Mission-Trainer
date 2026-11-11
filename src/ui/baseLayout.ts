@@ -30,8 +30,6 @@ export interface ModuleSpot {
   readonly bottom: number;
   /** Percent of the panel's width the picture takes. */
   readonly width: number;
-  /** Stacking order. Higher paints in front. */
-  readonly z: number;
   /**
    * Mirrored left to right.
    *
@@ -43,6 +41,44 @@ export interface ModuleSpot {
    * not move it.
    */
   readonly flip?: boolean;
+}
+
+/**
+ * What stands in front of what, farthest first.
+ *
+ * The outpost is drawn in depth: the regolith shields are the furthest thing
+ * away, the habitat is the nearest. That order is a property of the outpost,
+ * not of where each module happens to stand, so it is a rule here rather than
+ * a number in the layout file — a file of fifteen positions cannot be trusted
+ * to keep a stacking order straight.
+ *
+ * Each entry says whether the copies of that kind each stand a little nearer
+ * than the last. A row of solar arrays is a row of panels leaning towards you,
+ * so the second array is in front of the first; two regolith shields are the
+ * same distance away, so they share a depth.
+ */
+export const DEPTH_ORDER: readonly { readonly kind: ModuleKind; readonly steps: boolean }[] = [
+  { kind: 'regolith-shield', steps: false },
+  { kind: 'ice-miner', steps: false },
+  { kind: 'solar-array', steps: true },
+  { kind: 'greenhouse', steps: false },
+  { kind: 'nuclear-unit', steps: false },
+  { kind: 'batteries', steps: true },
+  { kind: 'life-support', steps: false },
+  { kind: 'habitat', steps: false },
+];
+
+/**
+ * The stacking level of one module copy. Higher is nearer the camera.
+ *
+ * Every copy of a kind is behind every copy of the kind after it, and the
+ * copies of one kind step forward among themselves when the rule says so.
+ */
+export function depthFor(kind: ModuleKind, copy: number): number {
+  const rank = DEPTH_ORDER.findIndex((entry) => entry.kind === kind);
+  const place = rank < 0 ? DEPTH_ORDER.length : rank;
+
+  return place * 10 + (DEPTH_ORDER[rank]?.steps === true ? copy : 0);
 }
 
 /**
@@ -83,26 +119,26 @@ export const PANEL_RIGHT_EDGE = 100;
  */
 export const DEFAULT_POSES: ModulePoses = {
   'solar-array': [
-    { left: 4, bottom: 30, width: 20, z: 3 },
-    { left: 14, bottom: 32, width: 17, z: 4 },
-    { left: 24, bottom: 32, width: 14, z: 5 },
-    { left: 34, bottom: 32, width: 11, z: 6 },
+    { left: 4, bottom: 30, width: 20 },
+    { left: 14, bottom: 32, width: 17 },
+    { left: 24, bottom: 32, width: 14 },
+    { left: 34, bottom: 32, width: 11 },
   ],
   batteries: [
-    { left: 4, bottom: 4, width: 20, z: 5 },
-    { left: 14, bottom: 8, width: 17, z: 6 },
-    { left: 24, bottom: 12, width: 14, z: 7 },
-    { left: 34, bottom: 16, width: 11, z: 8 },
+    { left: 4, bottom: 4, width: 20 },
+    { left: 14, bottom: 8, width: 17 },
+    { left: 24, bottom: 12, width: 14 },
+    { left: 34, bottom: 16, width: 11 },
   ],
-  habitat: [{ left: 28, bottom: 30, width: 20, z: 4 }],
-  'life-support': [{ left: 28, bottom: 4, width: 20, z: 5 }],
-  greenhouse: [{ left: 52, bottom: 30, width: 20, z: 4 }],
-  'ice-miner': [{ left: 52, bottom: 4, width: 20, z: 5 }],
+  habitat: [{ left: 28, bottom: 30, width: 20 }],
+  'life-support': [{ left: 28, bottom: 4, width: 20 }],
+  greenhouse: [{ left: 52, bottom: 30, width: 20 }],
+  'ice-miner': [{ left: 52, bottom: 4, width: 20 }],
   'regolith-shield': [
-    { left: 76, bottom: 30, width: 18, z: 3 },
-    { left: 81, bottom: 32, width: 15, z: 4 },
+    { left: 76, bottom: 30, width: 18 },
+    { left: 81, bottom: 32, width: 15 },
   ],
-  'nuclear-unit': [{ left: 76, bottom: 4, width: 18, z: 5 }],
+  'nuclear-unit': [{ left: 76, bottom: 4, width: 18 }],
 };
 
 /** Clamp a number into a range. A number that is not a number becomes `min`. */
@@ -129,7 +165,6 @@ export function clampSpot(spot: ModuleSpot): ModuleSpot {
     left,
     bottom: clamp(spot.bottom, SPOT_BAND.bottom.min, SPOT_BAND.bottom.max),
     width: Math.min(width, fits),
-    z: clamp(spot.z, 0, 20),
     flip: spot.flip === true,
   };
 }
@@ -147,7 +182,6 @@ export function roundSpot(spot: ModuleSpot): ModuleSpot {
     left: Math.round(spot.left * 10) / 10,
     bottom: Math.round(spot.bottom * 10) / 10,
     width: Math.round(spot.width * 10) / 10,
-    z: Math.round(spot.z),
     flip: spot.flip === true,
   };
 }
@@ -168,17 +202,17 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function readSpot(value: unknown): ModuleSpot | null {
   if (!isRecord(value)) return null;
 
-  const { left, bottom, width, z } = value;
+  const { left, bottom, width } = value;
 
   if (typeof left !== 'number' || typeof bottom !== 'number') return null;
-  if (typeof width !== 'number' || typeof z !== 'number') return null;
+  if (typeof width !== 'number') return null;
   if (!Number.isFinite(left) || !Number.isFinite(bottom)) return null;
-  if (!Number.isFinite(width) || !Number.isFinite(z)) return null;
+  if (!Number.isFinite(width)) return null;
 
   /* A missing flip is not a flip. Anything that is not exactly true is not
    * true either, so a typo turns the module back the right way round rather
    * than mirroring it at random. */
-  return clampSpot({ left, bottom, width, z, flip: value.flip === true });
+  return clampSpot({ left, bottom, width, flip: value.flip === true });
 }
 
 /**
@@ -197,7 +231,6 @@ function deriveSpot(previous: ModuleSpot): ModuleSpot {
     left: previous.left + step,
     bottom: previous.bottom + 4,
     width,
-    z: previous.z + 1,
   });
 }
 
@@ -350,12 +383,15 @@ function poses(count: number): string {
     }
   }
 
-  if (typeof value.z !== 'number' || !Number.isFinite(value.z)) {
-    problems.push(`${label}.z is not a number. It is being ignored.`);
-  }
-
   if (value.flip !== undefined && typeof value.flip !== 'boolean') {
     problems.push(`${label}.flip is not true or false. The module is not being mirrored.`);
+  }
+
+  /* A file written before the stacking order became a rule still carries a z
+   * on every pose. It means nothing now, and saying so is better than
+   * letting the developer think it still does. */
+  if (value.z !== undefined) {
+    problems.push(`${label}.z is no longer used. The stacking order is fixed. It is being ignored.`);
   }
 
   return problems;
@@ -372,18 +408,17 @@ function poses(count: number): string {
  * stays quiet for the ones that are not.
  */
 export function buildLayoutJson(poses: Readonly<Record<string, readonly ModuleSpot[]>>): string {
-  const ordered: Record<string, { left: number; bottom: number; width: number; z: number; flip?: boolean }[]> = {};
+  const ordered: Record<string, { left: number; bottom: number; width: number; flip?: boolean }[]> = {};
 
   for (const spec of MODULE_CATALOGUE) {
     const list = poses[spec.kind] ?? DEFAULT_POSES[spec.kind];
 
     ordered[spec.kind] = list.map((spot) => {
       const rounded = roundSpot(spot);
-      const entry: { left: number; bottom: number; width: number; z: number; flip?: boolean } = {
+      const entry: { left: number; bottom: number; width: number; flip?: boolean } = {
         left: rounded.left,
         bottom: rounded.bottom,
         width: rounded.width,
-        z: rounded.z,
       };
 
       if (rounded.flip === true) entry.flip = true;
