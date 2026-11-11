@@ -35,57 +35,15 @@
   box-sizing: border-box;
 }
 
-/* The artwork is absolutely positioned, so the header and body are the only
-   flex children; both are lifted above it (and above the scrim) by z-index. */
-.briefing__header {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  flex: 0 0 auto;
-  padding: 0.55rem 0.85rem;
-  border: 1px solid var(--b-border);
-  border-radius: 4px;
-  background: var(--b-panel);
-}
+/* ---------- HEADER ----------
+   There is no header on this screen. The briefing is one unbroken scene with
+   one line of dialogue at a time, and a bar above it would compete with the
+   artwork for the eye. The app has one navigation bar, the shared one in
+   ui/gameLoop.ts, and this screen is not one of the four that carry it. The
+   rules that drew the old .briefing__header and its brand are gone with it.
 
-.briefing__brand {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-}
-
-.briefing__brand-mark {
-  display: grid;
-  place-items: center;
-  width: 1.9rem;
-  height: 1.9rem;
-  border-radius: 5px;
-  background: var(--b-accent);
-  font-size: 1rem;
-  line-height: 1;
-}
-
-.briefing__brand-name {
-  font-size: 0.95rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-
-.briefing__brand-sub {
-  font-size: 0.58rem;
-  letter-spacing: 0.16em;
-  color: var(--b-muted);
-}
-
-.briefing__nav {
-  font-size: 0.6rem;
-  letter-spacing: 0.14em;
-  color: var(--b-muted);
-  text-transform: uppercase;
-}
+   The artwork is absolutely positioned, so the body is the only flex child;
+   it is lifted above the art (and above the scrim) by z-index. */
 
 /* ---------- BODY ----------
    The title and greeting sit at the top, over the dark space above the

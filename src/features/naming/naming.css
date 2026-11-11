@@ -125,58 +125,11 @@
   }
 }
 
-/* ---------- HEADER ---------- */
-.naming__header {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  flex: 0 0 auto;
-  padding: 0.25rem 0.75rem;
-  border: 1px solid var(--n-border);
-  border-radius: 4px;
-  background: var(--n-panel);
-}
-
-.naming__brand {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-}
-
-.naming__brand-mark {
-  width: 1.15rem;
-  height: 1.15rem;
-  border-radius: 4px;
-  background: var(--n-accent);
-}
-
-.naming__brand-text {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.15;
-}
-
-.naming__brand-name {
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-}
-
-.naming__brand-sub {
-  font-size: 0.45rem;
-  letter-spacing: 0.16em;
-  color: var(--n-muted);
-}
-
-.naming__nav {
-  font-size: 0.55rem;
-  letter-spacing: 0.14em;
-  color: var(--n-muted);
-  text-transform: uppercase;
-}
+/* ---------- HEADER ----------
+   There is no header on this screen. The entry page is the one place the
+   player should not be offered a way out of, and the four navigation bars the
+   app used to have were reduced to the one shared bar in ui/gameLoop.ts. The
+   rules that drew the old .naming__header and its brand are gone with it. */
 
 /* ---------- BODY ---------- */
 .naming__body {
