@@ -11,10 +11,15 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
-| ISS-067 | The launch parts-tour image shook forever, and launch.css held the panel twice | medium | agent | fixed | this branch |
+| ISS-076 | The sheet squashed what was inside it, so a NASA picture covered its own caption | medium | agent | fixed | this branch |
+| ISS-075 | The "Real data" section showed one picture, so the game looked like it owned one NASA picture | low | agent | fixed | this branch |
+| ISS-074 | The journey check never found the naming screen, so it could not fail and could not pass | medium | agent | fixed | this branch |
+| ISS-073 | The panel said "Sol 0 of 12" on the first day, while the button under it said "Run sol 1" | low | agent | fixed | this branch |
+| ISS-072 | The encyclopedia's "Back to outpost" always went to the build screen, even mid-run | low | agent | fixed | this branch |
 | ISS-070 | The launch parts tour could only be moved through with the mouse | medium | agent | fixed | this branch |
 | ISS-069 | The parts tour showed the assembled-craft picture twice, and opened with it | medium | agent | fixed | this branch |
 | ISS-068 | Four different navigation bars, and only one of them was the shared one | medium | agent | fixed | this branch |
+| ISS-067 | The launch parts-tour image shook forever, and launch.css held the panel twice | medium | agent | fixed | this branch |
 | ISS-066 | The `drag-editor` placement WIP was unreachable, failed `tsc` and failed `check-markup`, and copies of it sat at the repo root | high | agent | fixed | c9b8904 |
 | ISS-065 | Sol 3 had no tool to work at all, and the sorting tool could never earn three stars | medium | agent | fixed | this branch |
 | ISS-064 | The build screen's browser check failed on a third of runs, because it assumed a desk that was always there | low | agent | fixed | this branch |
@@ -82,6 +87,119 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
+## ISS-076 — The sheet squashed what was inside it, so a NASA picture covered its own caption
+
+- **Reported by:** agent, 2026-11-11, while measuring the new real-data sheet in a headless
+  browser (ISS-075).
+- **Where:** `src/ui/sheet.css` (`.sheet__body`).
+- **Problem:** `.sheet__body` is a flex column with a bounded height and `overflow-y: auto`,
+  but its children kept the default `flex-shrink: 1`. A child taller than the space left
+  was therefore **squeezed rather than overflowing**: the two NASA cards measured 154 px
+  tall while their contents were 522 px and 540 px. The pictures had `aspect-ratio: 16/9`
+  and `width: 100%`, so they did not shrink — they **poured over their own card**, and the
+  caption, the "Did you know?" line and the credit underneath were clipped away. The sheet
+  looked like two photographs with no words at all.
+- **Cause:** the sheet was built for the short sections (a list of work orders, a board of
+  rules), and a flex column that scrolls needs its children told not to shrink. Nothing
+  said so, and the short sections were unaffected, so the bug waited for the first sheet
+  with a picture in it.
+- **Fix:** `.sheet__body > *` gets `flex: 0 0 auto`, so a child keeps its natural height
+  and the body scrolls — which is what a scrolling body is for.
+- **Pre-existing:** yes; it arrived with the sheet in D-070.
+
+---
+
+## ISS-075 — The "Real data" section showed one picture, so the game looked like it owned one NASA picture
+
+- **Reported by:** the player, 2026-11-11, on the act screen's new hub: *"it's only showing
+  the picture now of real nasa data. but it used to show many more data."*
+- **Where:** `src/features/act/view.ts` (`dataBody`), behind the hub's "Real data" tile
+  (D-070).
+- **Problem:** the section was called *Real data* and held one NASA card — the live daily
+  picture, or the saved card for the sol when NASA's feed did not answer. The game owns far
+  more real data than that: **a NASA photograph of the landing region the player actually
+  chose** (`REGION_CARDS`, five of them, shown once on the landing screen and never again),
+  **NASA's own space-weather readings** (the flare class and the day it peaked), and
+  **forty tagged facts**. A child who opened the button named after real data found one
+  picture, and the rest of the NASA layer was invisible from the screen that runs the day.
+- **Cause:** the hub was built from the old panel's sections, and the old panel had one
+  NASA block at the bottom of a long scroll. Moving it into a sheet kept it as it was —
+  a picture and a note — without asking what "real data" should mean on a screen that now
+  has a button with that name.
+- **Fix:** the sheet is now the whole NASA layer (D-071): NASA's live daily picture, the
+  saved card for the sol, **the landing region's own photograph**, **the live flare
+  readings with the source they came from**, and two NASA facts to take away. The tile's
+  line of state counts what is behind it ("3 pictures · 5 live flares"), and
+  `dom/forecastLoader.ts` carries the raw readings out instead of throwing them away.
+- **Pre-existing:** no; the section was thin from the moment D-070 landed, and the player
+  found it on the first day.
+
+---
+
+## ISS-074 — The journey check never found the naming screen, so it could not fail and could not pass
+
+- **Reported by:** agent, 2026-11-11, while re-running the browser checks after the act
+  screen's hub (D-070).
+- **Where:** `tools/browser-check-journey.mjs` (the `Page.navigate` URL).
+- **Problem:** the check asked for `http://127.0.0.1:5173/#naming`. Vite's dev server binds
+  the **IPv6** loopback by default, so the IPv4 address answers nothing: every step printed
+  `none` — *1 naming → none, 2 briefing → none, … 7 base → none* — and the check ended
+  with `ERRORS: none`, because a page that never loaded raises no console error. The check
+  had been reporting the same thing on `origin/main` for days, and it was read as a game
+  problem rather than as a broken check.
+- **Cause:** the address was written once, by hand, with the IPv4 loopback in it. Nothing
+  checked that the dev server was actually listening there, and the check has no
+  assertions — it prints what it sees — so a page that never loaded looked the same as a
+  page that loaded and went wrong.
+- **Fix:** the check asks for `http://localhost:5173`, which is what Vite prints. The whole
+  journey now runs: naming → briefing → supply → launch → interior → landing-site → base,
+  with no console errors.
+- **Pre-existing:** yes; the address dates from the check's first version.
+
+---
+
+## ISS-073 — The panel said "Sol 0 of 12" on the first day, while the button under it said "Run sol 1"
+
+- **Reported by:** agent, 2026-11-11, while moving the sol count from the removed mission
+  bar to the panel's own head.
+- **Where:** `src/features/act/view.ts` (`hubPanel`'s `kicker`), formerly the act mission
+  bar's `progress` line.
+- **Problem:** `RunState.sol` counts the sols **completed**, so before the first press it is
+  0. The kicker printed it raw, so the first screen of the game said "Sol 0 of 12" while
+  the button directly under it said "Run sol 1". A child reading both is told the day is
+  day zero, and the game has no sol zero.
+- **Cause:** the number was printed as state rather than as the day being played. It sat in
+  the mission bar where it was one of several facts and nobody read it closely; making it
+  the panel's own line put it next to the button and made the contradiction plain.
+- **Fix:** the kicker is `Sol ${state.sol + 1} of ${WIN_SOL}`, the same day the button names.
+  The sheet header uses the same expression, so a section opened over the desk cannot
+  disagree with the desk.
+- **Pre-existing:** yes; the off-by-one arrived with the mission bar.
+
+---
+
+## ISS-072 — The encyclopedia's "Back to outpost" always went to the build screen, even mid-run
+
+- **Reported by:** agent, 2026-11-11, while adding the encyclopedia to the header of every
+  game screen.
+- **Where:** `src/features/encyclopedia/view.ts` (line 34, `navigate('base')`).
+- **Problem:** the button said "Back to outpost" and went to `base`, the build screen. Once
+  the outpost is built that is the wrong screen: the player is on `act`, running sols, and
+  pressing Back threw them out of the day and onto a screen that rebuilds the outpost. The
+  run was not lost — `base` reads the same `RunState` — but the player was put in front of a
+  build screen in the middle of a mission, with no explanation and no way to tell it was
+  not a fresh start.
+- **Cause:** `base` was the only screen that linked to the encyclopedia when the screen was
+  built, so "back" was hard-coded to the one place it was reachable from. The encyclopedia
+  then became reachable from every game screen's header, and the button did not follow.
+- **Fix:** the back button goes to whichever screen the player came from: `act` once the
+  outpost stands (`run.modules.length > 0`), `base` before that. The encyclopedia also
+  passes `showEncyclopedia: false`, so the header does not offer a book that links to the
+  page it is already on.
+- **Pre-existing:** yes; the hard-coded target arrived with the screen.
+
+---
+
 ## ISS-070 — The launch parts tour could only be moved through with the mouse
 
 - **Reported by:** the owner, 2026-11-11: "if i press enter it should work and at the
@@ -107,7 +225,9 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
   does on a slide, so it can be tested without a browser.
 - **Pre-existing:** yes. The ration check answered Enter; nothing else did.
 
----## ISS-069 — The parts tour showed the assembled-craft picture twice, and opened with it
+---
+
+## ISS-069 — The parts tour showed the assembled-craft picture twice, and opened with it
 
 - **Reported by:** the owner, 2026-11-11: "this image should be shown to the last
   part, why it is showing twice? remove it from the first part".
@@ -136,7 +256,9 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 - **Pre-existing:** yes. The wrap arrived with the interactive parts panel
   (ISS-033).
 
----## ISS-068 — Four different navigation bars, and only one of them was the shared one
+---
+
+## ISS-068 — Four different navigation bars, and only one of them was the shared one
 
 - **Reported by:** the owner, 2026-11-11, asking for one navigation bar on
   `#/landing-site`, `#/base`, `#/act` and `#/debrief`, and none on the entry screens,
@@ -1290,7 +1412,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-**Next free id: ISS-067.**
+**Next free id: ISS-077.**
 
 
 ---

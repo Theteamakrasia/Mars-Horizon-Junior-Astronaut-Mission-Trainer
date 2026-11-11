@@ -20,6 +20,7 @@ import { nasaCard } from '../../ui/nasaCard';
 import { stopReading } from '../../ui/readAloud';
 import { goalById, type ScienceGoal } from '../../sim/goals';
 import { SCIENCE_TOPICS, type ScienceTopic } from '../../sim/topics';
+import { icon, RANK_ICON, RESOURCE_ICON, type IconName } from '../../ui/icons';
 
 /** The topic the NASA facts for a goal are filed under. */
 function topicOf(goal: ScienceGoal): ScienceTopic {
@@ -41,14 +42,18 @@ import solarUrl from '../../../Assets/images/game-loop/solar.png';
 import { consumptionSummary, explainOutcome, goalOutcomes, lowestPoints, manualFor, patchReport, roverReport, nextSteps, reviewDecisions, scienceDetail, scienceHeadline, scienceReport, timeline, usedApproximateData, wentEmpty, type NextStep } from './model';
 
 const VERDICT_TEXT = { solved: 'Solved early', caught: 'Caught you out', mixed: 'A trade-off' } as const;
-const VERDICT_ICON = { solved: '✅', caught: '⚠️', mixed: '🤔' } as const;
+const VERDICT_ICON: Readonly<Record<keyof typeof VERDICT_TEXT, IconName>> = {
+  solved: 'check',
+  caught: 'alert',
+  mixed: 'question',
+};
 
 /** How each of the five science goals fared, in one word and one picture. */
-const GOAL_VERDICT = {
-  held: { label: 'Held', icon: '✅' },
-  hurt: { label: 'Took damage', icon: '⚠️' },
-  failed: { label: 'Failed', icon: '❌' },
-} as const;
+const GOAL_VERDICT: Readonly<Record<'held' | 'hurt' | 'failed', { readonly label: string; readonly icon: IconName }>> = {
+  held: { label: 'Held', icon: 'check' },
+  hurt: { label: 'Took damage', icon: 'alert' },
+  failed: { label: 'Failed', icon: 'close' },
+};
 
 /** What a store is called when a sentence has to name it. */
 const STORE_WORD = { power: 'power', oxygen: 'air', water: 'water', food: 'food', shielding: 'radiation shield' } as const;
@@ -62,12 +67,24 @@ const STORE_ASK = {
   shielding: 'block more radiation',
 } as const;
 
-const STORE_ICON = { power: '⚡', oxygen: '🫧', water: '💧', food: '🍞', shielding: '🛡️' } as const;
+/** The pictogram on a patch, by patch id. */
+const PATCH_ICON: Readonly<Record<string, IconName>> = {
+  'no-skip': 'star',
+  'night-watch': 'moon',
+  'ice-hunter': 'rover',
+  cartographer: 'map',
+  'leave-no-trace': 'rock',
+  'green-thumb': 'leaf',
+  'iron-skin': 'shield',
+  'full-tank': 'droplet',
+  'flare-dodger': 'sun',
+  'full-crew': 'helmet',
+};
 
 /** The picture beside a "next time" tip. */
 function tipArt(step: NextStep): HTMLElement {
-  if (step.art === 'choice') return h('span', { class: 'debrief__tip-glyph', 'aria-hidden': 'true', text: '📦' });
-  if (step.art === 'site') return h('span', { class: 'debrief__tip-glyph', 'aria-hidden': 'true', text: '🏔' });
+  if (step.art === 'choice') return h('span', { class: 'debrief__tip-glyph', 'aria-hidden': 'true' }, icon('box'));
+  if (step.art === 'site') return h('span', { class: 'debrief__tip-glyph', 'aria-hidden': 'true' }, icon('mountain'));
 
   return h('img', { class: 'debrief__tip-img', src: moduleArt(step.art), alt: '' });
 }
@@ -119,15 +136,15 @@ export function mountDebrief(
 
     return [
       {
-        icon: '⚡',
+        icon: 'bolt',
         label: 'Power',
         value: blackouts === 0 ? 'No blackouts' : `${blackouts} blackout${blackouts === 1 ? '' : 's'}`,
         tone: blackouts === 0 ? 'ok' : 'bad',
       },
-      { icon: STORE_ICON.oxygen, label: 'Air · lowest', value: String(lows.oxygen), tone: toneFor(lows.oxygen) },
-      { icon: STORE_ICON.water, label: 'Water · lowest', value: String(lows.water), tone: toneFor(lows.water) },
-      { icon: STORE_ICON.food, label: 'Food · lowest', value: String(lows.food), tone: toneFor(lows.food) },
-      { icon: STORE_ICON.shielding, label: 'Shield · lowest', value: String(lows.shielding), tone: toneFor(lows.shielding) },
+      { icon: RESOURCE_ICON.oxygen, label: 'Air · lowest', value: String(lows.oxygen), tone: toneFor(lows.oxygen) },
+      { icon: RESOURCE_ICON.water, label: 'Water · lowest', value: String(lows.water), tone: toneFor(lows.water) },
+      { icon: RESOURCE_ICON.food, label: 'Food · lowest', value: String(lows.food), tone: toneFor(lows.food) },
+      { icon: RESOURCE_ICON.shielding, label: 'Shield · lowest', value: String(lows.shielding), tone: toneFor(lows.shielding) },
     ];
   }
 
@@ -159,15 +176,15 @@ export function mountDebrief(
     if (mode === 'debrief') {
       const sols = consumptionSummary(state).sols;
 
-      return { icon: '✦', hero: true, kicker: 'You explored for', text: `${sols} Mars day${sols === 1 ? '' : 's'}`, detail: 'Every try teaches you something new.' };
+      return { icon: 'sparkle', hero: true, kicker: 'You explored for', text: `${sols} Mars day${sols === 1 ? '' : 's'}`, detail: 'Every try teaches you something new.' };
     }
 
     const reviews = reviewDecisions(state);
     const lesson = reviews.find((review) => review.verdict === 'caught') ?? reviews[reviews.length - 1];
 
     return lesson === undefined
-      ? { icon: '🛰', hero: true, kicker: 'A little real Mars science', text: 'Mars has no global magnetic shield.', detail: 'So the crew has to shelter from solar flares with soil and walls.' }
-      : { icon: '🛰', hero: true, kicker: 'A little real Mars science', text: lesson.science };
+      ? { icon: 'dish', hero: true, kicker: 'A little real Mars science', text: 'Mars has no global magnetic shield.', detail: 'So the crew has to shelter from solar flares with soil and walls.' }
+      : { icon: 'dish', hero: true, kicker: 'A little real Mars science', text: lesson.science };
   }
 
   /** The science score, beside the outcome rather than mixed into it. */
@@ -175,7 +192,7 @@ export function mountDebrief(
     const science = scienceReport(state);
 
     return {
-      icon: science.rank.icon,
+      icon: RANK_ICON[science.rank.id] ?? 'star',
       kicker: 'Science',
       text: `${science.points} points · ${science.rank.title}`,
       detail: science.next === null ? 'Top rank reached.' : `${science.toNext} more to reach ${science.next.title}.`,
@@ -191,7 +208,7 @@ export function mountDebrief(
       return gameWorld({
         label: 'Mission memories',
         weather: 'Adventure journal',
-        weatherIcon: '📖',
+        weatherIcon: 'book',
         crew: "Every choice changed our adventure. Here's our story!",
         crewLabel: 'Your crewmate',
         signals: [heroCard(state)],
@@ -203,7 +220,7 @@ export function mountDebrief(
     return gameWorld({
       label: won ? 'Mission complete' : 'Mission paused',
       weather: empty === null ? 'All systems held' : `${STORE_WORD[empty]} needs a refill`,
-      weatherIcon: empty === null ? '✅' : STORE_ICON[empty],
+      weatherIcon: empty === null ? 'check' : RESOURCE_ICON[empty],
       crew: won ? "We made it! Let's try somewhere harder next time." : `We learned a lot! Next time, let's ${STORE_ASK[empty ?? 'water']}.`,
       signals: [heroCard(state), scienceSignal(state)],
       figures: moduleFigures(state.modules),
@@ -219,7 +236,11 @@ export function mountDebrief(
     const outcome = h(
       'div',
       { class: 'gl__callout', 'data-tone': won ? 'plain' : 'peach' },
-      h('span', { class: 'gl__callout-icon', 'aria-hidden': 'true', text: won ? '🏆' : STORE_ICON[wentEmpty(state) ?? 'water'] }),
+      h(
+        'span',
+        { class: 'gl__callout-icon', 'aria-hidden': 'true' },
+        won ? icon('star') : icon(RESOURCE_ICON[wentEmpty(state) ?? 'water']),
+      ),
       h(
         'div',
         null,
@@ -255,7 +276,7 @@ export function mountDebrief(
     const scienceCard = h(
       'div',
       { class: 'gl__callout', 'data-tone': 'plain' },
-      h('span', { class: 'gl__callout-icon', 'aria-hidden': 'true', text: science.rank.icon }),
+      h('span', { class: 'gl__callout-icon', 'aria-hidden': 'true' }, icon(RANK_ICON[science.rank.id] ?? 'star')),
       h(
         'div',
         null,
@@ -281,7 +302,7 @@ export function mountDebrief(
         h(
           'li',
           { class: 'debrief__goal', 'data-verdict': outcome.verdict },
-          h('span', { class: 'debrief__goal-icon', 'aria-hidden': 'true', text: verdict.icon }),
+          h('span', { class: 'debrief__goal-icon', 'aria-hidden': 'true' }, icon(verdict.icon)),
           h(
             'div',
             null,
@@ -318,7 +339,12 @@ export function mountDebrief(
       { class: 'debrief__certificate' },
       h('p', { class: 'debrief__certificate-kicker', text: 'Mars Horizon · Junior Astronaut Mission Trainer' }),
       h('p', { class: 'debrief__certificate-name', text: state.astronautName.trim() === '' ? 'Junior Astronaut' : state.astronautName }),
-      h('p', { class: 'debrief__certificate-rank', text: `${science.rank.icon} ${science.rank.title} · ${science.points} science points` }),
+      h(
+        'p',
+        { class: 'debrief__certificate-rank' },
+        icon(RANK_ICON[science.rank.id] ?? 'star'),
+        ` ${science.rank.title} · ${science.points} science points`,
+      ),
       h(
         'div',
         { class: 'debrief__patches' },
@@ -326,7 +352,7 @@ export function mountDebrief(
           h(
             'div',
             { class: 'debrief__patch' },
-            h('span', { class: 'debrief__patch-icon', 'aria-hidden': 'true', text: patch.icon }),
+            h('span', { class: 'debrief__patch-icon', 'aria-hidden': 'true' }, icon(PATCH_ICON[patch.id] ?? 'star')),
             h('span', { class: 'debrief__patch-title', text: patch.title }),
             h('span', { class: 'debrief__patch-detail', text: patch.detail }),
           ),
@@ -426,7 +452,7 @@ export function mountDebrief(
         h(
           'div',
           { class: 'gl__entry', 'data-tone': review.verdict === 'caught' ? 'peach' : 'plain' },
-          h('span', { class: 'gl__entry-icon', 'aria-hidden': 'true', text: VERDICT_ICON[review.verdict] }),
+          h('span', { class: 'gl__entry-icon', 'aria-hidden': 'true' }, icon(VERDICT_ICON[review.verdict])),
           h(
             'div',
             null,
@@ -442,7 +468,11 @@ export function mountDebrief(
       h(
         'div',
         { class: 'gl__entry', 'data-tone': won ? 'plain' : 'peach' },
-        h('span', { class: 'gl__entry-icon', 'aria-hidden': 'true', text: won ? '🏆' : STORE_ICON[wentEmpty(state) ?? 'water'] }),
+        h(
+          'span',
+          { class: 'gl__entry-icon', 'aria-hidden': 'true' },
+          won ? icon('star') : icon(RESOURCE_ICON[wentEmpty(state) ?? 'water']),
+        ),
         h(
           'div',
           null,

@@ -22,7 +22,7 @@ import './encyclopedia.css';
 
 export function mountEncyclopedia(
   mount: HTMLElement,
-  _run: RunState | null,
+  run: RunState | null,
   _setRun: (next: RunState | null) => void,
 ): () => void {
   let openKey: string | null = null;
@@ -30,8 +30,12 @@ export function mountEncyclopedia(
   function render(): void {
     const list = entries().map((entry) => buildEntry(entry));
 
-    const back = h('button', { class: 'gl__btn gl__btn--primary', type: 'button' }, '← Back to outpost');
-    back.addEventListener('click', () => navigate('base'));
+    /* "Back" means back to where the player was. Before the first build that is
+       the build screen; once the outpost stands it is the day, and sending a
+       player mid-run to the build screen looks like a fresh start (ISS-072). */
+    const midRun = run !== null && run.modules.length > 0;
+    const back = h('button', { class: 'gl__btn gl__btn--primary', type: 'button' }, midRun ? '← Back to the day' : '← Back to outpost');
+    back.addEventListener('click', () => navigate(midRun ? 'act' : 'base'));
 
     const panel = gamePanel({
       kicker: 'Reference',
@@ -51,6 +55,7 @@ export function mountEncyclopedia(
         variant: 'gl--encyclopedia',
         headerSub: 'ENCYCLOPEDIA',
         onLeave: () => navigate('naming'),
+        showEncyclopedia: false,
         fullWidth: true,
       }),
     );

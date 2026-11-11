@@ -20,7 +20,7 @@ import { factFor } from '../../data/nasaGallery';
 import { createForecast, type ForecastEvent } from '../../sim/forecast';
 import { newRun, startOutpost, withState, type RunState } from '../../sim/run';
 import { regionById, siteScore } from '../../sim/regions';
-import { gamePanel, gameScreen, gameSection, gameWorld, moduleArt, moduleFigures, type SignalCard } from '../../ui/gameLoop';
+import { gamePanel, gameScreen, gameSection, gameWorld, moduleArt, moduleFigures, type HudStat, type SignalCard } from '../../ui/gameLoop';
 import { readButton } from '../../ui/readButton';
 import { guideButton, guidePanel } from '../../ui/guide';
 import { nextStop } from '../../ui/registry';
@@ -91,11 +91,11 @@ export function mountBase(
     const events = upcomingWarnings(forecast());
 
     if (loaded === null && start.forecast.length === 0) {
-      return { icon: '🌤', kicker: 'Forecast', text: 'Reading live space weather…' };
+      return { icon: 'cloud-sun', kicker: 'Forecast', text: 'Reading live space weather…' };
     }
 
     return {
-      icon: '🌤',
+      icon: 'cloud-sun',
       kicker: 'Coming up',
       text: events.map((event) => `Sol ${event.sol}: ${event.summary}`).join(' · '),
       detail: loaded?.detail,
@@ -130,24 +130,24 @@ export function mountBase(
 
     /* Day power is on the screen because it is the number that moves when the
        player adds a solar array. Nothing else on this screen did. */
-    const hud = [
-      { icon: '☀️', label: 'Day power', value: `${summary.dayKwh} kWh` },
-      { icon: '🌙', label: 'Night power', value: `${summary.nightHours} / 12 h`, tone: summary.nightHours < 12 ? ('warn' as const) : ('ok' as const) },
-      { icon: '🫧', label: 'Air', value: 'Ready' },
-      { icon: '💧', label: 'Water', value: daysLabel(summary.waterDays, 'Recycled'), tone: summary.waterDays < 12 ? ('warn' as const) : ('ok' as const) },
-      { icon: '🍞', label: 'Food', value: daysLabel(summary.foodDays, 'Grown'), tone: summary.foodDays < 12 ? ('warn' as const) : ('ok' as const) },
-      { icon: '🛡️', label: 'Shield', value: `${summary.shielding} / 100`, tone: summary.shielding < 40 ? ('warn' as const) : ('ok' as const) },
+    const hud: readonly HudStat[] = [
+      { icon: 'sun', label: 'Day power', value: `${summary.dayKwh} kWh` },
+      { icon: 'moon', label: 'Night power', value: `${summary.nightHours} / 12 h`, tone: summary.nightHours < 12 ? ('warn' as const) : ('ok' as const) },
+      { icon: 'oxygen', label: 'Air', value: 'Ready' },
+      { icon: 'droplet', label: 'Water', value: daysLabel(summary.waterDays, 'Recycled'), tone: summary.waterDays < 12 ? ('warn' as const) : ('ok' as const) },
+      { icon: 'leaf', label: 'Food', value: daysLabel(summary.foodDays, 'Grown'), tone: summary.foodDays < 12 ? ('warn' as const) : ('ok' as const) },
+      { icon: 'shield', label: 'Shield', value: `${summary.shielding} / 100`, tone: summary.shielding < 40 ? ('warn' as const) : ('ok' as const) },
     ];
 
     const signals: SignalCard[] = [
       {
-        icon: '✓',
+        icon: 'check',
         kicker: 'Already on your lander',
         text: CORE_MODULES.map((kind) => SHORT_NAME[kind]).join(' · '),
       },
       warning === null
-        ? { icon: '✓', tone: 'good', kicker: 'This build', text: 'It stays steady through a calm sol.' }
-        : { icon: '⚡', tone: 'warn', kicker: warning.label, text: warning.text },
+        ? { icon: 'check', tone: 'good', kicker: 'This build', text: 'It stays steady through a calm sol.' }
+        : { icon: 'bolt', tone: 'warn', kicker: warning.label, text: warning.text },
       forecastSignal(),
     ];
 
@@ -303,20 +303,16 @@ export function mountBase(
       variant: 'gl--base',
       headerSub: 'BUILD YOUR OUTPOST',
       onLeave: () => navigate('naming'),
-      mission: {
-        job: 'Your job: build an outpost that keeps the crew alive for 12 sols.',
-        progress: `${pointsLeft(extras)} points left · ${extras.length} modules on the ground`,
-        help: guideButton(() => {
-          guideOpen = true;
-          render();
-        }),
-      },
+      help: guideButton(() => {
+        guideOpen = true;
+        render();
+      }),
     });
 
     /* The guide opens by itself the first time the player reaches the build
-       screen, because that is the first screen with a mission bar and the
-       first one where they have to decide something. After that it is there
-       whenever they want it. */
+       screen, because that is the first screen where they have to decide
+       something and nothing has explained the outpost yet. After that it is
+       there whenever they want it. */
     if (!guideShown) {
       guideShown = true;
       guideOpen = true;

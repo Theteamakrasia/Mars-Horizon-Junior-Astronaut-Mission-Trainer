@@ -8,6 +8,188 @@ than a documented one.
 
 ---
 
+## 2026-11-11 — Merge main's navigation bar and launch tour, and keep both sides' issues
+
+**Did**
+
+- **Merged `origin/main`** into the branch. Main had nine commits since the last merge:
+  **one navigation bar** for the game screens (the `--gl-*` tokens moved from `.gl` to
+  `:root`, so `landing-site` can draw the same header as `base`, `act` and `debrief`),
+  the launch parts-tour fixes (Enter answers, the assembled-craft picture shown once and
+  last, the image that shook forever), the launch stage filling the screen, and the
+  keyboard rules two screens share, moved into `src/dom/keys.ts`.
+- **Every code file merged clean**, including `src/styles/game-loop.css`, where main
+  moved the palette to `:root` and this branch removed the mission bar — different parts
+  of the same file.
+- **Resolved the three documentation conflicts by keeping both sides.** `architecture.md`
+  keeps main's rows for `dom/keys.ts` and the navigation bar and this branch's rows for
+  the hub, the icons, the sheet and the NASA layer. `issues.md` keeps both sets of
+  entries. `progress-log.md` keeps both sides' entries, newest first.
+- **Renumbered this branch's five issues to ISS-072…ISS-076.** Main took ISS-067 to
+  ISS-070, and this branch had taken the same five numbers for different bugs. Main's
+  keep theirs, as in `5acbc40` when the same thing happened last time; every reference
+  moved with them, in the docs and in two code comments.
+
+**Files**
+
+- `src/features/landing-site/view.ts` — the one call site the clean merge hid
+- `docs/architecture.md`, `docs/team/issues.md`, `docs/team/progress-log.md` — the
+  three conflicts, resolved
+- `docs/team/decisions.md`, `docs/team/tasks.md`, `src/features/act/README.md`,
+  `src/features/encyclopedia/view.ts`, `src/ui/sheet.css` — the renumbering sweep
+- `AGENTS.md`, `README.md` — the test counts, 791 to 795
+
+**Problems**
+
+- **The merge was clean in git and broken in TypeScript.** Main's new `landing-site`
+  screen calls `gameHeader('LANDING SITE', …)`, and this branch had changed that
+  signature to one options object. The two files are different files, so git merged them
+  without a word — and `tsc` failed on one line. A clean merge is not a working tree.
+- **The issue ids collided silently.** Both sides had ISS-067 to ISS-070 for entirely
+  different bugs, and nothing in the merge said so. Only reading both issue files side by
+  side showed it.
+- **Main's issue entries arrived with the separator and the heading on one line**
+  (`---## ISS-069`), which no heading parser likes. They were split apart and their
+  headings set to `##`.
+- **The first pass at the conflicts corrupted `issues.md`**: a script that looked for the
+  conflict markers and found none still wrote the file, duplicating it. The merge was
+  aborted, restarted, and the script fixed to refuse to write when it finds no markers.
+
+**Next**
+
+- The header now carries the encyclopedia book, the guide's `?` and the Menu control —
+  and `landing-site` draws the same one. It is worth a look in a browser to be sure the
+  bar does not crowd the map on a short window.
+
+---
+
+## 2026-11-11 — The "Real data" section is the whole NASA layer, and the sheet stops squashing what is inside it
+
+**Did**
+
+- **Made the "Real data" section the whole NASA layer** (D-071, ISS-075). It holds NASA's
+  live daily picture, the saved NASA card for the sol, **the landing region's own
+  photograph** — which used to appear once on the landing screen and never again —
+  **NASA's own space-weather readings** (the flare class and the day it peaked, strongest
+  first, with the source they came from: DONKI, NOAA, or the game's long-run record),
+  and two NASA facts to take away. The tile's line of state counts what is behind it:
+  "3 pictures · 5 live flares".
+- **Carried the live readings out of the loader.** `dom/forecastLoader.ts` kept only the
+  game's timetable and threw NASA's own readings away; `LoadedForecast.flares` now holds
+  them, and `data/spaceweather.ts` gains `strongestFlares` to order them (A<B<C<M<X, then
+  the number) — DONKI can return thirty days of flares and a screen cannot show them all.
+- **The forecast stays on the main panel.** It is the game's schedule and it is what the
+  player acts on; a flare reading is NASA's, and the two are now kept apart.
+- **Fixed the sheet squashing its contents** (ISS-076). The body is a flex column that
+  scrolls, and its children were shrinking instead of overflowing, so a NASA picture with
+  a fixed aspect ratio poured over its own caption — the card measured 154 px tall with
+  522 px of content in it. The body's children now keep their own height.
+
+**Files**
+
+- `src/features/act/view.ts`, `src/features/act/model.ts`, `src/features/act/act.css`,
+  `src/features/act/model.test.ts` — the NASA layer and the tile's line of state
+- `src/data/spaceweather.ts`, `src/data/spaceweather.test.ts` — `strongestFlares`
+- `src/dom/forecastLoader.ts` — `LoadedForecast.flares`
+- `src/ui/sheet.css` — the body scrolls, its children do not shrink
+- `tools/browser-check-build.mjs` — six new assertions on the data sheet
+- `docs/architecture.md`, `docs/game-flow.md`, `docs/team/decisions.md`,
+  `docs/team/issues.md`, `docs/team/progress-log.md`, `docs/team/tasks.md`, `AGENTS.md`,
+  `src/features/act/README.md`
+
+**Problems**
+
+- **The saved card was for the sol just finished, not the sol being played.** On the
+  first day there is no finished sol, so `cardForSol(0)` was null and the section opened
+  with no sol picture at all. It now asks for the sol being played, which is also the one
+  a player wants to read.
+- **Two sheets of the same game, two different "not answered yet" sentences.** The live
+  daily picture and the live flare readings each have their own honest note, and the
+  first draft said the same thing twice in one section. The space-weather section now
+  says it once, with the source underneath.
+- **The region photograph is a remote NASA URL**, like the saved cards already were, so
+  with no network it is a broken picture. That was accepted rather than shipping local
+  copies — the images exist at NASA and nowhere else.
+- **The sheet bug was not visible in any test.** It only showed when a child-sized card
+  with a fixed-aspect picture was put in a sheet for the first time, and only a
+  measurement in a real browser caught it.
+
+**Next**
+
+- The data sheet is a long scroll: three pictures, each with its caption and its fact.
+  A child who wants the one fact about the region has to pass two photographs to get it.
+
+---
+
+## 2026-11-11 — The desk becomes a hub of buttons, and every picture is drawn by the game
+
+**Did**
+
+- **Turned the act screen's panel into a hub of buttons** (D-070). Five of them before
+  the first sol — Today's tasks, Check desk, Standing orders, Colony stats, View real
+  data — and a sixth, *Sol N in review*, once a sol has run. Each is a label and one line
+  of state, and each opens its section as a **sheet** over the desk: a dialog with its own
+  header, a scrolling body and one close. Nothing opens by itself — the panel's job is to
+  be readable at a glance, and a dialog that opens itself hides the glance.
+- **Removed the mission bar.** The sol count moved into the panel head's kicker (`Sol 1 of
+  12`, not `Sol 0 of 12` — ISS-073) and the science points into its top right corner. The
+  header gained two icon buttons beside Menu: a `?` for the guide and a book for the
+  encyclopedia. The encyclopedia's Back button now returns to the day mid-run instead of to
+  the build screen (ISS-072).
+- **Put the last sol's numbers on the tile itself.** The review button carries the sol's
+  net change as chips, so a change is never only behind a button (ISS-057).
+- **Drew every pictogram instead of borrowing one.** 34 stroked line drawings in
+  `ui/icons.ts`, built through `dom/svg.ts`, replacing the emoji on the act screen, the
+  HUD, the world signals and the debrief. `sim/activities.ts`, `sim/science.ts` and
+  `sim/patches.ts` no longer carry an `icon` field at all: a model may not import `ui/`,
+  so the mapping from an id to a picture lives in the view.
+
+**Files**
+
+- `src/ui/sheet.ts`, `src/ui/sheet.css`, `src/ui/icons.ts`, `src/ui/icons.css`,
+  `src/ui/icons.test.ts`, `src/dom/svg.ts` — new
+- `src/ui/gameLoop.ts`, `src/ui/guide.ts`, `src/styles/game-loop.css` — the mission bar
+  gone, the header's actions in
+- `src/features/act/model.ts`, `src/features/act/view.ts`, `src/features/act/act.css`,
+  `src/features/act/model.test.ts` — the hub
+- `src/features/base/view.ts`, `src/features/debrief/view.ts`,
+  `src/features/encyclopedia/view.ts`, `src/sim/activities.ts`, `src/sim/science.ts`,
+  `src/sim/patches.ts`, `src/sim/patches.test.ts`
+- `tools/browser-check-build.mjs`, `tools/browser-check-rover.mjs`,
+  `tools/browser-check-journey.mjs` — the build check opens tiles instead of reading the
+  scroll, the rover check opens the task sheet to stamp an order, and the journey check
+  was pointing at the wrong address (ISS-074)
+- `docs/architecture.md`, `docs/game-flow.md`, `docs/team/decisions.md`,
+  `docs/team/issues.md`, `docs/team/progress-log.md`, `docs/team/tasks.md`, `AGENTS.md`
+
+**Problems**
+
+- **`sim/` could not hold a picture.** The emoji lived in `sim/activities.ts`,
+  `sim/science.ts` and `sim/patches.ts` because the screens wanted them there, and a
+  model may not import `ui/`. The fix was to delete the field and map the id in the view
+  (`ORDER_ICON`, `PATCH_ICON`, `RANK_ICON`), which means a new activity or rank has no
+  picture until someone adds the mapping — the compiler cannot catch that, and the
+  fallback ('clipboard', 'star') is what covers it.
+- **The journey check was not broken — it was pointing at nothing.** It asked for
+  `127.0.0.1:5173` while Vite listens on the IPv6 loopback, so every step printed `none`
+  and the check ended with no errors: it could not fail and could not pass. It had been
+  reporting that way on `origin/main` for days and it had been read as a game problem
+  (ISS-074). With `localhost` the whole journey runs — naming → briefing → supply →
+  launch → interior → landing-site → base — with no console errors.
+- **The panel's kicker was off by one** because `RunState.sol` counts the sols *completed*.
+  It did not show until the number moved next to the button that names the day.
+- **An icon test threshold was too strict.** `icons.test.ts` demanded eight characters of
+  path data per shape, which failed on `M12 12v8`. It now demands four: long enough to be
+  a path, not so long that a short line cannot be drawn.
+
+**Next**
+
+- The hub has five sections and a crisis panel. The **standing orders** are the one that
+  grows every sol, and they are still a list inside a sheet — a child has to open the
+  sheet to learn that two new rules arrived.
+
+---
+
 ## 2026-11-11 — One navigation bar, a stable launch image, and a screen that scales
 
 **Did**

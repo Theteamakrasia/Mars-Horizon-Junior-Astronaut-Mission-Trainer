@@ -366,89 +366,104 @@ try {
   );
 
   // 7. The guide. It opens by itself the first time the player reaches the
-  //    build screen, and the button in the mission bar brings it back.
+  //    build screen, and the help button in the header brings it back.
   const guide = await evaluate(`(() => {
     const panel = document.querySelector('#base .gl__guide');
     return {
       open: !!panel,
       steps: panel ? panel.querySelectorAll('.gl__guide-step').length : 0,
-      button: !!document.querySelector('#base .gl__guide-button'),
+      button: !!document.querySelector('#base .gl__icon-button[aria-label="How to play"]'),
+      book: !!document.querySelector('#base .gl__icon-button[aria-label="Encyclopedia"]'),
     };
   })()`);
 
   note('the guide is open on the first build screen', guide.open === true);
   note('and it has steps in it', guide.steps >= 8, `${guide.steps} steps`);
-  note('the mission bar has a button to bring it back', guide.button === true);
+  note('the header has a button to bring it back', guide.button === true);
+  note('and the encyclopedia is one click away in the header', guide.book === true);
 
   await evaluate(`(() => { const b = document.querySelector('#base .gl__guide-close'); if (b) b.click(); })()`);
   await sleep(400);
   note('and it can be closed', (await evaluate(`!document.querySelector('#base .gl__guide')`)) === true);
 
-  await evaluate(`(() => { const b = document.querySelector('#base .gl__guide-button'); if (b) b.click(); })()`);
+  await evaluate(`(() => { const b = document.querySelector('#base .gl__icon-button[aria-label="How to play"]'); if (b) b.click(); })()`);
   await sleep(400);
   note('and opened again', (await evaluate(`!!document.querySelector('#base .gl__guide')`)) === true);
 
-  // 7. The desk: the work orders and the standing orders.
+  await evaluate(`(() => { const b = document.querySelector('#base .gl__guide-close'); if (b) b.click(); })()`);
+  await sleep(300);
+
+  // 8. The desk is a hub: six buttons, each a label and one line of state.
   await clickIn('base', 'Land & start sol 1');
   await waitFor(`!!document.getElementById('act') && !document.getElementById('act').hidden`);
   await sleep(1200);
 
-  const desk = await evaluate(`(() => {
-    const body = document.querySelector('#act .gl__scroll');
-    if (!body) return null;
+  /** Open one of the hub's sections, and wait for its sheet. */
+  const openTile = async (id) => {
+    await evaluate(`(() => { const b = document.querySelector('#act .act-tile[data-tile="${id}"]'); if (b) b.click(); })()`);
+    await sleep(500);
+
+    return evaluate(`!!document.querySelector('#act .sheet__card')`);
+  };
+
+  /** Close whatever sheet is open. */
+  const closeSheet = async () => {
+    await evaluate(`(() => { const b = document.querySelector('#act .sheet__done'); if (b) b.click(); })()`);
+    await sleep(400);
+  };
+
+  const hub = await evaluate(`(() => {
+    const tiles = [...document.querySelectorAll('#act .act-tile')];
     return {
-      orders: document.querySelectorAll('#act .act-order').length,
-      checks: document.querySelectorAll('#act .act-check').length,
-      board: document.querySelectorAll('#act .act-board__row').length,
-      fresh: document.querySelectorAll('#act .act-board__row[data-new="true"]').length,
-      mission: document.querySelector('#act .gl__mission-job')?.textContent ?? '',
+      count: tiles.length,
+      ids: tiles.map((tile) => tile.dataset.tile),
+      silent: tiles.filter((tile) => (tile.querySelector('.act-tile__status')?.textContent ?? '').trim() === '').length,
+      points: document.querySelector('#act .act-points')?.textContent ?? '',
+      kicker: document.querySelector('#act .gl__panel .gl__kicker')?.textContent ?? '',
+      bar: !!document.querySelector('#act .gl__mission'),
     };
   })()`);
 
+  /* Five on the first sol: the review has nothing to review until a sol runs,
+     and a button that says "nothing yet" is a fifth thing to read for nothing. */
+  note('the desk is five buttons before the first sol', hub?.count === 5, `${hub?.count} buttons`);
+  note(
+    'the five are the day, the desk, the rules, the stats and the data',
+    ['tasks', 'desk', 'orders', 'stats', 'data'].every((id) => (hub?.ids ?? []).includes(id)),
+    (hub?.ids ?? []).join(', '),
+  );
+  note(
+    'every button says what is behind it',
+    hub?.silent === 0,
+    `${hub?.silent ?? '?'} with no state`,
+  );
+  note('the mission bar is gone', hub?.bar === false);
+  note('the sol count is the panel kicker', (hub?.kicker ?? '').startsWith('Sol '), hub?.kicker ?? '');
+  note('and the science points are in its corner', /\d+\s*points/.test(hub?.points ?? ''), hub?.points ?? '');
+
+  // 9. The work orders, behind their button.
+  const tasksOpen = await openTile('tasks');
+  const desk = await evaluate(`(() => ({
+    orders: document.querySelectorAll('#act .act-order').length,
+    checks: document.querySelectorAll('#act .act-check').length,
+  }))()`);
+
+  note('the tasks button opens the work orders', tasksOpen === true);
   note('there are three work orders on the desk', desk?.orders === 3, `${desk?.orders} orders`);
   note('every work order carries two checks', desk?.checks === 6, `${desk?.checks} checks`);
-  note('the standing orders are on the board', (desk?.board ?? 0) > 0, `${desk?.board} orders`);
-  note("and today's are marked new", desk?.fresh === 2, `${desk?.fresh} new`);
-  note(
-    'the mission bar says what the player is playing',
-    (desk?.mission ?? '').includes('survive'),
-    desk?.mission ?? '',
-  );
 
-  // 8. Run a sol, and check the recap comes first on the next screen.
-  await evaluate(`(() => { const b = document.querySelector('#act .act-order:not([disabled])'); if (b) b.click(); })()`);
+  // 10. Pick one, then work it with the tool it carries.
+  const picked = await evaluate(`(() => {
+    const b = document.querySelector('#act .act-order:not([disabled])');
+    if (!b) return 'missing';
+    b.click();
+    return 'clicked';
+  })()`);
+  note('an order can be stamped', picked === 'clicked', picked);
   await sleep(500);
-  await clickIn('act', 'Run sol');
-  await sleep(1400);
 
-  /* A crisis replaces the orders on the next sol, so the check asks for the
-     desk only when the desk is actually there. */
-  const crisis = await evaluate(`!!document.querySelector('#act .gl__choices')`);
-  note('the sol ran', crisis || (await evaluate(`!!document.querySelector('#act .act-order')`)));
-
-  /* The forecast's timetable is rolled per page load (D-048), so a crisis
-     lands on the next sol some of the time and the desk is not there. The
-     player resolves the crisis and the desk comes back, so the check does
-     the same rather than failing on the runs that had one. */
-  if (crisis) {
-    await evaluate(`(() => { const b = document.querySelector('#act .gl__choice'); if (b) b.click(); })()`);
-    await sleep(700);
-  }
-
-  if (!crisis) {
-    const after = await evaluate(`(() => {
-      const body = document.querySelector('#act .gl__scroll');
-      if (!body) return null;
-      const first = body.querySelector('.gl__label');
-      return { first: first?.textContent ?? '' };
-    })()`);
-
-    note('the recap is the first thing on the act panel', (after?.first ?? '').includes('in review'), after?.first ?? '');
-  }
-
-  // 9. The tool on the order: work it, and the stars are the reward.
   const opened = await evaluate(`(() => {
-    const b = document.querySelector('#act .insp__open');
+    const b = document.querySelector('#act .insp__open:not([disabled])');
     if (!b) return 'missing';
     b.click();
     return 'clicked';
@@ -456,18 +471,107 @@ try {
   note('an order can be worked with a tool', opened === 'clicked', opened);
 
   if (opened === 'clicked') {
-    await sleep(500);
+    await sleep(600);
 
     const tool = await workTheTool();
 
     await evaluate(`(() => { const b = document.querySelector('#act .insp__finish'); if (b) b.click(); })()`);
     await sleep(700);
 
-    const stars = await evaluate(`document.querySelector('#act .insp__result')?.textContent ?? ''`);
-    const count = await evaluate(`document.querySelector('#act .insp__result')?.dataset.stars ?? ''`);
+    const stars = await evaluate(`(() => {
+      const result = document.querySelector('#act .insp__result');
+      if (!result) return null;
+      return {
+        count: result.dataset.stars ?? '',
+        label: result.getAttribute('aria-label') ?? '',
+        lit: result.querySelectorAll('.insp__stars .ico:not(.insp__star--empty)').length,
+        empty: result.querySelectorAll('.insp__stars .insp__star--empty').length,
+      };
+    })()`);
 
-    note('working the tool shows the stars', stars.includes('★'), `${tool}: ${stars}`);
-    note('and the stars are counted', ['0', '1', '2', '3'].includes(count), count);
+    note('working the tool shows the stars', stars !== null && stars.lit + stars.empty === 3, `${tool}: ${stars?.label ?? 'nothing'}`);
+    note('and the stars are counted', ['0', '1', '2', '3'].includes(stars?.count ?? ''), stars?.count ?? '');
+  }
+
+  await closeSheet();
+
+  // 11. The standing orders, behind their button.
+  const ordersOpen = await openTile('orders');
+  const board = await evaluate(`(() => ({
+    rows: document.querySelectorAll('#act .act-board__row').length,
+    fresh: document.querySelectorAll('#act .act-board__row[data-new="true"]').length,
+  }))()`);
+
+  note('the orders button opens the rule book', ordersOpen === true);
+  note('the standing orders are on the board', (board?.rows ?? 0) > 0, `${board?.rows} rules`);
+  note("and today's are marked new", board?.fresh === 2, `${board?.fresh} new`);
+
+  await closeSheet();
+
+  // 12. The colony stats, behind their button.
+  await openTile('stats');
+  const meters = await evaluate(`document.querySelectorAll('#act .act-meter__row').length`);
+  note('the stats button opens the five systems', meters === 5, `${meters} meters`);
+  await closeSheet();
+
+  // 12b. The real NASA data, behind its button. It used to show one picture
+  //      while the game owned a region's photo, the live flare readings and
+  //      forty facts (ISS-070).
+  await openTile('data');
+  const realData = await evaluate(`(() => ({
+    cards: document.querySelectorAll('#act .nasa-card').length,
+    kickers: [...document.querySelectorAll('#act .nasa-card__kicker')].map((n) => n.textContent),
+    weather: document.querySelectorAll('#act .act-weather__row').length,
+    facts: document.querySelectorAll('#act .act-fact').length,
+    sections: [...document.querySelectorAll('#act .sheet__body .gl__label')].map((n) => n.textContent),
+    tile: document.querySelector('#act .act-tile[data-tile="data"] .act-tile__status')?.textContent ?? '',
+  }))()`);
+
+  note('the data button opens the NASA layer', (realData?.cards ?? 0) > 0, `${realData?.cards ?? 0} cards`);
+  note('and it shows more than one picture', (realData?.cards ?? 0) > 1, `${realData?.cards ?? 0} pictures`);
+  note("including the landing site's own photo", (realData?.kickers ?? []).some((label) => label.includes('landing site')), (realData?.kickers ?? []).join(' | '));
+  note('the real space weather is in there', (realData?.sections ?? []).some((label) => label.includes('space weather')), (realData?.sections ?? []).join(' | '));
+  note('and there are NASA facts to read', (realData?.facts ?? 0) >= 2, `${realData?.facts ?? 0} facts`);
+  note('the button says what is behind it', /\d+\s*picture/.test(realData?.tile ?? ''), realData?.tile ?? '');
+
+  await closeSheet();
+
+  // 13. Run a sol, and the review lands on the hub.
+  await clickIn('act', 'Run sol');
+  await sleep(1400);
+
+  /* A crisis replaces the hub on the next sol, so the check asks for the hub
+     only when the hub is actually there. */
+  const crisis = await evaluate(`!!document.querySelector('#act .gl__choices')`);
+  note('the sol ran', crisis || (await evaluate(`!!document.querySelector('#act .act-tile')`)));
+
+  /* The forecast's timetable is rolled per page load (D-048), so a crisis
+     lands on the next sol some of the time and the hub is not there. The
+     player resolves the crisis and the hub comes back, so the check does the
+     same rather than failing on the runs that had one. */
+  if (crisis) {
+    await evaluate(`(() => { const b = document.querySelector('#act .gl__choice'); if (b) b.click(); })()`);
+    await sleep(900);
+  }
+
+  if (!crisis) {
+    const review = await evaluate(`(() => {
+      const tile = document.querySelector('#act .act-tile[data-tile="review"]');
+      return {
+        tiles: document.querySelectorAll('#act .act-tile').length,
+        label: tile?.querySelector('.act-tile__label')?.textContent ?? '',
+        chips: tile ? tile.querySelectorAll('.act-chip').length : 0,
+      };
+    })()`);
+
+    note('a sol adds the review button, so the desk is six', review?.tiles === 6, `${review?.tiles} buttons`);
+    note('the review button names the sol it reviews', (review?.label ?? '').includes('in review'), review?.label ?? '');
+    note('and the net change is printed on the button itself', (review?.chips ?? 0) > 0, `${review?.chips} chips`);
+
+    await openTile('review');
+    const change = await evaluate(`document.querySelectorAll('#act .act-change').length`);
+    note('the review opens onto what the sol changed', change > 0, `${change} changes`);
+    await closeSheet();
   }
 
   note('no console errors', consoleErrors.length === 0, consoleErrors.slice(0, 3).join(' | '));

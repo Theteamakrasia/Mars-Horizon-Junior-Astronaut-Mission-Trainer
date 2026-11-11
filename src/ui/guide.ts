@@ -11,6 +11,7 @@
  */
 
 import { h } from '../dom/h';
+import { icon } from './icons';
 import { GUIDE_STEPS, type GuideStep } from '../sim/guide';
 
 /** Where each part of the screen is, so the guide can say it plainly. */
@@ -60,9 +61,13 @@ export function guidePanel(onClose: () => void): HTMLElement {
   return panel;
 }
 
-/** The little button that opens the guide. */
+/** The little button that opens the guide, drawn in the header beside Menu. */
 export function guideButton(onOpen: () => void): HTMLButtonElement {
-  const button = h('button', { class: 'gl__guide-button', type: 'button', 'aria-label': 'How to play' }, '?');
+  const button = h(
+    'button',
+    { class: 'gl__icon-button', type: 'button', 'aria-label': 'How to play', title: 'How to play' },
+    icon('question'),
+  );
 
   button.addEventListener('click', onOpen);
 

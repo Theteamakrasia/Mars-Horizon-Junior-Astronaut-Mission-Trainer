@@ -43,12 +43,11 @@ describe('the patches', () => {
     expect(patches.some((patch) => patch.id === 'night-watch')).toBe(false);
   });
 
-  it('gives every patch an id, a name, a line and a picture', () => {
+  it('gives every patch an id, a name and a line', () => {
     for (const patch of patchesFor(play(3, 'rest'))) {
       expect(patch.id.length).toBeGreaterThan(2);
       expect(patch.title.length).toBeGreaterThan(2);
       expect(patch.detail.length).toBeGreaterThan(5);
-      expect(patch.icon.length).toBeGreaterThan(0);
     }
   });
 

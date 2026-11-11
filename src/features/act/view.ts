@@ -5,19 +5,24 @@
  * game is the countdown on a crisis, and a "take your time" switch turns that off.
  * All rules are in `src/sim/`, so this file only draws state and forwards choices.
  *
- * Crisis choices (D-029) are a deliberate exception to D-018's "no mid-sol
- * choices": three forecast events stop the clock and ask. Every option costs
- * something, and Earth's reply is delayed in proportion to the sol.
+ * **The desk is a hub, not a scroll** (D-070). Six buttons, each a label and one
+ * line of state, and each opens its section over the desk. The panel used to be
+ * one column of everything: the orders, the board, the notes, the rover, the
+ * diagram, NASA's picture, and the button that runs the day at the bottom. A
+ * child looking for one thing read past all the others to find it, and the
+ * panel grew a longer scroll every sol. Nothing was removed — the sections are
+ * all still here, one button away.
  *
- * The steps follow the game-loop frames: `66:20` for a normal sol, `66:26` for a
- * crisis, where the decision replaces the mission panel instead of covering the
- * whole screen.
+ * Crisis choices (D-029) are a deliberate exception to D-018's "no mid-sol
+ * choices": three forecast events stop the clock and ask. A crisis replaces the
+ * hub, because it *is* that day's work order.
  */
 
-import { cardForSol, factForTopic } from '../../data/nasaGallery';
+import { cardForSol, factFor, factForTopic, regionCard, type NasaCard } from '../../data/nasaGallery';
 import type { DailyFact } from '../../data/nasaDaily';
+import { describeWhen, strongestFlares } from '../../data/spaceweather';
 import { loadDailyFacts } from '../../dom/dailyFactLoader';
-import { loadForecast } from '../../dom/forecastLoader';
+import { loadForecast, type LoadedForecast } from '../../dom/forecastLoader';
 import { h } from '../../dom/h';
 import { earthAdvice, earthIsInTime, optionOf, pendingCrisis, type Crisis } from '../../sim/crises';
 import { oneWayMinutes, roundTripMinutes } from '../../sim/comms';
@@ -29,14 +34,16 @@ import { visibleForecast } from '../../sim/forecast';
 import { siteScore, regionById, SITE_AXES } from '../../sim/regions';
 import { advanceSol, decide, powerPicture, WIN_SOL } from '../../sim/sol';
 import { gamePanel, gameScreen, gameSection, gameWorld, moduleArt, moduleFigures, type HudStat, type SignalCard } from '../../ui/gameLoop';
+import { icon, RANK_ICON, RESOURCE_ICON, type IconName } from '../../ui/icons';
 import { nasaCard } from '../../ui/nasaCard';
 import { nasaFeedCard } from '../../ui/nasaFeedCard';
 import { readButton } from '../../ui/readButton';
 import { stopReading } from '../../ui/readAloud';
 import { nextStop } from '../../ui/registry';
 import { navigate } from '../../ui/router';
+import { sheet, sheetCloseButton } from '../../ui/sheet';
 
-import { activityRows, boardRows, changeRows, deskNote, meterRows, missionHeadline, orderChecks, powerSentence, powerToday, roverDocument, scienceSummary, secondsLeft } from './model';
+import { activityRows, boardRows, changeRows, deskNote, hubTiles, meterRows, missionHeadline, orderChecks, powerSentence, powerToday, roverDocument, scienceSummary, secondsLeft, type HubSection, type HubTile } from './model';
 
 import '../../styles/game-loop.css';
 import './act.css';
@@ -50,10 +57,10 @@ const EVENT_NAME: Readonly<Record<Crisis['kind'], string>> = {
   'supply-pod': 'Supply pod',
 };
 
-const EVENT_ICON: Readonly<Record<Crisis['kind'], string>> = {
-  flare: '☀',
-  storm: '🌪',
-  'supply-pod': '📦',
+const EVENT_ICON: Readonly<Record<Crisis['kind'], IconName>> = {
+  flare: 'sun',
+  storm: 'storm',
+  'supply-pod': 'box',
 };
 
 /** The one-line picture on the crisis card, and what the crew says about it. */
@@ -63,12 +70,41 @@ const CRISIS_BRIEF: Readonly<Record<Crisis['kind'], { readonly signal: string; r
   'supply-pod': { signal: 'It landed nearby. Choose what to unpack.', crew: 'A pod from Earth touched down. What do we need most?' },
 };
 
-/** The artwork for each option, in order: two pictures, then a tool glyph. */
-const CRISIS_ART: Readonly<Record<Crisis['kind'], readonly { readonly src?: string; readonly glyph?: string }[]>> = {
-  flare: [{ src: moduleArt('habitat') }, { src: moduleArt('regolith-shield') }, { glyph: '🛠' }],
-  storm: [{ src: moduleArt('solar-array') }, { src: moduleArt('greenhouse') }, { glyph: '🛠' }],
-  'supply-pod': [{ src: moduleArt('habitat') }, { glyph: '📦' }, { glyph: '🛠' }],
+/** The artwork for each option, in order: two pictures, then a tool pictogram. */
+const CRISIS_ART: Readonly<Record<Crisis['kind'], readonly { readonly src?: string; readonly icon?: IconName }[]>> = {
+  flare: [{ src: moduleArt('habitat') }, { src: moduleArt('regolith-shield') }, { icon: 'pick' }],
+  storm: [{ src: moduleArt('solar-array') }, { src: moduleArt('greenhouse') }, { icon: 'sparkle' }],
+  'supply-pod': [{ src: moduleArt('habitat') }, { icon: 'box' }, { icon: 'pick' }],
 };
+
+/** The pictogram on each hub button. */
+const TILE_ICON: Readonly<Record<HubSection, IconName>> = {
+  tasks: 'clipboard',
+  desk: 'tray',
+  orders: 'book',
+  stats: 'chart',
+  data: 'dish',
+  review: 'history',
+};
+
+/** The pictogram for a work order, by activity id. */
+const ORDER_ICON: Readonly<Record<string, IconName>> = {
+  rest: 'sun',
+  survey: 'rover',
+  experiment: 'flask',
+  'map-site': 'map',
+  'sweep-panels': 'sparkle',
+  'grow-extra': 'leaf',
+  'sample-rock': 'rock',
+  'dig-ice': 'pick',
+  'recycle-tune': 'recycle',
+  'stack-shielding': 'shield',
+  'mend-suits': 'helmet',
+  'air-check': 'oxygen',
+};
+
+/** The pictogram for an order the catalogue does not name. */
+const ORDER_ICON_FALLBACK: IconName = 'clipboard';
 
 export function mountAct(
   mount: HTMLElement,
@@ -83,6 +119,13 @@ export function mountAct(
   let focusedCrisis: string | null = null;
   /** The tool open on the desk, if any. */
   let openTool: { activityId: string; tool: Inspection } | null = null;
+  /** Which section is open over the desk, if any. */
+  let openSheet: HubSection | null = null;
+  /** Where the open sheet was scrolled to, so a redraw does not jump to the top. */
+  let sheetScroll = 0;
+  /** What to focus after the next render, because the thing they were on is replaced. */
+  let focusSheet = false;
+  let focusTile: HubSection | null = null;
   /** Whether the how-to-play guide is open. */
   let guideOpen = false;
   let clockNodes: { readonly bar: HTMLElement; readonly text: HTMLElement } | null = null;
@@ -91,6 +134,9 @@ export function mountAct(
      says so rather than showing a broken card. */
   let dailyFacts: readonly DailyFact[] = [];
   let dailyDetail = '';
+  /* The live space weather, kept whole: the forecast is the game's reading of
+     it, but the data sheet shows NASA's own readings (D-071). */
+  let loaded: LoadedForecast | null = null;
   const controller = new AbortController();
 
   function stopTimer(): void {
@@ -101,6 +147,9 @@ export function mountAct(
   function step(): void {
     if (run === null) return;
 
+    /* The day is being committed, so whatever was open is about to be about
+       the wrong sol. */
+    openSheet = null;
     run = advanceSol(run);
     setRun(run);
 
@@ -155,7 +204,8 @@ export function mountAct(
    * Take the day's activity (D-051).
    *
    * The choice is kept on the run so the sim can apply it when the sol runs,
-   * and the screen redraws so the picked card can show itself.
+   * and the screen redraws so the picked card can show itself. The sheet stays
+   * open across the redraw: choosing is not the same as confirming.
    */
   function pickActivity(id: string): void {
     if (run === null) return;
@@ -169,12 +219,28 @@ export function mountAct(
     render();
   }
 
+  function openSection(section: HubSection): void {
+    openSheet = section;
+    guideOpen = false;
+    focusSheet = true;
+    render();
+  }
+
+  function closeSection(): void {
+    const closed = openSheet;
+
+    openSheet = null;
+    sheetScroll = 0;
+    focusTile = closed;
+    render();
+  }
+
   /** The score card in the world panel: how much science, and what rank. */
   function scienceSignal(state: RunState): SignalCard {
     const summary = scienceSummary(state);
 
     return {
-      icon: summary.rank.icon,
+      icon: RANK_ICON[summary.rank.id] ?? 'star',
       kicker: 'Science',
       text: `${summary.points} points · ${summary.rank.title}`,
       detail:
@@ -185,7 +251,7 @@ export function mountAct(
     };
   }
 
-  /** The five resource cards, from the same rows the old meters used. */
+  /** The five resource cards, from the same rows the meters use. */
   function hudFor(state: RunState): readonly HudStat[] {
     const toneOf = (tone: string): HudStat['tone'] => (tone === 'critical' ? 'bad' : tone === 'low' ? 'warn' : 'ok');
 
@@ -199,14 +265,14 @@ export function mountAct(
        game. This is the number the activity prices come out of. */
     const rows: HudStat[] = [
       {
-        icon: '⚡',
+        icon: 'bolt',
         label: 'Power today',
         value: `${power.available} kWh`,
         percent: power.capacity > 0 ? Math.round((power.available / power.capacity) * 100) : 0,
         tone: power.nightCovered ? 'ok' : 'bad',
       },
       ...meters.slice(1).map((row) => ({
-        icon: row.emoji,
+        icon: RESOURCE_ICON[row.name],
         label: row.label,
         value: `${row.percent}%`,
         percent: row.percent,
@@ -215,6 +281,21 @@ export function mountAct(
     ];
 
     return rows;
+  }
+
+  /** The science points, in the panel head's top right. The kicker owns the left. */
+  function pointsCorner(state: RunState): HTMLElement {
+    const summary = scienceSummary(state);
+
+    return h(
+      'p',
+      {
+        class: 'act-points',
+        'aria-label': `${summary.points} science points, rank ${summary.rank.title}`,
+      },
+      icon('star'),
+      h('span', { 'aria-hidden': 'true', text: `${summary.points} points` }),
+    );
   }
 
   function forecastSection(state: RunState): HTMLElement {
@@ -226,7 +307,12 @@ export function mountAct(
         h(
           'div',
           { class: 'gl__mini' },
-          h('span', { class: 'gl__mini-label' }, h('span', { 'aria-hidden': 'true', text: EVENT_ICON[event.kind] }), `Sol ${event.sol}`),
+          h(
+            'span',
+            { class: 'gl__mini-label' },
+            icon(EVENT_ICON[event.kind]),
+            `Sol ${event.sol}`,
+          ),
           h('span', { class: 'gl__mini-value', text: EVENT_NAME[event.kind] }),
           h('span', { class: 'gl__mini-detail', text: event.approximate ? `${event.summary} (approximate)` : event.summary }),
         ),
@@ -238,6 +324,135 @@ export function mountAct(
     }
 
     return gameSection('Coming up', triple);
+  }
+
+  /* ------------------------------------------------------------- sections -- */
+
+  /**
+   * The work orders for today.
+   *
+   * A document, not a menu: what is asked, what it costs, and the two things
+   * to check before it can be stamped. The player approves or denies knowing
+   * what they are approving — which is the whole difference between this and
+   * a menu with three buttons on it.
+   */
+  function orderList(state: RunState): HTMLElement {
+    const rows = activityRows(state, state.sol + 1);
+    const list = h('div', { class: 'act-orders' });
+
+    for (const row of rows) {
+      const checks = orderChecks(state, row);
+      const failing = checks.find((check) => !check.ok);
+
+      const button = h(
+        'button',
+        {
+          class: 'act-order',
+          type: 'button',
+          'data-activity': row.id,
+          'aria-pressed': String(row.chosen),
+          disabled: !row.available,
+        },
+        h('span', { class: 'act-order__icon', 'aria-hidden': 'true' }, icon(ORDER_ICON[row.id] ?? ORDER_ICON_FALLBACK)),
+        h(
+          'span',
+          { class: 'act-order__body' },
+          h(
+            'span',
+            { class: 'act-order__head' },
+            h('span', { class: 'act-order__title', text: row.title }),
+            h(
+              'span',
+              { class: 'act-order__tags' },
+              ...row.costs.map((text) => h('span', { class: 'act-tag act-tag--cost', text })),
+              ...row.gains.map((text) => h('span', { class: 'act-tag act-tag--gain', text })),
+            ),
+          ),
+          h('span', {
+            class: 'act-order__detail',
+            text: row.available ? row.detail : (row.lockedReason ?? row.detail),
+          }),
+          h(
+            'span',
+            { class: 'act-order__checks' },
+            ...checks.map((check) =>
+              h(
+                'span',
+                { class: 'act-check', 'data-ok': String(check.ok) },
+                h('span', { class: 'act-check__label', text: check.label }),
+                h('span', { class: 'act-check__value', text: check.value }),
+              ),
+            ),
+          ),
+          failing === undefined ? null : h('span', { class: 'act-order__warn', text: failing.why }),
+        ),
+        h('span', { class: 'act-order__mark', 'aria-hidden': 'true' }, row.chosen ? icon('check') : null),
+      );
+
+      if (row.available) button.addEventListener('click', () => pickActivity(row.id));
+
+      list.append(button);
+
+      /* The tool this order can be worked with, if it has unlocked yet. */
+      if (row.available && row.engine !== null && engineUnlocked(row.engine, state.sol + 1)) {
+        const worked = state.inspections.some((entry) => entry.sol === state.sol + 1 && entry.activityId === row.id);
+
+        const inspect = h(
+          'button',
+          { class: 'insp__open', type: 'button' },
+          worked ? 'Worked' : `${ENGINE_NAME[row.engine]} · inspect`,
+        );
+
+        inspect.addEventListener('click', () => {
+          openTool = { activityId: row.id, tool: makeInspection(row.engine as EngineKind, state.sol + 1) };
+          openSection('desk');
+        });
+
+        list.append(h('div', { class: 'insp__slot' }, inspect));
+      }
+    }
+
+    if (rows.length === 0) list.append(h('p', { class: 'gl__note', text: 'There is nothing to choose today.' }));
+
+    return list;
+  }
+
+  /** What today's tasks say under the orders, and the fact behind the subject. */
+  function tasksBody(state: RunState): readonly (Node | false)[] {
+    const rows = activityRows(state, state.sol + 1);
+    const picked = rows.some((row) => row.chosen);
+
+    const note =
+      rows.length === 0
+        ? 'There is nothing to choose today.'
+        : picked
+          ? 'You can change your mind until you run the sol.'
+          : 'Check the two readings, then stamp one order.';
+
+    /* The fact about the day's own subject, tucked under the orders. */
+    const chosen = rows.find((row) => row.chosen) ?? rows.find((row) => row.available) ?? rows[0];
+    const fact = chosen === undefined ? null : factForTopic(chosen.topic, state.sol + 1);
+
+    /* The orders are the day's decision, so they are worth hearing as well as
+       reading: the cheapest kind of access for a player who cannot read yet. */
+    const read = readButton(
+      () =>
+        rows
+          .map((row) => {
+            const locked = row.available ? '' : ` ${row.lockedReason ?? ''}`;
+
+            return `${row.title}. ${row.detail}${locked} Costs ${row.costs.join(' and ') || 'nothing'}. Gives ${row.gains.join(' and ')}.`;
+          })
+          .join(' '),
+      { ariaLabel: "Read today's work orders aloud" },
+    );
+
+    return [
+      orderList(state),
+      h('p', { class: 'gl__note', text: note }),
+      fact === null ? false : h('p', { class: 'gl__note', text: `NASA fact · ${fact.text} (${fact.credit})` }),
+      read ?? false,
+    ];
   }
 
   /**
@@ -279,134 +494,22 @@ export function mountAct(
         ? null
         : h(
             'p',
-            { class: 'insp__result', 'data-stars': String(stars) },
-            `${'★'.repeat(stars)}${'☆'.repeat(3 - stars)} ${tool.result().message}`,
-          );
-
-    return gameSection(
-      `Working the order · ${tool.name}`,
-      h('div', { class: 'insp' }, tool.element, result, finish),
-    );
-  }
-
-  /**
-   * The work orders for today.
-   *
-   * A document, not a menu: what is asked, what it costs, and the two things
-   * to check before it can be stamped. The player approves or denies knowing
-   * what they are approving — which is the whole difference between this and
-   * a menu with three buttons on it.
-   */
-  function orderSection(state: RunState): HTMLElement {
-    const rows = activityRows(state, state.sol + 1);
-    const list = h('div', { class: 'act-orders' });
-
-    for (const row of rows) {
-      const checks = orderChecks(state, row);
-      const failing = checks.find((check) => !check.ok);
-
-      const button = h(
-        'button',
-        {
-          class: 'act-order',
-          type: 'button',
-          'data-activity': row.id,
-          'aria-pressed': String(row.chosen),
-          disabled: !row.available,
-        },
-        h('span', { class: 'act-order__icon', 'aria-hidden': 'true', text: row.icon }),
-        h(
-          'span',
-          { class: 'act-order__body' },
-          h(
-            'span',
-            { class: 'act-order__head' },
-            h('span', { class: 'act-order__title', text: row.title }),
+            { class: 'insp__result', 'data-stars': String(stars), 'aria-label': `${stars} of 3 stars. ${tool.result().message}` },
             h(
               'span',
-              { class: 'act-order__tags' },
-              ...row.costs.map((text) => h('span', { class: 'act-tag act-tag--cost', text })),
-              ...row.gains.map((text) => h('span', { class: 'act-tag act-tag--gain', text })),
+              { class: 'insp__stars', 'aria-hidden': 'true' },
+              ...[0, 1, 2].map((index) => {
+                const star = icon('star');
+
+                if (index >= stars) star.classList.add('insp__star--empty');
+
+                return star;
+              }),
             ),
-          ),
-          h('span', {
-            class: 'act-order__detail',
-            text: row.available ? row.detail : (row.lockedReason ?? row.detail),
-          }),
-          h(
-            'span',
-            { class: 'act-order__checks' },
-            ...checks.map((check) =>
-              h(
-                'span',
-                { class: 'act-check', 'data-ok': String(check.ok) },
-                h('span', { class: 'act-check__label', text: check.label }),
-                h('span', { class: 'act-check__value', text: check.value }),
-              ),
-            ),
-          ),
-          failing === undefined ? null : h('span', { class: 'act-order__warn', text: failing.why }),
-        ),
-        h('span', { class: 'act-order__mark', 'aria-hidden': 'true', text: row.chosen ? '✓' : '' }),
-      );
+            ` ${tool.result().message}`,
+          );
 
-      if (row.available) button.addEventListener('click', () => pickActivity(row.id));
-
-      list.append(button);
-
-      /* The tool this order can be worked with, if it has unlocked yet. */
-      if (row.available && row.engine !== null && engineUnlocked(row.engine, state.sol + 1)) {
-        const worked = state.inspections.some((entry) => entry.sol === state.sol + 1 && entry.activityId === row.id);
-
-        const inspect = h(
-          'button',
-          { class: 'insp__open', type: 'button' },
-          worked ? '★ Worked' : `${ENGINE_NAME[row.engine]} · inspect`,
-        );
-
-        inspect.addEventListener('click', () => {
-          openTool = { activityId: row.id, tool: makeInspection(row.engine as EngineKind, state.sol + 1) };
-          render();
-        });
-
-        list.append(h('div', { class: 'insp__slot' }, inspect));
-      }
-    }
-
-    const picked = rows.some((row) => row.chosen);
-
-    const note =
-      rows.length === 0
-        ? 'There is nothing to choose today.'
-        : picked
-          ? 'You can change your mind until you run the sol.'
-          : 'Check the two readings, then stamp one order.';
-
-    /* The fact about the day's own subject, tucked under the orders. */
-    const chosen = rows.find((row) => row.chosen) ?? rows.find((row) => row.available) ?? rows[0];
-    const fact = chosen === undefined ? null : factForTopic(chosen.topic, state.sol + 1);
-
-    /* The orders are the day's decision, so they are worth hearing as well as
-       reading: the cheapest kind of access for a player who cannot read yet. */
-    const read = readButton(
-      () =>
-        rows
-          .map((row) => {
-            const locked = row.available ? '' : ` ${row.lockedReason ?? ''}`;
-
-            return `${row.title}. ${row.detail}${locked} Costs ${row.costs.join(' and ') || 'nothing'}. Gives ${row.gains.join(' and ')}.`;
-          })
-          .join(' '),
-      { ariaLabel: "Read today's work orders aloud" },
-    );
-
-    return gameSection(
-      "Today's work orders",
-      list,
-      h('p', { class: 'gl__note', text: note }),
-      fact === null ? false : h('p', { class: 'gl__note', text: `NASA fact · ${fact.text} (${fact.credit})` }),
-      read ?? false,
-    );
+    return gameSection(`Working the order · ${tool.name}`, h('div', { class: 'insp' }, tool.element, result, finish));
   }
 
   /**
@@ -415,15 +518,15 @@ export function mountAct(
    * The warm part of the game. Some sols have one and some do not, which is
    * what keeps twelve days from being twelve of the same day.
    */
-  function noteSection(state: RunState): HTMLElement | false {
+  function deskNoteCard(state: RunState): HTMLElement | false {
     const note = deskNote(state.sol + 1);
 
     if (note === null) return false;
 
-    const card = h(
+    return h(
       'article',
       { class: 'act-note', 'data-from': note.from },
-      h('span', { class: 'act-note__mark', 'aria-hidden': 'true', text: note.from === 'home' ? '✉' : '☺' }),
+      h('span', { class: 'act-note__mark', 'aria-hidden': 'true' }, icon(note.from === 'home' ? 'letter' : 'helmet')),
       h(
         'div',
         { class: 'act-note__body' },
@@ -432,8 +535,6 @@ export function mountAct(
         h('p', { class: 'act-note__delay', text: `It took ${note.minutes} minutes to arrive. Nothing ever does.` }),
       ),
     );
-
-    return gameSection('On the desk', card);
   }
 
   /**
@@ -444,12 +545,12 @@ export function mountAct(
    * reading a fact about the rover; they are answering a document it brought
    * back.
    */
-  function roverSection(state: RunState): HTMLElement | false {
+  function roverCard(state: RunState): HTMLElement | false {
     const document = roverDocument(state);
 
     if (document === null) return false;
 
-    const card = h(
+    return h(
       'article',
       { class: 'act-find' },
       h('img', { class: 'act-find__image', src: document.imageUrl, alt: document.alt }),
@@ -483,8 +584,21 @@ export function mountAct(
         ),
       ),
     );
+  }
 
-    return gameSection('The rover found something', card);
+  /** Everything waiting on the desk, in the order a duty officer would pick it up. */
+  function deskBody(state: RunState): readonly (Node | false)[] {
+    const note = deskNoteCard(state);
+    const find = roverCard(state);
+    const tool = inspectionSection(state);
+    const nothing = note === false && find === false && tool === false;
+
+    return [
+      nothing ? h('p', { class: 'gl__note', text: 'The desk is clear. Nothing new landed today.' }) : false,
+      note,
+      find,
+      tool,
+    ];
   }
 
   /**
@@ -494,7 +608,7 @@ export function mountAct(
    * taught: every order is a real operating rule, and the player works to the
    * whole set rather than to the two that are newest.
    */
-  function boardSection(state: RunState): HTMLElement {
+  function ordersBody(state: RunState): readonly (Node | false)[] {
     const rows = boardRows(state);
     const list = h('ol', { class: 'act-board' });
 
@@ -516,47 +630,234 @@ export function mountAct(
 
     const fresh = rows.filter((row) => row.isNew).length;
 
-    return gameSection(
-      'Standing orders',
+    return [
       list,
       h('p', { class: 'gl__note', text: `${rows.length} orders so far, ${fresh} new today. These are the rules you work to.` }),
+    ];
+  }
+
+  /** The day's power, in three small cards, as the build screen draws it. */
+  function dayNightStrip(state: RunState): HTMLElement {
+    const power = powerPicture(state);
+    const today = powerToday(state);
+
+    return h(
+      'div',
+      { class: 'gl__triple' },
+      h(
+        'div',
+        { class: 'gl__mini' },
+        h('span', { class: 'gl__mini-label' }, icon('sun'), 'Daytime'),
+        h('span', { class: 'gl__mini-value', text: `+${power.generatedKw} kW` }),
+        h('span', { class: 'gl__mini-detail', text: 'panels in sunlight' }),
+      ),
+      h(
+        'div',
+        { class: 'gl__mini' },
+        h('span', { class: 'gl__mini-label' }, icon('bolt'), 'For today'),
+        h('span', { class: 'gl__mini-value', text: `${today.available} kWh` }),
+        h('span', { class: 'gl__mini-detail', text: `of ${today.capacity} stored` }),
+      ),
+      h(
+        'div',
+        { class: 'gl__mini' },
+        h('span', { class: 'gl__mini-label' }, icon('moon'), 'Night use'),
+        h('span', { class: 'gl__mini-value', text: `−${power.nightDrainKw} kW` }),
+        h('span', { class: 'gl__mini-detail', text: today.nightCovered ? 'the batteries cover it' : 'the batteries will not cover it' }),
+      ),
+    );
+  }
+
+  /** The five systems, with the number behind each meter. */
+  function statsBody(state: RunState): readonly (Node | false)[] {
+    const meters = meterRows(state);
+    const summary = scienceSummary(state);
+    const power = powerPicture(state);
+
+    const rows = h(
+      'div',
+      { class: 'act-meter' },
+      ...meters.map((row) =>
+        h(
+          'div',
+          { class: 'act-meter__row', 'data-tone': row.tone },
+          h('span', { class: 'act-meter__icon', 'aria-hidden': 'true' }, icon(RESOURCE_ICON[row.name])),
+          h('span', { class: 'act-meter__label', text: row.label }),
+          h('span', { class: 'act-meter__value', text: `${row.percent}%` }),
+          h(
+            'span',
+            {
+              class: 'act-meter__bar',
+              role: 'meter',
+              'aria-label': row.label,
+              'aria-valuemin': '0',
+              'aria-valuemax': '100',
+              'aria-valuenow': String(row.percent),
+            },
+            h('span', { style: `width:${Math.max(0, Math.min(100, row.percent))}%` }),
+          ),
+        ),
+      ),
+    );
+
+    const science = h(
+      'p',
+      { class: 'act-stats__science' },
+      icon(RANK_ICON[summary.rank.id] ?? 'star'),
+      h(
+        'span',
+        null,
+        h('strong', { text: `${summary.points} science points` }),
+        ` · ${summary.rank.title}`,
+        summary.next === null ? ' · the top rank' : ` · ${summary.toNext} to ${summary.next.title}`,
+      ),
+    );
+
+    return [
+      dayNightStrip(state),
+      rows,
+      science,
+      h('p', { class: 'gl__note', text: powerSentence(power.generatedKw, power.storedKwh, power.nightDrainKw) }),
+    ];
+  }
+
+  /**
+   * The saved NASA card for the sol being played.
+   *
+   * The card follows the sol: sol 1 is the planet you land on, sol 7 is the
+   * dust storm. Before the first sol there is nothing to follow, so the sol
+   * being played is the one that counts — otherwise the section opens on a
+   * picture-less first day.
+   */
+  function learningCard(state: RunState): NasaCard | null {
+    return cardForSol(state.sol + 1);
+  }
+
+  /**
+   * How many NASA pictures are behind the data tile.
+   *
+   * The tile says what is behind it, so it needs the count — and the count has
+   * to agree with what the sheet actually shows.
+   */
+  function picturesBehind(state: RunState): number {
+    return (
+      (dailyFacts.length > 0 ? 1 : 0) +
+      (learningCard(state) === null ? 0 : 1) +
+      (regionCard(state.regionId) === null ? 0 : 1)
     );
   }
 
   /**
-   * The NASA picture for the sol about to run, and the fact about the system
-   * the day's activity touches.
+   * The whole NASA layer, in one sheet (D-071).
+   *
+   * The game owns a lot of real data — NASA's picture of the sol, the picture of
+   * the region the player landed in, the live daily picture, the live flare
+   * readings, and forty tagged facts — and until now the section behind the
+   * "Real data" button showed one card. This is all of it, in the order a
+   * child would ask for it: what NASA is doing today, what this sol is about,
+   * where the crew landed, what the Sun is doing, and a fact to take away.
    *
    * The live feed is enrichment (D-053): when NASA did not answer, the screen
-   * shows the saved NASA card instead and says why, rather than pretending.
+   * says so rather than pretending.
    */
-  function nasaFeedSection(state: RunState): Node | false {
+  function dataBody(state: RunState): readonly (Node | false)[] {
+    const learning = learningCard(state);
+    const region = regionCard(state.regionId);
+
+    return [
+      livePicture(state),
+      learning === null ? false : nasaCard(learning),
+      region === null ? false : nasaCard(region, 'Your landing site'),
+      spaceWeather(),
+      nasaFacts(state),
+    ];
+  }
+
+  /** NASA's live daily picture, or the honest reason there is not one. */
+  function livePicture(state: RunState): HTMLElement {
     if (dailyFacts.length === 0) {
       return h('p', {
         class: 'gl__note',
-        text: dailyDetail.length > 0 ? dailyDetail : 'NASA is not answering right now, so the saved NASA picture above is the one on screen.',
+        text: dailyDetail.length > 0 ? dailyDetail : 'NASA is not answering right now, so the saved NASA picture below is the one on screen.',
       });
     }
 
-    const fact = dailyFacts[state.sol % dailyFacts.length];
+    return h(
+      'div',
+      { class: 'act-data__live' },
+      gameSection('From NASA today', nasaFeedCard(dailyFacts[state.sol % dailyFacts.length] as DailyFact)),
+      h('p', { class: 'gl__note', text: dailyDetail }),
+    );
+  }
 
-    if (fact === undefined) return false;
+  /**
+   * NASA's own space-weather readings, and where they came from.
+   *
+   * The forecast on the panel is the game's reading of these readings — a
+   * timetable, one event per sol. This is the real thing: the class of each
+   * flare and the day it peaked, strongest first, with the source underneath so
+   * the player knows whether they are looking at a live reading or at the
+   * game's long-run record.
+   */
+  function spaceWeather(): HTMLElement {
+    const readings = loaded?.flares ?? [];
+    const strongest = strongestFlares(readings);
+    const list = h('div', { class: 'act-weather' });
 
-    return gameSection('From NASA today', nasaFeedCard(fact));
+    for (const flare of strongest) {
+      list.append(
+        h(
+          'div',
+          { class: 'act-weather__row' },
+          h('span', { class: 'act-weather__class', text: flare.classType }),
+          h('span', { class: 'act-weather__when', text: describeWhen(flare.peakTime) }),
+        ),
+      );
+    }
+
+    const source = loaded?.detail ?? 'The live reading has not come back yet.';
+
+    /* Nothing live: say so once, and say where the forecast on the desk came
+       from instead. Two sentences saying the same thing is noise. */
+    if (strongest.length === 0) {
+      list.append(
+        h('p', {
+          class: 'gl__note',
+          text: `No live flare readings came back, so the forecast on the desk is the game’s own record of how often these happen. ${source}`,
+        }),
+      );
+
+      return gameSection('Real space weather', list);
+    }
+
+    const count = readings.length === 1 ? '1 reading' : `${readings.length} readings`;
+
+    return gameSection('Real space weather', list, h('p', { class: 'gl__note', text: `${count}, biggest first. ${source}` }));
+  }
+
+  /** Two NASA facts to take away, one for the sol and one for the run. */
+  function nasaFacts(state: RunState): HTMLElement {
+    const today = factFor(state.sol + 5);
+    const later = factFor(state.sol + 12);
+
+    return gameSection(
+      'NASA facts',
+      h('p', { class: 'act-fact', text: `NASA fact · ${today.text} (${today.credit})` }),
+      h('p', { class: 'act-fact', text: `NASA fact · ${later.text} (${later.credit})` }),
+    );
   }
 
   /**
    * What the last sol did, and what it changed.
    *
-   * This is the answer to "what just happened", so it is the first thing in
-   * the panel. It used to sit at the bottom, under five paragraphs of goals,
-   * which meant a child whose power had run flat saw a zero on the bar and no
-   * reason for it anywhere on the screen.
+   * The answer to "what just happened". It is behind a button now, so the net
+   * change is printed on the hub's own button as well (see `hubTiles`) and the
+   * sheet is where the explanation lives.
    */
-  function recapSection(state: RunState): HTMLElement | false {
+  function reviewBody(state: RunState): readonly (Node | false)[] {
     const last = state.log[state.log.length - 1];
 
-    if (last === undefined) return false;
+    if (last === undefined) return [h('p', { class: 'gl__note', text: 'No sol has run yet. Run one and its review lands here.' })];
 
     const items = [...last.events.map((event) => event.summary), ...last.notes];
     const list = h('ul', { class: 'gl__list' });
@@ -578,94 +879,116 @@ export function mountAct(
         h(
           'div',
           { class: 'act-change', 'data-tone': row.tone },
-          h(
-            'span',
-            { class: 'act-change__label' },
-            h('span', { 'aria-hidden': 'true', text: `${row.emoji} ` }),
-            row.label,
-          ),
+          h('span', { class: 'act-change__label' }, icon(RESOURCE_ICON[row.name]), row.label),
           h('strong', { class: 'act-change__value', text: row.text }),
         ),
       );
     }
 
-    return gameSection(`Sol ${last.sol} in review`, list, changes);
+    return [list, changes];
   }
 
-  /** A normal sol: what the day costs, what is coming, what happened last. */
-  function missionPanel(state: RunState): HTMLElement {
-    const mission = missionHeadline(state);
-    const region = regionById(state.regionId);
-    const power = powerPicture(state);
-    const last = state.log[state.log.length - 1];
-    const waiting = loadingForecast && state.forecast.length === 0;
-    const activities = activityRows(state, state.sol + 1);
-    const mustChoose = activities.length > 0 && !activities.some((row) => row.chosen);
+  /* ---------------------------------------------------------------- the hub -- */
 
-    const callout = h(
-      'div',
-      { class: 'gl__callout' },
-      h('span', { class: 'gl__callout-icon', 'aria-hidden': 'true', text: '🏠' }),
+  /** One button on the hub: a pictogram, a label, and one line of state. */
+  function tileButton(tile: HubTile): HTMLButtonElement {
+    const button = h(
+      'button',
+      {
+        class: 'act-tile',
+        type: 'button',
+        'data-tile': tile.id,
+        'data-attention': String(tile.attention),
+        'aria-haspopup': 'dialog',
+      },
+      h('span', { class: 'act-tile__icon', 'aria-hidden': 'true' }, icon(TILE_ICON[tile.id])),
       h(
-        'div',
-        null,
-        h('p', { class: 'gl__callout-title', text: `Sol ${state.sol + 1} at ${region ? region.name : 'your site'}` }),
-        h('p', { class: 'gl__callout-detail', text: powerSentence(power.generatedKw, power.storedKwh, power.nightDrainKw) }),
+        'span',
+        { class: 'act-tile__body' },
+        h('span', { class: 'act-tile__label', text: tile.label }),
+        h('span', { class: 'act-tile__status', text: tile.status }),
+        tile.chips.length === 0
+          ? null
+          : h(
+              'span',
+              { class: 'act-tile__chips' },
+              ...tile.chips.map((chip) =>
+                h(
+                  'span',
+                  { class: 'act-chip', 'data-tone': chip.tone },
+                  icon(RESOURCE_ICON[chip.name]),
+                  h('span', { text: chip.text }),
+                ),
+              ),
+            ),
       ),
+      h('span', { class: 'act-tile__chevron', 'aria-hidden': 'true' }, icon('chevron')),
     );
 
-    const today = powerToday(state);
+    button.addEventListener('click', () => openSection(tile.id));
 
-    const dayNight = h(
-      'div',
-      { class: 'gl__triple', 'aria-hidden': 'true' },
-      h('div', { class: 'gl__mini' }, h('span', { class: 'gl__mini-label', text: '☀ Daytime' }), h('span', { class: 'gl__mini-value', text: `+${power.generatedKw} kW` }), h('span', { class: 'gl__mini-detail', text: 'panels in sunlight' })),
-      h('div', { class: 'gl__mini' }, h('span', { class: 'gl__mini-label', text: '🔋 For today' }), h('span', { class: 'gl__mini-value', text: `${today.available} kWh` }), h('span', { class: 'gl__mini-detail', text: `of ${today.capacity} stored` })),
-      h('div', { class: 'gl__mini' }, h('span', { class: 'gl__mini-label', text: '🌙 Night use' }), h('span', { class: 'gl__mini-value', text: `−${power.nightDrainKw} kW` }), h('span', { class: 'gl__mini-detail', text: today.nightCovered ? 'the batteries cover it' : 'the batteries will not cover it' })),
-    );
+    return button;
+  }
 
-    const body: (Node | false)[] = [
-      recapSection(state),
-      callout,
-      noteSection(state),
-      inspectionSection(state),
-      roverSection(state),
-      orderSection(state),
-      boardSection(state),
-      gameSection('Day → Night', dayNight),
-      forecastSection(state),
-    ];
+  /** The day, as five or six buttons and a control. */
+  function hubPanel(state: RunState, tiles: readonly HubTile[]): HTMLElement {
+    const mission = missionHeadline(state);
+    const loading = loadingForecast && state.forecast.length === 0;
+    const orders = activityRows(state, state.sol + 1);
+    const mustChoose = orders.length > 0 && !orders.some((row) => row.chosen);
 
-    if (last !== undefined) {
-      /* One real NASA image per sol, after the recap: something to look at and
-         learn from before the next decision. Out-of-range sols simply get none. */
-      const learning = cardForSol(last.sol);
-
-      if (learning !== null) body.push(nasaCard(learning));
-    }
-
-    body.push(nasaFeedSection(state));
-    body.push(h('p', { class: 'gl__note', text: 'Sol = one Mars day. You control when it runs.' }));
+    const grid = h('div', { class: 'act-hub' }, ...tiles.map(tileButton));
 
     const go = h(
       'button',
-      { class: 'gl__btn gl__btn--primary gl__btn--start', type: 'button', disabled: waiting || mustChoose },
-      waiting ? 'Reading space weather…' : `Run sol ${state.sol + 1}`,
+      { class: 'gl__btn gl__btn--primary gl__btn--start', type: 'button', disabled: loading || mustChoose },
+      loading ? 'Reading space weather…' : `Run sol ${state.sol + 1}`,
       h('span', { class: 'gl__btn-arrow', 'aria-hidden': 'true', text: '→' }),
     );
 
     go.addEventListener('click', onRunSol);
 
     return gamePanel({
-      kicker: `Sol ${state.sol} of ${WIN_SOL}`,
+      kicker: `Sol ${state.sol + 1} of ${WIN_SOL}`,
       title: mission.title,
       sub: mission.subtitle,
-      body,
+      corner: pointsCorner(state),
+      body: [
+        gameSection('Today for the outpost', grid),
+        forecastSection(state),
+      ],
       footer: [go, mustChoose ? h('p', { class: 'gl__note', text: "Choose today's activity to run the sol." }) : false],
     });
   }
 
-  /** A crisis: the same shell, with the decision where the mission panel was. */
+  /** The section that is open, if any, as a sheet over the desk. */
+  function sheetFor(state: RunState, tiles: readonly HubTile[]): HTMLElement | null {
+    const section = openSheet;
+
+    if (section === null) return null;
+
+    const bodies: Record<HubSection, () => readonly (Node | false)[]> = {
+      tasks: () => tasksBody(state),
+      desk: () => deskBody(state),
+      orders: () => ordersBody(state),
+      stats: () => statsBody(state),
+      data: () => dataBody(state),
+      review: () => reviewBody(state),
+    };
+
+    const tile = tiles.find((entry) => entry.id === section);
+
+    return sheet({
+      icon: TILE_ICON[section],
+      kicker: `Sol ${state.sol + 1} of ${WIN_SOL}`,
+      title: tile?.label ?? 'The desk',
+      body: bodies[section](),
+      doneLabel: section === 'tasks' ? 'Back to the desk' : 'Got it',
+      onClose: closeSection,
+    });
+  }
+
+  /** A crisis: the same shell, with the decision where the hub was. */
   function crisisPanel(state: RunState, crisis: Crisis): HTMLElement {
     const sol = state.sol + 1;
     const inTime = earthIsInTime(state, crisis);
@@ -678,18 +1001,18 @@ export function mountAct(
     clockNodes = { bar: clockBar, text: clockText };
 
     for (const [index, option] of crisis.options.entries()) {
-      const art = CRISIS_ART[crisis.kind][index] ?? { glyph: '›' };
-      const icon =
+      const art = CRISIS_ART[crisis.kind][index] ?? { icon: 'chevron' };
+      const picture =
         art.src === undefined
-          ? h('span', { class: 'gl__choice-icon', 'aria-hidden': 'true', text: art.glyph })
+          ? h('span', { class: 'gl__choice-icon', 'aria-hidden': 'true' }, icon(art.icon ?? 'chevron'))
           : h('span', { class: 'gl__choice-icon' }, h('img', { class: 'gl__choice-img', src: art.src, alt: '' }));
 
       const button = h(
         'button',
         { class: 'gl__choice', type: 'button', 'data-choice': option.id },
-        icon,
+        picture,
         h('span', null, h('span', { class: 'gl__choice-title', text: option.label }), h('span', { class: 'gl__choice-detail', text: option.detail })),
-        h('span', { class: 'gl__choice-arrow', 'aria-hidden': 'true', text: '›' }),
+        h('span', { class: 'gl__choice-arrow', 'aria-hidden': 'true' }, icon('chevron')),
       );
 
       button.addEventListener('click', () => choose(crisis, option.id, false));
@@ -700,7 +1023,7 @@ export function mountAct(
     const ask = h(
       'button',
       { class: 'gl__btn gl__btn--navy', type: 'button' },
-      h('span', null, h('span', { 'aria-hidden': 'true', text: '🛰 ' }), 'Ask Mission Control'),
+      h('span', null, icon('dish'), ' Ask Mission Control'),
       h('span', { 'aria-hidden': 'true', text: '?' }),
     );
 
@@ -721,7 +1044,7 @@ export function mountAct(
 
     const calm = h('button', { class: 'gl__calm', type: 'button', 'aria-pressed': String(calmMode) });
 
-    calm.textContent = '✓ Take your time · no countdown';
+    calm.textContent = 'Take your time · no countdown';
     calm.addEventListener('click', () => {
       calmMode = !calmMode;
       calm.setAttribute('aria-pressed', String(calmMode));
@@ -735,14 +1058,15 @@ export function mountAct(
       }
     });
 
+    /* The desk is still the desk. A crisis lands on it; it does not replace
+       it, so a find the rover brought back waits there until it is answered. */
+    const find = roverCard(state);
+
     const body: (Node | false)[] = [
       crisis.urgent ? h('div', { class: 'gl__clock' }, h('span', { class: 'gl__clock-bar' }, clockBar), clockText) : false,
       choices,
       earthBox,
-      /* The desk is still the desk. A crisis lands on it; it does not replace
-         it, so a find the rover brought back waits there until it is
-         answered. */
-      roverSection(state),
+      find === false ? false : gameSection('The rover found something', find),
     ];
 
     /* The alert is the one screen where a struggling reader loses the most:
@@ -798,6 +1122,13 @@ export function mountAct(
     const region = regionById(state.regionId);
     const score = siteScore(state.regionId);
 
+    /* Keep the open sheet where the player left it: choosing an order or
+       answering a find redraws the screen, and a sheet that jumped to the top
+       would lose the row they were reading. */
+    const scrolled = mount.querySelector<HTMLElement>('.sheet__body');
+
+    if (scrolled !== null) sheetScroll = scrolled.scrollTop;
+
     clockNodes = null;
 
     /* The site's own scores, on the picture where there is room for them.
@@ -812,13 +1143,14 @@ export function mountAct(
             weather: 'Clear skies',
             crew: last === undefined ? 'A sol is one Mars day. Ready for our first one?' : `Sol ${last.sol} is done. Ready for the next one?`,
             figures: moduleFigures(state.modules),
-showAstronaut: false,
+            showAstronaut: false,
             hint: siteHint,
             signals: [scienceSignal(state)],
           })
         : gameWorld({
             label: 'Crew alert',
             weather: `${EVENT_NAME[crisis.kind]} incoming`,
+            weatherIcon: EVENT_ICON[crisis.kind],
             crew: CRISIS_BRIEF[crisis.kind].crew,
             figures: moduleFigures(state.modules),
             showAstronaut: false,
@@ -831,8 +1163,12 @@ showAstronaut: false,
             ],
           });
 
-    const panel = crisis === null ? missionPanel(state) : crisisPanel(state, crisis);
-    const science = scienceSummary(state);
+    const tiles = hubTiles(state, {
+      nasaToday: dailyFacts.length > 0,
+      pictures: picturesBehind(state),
+      liveFlares: loaded?.flares.length ?? 0,
+    });
+    const panel = crisis === null ? hubPanel(state, tiles) : crisisPanel(state, crisis);
 
     const screen = gameScreen({
       hud: hudFor(state),
@@ -841,25 +1177,49 @@ showAstronaut: false,
       variant: 'gl--act',
       headerSub: 'RUNNING THE DAY',
       onLeave: () => navigate('naming'),
-      mission: {
-        job: 'Your job: survive 12 Mars days and keep the five systems running.',
-        progress: `Sol ${state.sol} of ${WIN_SOL} · ${science.points} points · ${science.rank.title}`,
-        help: guideButton(() => {
-          guideOpen = true;
-          render();
-        }),
-      },
+      help: guideButton(() => {
+        guideOpen = true;
+        openSheet = null;
+        render();
+      }),
     });
 
-    /* The guide opens by itself on the first sol, because that is the one
-       time a player has no idea what they are looking at. After that it is
-       there whenever they need it. */
+    /* The guide sits over the whole screen, as a dialog: it is read once and
+       dismissed, and the day behind it is untouched. */
     if (guideOpen) screen.append(guidePanel(() => {
       guideOpen = false;
       render();
     }));
 
+    const open = guideOpen || crisis !== null ? null : sheetFor(state, tiles);
+
+    if (open !== null) screen.append(open);
+
     mount.replaceChildren(screen);
+
+    if (open !== null) {
+      const body = open.querySelector<HTMLElement>('.sheet__body');
+
+      if (body !== null) body.scrollTop = sheetScroll;
+    }
+
+    /* Focus follows the thing that was replaced: into the sheet when it opens,
+       back to its button when it closes. */
+    if (focusSheet) {
+      focusSheet = false;
+
+      const close = open === null ? null : sheetCloseButton(open);
+
+      if (close !== null) close.focus();
+      /* A sheet can only be open on a calm sol; if one is not, the tiles are
+         the next best place to land. */
+      else pendingFocus = mount.querySelector<HTMLElement>('.act-tile');
+    } else if (focusTile !== null) {
+      const target = focusTile;
+
+      focusTile = null;
+      mount.querySelector<HTMLElement>(`.act-tile[data-tile="${target}"]`)?.focus();
+    }
 
     if (pendingFocus !== null) {
       pendingFocus.focus();
@@ -894,6 +1254,7 @@ showAstronaut: false,
       if (disposed || run === null) return;
 
       loadingForecast = false;
+      loaded = result;
       run = withState(run, { forecast: result.forecast });
       setRun(run);
       render();

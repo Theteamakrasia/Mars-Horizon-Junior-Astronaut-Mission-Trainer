@@ -554,3 +554,344 @@
   font-weight: 600;
   line-height: 1.3;
 }
+
+/* ------------------------------------------------------- the real data sheet -- */
+
+/*
+ * NASA's own space-weather readings.
+ *
+ * A flare class is a short code (M4.2), so it is set in the game's own weight
+ * and given a colour of its own: the reading is the headline, and the date it
+ * peaked is the quiet line under it.
+ */
+.act-weather {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(3px, 0.4vw, 8px);
+}
+
+.act-weather__row {
+  display: flex;
+  align-items: baseline;
+  gap: clamp(6px, 0.7vw, 14px);
+  padding: clamp(3px, 0.4vw, 8px) clamp(6px, 0.7vw, 14px);
+  border-radius: clamp(6px, 0.6vw, 12px);
+  background: var(--gl-card);
+}
+
+.act-weather__class {
+  color: var(--gl-orange-deep);
+  font-family: var(--gl-display);
+  font-weight: 900;
+  font-size: clamp(0.72rem, 0.92vw, 1.1rem);
+  letter-spacing: 0.04em;
+}
+
+.act-weather__when {
+  color: var(--gl-muted);
+  font-size: clamp(0.55rem, 0.7vw, 0.85rem);
+  font-weight: 700;
+}
+
+/* A NASA fact to take away, in the same words the build screen uses. */
+.act-fact {
+  margin: 0 0 clamp(3px, 0.4vw, 8px);
+  color: var(--gl-muted);
+  font-size: clamp(0.56rem, 0.7vw, 0.85rem);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+/* ------------------------------------------------------------------ the hub -- */
+
+/*
+ * The desk is six buttons, not one long scroll (D-070).
+ *
+ * Every section of the sol is still here: the orders, the desk, the board, the
+ * stats, NASA's picture, the review. What changed is that the panel only ever
+ * shows the *labels*, so a child can see the whole day at once and open the one
+ * thing they came for. Each button is a label and a single line of state, which
+ * is the whole reason this works — a grid of bare icons would hide the one fact
+ * that matters (there is an order to stamp, a find to answer).
+ */
+.act-hub {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(6px, 0.7vw, 13px);
+}
+
+.act-tile {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: clamp(6px, 0.7vw, 13px);
+  width: 100%;
+  padding: clamp(7px, 0.78vw, 15px);
+  border: 2px solid transparent;
+  border-radius: clamp(8px, 0.72vw, 14px);
+  background: var(--gl-card);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease, transform 120ms ease;
+}
+
+.act-tile:hover {
+  background: var(--gl-card-strong);
+  transform: translateY(-1px);
+}
+
+.act-tile:focus-visible {
+  outline: 3px solid var(--gl-orange);
+  outline-offset: 2px;
+}
+
+/* Something is waiting behind this button, and the tile says so quietly: a
+   colour, not a badge, because six red badges is the same as none. */
+.act-tile[data-attention='true'] {
+  border-color: var(--gl-orange);
+  background: var(--gl-peach);
+}
+
+.act-tile__icon {
+  display: grid;
+  place-items: center;
+  width: clamp(26px, 2.4vw, 44px);
+  height: clamp(26px, 2.4vw, 44px);
+  border-radius: clamp(7px, 0.6vw, 12px);
+  background: var(--gl-panel);
+  color: var(--gl-orange-deep);
+  font-size: clamp(0.85rem, 1.1vw, 1.35rem);
+}
+
+.act-tile[data-attention='true'] .act-tile__icon {
+  background: var(--gl-orange);
+  color: #fff;
+}
+
+.act-tile__body {
+  min-width: 0;
+}
+
+.act-tile__label {
+  display: block;
+  color: var(--gl-ink);
+  font-family: var(--gl-display);
+  font-weight: 900;
+  font-size: clamp(0.66rem, 0.85vw, 1.04rem);
+  line-height: 1.15;
+}
+
+.act-tile__status {
+  display: block;
+  margin-top: 0.1em;
+  color: var(--gl-muted);
+  font-size: clamp(0.52rem, 0.66vw, 0.8rem);
+  font-weight: 700;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.act-tile__chevron {
+  color: var(--gl-muted);
+  font-size: clamp(0.6rem, 0.75vw, 0.9rem);
+}
+
+/* The last sol's net change, on the review button. The sheet explains it, but
+   the numbers cannot live behind a button only: this is the one thing the
+   screen must never hide (ISS-057). */
+.act-tile__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.3rem;
+  margin-top: 0.3em;
+}
+
+.act-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  padding: 0 0.3em;
+  border-radius: 999px;
+  background: var(--gl-panel);
+  color: var(--gl-ink);
+  font-size: clamp(0.46rem, 0.58vw, 0.72rem);
+  font-weight: 900;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.act-chip[data-tone='gain'] {
+  color: var(--gl-green);
+}
+
+.act-chip[data-tone='cost'] {
+  color: var(--gl-orange-deep);
+}
+
+/* The points, in the panel head's top right, where the sol count used to sit
+   alone. The kicker owns the left. */
+.act-points {
+  display: flex;
+  align-items: center;
+  gap: 0.25em;
+  margin: 0;
+  color: var(--gl-orange-deep);
+  font-size: clamp(0.56rem, 0.72vw, 0.86rem);
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------ the stats sheet -- */
+
+.act-meter {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(4px, 0.45vw, 9px);
+}
+
+.act-meter__row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: clamp(4px, 0.5vw, 9px);
+  column-gap: clamp(6px, 0.65vw, 12px);
+}
+
+.act-meter__icon {
+  display: grid;
+  place-items: center;
+  color: var(--gl-muted);
+  font-size: clamp(0.72rem, 0.92vw, 1.1rem);
+}
+
+.act-meter__label {
+  color: var(--gl-ink);
+  font-weight: 800;
+  font-size: clamp(0.58rem, 0.72vw, 0.88rem);
+}
+
+.act-meter__value {
+  color: var(--gl-ink);
+  font-weight: 900;
+  font-size: clamp(0.58rem, 0.72vw, 0.88rem);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The bar spans the whole row, under the label, so the five meters line up and
+   can be compared by eye rather than by reading five numbers. */
+.act-meter__bar {
+  grid-column: 1 / -1;
+  height: clamp(5px, 0.5vw, 9px);
+  border-radius: 999px;
+  background: var(--gl-card-strong);
+  overflow: hidden;
+}
+
+.act-meter__bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--gl-green);
+}
+
+.act-meter__row[data-tone='low'] .act-meter__bar > span {
+  background: var(--gl-orange);
+}
+
+.act-meter__row[data-tone='critical'] .act-meter__bar > span {
+  background: var(--gl-orange-deep);
+}
+
+.act-meter__row[data-tone='low'] .act-meter__value,
+.act-meter__row[data-tone='critical'] .act-meter__value {
+  color: var(--gl-orange-deep);
+}
+
+.act-stats__science {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  margin: 0;
+  color: var(--gl-muted);
+  font-size: clamp(0.58rem, 0.72vw, 0.88rem);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.act-stats__science strong {
+  color: var(--gl-ink);
+}
+
+.act-stats__science .ico {
+  color: var(--gl-orange-deep);
+  font-size: clamp(0.85rem, 1.1vw, 1.35rem);
+}
+
+/* ---------------------------------------------------------- the review sheet -- */
+
+.act-changes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(4px, 0.45vw, 9px);
+}
+
+.act-change {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: var(--gl-card-strong);
+  font-size: clamp(0.55rem, 0.68vw, 0.84rem);
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.act-change__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
+  color: var(--gl-muted);
+  font-weight: 800;
+}
+
+.act-change__value {
+  color: var(--gl-ink);
+}
+
+.act-change[data-tone='gain'] .act-change__value {
+  color: var(--gl-green);
+}
+
+.act-change[data-tone='cost'] .act-change__value {
+  color: var(--gl-orange-deep);
+}
+
+/* ------------------------------------------------------------------- the tool -- */
+
+/* The stars an inspection won. The empty ones stay, greyed, so three stars
+   reads as "two of three" rather than as a different award. */
+.insp__stars {
+  display: inline-flex;
+  gap: 0.1em;
+  color: var(--gl-orange);
+  font-size: clamp(0.75rem, 0.95vw, 1.15rem);
+  vertical-align: -0.1em;
+}
+
+.insp__star--empty {
+  color: var(--gl-line);
+}
+
+/* The hub is two columns; below this there is no room for two labels and two
+   lines of state side by side, so it becomes one column and the panel scrolls. */
+@media (max-width: 34rem) {
+  .act-hub {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+

@@ -320,3 +320,35 @@ export function describeWhen(peakTime: string): string {
 
   return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 }
+
+/**
+ * How strong a flare class is, so the readings can be ordered.
+ *
+ * NASA classes run A, B, C, M, X — each letter ten times stronger than the one
+ * before it — and the number after the letter is the strength inside the band:
+ * `M4.2` is stronger than `M1.0`. A class that cannot be read scores zero, so
+ * an unreadable record sorts last rather than throwing.
+ */
+function classStrength(classType: string): number {
+  const match = /^([A-Za-z])(\d+(?:\.\d+)?)$/.exec(classType.trim());
+
+  if (match === null) return 0;
+
+  const letters = ['A', 'B', 'C', 'M', 'X'];
+  const band = letters.indexOf(match[1]?.toUpperCase() ?? '');
+
+  if (band < 0) return 0;
+
+  return (band + 1) * 10 + Number(match[2]);
+}
+
+/**
+ * The strongest readings, biggest first.
+ *
+ * A live feed can carry dozens of flares from the last month, and a screen that
+ * lists all of them is a screen nobody reads. This takes the few that matter
+ * and leaves the order alone for everything else.
+ */
+export function strongestFlares(flares: readonly SpaceWeatherEvent[], count = 4): readonly SpaceWeatherEvent[] {
+  return [...flares].sort((a, b) => classStrength(b.classType) - classStrength(a.classType)).slice(0, Math.max(0, count));
+}

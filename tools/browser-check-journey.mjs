@@ -29,7 +29,10 @@ try {
   await new Promise((res, rej) => { socket.addEventListener("open", res); socket.addEventListener("error", rej); });
   socket.addEventListener("message", (e) => { const m = JSON.parse(e.data); if (m.id !== undefined && pending.has(m.id)) { const { resolve, reject } = pending.get(m.id); pending.delete(m.id); if (m.error) reject(new Error(m.error.message)); else resolve(m.result); } if (m.method === "Runtime.exceptionThrown") errors.push(m.params.exceptionDetails.exception?.description ?? m.params.exceptionDetails.text); if (m.method === "Runtime.consoleAPICalled" && m.params.type === "error") errors.push(m.params.args.map((a) => a.value ?? a.description).join(" ")); });
   await send("Runtime.enable"); await send("Page.enable");
-  await send("Page.navigate", { url: "http://127.0.0.1:5173/#naming" });
+  /* `localhost`, not `127.0.0.1`: Vite's dev server listens on the IPv6 loopback
+     by default, and a browser asked for the IPv4 address gets nothing at all.
+     Every step then reads "none" and the check looks like a game problem. */
+  await send("Page.navigate", { url: "http://localhost:5173/#naming" });
   await waitFor(`!!document.getElementById("naming") && !document.getElementById("naming").hidden`);
   await waitFor(`(() => { const i = document.querySelector("[data-naming-input]"); const s = document.querySelector("[data-naming-submit]"); if (!i || !s) return false; i.value = "Alex"; i.dispatchEvent(new Event("input", { bubbles: true })); return !s.disabled; })()`);
   await tap("[data-naming-submit]");
@@ -57,6 +60,6 @@ try {
   await sleep(800);
   console.log("   land: " + await tap("#landing-site [data-landing-land]") + " -> " + await where());
   await sleep(1500);
-  console.log("7 base: " + await where() + " | " + await ev(`document.querySelector("#base .gl__mission-job")?.textContent ?? "no bar"`));
+  console.log("7 base: " + await where() + " | " + await ev(`document.querySelector("#base .gl__title")?.textContent ?? "no panel"`));
   console.log("ERRORS: " + (errors.length === 0 ? "none" : errors.slice(0, 4).join(" | ")));
 } catch (e) { console.error("failed: " + e.message); } finally { socket?.close(); chrome.kill(); }
