@@ -409,11 +409,15 @@
       </div>
 
       <!-- The parts tour panel. A direct child of .launch, NOT of .launch__stage:
-           the stage is a 16:9 letterboxed box, and the panel inside it inherited
-           that box. On any viewport whose stage is shorter than the card, the
-           panel's overflow:hidden clipped the part name and the Prev / Next /
-           Continue controls, leaving the player stuck with no way forward
-           (ISS-041). As a child of .launch it covers the whole viewport. -->
+           the stage is the cinematic's own layer, and the panel inside it
+           inherited that box. On any viewport whose stage was shorter than the
+           card, the panel's overflow:hidden clipped the part name and the Prev /
+           Next / Continue controls, leaving the player stuck with no way forward
+           (ISS-041). As a child of .launch it covers the whole viewport.
+
+           The Prev / Next / Continue row is a sibling of the card rather than a
+           child of it, so it is a bar along the bottom of the screen in one
+           fixed place instead of riding up and down with the artwork. -->
       <div
         class="launch__parts-panel"
         data-launch-parts-panel
@@ -435,31 +439,40 @@
 
           <!-- A short NASA fact per part, so the tour teaches while it shows. -->
           <p class="launch__parts-fact" data-launch-parts-fact></p>
-          <div class="launch__parts-controls">
-            <button
-              class="launch__parts-button launch__parts-button--prev"
-              type="button"
-              data-launch-parts-prev
-              aria-label="Previous part"
-            >
-              ◀ Prev
-            </button>
-            <button
-              class="launch__parts-button launch__parts-button--next"
-              type="button"
-              data-launch-parts-next
-              aria-label="Next part"
-            >
-              Next ▶
-            </button>
-            <button
-              class="launch__parts-button launch__parts-button--primary"
-              type="button"
-              data-launch-parts-continue
-            >
-              Continue
-            </button>
-          </div>
+        </div>
+
+        <!-- The controls are a sibling of the card, not a child of it, so they
+             sit in a bar along the bottom of the screen whatever the artwork
+             above is doing. Inside the card they were pushed off the bottom of
+             the panel on a short window and clipped away (ISS-041).
+
+             NEXT is the orange one, the same accent fill as the naming page's
+             START MISSION. CONTINUE is the quiet one: only one button on a row
+             should be the orange action. -->
+        <div class="launch__parts-controls">
+          <button
+            class="launch__parts-button launch__parts-button--prev"
+            type="button"
+            data-launch-parts-prev
+            aria-label="Previous part"
+          >
+            ◀ Prev
+          </button>
+          <button
+            class="launch__parts-button launch__parts-button--next"
+            type="button"
+            data-launch-parts-next
+            aria-label="Next part"
+          >
+            Next ▶
+          </button>
+          <button
+            class="launch__parts-button launch__parts-button--continue"
+            type="button"
+            data-launch-parts-continue
+          >
+            Continue
+          </button>
         </div>
       </div>
 
