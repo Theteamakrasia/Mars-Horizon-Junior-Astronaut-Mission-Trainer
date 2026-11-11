@@ -122,6 +122,9 @@ export function mountBase(
       crew: "Hi, explorer! Let's build a home on Mars.",
       signals,
       figures: moduleFigures([...CORE_MODULES, ...extras]),
+      /* No crewmate on this screen: the outpost itself is the subject, and
+       * the sprite stood where the modules go. */
+      showAstronaut: false,
     });
 
     // ---- The catalogue.
