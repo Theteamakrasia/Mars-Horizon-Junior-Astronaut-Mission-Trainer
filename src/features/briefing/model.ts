@@ -20,12 +20,16 @@ export interface BriefingBeat {
 /**
  * The beats, in order.
  *
- * Five, not seven, and none longer than about ninety characters. An earlier
+ * Six, not seven, and none longer than about ninety characters. An earlier
  * version ran seven beats to up to 124 characters each, which was three screens
  * of clicking before anything happened - long enough that a child stopped
  * reading and started mashing. The arc is the same, just compressed: who you
- * are, what you are building, that nobody is coming, the five things that run
- * out, and go.
+ * are, what you are building, that nobody is coming, the five things that have
+ * to keep working, that none of it lasts, and go.
+ *
+ * The five-things beat is the one that matters most: it is the first time the
+ * player hears what the job is, and it is the same five things the standing
+ * orders build up on the outpost board.
  *
  * There is no pacing field and no read-time calculation. The reader clicks NEXT
  * and the next line appears, so how long a line ought to sit on screen is the
@@ -48,8 +52,12 @@ export const BEATS: readonly BriefingBeat[] = [
     text: 'Nobody is coming to help. Whatever you build, you build it yourself.',
   },
   {
+    id: 'five',
+    text: 'Five things have to keep working for twelve sols: the panels, the air, the water, the food and the shield.',
+  },
+  {
     id: 'balance',
-    text: 'Power, air, water, food, shields. None of it lasts. Spend more of one and you have less of everything else.',
+    text: 'None of it lasts. Spend more of one and you have less of everything else.',
   },
   {
     id: 'ready',

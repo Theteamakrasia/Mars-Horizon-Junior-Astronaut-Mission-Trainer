@@ -6,10 +6,12 @@ import { WIN_SOL } from '../../sim/sol';
 import {
   activityCosts,
   activityRows,
+  boardRows,
   changeRows,
   goalRows,
   meterRows,
   missionHeadline,
+  orderChecks,
   powerSentence,
   powerToday,
   progressPercent,
@@ -134,6 +136,56 @@ describe('the daily activity', () => {
 
     expect(costs.costs).toEqual(['−8 kWh', '−5 Water']);
     expect(costs.gains).toEqual(['+6 Food', '+2 science']);
+  });
+
+  it('gives every order two things to check', () => {
+    for (const row of activityRows(run, 1)) {
+      expect(orderChecks(run, row)).toHaveLength(2);
+    }
+  });
+
+  it('checks the power against what the outpost has for today', () => {
+    const survey = activityRows(run, 2).find((row) => row.id === 'survey');
+    const checks = survey === undefined ? [] : orderChecks(run, survey);
+    const power = checks[0];
+
+    expect(power?.label).toBe('Power');
+    expect(power?.value).toContain('kWh');
+  });
+
+  it('says when an order is more than the outpost can pay for', () => {
+    /* No stored power and no sunlight: there is nothing left to spend. */
+    const flat = withState(run, { stores: { ...run.stores, power: 0 }, panelHealth: 0 });
+    const survey = activityRows(flat, 2).find((row) => row.id === 'survey');
+    const power = survey === undefined ? undefined : orderChecks(flat, survey)[0];
+
+    expect(power?.ok).toBe(false);
+    expect(power?.why).toContain('power');
+  });
+
+  it('checks the system an order looks after', () => {
+    const sweep = activityRows(run, 1).find((row) => row.id === 'sweep-panels');
+    const checks = sweep === undefined ? [] : orderChecks(run, sweep);
+
+    expect(checks[1]?.label).toBe('Panels');
+    expect(checks[1]?.value).toBe('100%');
+  });
+
+  it('says when an order is only for the science points', () => {
+    const rest = activityRows(run, 1).find((row) => row.id === 'rest');
+    const checks = rest === undefined ? [] : orderChecks(run, rest);
+
+    expect(checks[1]?.value).toContain('science points');
+  });
+
+  it('puts the standing orders on the board and marks the new ones', () => {
+    /* Sol 1 done means sol 2 is the day being played: four orders on the
+       board, the two that arrived on sol 2 marked new. */
+    const rows = boardRows(withState(run, { sol: 1 }));
+
+    expect(rows.length).toBe(4);
+    expect(rows.filter((row) => row.isNew)).toHaveLength(2);
+    expect(rows[0]?.isNew).toBe(false);
   });
 });
 

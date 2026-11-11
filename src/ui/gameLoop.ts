@@ -153,6 +153,30 @@ export interface PanelOptions {
   readonly footer?: readonly (Node | null | false)[];
 }
 
+/** The one line that says what the player is playing. */
+export interface MissionBarOptions {
+  /** The job, in one line. */
+  readonly job: string;
+  /** The progress, in one line. */
+  readonly progress: string;
+}
+
+/**
+ * The mission bar: one line, always on screen.
+ *
+ * The game is a strategy game about keeping five systems running, and nothing
+ * on the screen ever said so. A child could play twelve sols and never have
+ * been told what the job was.
+ */
+export function missionBar(options: MissionBarOptions): HTMLElement {
+  return h(
+    'div',
+    { class: 'gl__mission' },
+    h('span', { class: 'gl__mission-job', text: options.job }),
+    h('span', { class: 'gl__mission-progress', text: options.progress }),
+  );
+}
+
 /** The whole screen: header, HUD, world, panel. */
 export interface ScreenOptions {
   readonly hud: readonly HudStat[];
@@ -169,6 +193,8 @@ export interface ScreenOptions {
   readonly onLeave?: () => void;
   /** Draws the rover button on the left edge. Only the screens where the player is playing set it. */
   readonly rover?: boolean;
+  /** The line that says what the player is playing. */
+  readonly mission?: MissionBarOptions;
 }
 
 /**
@@ -391,6 +417,7 @@ export function gameScreen(options: ScreenOptions): HTMLElement {
     'div',
     { class: options.variant === undefined ? 'gl' : `gl ${options.variant}` },
     gameHeader(options.headerSub, options.onLeave),
+    options.mission === undefined ? null : missionBar(options.mission),
     gameHud(options.hud),
     h('div', { class: 'gl__main' }, options.world, options.panel),
     options.rover === true ? roverWidget() : null,

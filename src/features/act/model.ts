@@ -9,7 +9,8 @@
 
 import { offerFor, planForSol, type ActivitySpec, type ActivityStoreName } from '../../sim/activities';
 import { stormOn, stormOpacity } from '../../sim/forecast';
-import { goalProgress, goalReadings, type GoalStatus, type ScienceGoal } from '../../sim/goals';
+import { DUST_SPOTLESS, LIFE_STORE_FLOOR, goalProgress, goalReadings, type GoalStatus, type ScienceGoal } from '../../sim/goals';
+import { ordersThrough, type StandingOrder } from '../../sim/standingOrders';
 import { RESOURCE_NAMES, percentOf, type ResourceName, type ResourceStores } from '../../sim/resources';
 import type { RunState } from '../../sim/run';
 import { NIGHT_HOURS, SUN_HOURS, systemsFor } from '../../sim/modules';
@@ -235,6 +236,114 @@ export interface ActivityRow {
   readonly lockedReason: string | null;
   /** True when the player has already picked this one. */
   readonly chosen: boolean;
+  /** The system this order looks after, or null for a science-only order. */
+  readonly system: ActivitySystem | null;
+}
+
+/** The system an activity looks after, and the reading it is checked against. */
+export interface ActivitySystem {
+  readonly goal: ScienceGoal;
+  readonly label: string;
+  readonly store: 'oxygen' | 'water' | 'food' | 'shielding' | 'panels';
+}
+
+/**
+ * One thing the player has to check before approving an order.
+ *
+ * Papers, Please's job is cross-referencing: a traveller carries a passport
+ * and a work permit and the inspector checks that they agree with each other
+ * and with the day's rules. Here every order carries two checks — what it
+ * costs against the power the outpost has, and the system it looks after
+ * against the reading on the desk.
+ */
+export interface OrderCheck {
+  /** What is being checked. */
+  readonly label: string;
+  /** The numbers, so the player can compare them. */
+  readonly value: string;
+  /** True when the order can go ahead. */
+  readonly ok: boolean;
+  /** Why not, in one short line. Empty when it can. */
+  readonly why: string;
+}
+
+/** The reading for a system, as the order shows it: the number alone. */
+function systemReading(run: RunState, store: ActivitySystem['store']): string {
+  const stores = run.stores;
+
+  switch (store) {
+    case 'oxygen':
+      return `${Math.round(stores.oxygen)}%`;
+    case 'water':
+      return `${Math.round(stores.water)}%`;
+    case 'food':
+      return `${Math.round(stores.food)}%`;
+    case 'shielding':
+      return `${Math.round(stores.shielding)} of 100`;
+    case 'panels':
+      return `${Math.round(run.panelHealth * 100)}%`;
+  }
+}
+
+/** The level a system has to be at for the order to be worth approving. */
+function systemFloor(store: ActivitySystem['store']): number {
+  switch (store) {
+    case 'panels':
+      return DUST_SPOTLESS * 100;
+    default:
+      return LIFE_STORE_FLOOR;
+  }
+}
+
+/**
+ * The two things to check on an order.
+ *
+ * The first is always the power: every order costs some, and the player has
+ * to weigh it against what the outpost has for today. The second is the system
+ * the order looks after — or, for an order that is only about science, a line
+ * saying so, because "this one is for the science points, not the outpost" is
+ * a thing worth being told.
+ */
+export function orderChecks(run: RunState, row: ActivityRow): readonly OrderCheck[] {
+  const power = powerToday(run);
+  const cost = row.powerCost;
+
+  const powerCheck: OrderCheck =
+    cost === 0
+      ? { label: 'Power', value: 'free', ok: true, why: '' }
+      : {
+          label: 'Power',
+          value: `${cost} kWh of ${power.available} kWh for today`,
+          ok: cost <= power.available,
+          why:
+            cost > power.available
+              ? `Not enough power today: you have ${power.available} kWh and it needs ${cost}.`
+              : '',
+        };
+
+  if (row.system === null) {
+    return [
+      powerCheck,
+      { label: 'For', value: 'science points, not the outpost', ok: true, why: '' },
+    ];
+  }
+
+  const reading = systemReading(run, row.system.store);
+  const floor = systemFloor(row.system.store);
+  const level =
+    row.system.store === 'panels'
+      ? Math.round(run.panelHealth * 100)
+      : Math.round(run.stores[row.system.store === 'shielding' ? 'shielding' : row.system.store]);
+
+  return [
+    powerCheck,
+    {
+      label: row.system.label,
+      value: reading,
+      ok: level >= floor,
+      why: level >= floor ? '' : `Below ${floor}. This is worth fixing first.`,
+    },
+  ];
 }
 
 /**
@@ -261,6 +370,7 @@ export function activityRows(run: RunState, sol: number): readonly ActivityRow[]
       available: offer.available,
       lockedReason: offer.lockedReason,
       chosen: run.chosenActivity === offer.spec.id,
+      system: offer.spec.system ?? null,
     };
   });
 }
@@ -333,6 +443,40 @@ export function goalRows(run: RunState): readonly GoalRow[] {
       earned: objective?.earned ?? false,
     };
   });
+}
+
+/* ---------------------------------------------------------------- the board -- */
+
+/** One standing order on the board, ready to draw. */
+export interface BoardRow {
+  readonly id: string;
+  /** The rule, in one sentence. */
+  readonly text: string;
+  /** The goal it belongs to. */
+  readonly goal: ScienceGoal;
+  /** True when this order arrived today. */
+  readonly isNew: boolean;
+  /** The topic its NASA fact is filed under. */
+  readonly topic: ScienceTopic;
+}
+
+/**
+ * The standing orders on the board for this sol.
+ *
+ * Two arrive on the sol itself and everything earlier is still on the board.
+ * The player works to the whole set, which is what makes the later sols
+ * harder: there is more to hold in mind, not a bigger number.
+ */
+export function boardRows(run: RunState): readonly BoardRow[] {
+  const sol = run.sol + 1;
+
+  return ordersThrough(sol).map((order: StandingOrder) => ({
+    id: order.id,
+    text: order.text,
+    goal: order.goal,
+    isNew: order.sol === sol,
+    topic: order.topic,
+  }));
 }
 
 /* ---------------------------------------------------------------- science -- */

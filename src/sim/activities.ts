@@ -63,6 +63,23 @@ export interface ActivitySpec {
    * activities into a mission.
    */
   readonly goal?: ScienceGoal;
+  /**
+   * The system this activity looks after, and the reading the player checks it
+   * against.
+   *
+   * The work order shows this reading beside the request, so the number and the
+   * order are in the same place and the player can check one against the
+   * other. An activity with no system is one for the science points rather than
+   * for the outpost, and the order says so.
+   */
+  readonly system?: {
+    /** The goal it belongs to, so the board can point at the order that governs it. */
+    readonly goal: ScienceGoal;
+    /** What the reading is called on the order. */
+    readonly label: string;
+    /** Which store the reading comes from. */
+    readonly store: 'oxygen' | 'water' | 'food' | 'shielding' | 'panels';
+  };
   /** Science points earned for doing this. */
   readonly science: number;
   /** Extra power the activity draws from the batteries, in kWh. */
@@ -154,6 +171,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     icon: '🧹',
     topic: 'dust',
     goal: 'dust-storm',
+    system: { goal: 'dust-storm', label: 'Panels', store: 'panels' },
     science: 2,
     powerCostKwh: 10,
     storeDelta: {},
@@ -167,6 +185,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     icon: '🌱',
     topic: 'food',
     goal: 'food',
+    system: { goal: 'food', label: 'Food', store: 'food' },
     science: 2,
     powerCostKwh: 8,
     storeDelta: { food: 6, water: -5 },
@@ -189,6 +208,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     icon: '⛏️',
     topic: 'water',
     goal: 'life-support',
+    system: { goal: 'life-support', label: 'Water', store: 'water' },
     science: 3,
     powerCostKwh: 20,
     storeDelta: { water: 6 },
@@ -201,6 +221,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     icon: '♻️',
     topic: 'water',
     goal: 'life-support',
+    system: { goal: 'life-support', label: 'Water', store: 'water' },
     science: 2,
     powerCostKwh: 10,
     storeDelta: { water: 3 },
@@ -212,6 +233,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     icon: '🛡️',
     topic: 'radiation',
     goal: 'radiation',
+    system: { goal: 'radiation', label: 'Shielding', store: 'shielding' },
     science: 3,
     powerCostKwh: 18,
     storeDelta: { shielding: 8 },
@@ -223,6 +245,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     icon: '🧑‍🚀',
     topic: 'radiation',
     goal: 'radiation',
+    system: { goal: 'radiation', label: 'Shielding', store: 'shielding' },
     science: 2,
     powerCostKwh: 8,
     storeDelta: { shielding: 6 },
@@ -234,6 +257,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     icon: '🫁',
     topic: 'missions',
     goal: 'life-support',
+    system: { goal: 'life-support', label: 'Air', store: 'oxygen' },
     science: 2,
     powerCostKwh: 12,
     storeDelta: { oxygen: 8 },

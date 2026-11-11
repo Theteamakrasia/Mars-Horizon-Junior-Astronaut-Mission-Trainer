@@ -33,7 +33,7 @@ import { stopReading } from '../../ui/readAloud';
 import { nextStop } from '../../ui/registry';
 import { navigate } from '../../ui/router';
 
-import { activityRows, changeRows, goalRows, meterRows, missionHeadline, powerSentence, powerToday, scienceSummary, secondsLeft } from './model';
+import { activityRows, boardRows, changeRows, meterRows, missionHeadline, orderChecks, powerSentence, powerToday, scienceSummary, secondsLeft } from './model';
 
 import '../../styles/game-loop.css';
 import './act.css';
@@ -234,57 +234,64 @@ export function mountAct(
   }
 
   /**
-   * Today's three activities, and the one the player has picked (D-051).
+   * The work orders for today.
    *
-   * A locked activity is shown greyed out with the reason on it, because
-   * hiding it would teach nothing: "you have no greenhouse" is the lesson.
+   * A document, not a menu: what is asked, what it costs, and the two things
+   * to check before it can be stamped. The player approves or denies knowing
+   * what they are approving — which is the whole difference between this and
+   * a menu with three buttons on it.
    */
-  function activitySection(state: RunState): HTMLElement {
+  function orderSection(state: RunState): HTMLElement {
     const rows = activityRows(state, state.sol + 1);
-    const power = powerToday(state);
-    const list = h('div', { class: 'act-activities' });
+    const list = h('div', { class: 'act-orders' });
 
     for (const row of rows) {
-      /* An activity the outpost cannot pay for says so. The player is still
-         allowed to pick it — the sim turns that into a blackout, and the
-         blackout is the lesson — but it is never a surprise. */
-      const short = row.powerCost > power.available;
-      const why = short
-        ? `Not enough power today: you have ${power.available} kWh and it needs ${row.powerCost}.`
-        : null;
+      const checks = orderChecks(state, row);
+      const failing = checks.find((check) => !check.ok);
 
       const button = h(
         'button',
         {
-          class: 'act-activity',
+          class: 'act-order',
           type: 'button',
           'data-activity': row.id,
           'aria-pressed': String(row.chosen),
-          'data-short': String(short),
           disabled: !row.available,
         },
-        h('span', { class: 'act-activity__icon', 'aria-hidden': 'true', text: row.icon }),
+        h('span', { class: 'act-order__icon', 'aria-hidden': 'true', text: row.icon }),
         h(
           'span',
-          { class: 'act-activity__body' },
+          { class: 'act-order__body' },
           h(
             'span',
-            { class: 'act-activity__head' },
-            h('span', { class: 'act-activity__title', text: row.title }),
+            { class: 'act-order__head' },
+            h('span', { class: 'act-order__title', text: row.title }),
             h(
               'span',
-              { class: 'act-activity__tags' },
+              { class: 'act-order__tags' },
               ...row.costs.map((text) => h('span', { class: 'act-tag act-tag--cost', text })),
               ...row.gains.map((text) => h('span', { class: 'act-tag act-tag--gain', text })),
             ),
           ),
           h('span', {
-            class: 'act-activity__detail',
+            class: 'act-order__detail',
             text: row.available ? row.detail : (row.lockedReason ?? row.detail),
           }),
-          why === null ? null : h('span', { class: 'act-activity__warn', text: why }),
+          h(
+            'span',
+            { class: 'act-order__checks' },
+            ...checks.map((check) =>
+              h(
+                'span',
+                { class: 'act-check', 'data-ok': String(check.ok) },
+                h('span', { class: 'act-check__label', text: check.label }),
+                h('span', { class: 'act-check__value', text: check.value }),
+              ),
+            ),
+          ),
+          failing === undefined ? null : h('span', { class: 'act-order__warn', text: failing.why }),
         ),
-        h('span', { class: 'act-activity__mark', 'aria-hidden': 'true', text: row.chosen ? '✓' : '' }),
+        h('span', { class: 'act-order__mark', 'aria-hidden': 'true', text: row.chosen ? '✓' : '' }),
       );
 
       if (row.available) button.addEventListener('click', () => pickActivity(row.id));
@@ -299,15 +306,13 @@ export function mountAct(
         ? 'There is nothing to choose today.'
         : picked
           ? 'You can change your mind until you run the sol.'
-          : 'Pick one to run today. It costs what it says it costs.';
+          : 'Check the two readings, then stamp one order.';
 
-    /* The fact about the day's own subject, tucked under the cards. It used
-       to be a separate line further down the panel, where it read as another
-       paragraph rather than as the thing about this choice. */
+    /* The fact about the day's own subject, tucked under the orders. */
     const chosen = rows.find((row) => row.chosen) ?? rows.find((row) => row.available) ?? rows[0];
     const fact = chosen === undefined ? null : factForTopic(chosen.topic, state.sol + 1);
 
-    /* The cards are the day's decision, so they are worth hearing as well as
+    /* The orders are the day's decision, so they are worth hearing as well as
        reading: the cheapest kind of access for a player who cannot read yet. */
     const read = readButton(
       () =>
@@ -318,15 +323,51 @@ export function mountAct(
             return `${row.title}. ${row.detail}${locked} Costs ${row.costs.join(' and ') || 'nothing'}. Gives ${row.gains.join(' and ')}.`;
           })
           .join(' '),
-      { ariaLabel: "Read today's activities aloud" },
+      { ariaLabel: "Read today's work orders aloud" },
     );
 
     return gameSection(
-      "Today's activity",
+      "Today's work orders",
       list,
       h('p', { class: 'gl__note', text: note }),
       fact === null ? false : h('p', { class: 'gl__note', text: `NASA fact · ${fact.text} (${fact.credit})` }),
       read ?? false,
+    );
+  }
+
+  /**
+   * The standing orders on the board.
+   *
+   * The rule book, growing two rules a sol. This is where the science is
+   * taught: every order is a real operating rule, and the player works to the
+   * whole set rather than to the two that are newest.
+   */
+  function boardSection(state: RunState): HTMLElement {
+    const rows = boardRows(state);
+    const list = h('ol', { class: 'act-board' });
+
+    for (const [index, row] of rows.entries()) {
+      /* The fact behind a new order, shown the day it arrives: that is the
+         teaching moment, and it does not last. */
+      const fact = row.isNew ? factForTopic(row.topic, index) : null;
+
+      list.append(
+        h(
+          'li',
+          { class: 'act-board__row', 'data-new': String(row.isNew) },
+          h('span', { class: 'act-board__text', text: row.text }),
+          row.isNew ? h('span', { class: 'act-board__new', text: 'NEW' }) : null,
+          fact === null ? null : h('span', { class: 'act-board__fact', text: `NASA fact · ${fact.text}` }),
+        ),
+      );
+    }
+
+    const fresh = rows.filter((row) => row.isNew).length;
+
+    return gameSection(
+      'Standing orders',
+      list,
+      h('p', { class: 'gl__note', text: `${rows.length} orders so far, ${fresh} new today. These are the rules you work to.` }),
     );
   }
 
@@ -350,77 +391,6 @@ export function mountAct(
     if (fact === undefined) return false;
 
     return gameSection('From NASA today', nasaFeedCard(fact));
-  }
-
-  /**
-   * The five goals, and how much of each has been earned.
-   *
-   * Five tiles across, one line each: the name, the count and a bar. The
-   * detail and the NASA fact are a tap away, because a screen that shows all
-   * of it at once is a wall of words and a child reads none of it.
-   */
-  function goalSection(state: RunState): HTMLElement {
-    const rows = goalRows(state);
-    const list = h('div', { class: 'act-goals' });
-
-    /* One detail panel for whichever tile is open. It is shown and hidden in
-       place: re-rendering the panel to open a tile threw the player back to
-       the top of the screen, which is worse than the tap was worth. */
-    const more = h('div', { class: 'act-goal__more', hidden: true });
-    const tiles = new Map<string, HTMLElement>();
-
-    for (const row of rows) {
-      /* Earned is the good state. Slipping is the warning. A goal that is
-         neither is simply on its way, and its dot stays quiet. */
-      const status = row.earned ? 'ok' : row.status === 'ok' ? 'plain' : row.status;
-
-      const tile = h(
-        'button',
-        {
-          class: 'act-goal',
-          type: 'button',
-          'aria-expanded': 'false',
-          'aria-label': `${row.title}: ${row.held} of ${row.needed} sols. ${row.aim}`,
-          'data-status': status,
-        },
-        h('span', { class: 'act-goal__dot', 'aria-hidden': 'true' }),
-        h('span', { class: 'act-goal__name', text: row.short }),
-        h('span', { class: 'act-goal__count' }, h('strong', { text: String(row.held) }), h('small', { text: `/${row.needed}` })),
-        h('span', { class: 'act-goal__bar', 'aria-hidden': 'true' }, h('span', { style: `width:${row.percent}%` })),
-      );
-
-      tile.addEventListener('click', () => {
-        const open = more.hidden;
-
-        for (const [id, other] of tiles) other.setAttribute('aria-expanded', String(open && id === row.id));
-
-        if (!open) {
-          more.hidden = true;
-
-          return;
-        }
-
-        const fact = factForTopic(row.topic, state.sol + 1);
-
-        more.replaceChildren(
-          h('span', { class: 'act-goal__detail', text: `${row.title} — ${row.detail}` }),
-          h('span', { class: 'act-goal__fact' }, h('strong', { text: 'Did you know? ' }), `${fact.text} (${fact.credit})`),
-        );
-        more.hidden = false;
-      });
-
-      tiles.set(row.id, tile);
-      list.append(tile);
-    }
-
-    const earned = rows.filter((row) => row.earned).length;
-
-    return gameSection(
-      'Your five goals',
-      list,
-      more,
-      h('p', { class: 'gl__note', text: `${earned} of 5 earned. Tap one to see how it is doing.` }),
-    );
   }
 
   /**
@@ -505,8 +475,8 @@ export function mountAct(
     const body: (Node | false)[] = [
       recapSection(state),
       callout,
-      activitySection(state),
-      goalSection(state),
+      orderSection(state),
+      boardSection(state),
       gameSection('Day → Night', dayNight),
       forecastSection(state),
     ];
@@ -701,8 +671,23 @@ export function mountAct(
           });
 
     const panel = crisis === null ? missionPanel(state) : crisisPanel(state, crisis);
+    const science = scienceSummary(state);
 
-    mount.replaceChildren(gameScreen({ hud: hudFor(state), world, panel, variant: 'gl--act', headerSub: 'RUNNING THE DAY', rover: true, onLeave: () => navigate('naming') }));
+    const screen = gameScreen({
+      hud: hudFor(state),
+      world,
+      panel,
+      variant: 'gl--act',
+      headerSub: 'RUNNING THE DAY',
+      rover: true,
+      onLeave: () => navigate('naming'),
+      mission: {
+        job: 'Your job: survive 12 Mars days and keep the five systems running.',
+        progress: `Sol ${state.sol} of ${WIN_SOL} · ${science.points} points · ${science.rank.title}`,
+      },
+    });
+
+    mount.replaceChildren(screen);
 
     if (pendingFocus !== null) {
       pendingFocus.focus();

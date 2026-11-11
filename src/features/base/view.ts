@@ -287,7 +287,19 @@ export function mountBase(
       footer: [launch, h('p', { class: 'gl__note', text: BUDGET_NONE }), read ?? false],
     });
 
-    const screen = gameScreen({ hud, world, panel, variant: 'gl--base', headerSub: 'BUILD YOUR OUTPOST', rover: true, onLeave: () => navigate('naming') });
+    const screen = gameScreen({
+      hud,
+      world,
+      panel,
+      variant: 'gl--base',
+      headerSub: 'BUILD YOUR OUTPOST',
+      rover: true,
+      onLeave: () => navigate('naming'),
+      mission: {
+        job: 'Your job: build an outpost that keeps the crew alive for 12 sols.',
+        progress: `${pointsLeft(extras)} points left · ${extras.length} modules on the ground`,
+      },
+    });
 
     live.textContent = toast;
     screen.append(live);

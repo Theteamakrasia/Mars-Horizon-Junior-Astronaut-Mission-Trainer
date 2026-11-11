@@ -18,6 +18,216 @@
   opacity: 0.75;
 }
 
+/* --------------------------------------------------- the work orders -- */
+
+.act-orders {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(5px, 0.62vw, 12px);
+}
+
+/*
+ * An order is a document, not a menu item.
+ *
+ * It says what is asked, what it costs, and the two readings the player has
+ * to check before stamping it. The point of the two checks is that the player
+ * approves knowing what they are approving.
+ */
+.act-order {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: clamp(6px, 0.8vw, 16px);
+  width: 100%;
+  padding: clamp(7px, 0.72vw, 14px);
+  border: 2px solid transparent;
+  border-radius: clamp(8px, 0.72vw, 14px);
+  background: var(--gl-card);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.act-order:hover:not(:disabled) {
+  background: var(--gl-card-strong);
+}
+
+.act-order:focus-visible {
+  outline: 3px solid var(--gl-orange);
+  outline-offset: 2px;
+}
+
+.act-order[aria-pressed='true'] {
+  border-color: var(--gl-green);
+  background: var(--gl-green-soft);
+}
+
+.act-order:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.act-order__icon {
+  display: grid;
+  place-items: center;
+  width: clamp(26px, 2.4vw, 46px);
+  height: clamp(26px, 2.4vw, 46px);
+  border-radius: 50%;
+  background: var(--gl-panel);
+  font-size: clamp(0.85rem, 1.15vw, 1.4rem);
+}
+
+.act-order__body {
+  min-width: 0;
+}
+
+.act-order__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.2em 0.4em;
+}
+
+.act-order__title {
+  display: block;
+  color: var(--gl-ink);
+  font-weight: 900;
+  font-size: clamp(0.76rem, 1vw, 1.2rem);
+  line-height: 1.15;
+}
+
+.act-order__detail {
+  display: block;
+  margin-top: 0.1em;
+  color: var(--gl-muted);
+  font-weight: 600;
+  font-size: clamp(0.6rem, 0.75vw, 0.92rem);
+  line-height: 1.25;
+}
+
+/* The two readings. They sit together so the player can weigh them against
+   the order above without hunting for either. */
+.act-order__checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  margin-top: 0.3em;
+}
+
+.act-check {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25em;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: var(--gl-card-strong);
+  font-size: clamp(0.53rem, 0.66vw, 0.78rem);
+  font-weight: 700;
+  line-height: 1.45;
+  white-space: nowrap;
+}
+
+.act-check__label {
+  color: var(--gl-muted);
+  font-weight: 800;
+}
+
+.act-check__value {
+  color: var(--gl-ink);
+  font-weight: 900;
+}
+
+.act-check[data-ok='false'] {
+  background: var(--gl-peach);
+}
+
+.act-check[data-ok='false'] .act-check__value {
+  color: var(--gl-orange-deep);
+}
+
+.act-order__warn {
+  display: block;
+  margin-top: 0.2em;
+  color: var(--gl-orange-deep);
+  font-size: clamp(0.55rem, 0.68vw, 0.82rem);
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.act-order__mark {
+  color: var(--gl-green);
+  font-size: clamp(0.9rem, 1.2vw, 1.4rem);
+  font-weight: 900;
+  min-width: 1em;
+  text-align: center;
+}
+
+/* ---------------------------------------------------- the standing orders -- */
+
+/*
+ * The rule book.
+ *
+ * Two rules arrive every sol and the board keeps them all, so the later sols
+ * are harder because there is more to hold in mind rather than a bigger
+ * number. The science is here: every order is a real operating rule.
+ */
+.act-board {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(2px, 0.3vw, 6px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: none;
+}
+
+.act-board__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35em;
+  padding: clamp(2px, 0.25vw, 5px) 0;
+  border-bottom: 1px solid var(--gl-line);
+}
+
+.act-board__row:last-child {
+  border-bottom: 0;
+}
+
+.act-board__text {
+  color: var(--gl-ink);
+  font-weight: 700;
+  font-size: clamp(0.58rem, 0.74vw, 0.9rem);
+  line-height: 1.3;
+}
+
+.act-board__row[data-new='true'] .act-board__text {
+  color: var(--gl-orange-deep);
+  font-weight: 900;
+}
+
+.act-board__new {
+  flex: 0 0 auto;
+  padding: 0 0.4em;
+  border-radius: 999px;
+  background: var(--gl-orange);
+  color: var(--gl-panel);
+  font-size: clamp(0.45rem, 0.56vw, 0.66rem);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.act-board__fact {
+  flex: 1 1 100%;
+  color: var(--gl-muted);
+  font-size: clamp(0.52rem, 0.64vw, 0.78rem);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
 /* --------------------------------------------------- the daily activity -- */
 
 .act-activities {
