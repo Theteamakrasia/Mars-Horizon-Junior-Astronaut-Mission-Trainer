@@ -9,7 +9,7 @@
  * It lives in `ui/` rather than in a feature folder on purpose. It is not
  * part of the journey, so it needs no route, no mount point in `index.html`
  * and no registry entry — which is exactly what the abandoned `drag-editor`
- * feature got wrong (ISS-047): a screen that was never wired up and could
+ * feature got wrong (ISS-050): a screen that was never wired up and could
  * therefore never be checked. It is also compiled out of a production build
  * entirely, so no player can reach it.
  *

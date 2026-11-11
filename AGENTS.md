@@ -114,7 +114,7 @@ then an empty list. The event *schedule* is rolled per run from a seed in
     screen, and hides the landing layers behind it.
 14. In a dev build with `?editlayout=1`, `main.ts` loads `ui/baseLayoutEditor` with a
     dynamic import. The editor is attached to whichever screen is mounted, and to
-    nothing in a production build (D-049).
+    nothing in a production build (D-065).
 
 `BACK TO MAIN MENU` returns to `landing`, which keeps running behind the menu.
 
@@ -199,7 +199,7 @@ opening its folder — that is the whole point of the layout.
 | **Advancing a sol** | `src/features/act/` — **built**, 7 tests |
 | **Why the run was won or lost** | `src/features/debrief/` — **built**, 12 tests |
 | **Reading what each module does, with NASA facts** | `src/features/encyclopedia/` — **built** |
-| **Where each copy of a module stands on the outpost panel** | `src/ui/baseLayout.json` — a pose list per kind; drag them on the real screen with `?editlayout=1` (D-049, D-050). A pose may be mirrored (`flip`). The stacking order is a rule in `ui/baseLayout.ts` (D-053), not a number in the file: the copies of a kind recede from the camera, so the first copy is the nearest. The editor opens showing the file on disk, and a file with problems is listed in the console (D-052) |
+| **Where each copy of a module stands on the outpost panel** | `src/ui/baseLayout.json` — a pose list per kind; drag them on the real screen with `?editlayout=1` (D-065, D-066). A pose may be mirrored (`flip`). The stacking order is a rule in `ui/baseLayout.ts` (D-069), not a number in the file: the copies of a kind recede from the camera, so the first copy is the nearest. The editor opens showing the file on disk, and a file with problems is listed in the console (D-068) |
 | The placement editor itself | `src/ui/baseLayoutEditor.ts` — dev-only, compiled out of a production build |
 | Where START MISSION goes | `onSubmit` in `src/features/naming/view.ts` — flows to `briefing` |
 | Boot, element lookup, `?motion=`, mounting screens | `src/main.ts` |

@@ -7,11 +7,11 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 
 | id | task | goal | owner | status | blocked by | notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| TASK-068 | A fixed stacking order for the outpost modules, and the NASA button beside the region name | G-4 | agent | done | - | D-053; `DEPTH_ORDER` and `depthFor`; `z` out of the layout file; the NASA button moved and given the game's orange; 503 tests |
-| TASK-067 | Warn when the layout file has a problem, and stop the editor from overwriting it | G-4 | agent | done | - | D-052; console warning + editor banner; the editor now opens from the file on disk; two bugs fixed. 492 tests |
-| TASK-066 | Mirror a module in the placement editor | G-4 | agent | done | - | D-051; optional `flip` on a pose; Mirror button and F key; first tests for `ui/gameLoop.ts`; 492 tests |
-| TASK-065 | A pose per module copy, and a way to resize a module | G-4 | agent | done | - | D-050; `baseLayout.json` holds a list per kind; the editor places and scales all 15 copies; crewmate sprite off the build screen; 480 tests |
-| TASK-064 | Move the outpost module layout out of source into a JSON file, with a developer placement editor | G-4 | agent | done | - | D-049; `src/ui/baseLayout.json`, `baseLayout.ts`, `baseLayoutEditor.ts`; `?editlayout=1`; 471 tests. Verified in headless Chrome, including the file round trip |
+| TASK-092 | A fixed stacking order for the outpost modules, and the NASA button beside the region name | G-4 | agent | done | - | D-069; `DEPTH_ORDER` and `depthFor`; `z` out of the layout file; the NASA button moved and given the game's orange; 503 tests |
+| TASK-091 | Warn when the layout file has a problem, and stop the editor from overwriting it | G-4 | agent | done | - | D-068; console warning + editor banner; the editor now opens from the file on disk; two bugs fixed. 492 tests |
+| TASK-090 | Mirror a module in the placement editor | G-4 | agent | done | - | D-067; optional `flip` on a pose; Mirror button and F key; first tests for `ui/gameLoop.ts`; 492 tests |
+| TASK-089 | A pose per module copy, and a way to resize a module | G-4 | agent | done | - | D-066; `baseLayout.json` holds a list per kind; the editor places and scales all 15 copies; crewmate sprite off the build screen; 480 tests |
+| TASK-088 | Move the outpost module layout out of source into a JSON file, with a developer placement editor | G-4 | agent | done | - | D-065; `src/ui/baseLayout.json`, `baseLayout.ts`, `baseLayoutEditor.ts`; `?editlayout=1`; 471 tests. Verified in headless Chrome, including the file round trip |
 | TASK-063 | Grid the outpost modules, cut catalogue cards to one line, add an encyclopedia | G-4 | agent | done | - | `MODULE_SPOT` 4×2 grid in `ui/gameLoop.ts`; new `features/encyclopedia/`; 440 tests. Browser check outstanding (TASK-049) |
 | TASK-062 | Roll each mission's hazards from a seed instead of a fixed schedule | G-4 | agent | done | - | D-048; `sim/forecast.ts`, `dom/forecastLoader.ts`, `data/spaceweather.ts`, base + act wiring; 434 tests |
 | TASK-061 | Add rotating NASA facts to the supply and launch screens | G-7 | agent | done | - | D-045 follow-up; `factFor`, `[data-supply-fact]`, `[data-launch-parts-fact]` |

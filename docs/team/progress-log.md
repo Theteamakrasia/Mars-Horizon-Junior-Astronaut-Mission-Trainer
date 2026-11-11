@@ -239,7 +239,7 @@ than a documented one.
 - Declared the band a module may be placed in once, in `SPOT_BAND`, and added
   `check-markup` Rule 11 to fail the build if the CSS clamp and the band ever disagree.
 - Deleted the abandoned `drag-editor` feature and the stray copies of it at the repo root
-  (ISS-047). It had eight TypeScript errors, failed the markup check on `pointer-events:
+  (ISS-050). It had eight TypeScript errors, failed the markup check on `pointer-events:
   none`, and was unreachable — no route, no mount, no registry entry.
 
 **Files**

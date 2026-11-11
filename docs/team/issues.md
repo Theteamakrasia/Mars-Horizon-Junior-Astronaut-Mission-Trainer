@@ -11,7 +11,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
-| ISS-047 | The `drag-editor` placement WIP was unreachable, failed `tsc` and failed `check-markup`, and copies of it sat at the repo root | high | agent | fixed | c9b8904 |
+| ISS-050 | The `drag-editor` placement WIP was unreachable, failed `tsc` and failed `check-markup`, and copies of it sat at the repo root | high | agent | fixed | c9b8904 |
 | ISS-043 | Space weather had one live source, so a DONKI outage silently replaced every run's flares with baked history | high | agent | fixed | this branch |
 | ISS-046 | The header advertised "Mission Control / Main Menu" as text, and naming's Back to Main Menu navigated to itself | medium | agent | fixed | d90e838 |
 | ISS-045 | The page title said "Under Construction" and the description called the built game a placeholder | low | agent | fixed | 559c0d6 |
@@ -59,7 +59,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-## ISS-047 — The `drag-editor` placement WIP was unreachable, failed `tsc` and failed `check-markup`, and copies of it sat at the repo root
+## ISS-050 — The `drag-editor` placement WIP was unreachable, failed `tsc` and failed `check-markup`, and copies of it sat at the repo root
 
 - **Reported by:** agent, 2026-11-11, while planning the developer placement editor.
 - **Where:** `src/features/drag-editor/` (all four files), `src/ui/routes.ts`, repo root.
@@ -977,4 +977,4 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-**Next free id: ISS-047.**
+**Next free id: ISS-051.**

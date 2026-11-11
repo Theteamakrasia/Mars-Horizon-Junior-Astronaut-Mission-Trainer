@@ -258,9 +258,9 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         {left, bottom, width, flip?} each, in
     │   │                                         percent. The nth entry is where the nth copy of
     │   │                                         that kind stands. The file a developer produces
-    │   │                                         with the placement editor (D-049, D-050). The
+    │   │                                         with the placement editor (D-065, D-066). The
     │   │                                         stacking order is not here — it is a rule
-    │   │                                         (D-053).
+    │   │                                         (D-069).
     │   ├── baseLayout.ts               complete   loads and validates baseLayout.json. Exports
     │   │                                         ModuleSpot, ModulePoses, SPOT_BAND,
     │   │                                         PANEL_RIGHT_EDGE, DEFAULT_POSES, MODULE_POSES,
@@ -274,8 +274,8 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   ├── gameLoop.test.ts            complete   9 tests — the first for this file. Where each
     │   │                                         copy of a module stands, which way round it
     │   │                                         faces, and the order they are stacked in.
-    │   ├── baseLayoutEditor.ts         complete   the placement editor (D-049, D-050, D-051,
-    │   │                                         D-052). Exports startLayoutEditor(root) ->
+    │   ├── baseLayoutEditor.ts         complete   the placement editor (D-065, D-066, D-067,
+    │   │                                         D-068). Exports startLayoutEditor(root) ->
     │   │                                         teardown. Dev-only: a developer drags the
     │   │                                         fifteen copies of the modules on the real
     │   │                                         outpost panel with ?editlayout=1, resizes them
@@ -553,7 +553,7 @@ Where the modules stand on the outpost panel is **data, not code**. `ui/baseLayo
 holds it — a pose list per kind, one entry per copy the player could build — and
 `ui/baseLayout.ts` validates it; `ui/gameLoop.ts` places the modules with it. A developer
 produces that file by dragging the modules on the real screen with `?editlayout=1`
-(D-049, D-050). The editor is a developer tool, not a screen: it has no route, no mount
+(D-065, D-066). The editor is a developer tool, not a screen: it has no route, no mount
 point and no registry entry, and `main.ts` loads it with a dynamic import behind
 `import.meta.env.DEV`, so it is compiled out of a production build entirely.
 
@@ -579,9 +579,9 @@ point and no registry entry, and `main.ts` loads it with a dynamic import behind
     `naming` — and mounts that screen, hiding the landing layers behind it.
 14. In a dev build with `?editlayout=1`, `main.ts` loads `ui/baseLayoutEditor` with a
     dynamic import. The editor is attached to whichever screen is mounted, and to
-    nothing in a production build (D-049).
+    nothing in a production build (D-065).
 15. In a dev build, a layout file with problems in it is listed in the console
-    (D-052). The game still starts: it falls back to what it can.
+    (D-068). The game still starts: it falls back to what it can.
 
 Routing is last so every screen it can mount is already defined. `BACK TO MAIN MENU`
 returns to `landing`, which keeps running behind the mounted screen.
@@ -590,7 +590,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 
 | module | exports | contract |
 | --- | --- | --- |
-| `main.ts` | none (side effects) | composition root; throws on a missing element id. Also the one place that starts the placement editor, and only in a dev build with `?editlayout=1` (D-049) |
+| `main.ts` | none (side effects) | composition root; throws on a missing element id. Also the one place that starts the placement editor, and only in a dev build with `?editlayout=1` (D-065) |
 | `dom/forecastLoader` | `LoadedForecast`, `loadForecast` | `(signal?, seed = Date.now(), dustScore = NEUTRAL_SCORE.dust) -> Promise<LoadedForecast>`; never rejects. Fetches flares through `data/spaceweather`, then runs `sim/forecast.createForecast`. Sits in `dom/` because it joins `data/` and `sim/`, and both `base` and `act` need it without importing each other (R-5) |
 | `data/spaceweather` | `SpaceWeatherEvent`, `SpaceWeatherSource` | a flare as the game uses it; source is `'donki' \| 'noaa' \| 'fallback'` |
 | | `fetchSpaceWeather` | `(options?) -> Promise<SpaceWeatherEvent[]>`; never rejects. Tries NASA DONKI, then NOAA SWPC, then the empty `FALLBACK_FLARES`. Every flare is kept, not just the strongest. Remembers one answer so two screens cost one request; an answer abandoned by its caller is not remembered |
@@ -682,20 +682,20 @@ returns to `landing`, which keeps running behind the mounted screen.
 | `ui/gameLoop` | `gameScreen`, `gameWorld`, `gamePanel` | the shared frame from the Figma frames (D-038): one `.gl` root, the illustrated world panel, and the scrolling right-hand panel. Every word, number and variant arrives in an options object; no `sim/` rule is applied here |
 | | `gameHeader`, `gameHud`, `gameDock` | `gameHeader(sub?, onLeave?)`: without `onLeave` the right-hand label is plain decorative text; with it, it is a Menu button opening an in-screen leave dialog with Keep playing / Leave mission (D-044). `gameHud` draws the five resource cards (`HudStat`) and `gameDock` the three-tab dock. The pause/settings/BUILD pills and the dock are `aria-hidden` spans, not buttons (D-038) |
 | | `gameSection` | `(label, ...content) -> section`; an uppercase label and its body |
-| | `moduleFigures`, `moduleArt`, `MODULE_ART`, `WORLD_BACKGROUND`, `ASTRONAUT_SPRITE` | artwork placement and the bundled asset URLs; the only import site for the figures base, act and debrief share. The module layout comes from `ui/baseLayout` (D-049), one pose per copy (D-050), a pose may be mirrored (D-051), and the stacking order is a rule (D-053) |
+| | `moduleFigures`, `moduleArt`, `MODULE_ART`, `WORLD_BACKGROUND`, `ASTRONAUT_SPRITE` | artwork placement and the bundled asset URLs; the only import site for the figures base, act and debrief share. The module layout comes from `ui/baseLayout` (D-065), one pose per copy (D-066), a pose may be mirrored (D-067), and the stacking order is a rule (D-069) |
 | `ui/baseLayout` | `ModuleSpot`, `ModulePoses` | `{left, bottom, width, flip?}` for one module; and where every copy of every kind stands — one list per kind, in build order. `flip` is optional and means mirrored left to right |
-| | `DEPTH_ORDER`, `depthFor` | what stands in front of what, farthest first, and the stacking level of one module copy (D-053). A rule in code, not a number in the file: the order is a property of the outpost, and a file of fifteen positions cannot be trusted to keep a stacking order straight. The copies of a kind recede from the camera as they are added, so the first copy is the nearest; the two regolith shields share one depth |
+| | `DEPTH_ORDER`, `depthFor` | what stands in front of what, farthest first, and the stacking level of one module copy (D-069). A rule in code, not a number in the file: the order is a property of the outpost, and a file of fifteen positions cannot be trusted to keep a stacking order straight. The copies of a kind recede from the camera as they are added, so the first copy is the nearest; the two regolith shields share one depth |
 | | `SPOT_BAND` | how far a module may be placed: left 2-92, bottom 2-32, width 6-24. The single source of truth; `styles/game-loop.css` clamps with the same numbers and `check-markup` Rule 11 fails the build if the two ever disagree |
 | | `PANEL_RIGHT_EDGE` | 100 — a module is never wider than the gap between where it starts and the right-hand edge of the panel |
 | | `DEFAULT_POSES` | the authored layout, used when `baseLayout.json` cannot supply one. One pose per copy the player can build |
 | | `MODULE_POSES` | the validated layout the game places modules with; every kind has one pose per copy, and every pose is inside the band |
-| | `LAYOUT_PROBLEMS` | what is wrong with the layout file, in words; empty when the file is good. Printed at boot behind `import.meta.env.DEV`, and shown in a banner at the top of the placement editor's toolbar (D-052) |
+| | `LAYOUT_PROBLEMS` | what is wrong with the layout file, in words; empty when the file is good. Printed at boot behind `import.meta.env.DEV`, and shown in a banner at the top of the placement editor's toolbar (D-068) |
 | | `resolvePoses`, `describeLayoutProblems` | `(source) -> ModulePoses` and `(source) -> string[]`; the old single-pose shape reads as a list of one, a short list is padded by derivation, a long one is cut, and a kind the file cannot supply falls back to the default |
 | | `poseFor` | `(poses, kind, copy) -> ModuleSpot`; where the nth copy of a kind stands, derived from the last pose when the file has no entry for it |
 | | `clamp`, `clampSpot`, `roundSpot` | pull a number or a whole spot into the band, and round to one decimal so the toolbar and the file quote the same numbers |
 | | `buildLayoutJson` | `(poses) -> string`; the layout file, in catalogue order, one list per kind, two-space indented. `flip` is written only for a module that is mirrored |
 | | `pointToPercent` | `(point, panelRect) -> {left, bottom}`; where a pointer is inside the outpost panel |
-| `ui/baseLayoutEditor` | `startLayoutEditor` | `(root) -> teardown`; the placement editor (D-049, D-050). Fifteen draggable handles — one per copy of every module — a corner grip on each that changes its width, a toolbar with the numbers and the JSON, and Download / Copy / Reset / Done. Dev-only: `main.ts` loads it with a dynamic import behind `import.meta.env.DEV`, so it never reaches a production bundle. The flag check lives in `main.ts`, which cannot import this module statically without pulling it into the bundle |
+| `ui/baseLayoutEditor` | `startLayoutEditor` | `(root) -> teardown`; the placement editor (D-065, D-066). Fifteen draggable handles — one per copy of every module — a corner grip on each that changes its width, a toolbar with the numbers and the JSON, and Download / Copy / Reset / Done. Dev-only: `main.ts` loads it with a dynamic import behind `import.meta.env.DEV`, so it never reaches a production bundle. The flag check lives in `main.ts`, which cannot import this module statically without pulling it into the bundle |
 | `features/base/model` | `BUILDABLE`, `canPlace`, `addModule`, `removeModule`, `pointsLeft` | build rules over the `sim/modules.ts` catalogue (D-032) |
 | | `previewFor`, `previewSummary`, `upkeepFor`, `upcomingWarnings` | the calm-sol projection. `previewSummary` gives the five resource cards one number each, from the same projection as the sentences |
 | `features/base/view` | `mountBase` | `(root, run, setRun) -> teardown`; the outpost on Mars, the catalogue steppers, and Land & start sol 1 → `startOutpost` then `act`. Holds a mutable local `extras` so a second build is not applied to stale data; it also shows a rotating NASA fact beside the build panel from `factFor` |
