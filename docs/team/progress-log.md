@@ -8,6 +8,54 @@ than a documented one.
 
 ---
 
+## 2026-11-11 — Say so when the layout file is not clean
+
+**Did**
+
+- A layout file with a problem in it now **warns rather than breaks**: a dev-only console
+  warning at boot, and a banner at the top of the placement editor's toolbar listing every
+  problem it found.
+- **Fixed a bug that would have destroyed the developer's layout.** The editor was seeding
+  its state from the authored default instead of from the file on disk, so opening it and
+  pressing Download replaced the layout with the grid. It now opens showing the file, and
+  Reset puts everything back the way it was.
+- **Fixed a second bug the developer's own layout exposed.** Selecting a copy from the
+  dropdown did not re-paint, so the copy stayed underneath its neighbours and the pointer
+  grabbed the wrong module. Selection now brings the copy to the front.
+- The developer's own layout is now the shipped one: `src/ui/baseLayout.json` holds their
+  arrangement, with one mirrored regolith shield.
+
+**Files**
+
+- `src/ui/baseLayout.ts`, `src/ui/baseLayout.test.ts`, `src/ui/baseLayoutEditor.ts`
+- `src/ui/base-layout-editor.css`, `src/main.ts`, `src/ui/baseLayout.json`
+- `docs/architecture.md`, `docs/team/decisions.md`, `docs/team/tasks.md`, `AGENTS.md`, `README.md`
+
+**Problems**
+
+- A test asserted the shipped layout contains **no mirrored modules**. That was the wrong
+  kind of test: it pinned the content rather than the contract, so it failed the moment a
+  developer did the one thing the tool is for. It now asserts every flip in the file is a
+  real boolean, which holds either way.
+- The two editor bugs above were both invisible while the layout was the authored grid. The
+  second one only appeared because the developer's solar arrays overlap, so selecting one
+  put it under another — and the harness that caught it had been written with the old
+  positions hard-coded into it. The harnesses now read their expectations from the layout
+  file, because a test that breaks when the developer does their job is a test that will
+  be deleted rather than fixed.
+- Verified in headless Chrome: 15 checks that a broken file produces the banner and the
+  console warning, that the game still renders, that the out-of-range number was clamped
+  rather than thrown away, that the unreadable entry fell back to the default, and that
+  restoring the file clears the banner. All six harnesses green — 75 checks.
+
+**Next**
+
+- The layout is one arrangement for every landing region. If the outpost should look
+  different on different ground, that is a second file and a rule for choosing between
+  them.
+
+---
+
 ## 2026-11-11 — Turn a module around
 
 **Did**

@@ -554,6 +554,11 @@ same layout is used on the build, sol and debrief screens, and every copy the pl
 builds lands where you put it. A pose may also be `flip`ped, which turns the artwork
 around without moving it.
 
+If the file has a problem — a number out of range, a list too short, a kind that is not
+a module — the game falls back to what it can and says so: a warning in the console, and
+a banner at the top of the editor. The editor always opens showing the layout as it is on
+disk, and **Reset** puts it back the way it was.
+
 This is a developer tool. It only exists in a dev build and is compiled out of a
 production bundle, so a player can never reach it.
 

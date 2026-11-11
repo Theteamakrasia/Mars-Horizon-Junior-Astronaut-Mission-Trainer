@@ -272,14 +272,17 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   ├── gameLoop.test.ts            complete   5 tests — the first for this file. Where each
     │   │                                         copy of a module stands, and which way round it
     │   │                                         faces.
-    │   ├── baseLayoutEditor.ts         complete   the placement editor (D-049, D-050). Exports
-    │   │                                         startLayoutEditor(root) -> teardown. Dev-only:
-    │   │                                         a developer drags the fifteen copies of the
-    │   │                                         modules on the real outpost panel with
-    │   │                                         ?editlayout=1, resizes them with the corner
-    │   │                                         grip, and downloads baseLayout.json. Loaded by a
-    │   │                                         dynamic import in main.ts, so it is compiled out
-    │   │                                         of a production build entirely.
+    │   ├── baseLayoutEditor.ts         complete   the placement editor (D-049, D-050, D-051,
+    │   │                                         D-052). Exports startLayoutEditor(root) ->
+    │   │                                         teardown. Dev-only: a developer drags the
+    │   │                                         fifteen copies of the modules on the real
+    │   │                                         outpost panel with ?editlayout=1, resizes them
+    │   │                                         with the corner grip, mirrors them, and
+    │   │                                         downloads baseLayout.json. It opens showing the
+    │   │                                         layout on disk, and warns about a file with
+    │   │                                         problems in it. Loaded by a dynamic import in
+    │   │                                         main.ts, so it is compiled out of a
+    │   │                                         production build entirely.
     │   ├── base-layout-editor.css      complete   the editor's overlay: the drag handles, the
     │   │                                         guide band and the toolbar. Imported by
     │   │                                         baseLayoutEditor.ts only.
@@ -575,6 +578,8 @@ point and no registry entry, and `main.ts` loads it with a dynamic import behind
 14. In a dev build with `?editlayout=1`, `main.ts` loads `ui/baseLayoutEditor` with a
     dynamic import. The editor is attached to whichever screen is mounted, and to
     nothing in a production build (D-049).
+15. In a dev build, a layout file with problems in it is listed in the console
+    (D-052). The game still starts: it falls back to what it can.
 
 Routing is last so every screen it can mount is already defined. `BACK TO MAIN MENU`
 returns to `landing`, which keeps running behind the mounted screen.
@@ -681,7 +686,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `PANEL_RIGHT_EDGE` | 100 — a module is never wider than the gap between where it starts and the right-hand edge of the panel |
 | | `DEFAULT_POSES` | the authored layout, used when `baseLayout.json` cannot supply one. One pose per copy the player can build |
 | | `MODULE_POSES` | the validated layout the game places modules with; every kind has one pose per copy, and every pose is inside the band |
-| | `LAYOUT_PROBLEMS` | what is wrong with the layout file, in words; empty when the file is good |
+| | `LAYOUT_PROBLEMS` | what is wrong with the layout file, in words; empty when the file is good. Printed at boot behind `import.meta.env.DEV`, and shown in a banner at the top of the placement editor's toolbar (D-052) |
 | | `resolvePoses`, `describeLayoutProblems` | `(source) -> ModulePoses` and `(source) -> string[]`; the old single-pose shape reads as a list of one, a short list is padded by derivation, a long one is cut, and a kind the file cannot supply falls back to the default |
 | | `poseFor` | `(poses, kind, copy) -> ModuleSpot`; where the nth copy of a kind stands, derived from the last pose when the file has no entry for it |
 | | `clamp`, `clampSpot`, `roundSpot` | pull a number or a whole spot into the band, and round to one decimal so the toolbar and the file quote the same numbers |
