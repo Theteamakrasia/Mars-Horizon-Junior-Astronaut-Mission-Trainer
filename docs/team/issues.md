@@ -11,11 +11,15 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
-| ISS-071 | The sheet squashed what was inside it, so a NASA picture covered its own caption | medium | agent | fixed | this branch |
-| ISS-070 | The "Real data" section showed one picture, so the game looked like it owned one NASA picture | low | agent | fixed | this branch |
-| ISS-069 | The journey check never found the naming screen, so it could not fail and could not pass | medium | agent | fixed | this branch |
-| ISS-068 | The panel said "Sol 0 of 12" on the first day, while the button under it said "Run sol 1" | low | agent | fixed | this branch |
-| ISS-067 | The encyclopedia's "Back to outpost" always went to the build screen, even mid-run | low | agent | fixed | this branch |
+| ISS-076 | The sheet squashed what was inside it, so a NASA picture covered its own caption | medium | agent | fixed | this branch |
+| ISS-075 | The "Real data" section showed one picture, so the game looked like it owned one NASA picture | low | agent | fixed | this branch |
+| ISS-074 | The journey check never found the naming screen, so it could not fail and could not pass | medium | agent | fixed | this branch |
+| ISS-073 | The panel said "Sol 0 of 12" on the first day, while the button under it said "Run sol 1" | low | agent | fixed | this branch |
+| ISS-072 | The encyclopedia's "Back to outpost" always went to the build screen, even mid-run | low | agent | fixed | this branch |
+| ISS-070 | The launch parts tour could only be moved through with the mouse | medium | agent | fixed | this branch |
+| ISS-069 | The parts tour showed the assembled-craft picture twice, and opened with it | medium | agent | fixed | this branch |
+| ISS-068 | Four different navigation bars, and only one of them was the shared one | medium | agent | fixed | this branch |
+| ISS-067 | The launch parts-tour image shook forever, and launch.css held the panel twice | medium | agent | fixed | this branch |
 | ISS-066 | The `drag-editor` placement WIP was unreachable, failed `tsc` and failed `check-markup`, and copies of it sat at the repo root | high | agent | fixed | c9b8904 |
 | ISS-065 | Sol 3 had no tool to work at all, and the sorting tool could never earn three stars | medium | agent | fixed | this branch |
 | ISS-064 | The build screen's browser check failed on a third of runs, because it assumed a desk that was always there | low | agent | fixed | this branch |
@@ -83,10 +87,10 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-## ISS-071 — The sheet squashed what was inside it, so a NASA picture covered its own caption
+## ISS-076 — The sheet squashed what was inside it, so a NASA picture covered its own caption
 
 - **Reported by:** agent, 2026-11-11, while measuring the new real-data sheet in a headless
-  browser (ISS-070).
+  browser (ISS-075).
 - **Where:** `src/ui/sheet.css` (`.sheet__body`).
 - **Problem:** `.sheet__body` is a flex column with a bounded height and `overflow-y: auto`,
   but its children kept the default `flex-shrink: 1`. A child taller than the space left
@@ -105,7 +109,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-## ISS-070 — The "Real data" section showed one picture, so the game looked like it owned one NASA picture
+## ISS-075 — The "Real data" section showed one picture, so the game looked like it owned one NASA picture
 
 - **Reported by:** the player, 2026-11-11, on the act screen's new hub: *"it's only showing
   the picture now of real nasa data. but it used to show many more data."*
@@ -132,7 +136,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-## ISS-069 — The journey check never found the naming screen, so it could not fail and could not pass
+## ISS-074 — The journey check never found the naming screen, so it could not fail and could not pass
 
 - **Reported by:** agent, 2026-11-11, while re-running the browser checks after the act
   screen's hub (D-070).
@@ -154,7 +158,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-## ISS-068 — The panel said "Sol 0 of 12" on the first day, while the button under it said "Run sol 1"
+## ISS-073 — The panel said "Sol 0 of 12" on the first day, while the button under it said "Run sol 1"
 
 - **Reported by:** agent, 2026-11-11, while moving the sol count from the removed mission
   bar to the panel's own head.
@@ -174,7 +178,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-## ISS-067 — The encyclopedia's "Back to outpost" always went to the build screen, even mid-run
+## ISS-072 — The encyclopedia's "Back to outpost" always went to the build screen, even mid-run
 
 - **Reported by:** agent, 2026-11-11, while adding the encyclopedia to the header of every
   game screen.
@@ -196,6 +200,154 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
+## ISS-070 — The launch parts tour could only be moved through with the mouse
+
+- **Reported by:** the owner, 2026-11-11: "if i press enter it should work and at the
+  end when the assembled craft is done showing if then i press enter it should work
+  in the continue part".
+- **Where:** `src/features/launch/view.ts`, `src/features/launch/model.ts`,
+  `src/dom/keys.ts` (new), `src/features/supply/model.ts`, `src/features/supply/view.ts`.
+- **Problem:** the parts tour had three buttons and no keyboard. A player using a
+  keyboard had to tab to the buttons and press Space, while the ration check
+  answered Enter (ISS-047). The rules for answering Enter - a plain Enter, and not
+  when a focused button already deals with it - lived in the ration check's own
+  model, and the launch screen could not have them: a feature never imports
+  another feature (R-5).
+- **Fix:** the parts tour now answers Enter the same way the ration check does.
+  While there are parts left it moves to the next one; on the last slide - the
+  assembled craft - there is nothing left to look at, so the same key carries the
+  player out of the tour, which is what CONTINUE does and why CONTINUE is the
+  orange button there. The cinematic still has no skip: the key is only answered
+  once the tour is open.
+  The two rules moved to `src/dom/keys.ts` so there is one copy of them rather
+  than one per screen, and their tests moved with them to `src/dom/keys.test.ts`.
+  `launch/model.ts` gained `tourActionFor(index)`, the pure decision of what Enter
+  does on a slide, so it can be tested without a browser.
+- **Pre-existing:** yes. The ration check answered Enter; nothing else did.
+
+---
+
+## ISS-069 — The parts tour showed the assembled-craft picture twice, and opened with it
+
+- **Reported by:** the owner, 2026-11-11: "this image should be shown to the last
+  part, why it is showing twice? remove it from the first part".
+- **Where:** `src/features/launch/model.ts` (`PARTS`), `src/features/launch/view.ts`
+  (`onNext`, `onPrev`, `renderPart`), `src/features/launch/model.test.ts`.
+- **Problem:** the assembled-craft picture was on screen twice in every run of the
+  tour. It opened the tour — it was `PARTS[0]` — and the tour then **wrapped**: NEXT
+  on the last slide set the index back to 0 and set a `partsLooped` flag, which
+  greyed NEXT out and handed the orange accent to CONTINUE. So the player was
+  shown the whole spacecraft once at the start, again at the end, and the four
+  parts it names in between — and the picture that names all four parts was the
+  one shown before the player had seen any of them.
+- **Cause:** the wrap was a loop, not a journey. It was added so that a player who
+  had reached the end could look back one last time, but PREV already does that,
+  and the cost was a repeat of the opening slide.
+- **Fix:** the tour is now a straight walk. `PARTS` is ordered one part at a time —
+  propulsion, habitat, logistics, Orion — with the assembled craft LAST, and NEXT
+  on the last slide is greyed out rather than wrapping round to the first. The
+  `partsLooped` flag is gone. CONTINUE takes the orange accent on the last slide,
+  which is where the tour ends, and stepping back with PREV hands the accent back
+  to NEXT. The assembled-craft picture is shown exactly once, and it is the payoff
+  of the tour rather than its introduction.
+- **Tests:** `model.test.ts` asserted the old order ("overview then one part at a
+  time"), so it was updated to the new one and a second test was added: the
+  assembled craft appears once, and last.
+- **Pre-existing:** yes. The wrap arrived with the interactive parts panel
+  (ISS-033).
+
+---
+
+## ISS-068 — Four different navigation bars, and only one of them was the shared one
+
+- **Reported by:** the owner, 2026-11-11, asking for one navigation bar on
+  `#/landing-site`, `#/base`, `#/act` and `#/debrief`, and none on the entry screens,
+  with the shared bar supplied as the reference design.
+- **Where:** `index.html` (`.naming__header`, `.briefing__header`,
+  `.landing-site__header`), `src/ui/gameLoop.ts` (`gameHeader`),
+  `src/styles/game-loop.css`, `src/features/naming/naming.css`,
+  `src/features/briefing/briefing.css`, `src/features/landing-site/landing-site.css`,
+  `src/features/landing-site/view.ts`.
+- **Problem:** the app shipped four separate header implementations. Measured at
+  1600x900: `naming` drew a 32 px floating bar inset 31 px with a 4 px radius;
+  `briefing` drew a 50 px floating bar inset 20 px; `landing-site` drew a 60 px
+  full-bleed bar of its own; and `base`/`act`/`debrief` used the shared `.gl__header`
+  from `ui/gameLoop.ts` (87 px, scaling with the viewport, with the working Menu
+  control). Only the last one matched the design the team had settled on, and the
+  other three were the ones a visitor sees first. `landing-site` was the only one of
+  the four game-loop pages not using the shared bar.
+- **Cause:** every screen was built in its own pass, and the header was written into
+  the markup each time rather than drawn from the shared shell. The `gameHeader()`
+  helper arrived later, with the game-loop frames, and the earlier screens were never
+  moved onto it.
+- **Fix:** the shared `.gl__header` is now the only navigation bar in the app.
+  `landing-site` draws it through `gameHeader()` at mount and removes it on teardown;
+  `base`, `act` and `debrief` already did, through `gameScreen()`. The three bespoke
+  headers were removed from `index.html` and their CSS deleted. The entry screens
+  (`naming`, `briefing`) lost their bars entirely, as asked. The `--gl-*` design
+  tokens moved from `.gl` to `:root`, so the shared header resolves on a screen that
+  is not inside `.gl`.
+- **Note:** `encyclopedia` (added to `main` by PR #26) already drew the shared bar
+  through `gameScreen()`. It was left as it is: it is an in-flight screen reached from
+  the outpost, the same category as the four, and it is not a bar this change added.
+- **Pre-existing:** yes. The fourth header arrived with `landing-site` (TASK-028).
+
+---
+
+## ISS-067 — The launch parts-tour image shook forever, and `launch.css` held the panel twice
+
+- **Reported by:** the owner, 2026-11-11: "the main image on the launch page is
+  currently shaking or moving undesirably".
+- **Where:** `src/features/launch/launch.css` (`.launch__parts-image`,
+  `@keyframes launch-parts-shake`).
+- **Problem:** the parts-tour image — the one the Prev / Next / Continue buttons sit
+  under — carried `animation: launch-parts-shake 0.3s ease-in-out infinite`, an
+  endless wobble of plus or minus 1 px and plus or minus 0.15 degrees. It never
+  stopped, and there was no reason for it to be there. Confirmed at runtime with
+  `getComputedStyle(image).animationName === 'launch-parts-shake'`.
+  The same file also contained the **entire parts-panel block twice** — the panel,
+  the card, the header, the dot, the name, the image, the description and the
+  controls, from line 314 to 444 and again from 446 to 528 — which is why the shake
+  rule and its reduced-motion override both appeared twice.
+- **Cause:** the duplicated block was pasted in when the panel was moved out of
+  `.launch__stage` (ISS-041) and the copy was never deleted. The shake itself looks
+  like it was meant to suggest a hand-held camera and was left in on purpose once,
+  which is exactly the kind of motion this game does not want behind a piece of text
+  a child is trying to read.
+- **Fix:** the shake animation, its keyframes and its reduced-motion overrides are
+  gone, and the duplicated block is deleted, so the image is completely stable.
+  Verified in a browser: `animation-name` is `none` and the image's bounding box is
+  byte-identical across two samples 1.2 s apart, at 1600x900, 1024x768 and 390x844.
+  The cinematic's slow camera push is untouched: that one is model-driven
+  (`--launch-camera-from` / `--launch-camera-to`), reduced-motion aware, and is the
+  shot the reel is built around.
+- **Also in the parts tour, on the owner's second pass:** the artwork was a small
+  card floating in the middle of a black page, and the Prev / Next / Continue row
+  was cut off at the bottom of the window. The picture is now the full-bleed
+  backdrop - `position: absolute; inset: 0` against the panel, `object-fit: cover`
+  so it fills edge to edge - with the part name over the top of it on its own
+  plate. The controls are pinned to the bottom of the viewport
+  (`position: absolute; bottom: 0`) instead of riding on the card's height, so
+  they are always wholly on screen. A screen narrower than 16:9 falls back to
+  `object-fit: contain`, because a horizontal crop there would take the callout
+  labels off the picture, and a label that names the part is the whole point of it.
+- **And again, on the third pass:** with the picture full-bleed, the description
+  and the NASA fact were laid out over the lower half of it - straight through the
+  "LOGISTICS / SAFE HAVEN" callout - and the fact was clipped by the button bar.
+  They now live in a solid dock along the bottom, with the controls, below the
+  artwork. The picture is left with nothing on top of it but its own name, and the
+  words are on their own ground where nothing can cover them.
+- **Also in the parts tour:** NEXT is the orange button while there are slides left,
+  and CONTINUE takes the orange accent the moment NEXT is greyed out - that is,
+  once the player has been all the way round the five parts and there is nothing
+  left to look at. There is one orange button on the row at a time, and it is
+  always the one that moves the player forward: stepping back with PREV hands the
+  accent back to NEXT. `view.ts` toggles a single `is-primary` class on the
+  Continue button; the tour's own rules are untouched.
+- **Pre-existing:** yes; the shake was in the panel from the day it was added
+  (ISS-033).
+
+---
 ## ISS-066 — The `drag-editor` placement WIP was unreachable, failed `tsc` and failed `check-markup`, and copies of it sat at the repo root
 
 - **Reported by:** agent, 2026-11-11, while planning the developer placement editor.
@@ -1260,7 +1412,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-**Next free id: ISS-071.**
+**Next free id: ISS-077.**
 
 
 ---

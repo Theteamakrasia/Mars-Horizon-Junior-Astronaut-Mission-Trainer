@@ -482,7 +482,13 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │                                             the signals and the weather pill take an
     │                                             `IconName`, not a glyph.
     │
-    ├── dom/                            landing-page side effects only. Untested (ISS-011).
+    ├── dom/                            landing-page side effects, and the keyboard rules the
+    │                                   screens share. Mostly untested (ISS-011).
+    │   ├── keys.ts                     complete   The keyboard rules more than one screen needs:
+    │   │                                         KeyModifiers; isPlainEnter(key, modifiers);
+    │   │                                         focusHandlesEnter(tagName). Pure. They used to
+    │   │                                         live in features/supply/model.ts, where the launch
+    │   │                                         parts tour could not have them (R-5).
     │   ├── floatAstronaut.ts           complete   218 lines. The rAF loop, the two transforms, the
     │   │                                         resize handler, the grab lifecycle. Exports
     │   │                                         startFloatingAstronaut -> teardown. Discards deltas
@@ -815,8 +821,15 @@ to leak on navigation and the menu needs no teardown for them.
 
 The stage is the backdrop for the whole screen, not a panel inside the menu: it is the
 first child of the `naming` section and covers the window, so the planet runs off the
-top and right edges and the header sits on top of it. The menu column sits on the right
-over the planet (D-049).
+top and right edges. The menu column sits on the right over the planet (D-049).
+
+There is **no navigation bar on the entry screen**. The app has one navigation bar, the
+shared `.gl__header` drawn by `gameHeader()` in `ui/gameLoop.ts`, and it appears on
+exactly the four screens a player reaches once they are under way: `landing-site`,
+`base`, `act` and `debrief`. `naming` and `briefing` carry none, and neither do
+`supply`, `launch` or `interior`. Before this pass the app had four separate headers
+(`naming__header`, `briefing__header`, `landing-site__header` and `.gl__header`), each
+sized and drawn differently.
 
 The planet rotates **in the image plane** (`rotate()`), not on a 3D axis. This is
 forced by the asset: a sphere spun about its own axis looks identical, so a `rotateY`
@@ -1028,7 +1041,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `tradeoffSummary` | `(score) -> string`; names strongest and weakest axis, never "recommended" |
 | | `totalScore` | `(score) -> number`, 0-25 |
 | | `strengthAndWeakness` | `(score) -> {strength, weakness}` axes |
-| `features/landing-site/view` | `mountLandingSite` | `(root, run, setRun) -> teardown`; map + five pins + Site Analysis panel, LAND HERE calls `landAt` then navigates to `nextStop('landing-site')`. Selecting a pin also shows that region's real NASA photo and fact (`regionCard`) |
+| `features/landing-site/view` | `mountLandingSite` | `(root, run, setRun) -> teardown`; map + five pins + Site Analysis panel, LAND HERE calls `landAt` then navigates to `nextStop('landing-site')`. Selecting a pin also shows that region's real NASA photo and fact (`regionCard`). It also prepends the shared navigation bar (`gameHeader('LANDING SITE', …)`) and removes it on teardown, so this screen carries the same bar as `base`, `act` and `debrief` |
 | `ui/gameLoop` | `gameScreen`, `gameWorld`, `gamePanel`, `gameSection`, `gameHeader`, `gameHud`, `HeaderOptions`, `PanelOptions`, `ScreenOptions`, `HudStat`, `SignalCard`, `WorldOptions` | the shared frame from the Figma frames (D-038): one `.gl` root, the illustrated world panel, and the scrolling right-hand panel. Every word, number and variant arrives in an options object; no `sim/` rule is applied here. `HudStat.icon`, `SignalCard.icon` and `WorldOptions.weatherIcon` are `IconName`, never a glyph (D-070) |
 | | `moduleFigures`, `moduleArt`, `MODULE_ART`, `WORLD_BACKGROUND`, `ASTRONAUT_SPRITE` | the artwork the world panel draws, owned here so `base`, `act` and `debrief` do not copy the imports |
 | | `gameHeader`, `gameHud`, `gameDock` | `gameHeader(options: HeaderOptions)`; without `onLeave` the right-hand label is plain decorative text; with it, the right side becomes the book (encyclopedia), the screen's own `help` button and a Menu button opening an in-screen leave dialog with Keep playing / Leave mission (D-044). `showEncyclopedia: false` hides the book on the page the book leads to (ISS-067). `gameHud` draws the five resource cards (`HudStat`) and `gameDock` the three-tab dock. The pause/settings/BUILD pills and the dock are `aria-hidden` spans, not buttons (D-038) |
@@ -1067,6 +1080,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `resolveBeatStart` | `(earliestMs, readyAtMs) -> ms`; a beat starts at the later of its slot and its clip's readiness |
 | `features/launch/view` | `mountLaunch` | `(root, run) -> teardown`; plays the stills, then the launch film and the docking clip, then opens the interactive parts tour. Beats are media-driven: only the launch film loads up front, the docking clip loads when the film's beat starts, each has a poster, and a beat waits for its clip rather than being skipped. Reduced motion holds the stills and both films. The parts tour is static images and text — Prev / Next move between parts, disabled at the boundaries, Continue hands off. The parts tour also shows a rotating NASA fact per part from `factFor(index)` into `[data-launch-parts-fact]`, so the tour teaches while it shows. |
 | `dom/floatAstronaut` | `startFloatingAstronaut` | `(wrapper, {deformLayer, reducedMotion}) -> teardown`; cancels rAF, removes the resize listener, detaches the grab, clears the transform |
+| `dom/keys` | `KeyModifiers`, `isPlainEnter`, `focusHandlesEnter` | `(key, modifiers) -> boolean` and `(tagName) -> boolean`. The shared keyboard rules: a plain Enter is the only key a screen answers, and a focused button, link or field keeps Enter for itself. Pure, and shared because a feature never imports another feature (R-5) |
 | `dom/pointerGrab` | `attachGrab` | `(target, handlers, options) -> teardown` |
 | `dom/starfield` | `createStarfield` | `(container) => void`; appends, never clears |
 | `ui/button-strip` | `createButtonStrip` | `(root, options) -> ButtonStripSpec`; full-width fixed-height bottom strip holding Next / Prev / action buttons; teardown is mandatory |

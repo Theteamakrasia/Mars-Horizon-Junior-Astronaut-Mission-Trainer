@@ -457,47 +457,9 @@ export function approximateTotalKg(months: number, crewSize: number): number {
   The screen's own words for it are in ./view.ts; these are the decisions.
 */
 
-/** The modifier keys that were held down with a key press. */
-export interface KeyModifiers {
-  readonly alt: boolean;
-  readonly ctrl: boolean;
-  readonly meta: boolean;
-}
-
 /**
- * True when a key press is a plain Enter, which is the only key this screen answers.
- *
- * A modified Enter is somebody's shortcut, not a request to move the story on:
- * Alt+Enter, Ctrl+Enter and the Windows key all belong to the browser or the
- * operating system, and answering them would move the beat on under a key the
- * player never meant to press.
+ * The keyboard rules this screen shares with the launch parts tour live in
+ * src/dom/keys.ts: `isPlainEnter` and `focusHandlesEnter`. They used to live
+ * here, and a second screen could not have had them because a feature never
+ * imports another feature (AGENTS.md R-5). They are in one place now.
  */
-export function isPlainEnter(key: string, modifiers: KeyModifiers): boolean {
-  if (key !== 'Enter') return false;
-
-  return !modifiers.alt && !modifiers.ctrl && !modifiers.meta;
-}
-
-/**
- * True when the focused element deals with Enter itself, so the screen must not.
- *
- * Enter on a focused button already fires a click, and the browser gives a
- * focused link the same treatment. Handling those here as well would advance
- * twice on one press - and on a question screen, twice means the wrong answer.
- *
- * The text fields are here for the same reason as on the interior screen: there
- * are none on this screen today, and the next person to add one should not have
- * to remember that Enter in a field is the player's business, not the screen's.
- */
-export function focusHandlesEnter(tagName: string): boolean {
-  switch (tagName) {
-    case 'BUTTON':
-    case 'A':
-    case 'INPUT':
-    case 'TEXTAREA':
-    case 'SELECT':
-      return true;
-    default:
-      return false;
-  }
-}

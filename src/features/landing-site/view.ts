@@ -21,12 +21,14 @@
 import { landAt, newRun, type RunState } from '../../sim/run';
 import { nextStop } from '../../ui/registry';
 import { navigate } from '../../ui/router';
+import { gameHeader } from '../../ui/gameLoop';
 import { nasaCard } from '../../ui/nasaCard';
 import { h } from '../../dom/h';
 import { regionCard } from '../../data/nasaGallery';
 
 import { REGIONS, SITE_AXES, scoreRegion, tradeoffSummary } from './model';
 
+import '../../styles/game-loop.css';
 import './landing-site.css';
 
 // Three levels up: src/features/landing-site/ -> src/features/ -> src/ -> repo root.
@@ -94,6 +96,22 @@ export function mountLandingSite(
   const nasaDataButton = require<HTMLButtonElement>(root, '[data-landing-nasa-data]');
 
   const pins = [...root.querySelectorAll<HTMLButtonElement>('[data-landing-pin]')];
+
+  /*
+   * The navigation bar, drawn here rather than in index.html.
+
+   * `gameHeader()` is the app's one navigation bar: base, act and debrief get
+   * it through `gameScreen()`, and this screen now gets the identical element,
+   * so all four carry a byte-identical header rather than four look-alikes.
+   *
+   * It is prepended rather than appended so it sits above the map, and it is
+   * removed on teardown with the rest of the screen. `onLeave` gives it the
+   * working Menu control, which asks before throwing away the run - the same
+   * affordance the other three screens offer.
+   */
+  const header = gameHeader('LANDING SITE', () => navigate('naming'));
+
+  root.prepend(header);
 
   // The wrapper is the positioned ancestor for the two absolute thumbnail
   // layers. Requiring it makes a missing wrapper throw on mount instead of
@@ -472,6 +490,11 @@ export function mountLandingSite(
 
   return () => {
     clearTimers();
+
+    // The header was added by this mount, so this mount takes it away again.
+    // Without this, coming back to the screen would stack a second bar on top
+    // of the first.
+    header.remove();
 
     if (nasaDataOverlay !== null) {
       nasaDataOverlay.remove();
