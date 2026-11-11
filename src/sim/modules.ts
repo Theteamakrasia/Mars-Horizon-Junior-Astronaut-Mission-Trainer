@@ -29,8 +29,16 @@ export const CORE_MODULES: readonly ModuleKind[] = [
   'batteries',
 ];
 
-/** Build points the lander can carry beyond the core modules. */
-export const BUILD_BUDGET = 14;
+/**
+ * Build points the lander can carry beyond the core modules.
+ *
+ * Eighteen, not fourteen. The lander brings one solar array and one battery
+ * bank, and a bare outpost needs 12 kW of life support plus heating: 144 kWh
+ * for one night, against 100 kWh of battery. At fourteen points no legal build
+ * at any landing site could keep the lights on, and the run was lost on
+ * water. `tools/balance-check.mjs` is what proved it, and what keeps it true.
+ */
+export const BUILD_BUDGET = 18;
 
 /** Crew who live at the outpost. */
 export const CREW_SIZE = 4;
@@ -53,7 +61,7 @@ export const LOAD_KW: Readonly<Record<ModuleKind, number>> = {
   'life-support': 8,
   'solar-array': 0,
   batteries: 0,
-  greenhouse: 8,
+  greenhouse: 6,
   'ice-miner': 6,
   'regolith-shield': 0,
   'nuclear-unit': 0,
@@ -63,11 +71,30 @@ export const OXYGEN_GENERATED = 14;
 export const WATER_RECYCLING = 0.9;
 export const ELECTROLYSIS_WATER = 3;
 export const GREENHOUSE_FOOD = 12;
-export const GREENHOUSE_WATER = 5;
+/**
+ * Water a greenhouse drinks, as a percent of a tank, every sol.
+ *
+ * Three, not five. At five, a greenhouse without an ice miner drank the crew
+ * dry before sol twelve and the run was lost on water at every site where the
+ * ice was too far away to mine.
+ */
+export const GREENHOUSE_WATER = 3;
 export const ICE_WATER_PER_WATER_POINT = 3;
-export const SHIELDING_BASE = 20;
+/**
+ * The shielding the outpost starts with, before any regolith is piled on.
+ *
+ * Thirty, not twenty. The radiation goal asks for forty, so a bare outpost is
+ * one shield short of safe and one regolith module is what closes the gap.
+ */
+export const SHIELDING_BASE = 30;
 export const SHIELDING_PER_REGOLITH = 30;
-export const SHIELDING_EROSION = 1;
+/**
+ * How much shielding wears away every sol.
+ *
+ * Half a point, not a whole one. At one point a sol the shielding was gone
+ * before the crew could stack any more soil on top of it.
+ */
+export const SHIELDING_EROSION = 0.5;
 
 export interface ModuleSpec {
   readonly kind: ModuleKind;
