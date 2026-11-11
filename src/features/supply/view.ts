@@ -41,13 +41,13 @@ import rightUrl from '../../../Assets/images/supply/right.webp';
 import wrongUrl from '../../../Assets/images/supply/wrong.webp';
 
 import {
-  CHOICES,
-  CORRECT_ANSWER,
-  QUESTION_PROMPT,
   SUPPLY_BEATS,
+  focusHandlesEnter,
   hintFor,
   isCorrect,
+  isPlainEnter,
   judge,
+  puzzleFor,
   successSentence,
   workingSentence,
   workingSentenceBlanked,
@@ -136,6 +136,28 @@ export function mountSupply(
   const fact = require<HTMLParagraphElement>(root, '[data-supply-fact]');
   const supplyFact = factFor(SUPPLY_BEATS.length);
 
+  /*
+   * Start from a known state.
+   *
+   * The markup is static, so everything this screen shows survives a visit. Coming
+   * back to #/supply after the question had been asked put the first fact in the
+   * bubble with NEXT still hidden and the answers still up - a screen with no way
+   * forward, and a dead Enter key with it (ISS-047).
+   *
+   * The answer buttons were worse. They are built below, and the ones from the
+   * last visit were never removed, so a second visit offered eight options and a
+   * third offered twelve.
+   *
+   * So the screen resets itself on the way in.
+   */
+  advance.hidden = false;
+  retry.hidden = true;
+  cont.hidden = true;
+  answers.hidden = true;
+  result.hidden = true;
+  result.textContent = '';
+  choiceList.replaceChildren();
+
   fact.textContent = `NASA fact · ${supplyFact.text} (${supplyFact.credit})`;
 
   // Bottom button strip: Next lives here instead of inside the speech bubble,
@@ -153,6 +175,25 @@ export function mountSupply(
    * board rather than as somebody talking.
    */
   const speaker = run?.astronautName?.trim() || 'Astronaut';
+
+  /*
+   * The ration puzzle for this run.
+   *
+   * Resolved once, from the astronaut's name, and then used everywhere: the
+   * question that is spoken, the four buttons on the wall, the number under
+   * test and the working that is filled in at the end. One source, so the
+   * screen cannot ask one question and offer the buttons for another.
+   *
+   * It is not the same question every run: the mission length, the answer and
+   * the order of the buttons all move, so the child has to do the arithmetic
+   * again rather than remember the answer.
+   */
+  const puzzle = puzzleFor(run?.astronautName ?? '');
+  const choices = puzzle.choices;
+  const correct = puzzle.correct;
+  const prompt = puzzle.prompt;
+  const months = puzzle.question.months;
+  const crewSize = puzzle.question.crewSize;
 
   /*
  * Reduced motion drops the crossfade; it does not remove content.
@@ -323,7 +364,7 @@ const reduced = prefersReducedMotion();
   };
 
   /** Build the answer buttons from the model. */
-  const choiceButtons: HTMLButtonElement[] = CHOICES.map((value) => {
+  const choiceButtons: HTMLButtonElement[] = choices.map((value) => {
     const item = document.createElement('li');
     item.className = 'supply__choice';
 
@@ -348,7 +389,7 @@ const reduced = prefersReducedMotion();
    * be a second way to get the same answer.
    */
   const buttonFor = new Map<number, HTMLButtonElement>(
-    CHOICES.map((value, i) => [value, choiceButtons[i]]),
+    choices.map((value, i) => [value, choiceButtons[i]]),
   );
 
   /**
@@ -397,7 +438,7 @@ const reduced = prefersReducedMotion();
       // NEXT is hidden only now, once the question is actually up. Hiding it after
       // the last fact - which is what this did first - left the player with no way
       // to reach the question at all: five facts, then a dead screen.
-      swapTo(speaker, QUESTION_PROMPT, () => {
+      swapTo(speaker, prompt, () => {
         askQuestion();
         advance.hidden = true;
       });
@@ -439,7 +480,7 @@ const reduced = prefersReducedMotion();
     wrongChoices += 1;
 
     if (wrongChoices > 1) {
-      const hint = hintFor(judge(value, CORRECT_ANSWER));
+      const hint = hintFor(judge(value, correct));
 
       swapTo(
         speaker,
@@ -456,7 +497,7 @@ const reduced = prefersReducedMotion();
     // test, so showing it in full put the answer on the rail for as long as
     // the child was looking at it, which is no use to a question meant to be
     // worked out. The full working arrives once the answer has been earned.
-    result.textContent = workingSentenceBlanked();
+    result.textContent = workingSentenceBlanked(months, crewSize);
     result.hidden = false;
 
     // The alarm frame stays up until the player asks for another go. This used
@@ -489,8 +530,8 @@ const reduced = prefersReducedMotion();
     setScene('question');
     setChoicesEnabled(true);
 
-    if (currentLine !== QUESTION_PROMPT) {
-      swapTo(speaker, QUESTION_PROMPT);
+    if (currentLine !== prompt) {
+      swapTo(speaker, prompt);
     }
   };
 
@@ -502,11 +543,11 @@ const reduced = prefersReducedMotion();
     advance.hidden = true;
     retry.hidden = true;
 
-    swapTo(speaker, successSentence());
+    swapTo(speaker, successSentence(months, crewSize));
 
     // The working is completed now that the answer has been earned, so the
     // blank the child was left with is filled in.
-    result.textContent = workingSentence();
+    result.textContent = workingSentence(months, crewSize);
     result.hidden = false;
 
     cont.hidden = false;
@@ -522,7 +563,7 @@ const reduced = prefersReducedMotion();
     // everything, so it would be silently scored as a wrong answer.
     if (!Number.isFinite(value)) return;
 
-    if (isCorrect(value, CORRECT_ANSWER)) {
+    if (isCorrect(value, correct)) {
       showRight();
     } else {
       showWrong(value);
@@ -539,9 +580,39 @@ const reduced = prefersReducedMotion();
     navigate(next);
   };
 
+  /**
+   * Enter advances, exactly as NEXT does.
+   *
+   * The briefing already works this way (D-046): NEXT is the visible control, but a
+   * player reading with a keyboard should not have to reach for the mouse.
+   *
+   * Without this, Enter did nothing at all until NEXT had been clicked with a mouse.
+   * The click was not the point: it left the focus on the button, and the browser
+   * activates a focused button on Enter - so the key worked by accident, and only
+   * once the screen had been clicked (ISS-047).
+   *
+   * Ignored while a button, link or field has focus: Enter on a focused button
+   * already fires a click, so answering it here as well would advance twice on one
+   * press.
+   */
+  const onKeyDown = (event: KeyboardEvent): void => {
+    if (!isPlainEnter(event.key, { alt: event.altKey, ctrl: event.ctrlKey, meta: event.metaKey })) return;
+
+    const target = event.target as HTMLElement | null;
+
+    if (target !== null && focusHandlesEnter(target.tagName)) return;
+
+    event.preventDefault();
+
+    // NEXT is hidden once the question is up, so Enter advances the explanation and
+    // nothing else. A stray press must never answer the question for the player.
+    if (!advance.hidden) revealNext();
+  };
+
   advance.addEventListener('click', revealNext);
   retry.addEventListener('click', onRetry);
   cont.addEventListener('click', onContinue);
+  window.addEventListener('keydown', onKeyDown);
 
   // Open on the astronaut explaining, with the clipboard. The pointing-at-the-
   // checklist frame waits for the question, which is what he is pointing at.
@@ -559,6 +630,11 @@ const reduced = prefersReducedMotion();
     advance.removeEventListener('click', revealNext);
     retry.removeEventListener('click', onRetry);
     cont.removeEventListener('click', onContinue);
+
+    // The keydown listener lives on the window, so it has to come off again here:
+    // left in place it would keep advancing this screen after the player had left
+    // it, and the briefing's own Enter handler would fight it.
+    window.removeEventListener('keydown', onKeyDown);
 
     for (const button of choiceButtons) {
       button.removeEventListener('click', onChoiceClick);

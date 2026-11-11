@@ -13,7 +13,7 @@ demo **Nov 14-15**.
 **The one invariant: `sim/` and each feature's `model.ts` are pure — no `document`, no
 `window`, no network.**
 
-That is what lets 503 tests run in a few seconds with no browser and no mocks, so the game
+That is what lets 772 tests run in a few seconds with no browser and no mocks, so the game
 can be asserted on rather than eyeballed. Everything else here exists to protect it. If
 you are unsure where code goes: if it touches the DOM it is not pure.
 
@@ -24,12 +24,46 @@ the outpost (build modules, read the storm warning), `act` advances one sol per 
 `debrief` explains a win or loss from the per-sol ledger. The polished landing page still
 works behind it and is what BACK TO MAIN MENU returns to.
 
+**The game is a Papers Please game about Mars** (D-060). Each sol the player is the duty
+officer at the outpost: three **work orders** land on the desk, each with two readings to
+check and a tool to work it with, and the player approves one. The **standing orders** are
+a rule book that grows two rules a sol until there are twenty-four, and they are the five
+learning goals in the order the player meets them. The orders live in `sim/activities.ts`,
+the rules in `sim/standingOrders.ts`, the tools in `sim/minigames.ts`, and the how-to-play
+guide in `sim/guide.ts`.
+
+**The five goals are the project's learning outcomes, not a score** (D-061). Surviving
+twelve sols is the only outcome. The goals are the science, and the debrief prints the
+standing orders you worked under as the keepsake. The counters that used to grade them are
+gone: `sim/goals.ts` now reports what you kept running, and for how long.
+
+**The rover is part of the run** (D-062). It is sent out by a work order like any other,
+it drives on sol time, and it comes back with a document on the desk: a real NASA picture,
+a place from the past, or a rare rock to log, take or leave. Its state is in
+`RunState.rover`; its rules and its catalogue are both in `sim/rover.ts`. It touches no
+resource, so it cannot change how a run is won or lost.
+
+**Every sol now has a main activity** (D-051). On the eight calm sols `act` offers three
+and the player picks one; on a crisis sol the crisis replaces the activity panel, so the
+crisis *is* that day's activity. The rules are in `sim/activities.ts`, the cost and gain
+are applied by `sim/sol.ts`, and the science points they earn give the run a score and a
+rank (D-052) that the debrief reports. **Working an order with a tool wins stars**, and
+the stars multiply the science the order is worth — they never touch a store, so the
+balance of a run does not depend on how well the player did (D-063).
+
+**The balance is checked, not assumed** (D-064). `npm run balance` plays every legal
+build at every landing site over several forecast seeds and fails when a site cannot
+hold all five systems or when too few builds can win. It exists because the game was
+unwinnable for a long time and no test said so.
+
 What is still a **stub**: nothing in the journey. `data/spaceweather.ts` is implemented and
 live: it reads solar flares from NASA DONKI, falls through to NOAA SWPC when DONKI is
 unreachable or throttled, and finally to an empty list, from which `sim/forecast.ts`
-draws typical flares marked `approximate`. There is **no save** — the run lives in
-memory only — and the forecast's *timing* is rolled per run from a seed
-(`sim/forecast.ts`, D-048), so only the flare *size* comes from the network.
+draws typical flares marked `approximate`. `data/nasaDaily.ts` is live too: it reads
+NASA's Astronomy Picture of the Day and falls back to the saved gallery. There is **no
+save** — the run lives in memory only — and the forecast's *timing* is rolled per run
+from a seed (`sim/forecast.ts`, D-048), so only the flare *size* comes from the network
+(D-033, D-037, D-053).
 
 **A stub is not an implementation.** If a file says STUB, calling it throws. That is
 deliberate: it fails loudly instead of silently returning `undefined`.
@@ -54,7 +88,7 @@ human upholds it and nothing catches you.
 | R-10 | No `on*="..."` inline handlers in markup | **enforced** | `no-inline-handler` |
 | R-11 | A relative import that resolves to nothing is an error | **enforced** | `unresolved-import` |
 | R-12 | Typecheck clean; `strict`, `noUnusedLocals` | **enforced** | `npm run check` |
-| R-13 | Tests pass (503 today) | **enforced** | `npm test`, watch ISS-015 |
+| R-13 | Tests pass (772 today) | **enforced** | `npm test`, watch ISS-015 |
 | R-14 | No `index.ts` barrel files — import concrete paths | convention | nothing |
 | R-15 | Feature CSS is imported by its own `view.ts`, never added to `style.css` | convention | nothing |
 | R-16 | Files are UTF-8, LF, no BOM. Preserve a file's existing endings | convention | **nothing** — ISS-005 |
@@ -89,12 +123,34 @@ startRouter → location.hash → parseRoute (pure) → onRoute
 The menu's rotation is **CSS keyframes**, not JS — no `requestAnimationFrame`, so no
 loop to leak when you navigate away.
 
-**No save, and one live network path.** The whole run — name, region, stores, modules and
-the per-sol ledger — lives in `main.ts` memory only and is lost on refresh. The only
-request outside the landing page is space weather: `base` and `act` call
-`dom/forecastLoader` → `data/spaceweather.ts`, which tries NASA DONKI, then NOAA SWPC,
-then an empty list. The event *schedule* is rolled per run from a seed in
-`sim/forecast.ts` (D-048); only the flare size is live.
+**The day's loop, and where each piece of it lives:**
+
+```
+act → the three work orders for today          sim/activities.ts
+    → the player checks the two readings on each and may work one with a tool
+      (the stars only multiply the science the order is worth)  sim/minigames.ts
+    → advanceSol applies the cost and the gain, deploys the rover if the
+      order was the exploring one, and grows the board by two
+                                                   sim/standingOrders.ts
+    → the recap at the top of the panel is built from the log, and the
+      guide (sim/guide.ts) is one button away
+```
+
+**No save, and two live network paths.** The whole run — name, region, stores, modules,
+the science score, the rover's finds and the per-sol ledger — lives in `main.ts` memory
+only and is lost on refresh.
+
+The two requests outside the landing page are both in `data/`:
+
+- **Space weather.** `base` and `act` call `dom/forecastLoader` → `data/spaceweather.ts`,
+  which tries NASA DONKI, then NOAA SWPC, then an empty list, from which
+  `sim/forecast.ts` draws typical flares marked approximate. The event *schedule* is
+  rolled per run from a seed in `sim/forecast.ts` (D-048); only the flare size is live.
+- **NASA's daily pictures.** `act` calls `dom/dailyFactLoader` → `data/nasaDaily.ts`, which
+  asks NASA's Astronomy Picture of the Day for Mars pictures and falls back to the saved
+  gallery in `data/nasaGallery.ts` (D-053). This is an **enrichment layer on top of** the
+  saved gallery, never a replacement — the game is complete without a network, and the
+  screen says which of the two it is showing.
 
 ## 4. Boot order
 
@@ -115,6 +171,8 @@ then an empty list. The event *schedule* is rolled per run from a seed in
 14. In a dev build with `?editlayout=1`, `main.ts` loads `ui/baseLayoutEditor` with a
     dynamic import. The editor is attached to whichever screen is mounted, and to
     nothing in a production build (D-065).
+15. In a dev build, a layout file with problems in it is listed in the console
+    (D-068). The game still starts: it falls back to what it can.
 
 `BACK TO MAIN MENU` returns to `landing`, which keeps running behind the menu.
 
@@ -178,12 +236,22 @@ opening its folder — that is the whole point of the layout.
 | Drift, bounce, throw, speed | `src/sim/drift.ts` |
 | Squash-and-stretch feel, spring constants | `src/sim/deform.ts` |
 | How drift and deformation combine per frame | `src/sim/frame.ts` |
-| Resource drain, power/O2/water/food/shielding | `src/sim/resources.ts` — complete, 18 tests |
-| Advancing a sol, resolving events, detecting loss | `src/sim/sol.ts` — complete, 12 tests |
-| Run state shape and progression | `src/sim/run.ts` — complete, 19 tests |
-| Module catalogue, build costs, upkeep | `src/sim/modules.ts` — complete, 25 tests |
-| The forecast, its seeded timetable, flare intensity | `src/sim/forecast.ts` |
+| Resource drain, power/O2/water/food/shielding | `src/sim/resources.ts` — complete, 7 tests |
+| Advancing a sol, resolving events, detecting loss | `src/sim/sol.ts` — complete, 53 tests |
+| Run state shape and progression | `src/sim/run.ts` — complete, 11 tests |
+| Module catalogue, build costs, upkeep | `src/sim/modules.ts` — complete, 14 tests |
+| The forecast, its seeded timetable, flare intensity | `src/sim/forecast.ts` — 15 tests |
+| **Never two events back to back** | `src/sim/forecast.ts` — `MIN_CLEAR_SOLS`, `forecastIsSpaced` |
 | Crisis choices and what each one costs | `src/sim/crises.ts` |
+| **The day's activity, its cost and its gain** | `src/sim/activities.ts` — complete, 18 tests |
+| **The science score and the rank ladder** | `src/sim/science.ts` — complete, 11 tests |
+| **The five science goals and their live state** | `src/sim/goals.ts` — complete, 23 tests |
+| **The standing orders — the rule book the player works to** | `src/sim/standingOrders.ts` — complete, 7 tests |
+| **The six tools, and how they are graded** | `src/sim/minigames.ts` — complete, 23 tests |
+| **The how-to-play guide** | `src/sim/guide.ts` — complete, 6 tests |
+| **The patches a run earns** | `src/sim/patches.ts` — complete, 7 tests |
+| **The notes that land on the desk** | `src/sim/deskNotes.ts` — complete, 8 tests |
+| **What a lesson is about** (power, dust, water, food, radiation, missions) | `src/sim/topics.ts` |
 | Earth-Mars delay, "can Earth answer in time" | `src/sim/comms.ts` |
 | Every tuning number | `src/sim/modules.ts` — edit here to retune |
 | The rAF loop, transforms, resize, reduced motion | `src/dom/floatAstronaut.ts` |
@@ -195,12 +263,20 @@ opening its folder — that is the whole point of the layout.
 | Name length, trimming, emoji, validation | `src/features/naming/model.ts` — pure, 21 tests |
 | The rotating Mars-behind-astronaut stage | `src/features/naming/naming.css` |
 | **Choosing where to land on Mars** | `src/features/landing-site/` — **built** (TASK-028 done) |
-| **Building the outpost between sols** | `src/features/base/` — **built**, 11 tests |
-| **Advancing a sol** | `src/features/act/` — **built**, 7 tests |
-| **Why the run was won or lost** | `src/features/debrief/` — **built**, 12 tests |
+| **Building the outpost between sols** | `src/features/base/` — **built**, 23 tests |
+| **Advancing a sol, and picking the day's activity** | `src/features/act/` — **built**, 31 tests |
+| **Why the run was won or lost, and the science score** | `src/features/debrief/` — **built**, 32 tests |
 | **Reading what each module does, with NASA facts** | `src/features/encyclopedia/` — **built** |
 | **Where each copy of a module stands on the outpost panel** | `src/ui/baseLayout.json` — a pose list per kind; drag them on the real screen with `?editlayout=1` (D-065, D-066). A pose may be mirrored (`flip`). The stacking order is a rule in `ui/baseLayout.ts` (D-069), not a number in the file: the copies of a kind recede from the camera, so the first copy is the nearest. The editor opens showing the file on disk, and a file with problems is listed in the console (D-068) |
 | The placement editor itself | `src/ui/baseLayoutEditor.ts` — dev-only, compiled out of a production build |
+| **The rover, and what it finds** | `src/sim/rover.ts` — **built**, 31 tests; its state is `RunState.rover` |
+| **The work-order player and the six tools** | `src/ui/activityPlayer.ts`, `src/sim/minigames.ts` — **built** |
+| **The how-to-play guide** | `src/ui/guide.ts`, `src/sim/guide.ts` — **built** |
+| **Is the game still winnable?** | `npm run balance` — `tools/balance-check.mts`; fails if a site cannot hold all five systems |
+| **Checking the build screen and the desk in a real browser** | `tools/browser-check-build.mjs` — the limits, the reasons, the tools, the guide |
+| **Checking the whole journey in a real browser** | `tools/browser-check-journey.mjs` — naming to the outpost, with no console errors |
+| **Shrinking the rover's animation** | `tools/compress-rover-assets.py` — the PNG to WebP, and a check that the animation still has its frames |
+| **Checking the rover in a real browser** | `tools/browser-check-rover.mjs` — headless Chrome; stamps the order, waits for the document, answers it, watches the science go up |
 | Where START MISSION goes | `onSubmit` in `src/features/naming/view.ts` — flows to `briefing` |
 | Boot, element lookup, `?motion=`, mounting screens | `src/main.ts` |
 | Page structure, element ids, font link | `index.html` |
@@ -213,7 +289,10 @@ opening its folder — that is the whole point of the layout.
 | Strictness, module resolution, compiled files | `tsconfig.json` |
 | Layer rules, banned APIs, the `KNOWN` set | `scripts/check-imports.mjs` |
 | Joining live flares to the forecast | `src/dom/forecastLoader.ts` |
+| Joining live NASA pictures to the screen | `src/dom/dailyFactLoader.ts` |
 | **Any NASA-API call** | `src/data/spaceweather.ts` — live; NASA DONKI → NOAA SWPC → baked |
+| **NASA's daily picture of the day** | `src/data/nasaDaily.ts` — live; APOD → the saved gallery |
+| **The saved NASA cards and facts** | `src/data/nasaGallery.ts` — twelve cards, five region photos, forty tagged facts |
 | A game screen | `src/features/<name>/` — every journey screen is built |
 | What a screen is meant to contain | the `README.md` in that screen's folder |
 | **Every decision, the sol loop, what is built, where a new event plugs in** | `docs/game-flow.md` |
@@ -225,13 +304,16 @@ opening its folder — that is the whole point of the layout.
 npm install
 npm run dev        # Vite dev server
 npm run check      # layer + banned-API check, then tsc --noEmit   <- run this
-npm test           # vitest, 440 tests                            <- 40% flaky, ISS-015
+npm test           # vitest, 772 tests                            <- 40% flaky, ISS-015
 npm run build      # to dist/
 npm run preview    # serve the build
+npm run balance    # is the game still winnable?  <- run this after touching sim/
 npm run typecheck  # tsc alone
 ```
 
-Run `npm run check` **and** `npm test` before every commit.
+Run `npm run check` **and** `npm test` before every commit. Run `npm run balance` too when
+you touch `sim/` — it is the only thing that catches the game becoming unwinnable, and
+the game was unwinnable for a long time before it existed.
 
 ## 10. Out of scope — stop and ask
 

@@ -1,19 +1,72 @@
 import { describe, expect, it } from 'vitest';
 
 import { pendingCrisis } from '../../sim/crises';
-import { createForecast } from '../../sim/forecast';
+import { offerFor } from '../../sim/activities';
+import { flareIntensity, type ForecastEvent } from '../../sim/forecast';
 import { CORE_MODULES, type ModuleKind } from '../../sim/modules';
 import { newRun, startOutpost, withState, type RunState } from '../../sim/run';
 import { advanceSol, decide } from '../../sim/sol';
-import { blackoutSols, consumptionSummary, explainOutcome, lowestPoints, nextSteps, reviewDecisions, timeline, usedApproximateData, wentEmpty } from './model';
+import { blackoutSols, consumptionSummary, explainOutcome, goalOutcomes, lowestPoints, nextSteps, reviewDecisions, scienceDetail, scienceHeadline, scienceReport, scienceSentence, timeline, usedApproximateData, wentEmpty } from './model';
 
 const FLARES = [
   { classType: 'X5.8', approximate: true, when: 'in a test' },
   { classType: 'X5.8', approximate: true, when: 'in a test' },
 ];
 
+/**
+ * A timetable with the events on known sols.
+ *
+ * The forecast is rolled per run, so a test about the debrief's reasoning cannot
+ * depend on which sols the dice picked. This one puts a flare on sol 3, a pod on
+ * sol 5, a dust storm on sols 7 and 8, and a second flare on sol 10. The gaps
+ * are the ones the planner guarantees: never two events touching.
+ */
+function fixedForecast(flares = FLARES): readonly ForecastEvent[] {
+  const first = flares[0] ?? { classType: 'M5.0', approximate: true, when: 'in a test' };
+  const second = flares[1] ?? first;
+
+  return [
+    {
+      id: 'flare-3',
+      sol: 3,
+      kind: 'flare',
+      durationSols: 1,
+      intensity: flareIntensity(first.classType),
+      summary: `A ${first.classType} solar flare is on its way.`,
+      approximate: first.approximate,
+    },
+    {
+      id: 'supply-5',
+      sol: 5,
+      kind: 'supply-pod',
+      durationSols: 1,
+      intensity: 0,
+      summary: 'A supply pod from Earth lands near the outpost.',
+      approximate: false,
+    },
+    {
+      id: 'storm-7',
+      sol: 7,
+      kind: 'storm',
+      durationSols: 2,
+      intensity: 0,
+      summary: 'A dust storm is rolling in.',
+      approximate: false,
+    },
+    {
+      id: 'flare-10',
+      sol: 10,
+      kind: 'flare',
+      durationSols: 1,
+      intensity: flareIntensity(second.classType),
+      summary: `A ${second.classType} solar flare is on its way.`,
+      approximate: second.approximate,
+    },
+  ];
+}
+
 function playOut(extras: readonly ModuleKind[], picks: Record<string, string>, flares = FLARES): RunState {
-  let run = startOutpost(withState(newRun('jezero', 'Test'), { forecast: createForecast(flares) }), [...CORE_MODULES, ...extras]);
+  let run = startOutpost(withState(newRun('jezero', 'Test'), { forecast: fixedForecast(flares) }), [...CORE_MODULES, ...extras]);
 
   while (run.status === 'active') {
     const crisis = pendingCrisis(run);
@@ -59,7 +112,7 @@ describe('explainOutcome', () => {
   });
 
   it('says when the clock ran out and the choice was made for the player', () => {
-    let run = startOutpost(withState(newRun('jezero', 'T'), { forecast: createForecast(FLARES) }), [...CORE_MODULES, 'greenhouse']);
+    let run = startOutpost(withState(newRun('jezero', 'T'), { forecast: fixedForecast() }), [...CORE_MODULES, 'greenhouse']);
 
     while (run.status === 'active') {
       const crisis = pendingCrisis(run);
@@ -154,9 +207,30 @@ describe('the rest of the debrief', () => {
 });
 
 describe('nextSteps', () => {
-  /** A finished run with a chosen cause of death, so the tip rules can be checked in isolation. */
+  /**
+   * A finished run that really did run the water down.
+   *
+   * The crew planted extra crops with nothing to water them, and opened the
+   * supply pod for food. The water goal was missed because the water really
+   * was low, not because the run was short: a run that is lost early has not
+   * missed anything, it has not finished.
+   */
   function endedByWater(extras: readonly ModuleKind[] = SOLAR): RunState {
-    const run = playOut(extras, SMART);
+    let run = startOutpost(withState(newRun('jezero', 'Test'), { forecast: fixedForecast() }), [...CORE_MODULES, ...extras]);
+
+    while (run.status === 'active') {
+      const crisis = pendingCrisis(run);
+
+      if (crisis !== null) {
+        run = decide(run, crisis.id, (crisis.kind === 'supply-pod' ? 'food' : SMART[crisis.kind]) ?? crisis.defaultOptionId);
+      }
+
+      const grow = offerFor(run, run.sol + 1).find((offer) => offer.available && offer.spec.id === 'grow-extra');
+
+      if (grow !== undefined) run = withState(run, { chosenActivity: 'grow-extra' });
+
+      run = advanceSol(run);
+    }
 
     return withState(run, { status: 'lost', stores: { ...run.stores, water: 0 } });
   }
@@ -190,7 +264,7 @@ describe('nextSteps', () => {
   });
 
   it('falls back to a harder site when nothing in the run suggests a fix', () => {
-    const strong = startOutpost(withState(newRun('jezero', 'T'), { forecast: createForecast(FLARES) }), [
+    const strong = startOutpost(withState(newRun('jezero', 'T'), { forecast: fixedForecast() }), [
       ...CORE_MODULES,
       'solar-array',
       'solar-array',
@@ -211,5 +285,132 @@ describe('nextSteps', () => {
 
   it('honours the limit the panel has room for', () => {
     expect(nextSteps(endedByWater(), 1)).toHaveLength(1);
+  });
+});
+
+describe('the science report', () => {
+  it('reports no science for a run that chose nothing', () => {
+    const report = scienceReport(playOut(SOLAR, SMART));
+
+    expect(report.points).toBe(12);
+    expect(report.activities).toHaveLength(0);
+    expect(report.crisisSols).toEqual([3, 5, 7, 10]);
+    expect(report.quietSols).toEqual([1, 2, 4, 6, 8, 9, 11, 12]);
+    expect(scienceHeadline(report)).toBe('Your rank: Explorer.');
+  });
+
+  it('lists every activity the crew chose, with what it earned', () => {
+    let run = startOutpost(withState(newRun('jezero', 'Test'), { forecast: fixedForecast() }), [...CORE_MODULES, ...SOLAR]);
+
+    run = withState(run, { chosenActivity: 'experiment' });
+    run = advanceSol(run);
+
+    const report = scienceReport(run);
+
+    expect(report.activities).toHaveLength(1);
+    expect(report.activities[0]?.sol).toBe(1);
+    expect(report.activities[0]?.points).toBe(6);
+    expect(report.points).toBe(7);
+  });
+
+  it('puts the crisis sols apart from the activity sols', () => {
+    let run = startOutpost(withState(newRun('jezero', 'Test'), { forecast: fixedForecast() }), [...CORE_MODULES, ...SOLAR]);
+
+    for (let sol = 0; sol < 3; sol += 1) {
+      const crisis = pendingCrisis(run);
+
+      if (crisis !== null) run = decide(run, crisis.id, SMART[crisis.kind] ?? crisis.defaultOptionId);
+      run = advanceSol(run);
+    }
+
+    const report = scienceReport(run);
+
+    expect(report.crisisSols).toEqual([3]);
+    expect(report.quietSols).toEqual([1, 2]);
+  });
+
+  it('names the rank without getting the article wrong', () => {
+    const report = scienceReport(withState(playOut(SOLAR, SMART), { science: 30 }));
+
+    expect(scienceHeadline(report)).toBe('Your rank: Research Lead.');
+    expect(scienceDetail(report)).toContain('11 more points');
+  });
+
+  it('says the top rank is the top rank', () => {
+    const report = scienceReport(withState(playOut(SOLAR, SMART), { science: 52 }));
+
+    expect(scienceDetail(report)).toContain('top rank');
+    expect(report.next).toBeNull();
+  });
+
+  it('writes the score as a sentence for screen readers', () => {
+    const report = scienceReport(withState(playOut(SOLAR, SMART), { science: 30 }));
+
+    expect(scienceSentence(report)).toContain('30 science points');
+    expect(scienceSentence(report)).toContain('Research Lead');
+  });
+});
+
+describe('the five science goals at the end', () => {
+  it('reports on all five, in order', () => {
+    const outcomes = goalOutcomes(playOut(SOLAR, SMART));
+
+    expect(outcomes).toHaveLength(5);
+    expect(outcomes.map((outcome) => outcome.title)).toEqual([
+      'Martian Dust Storm',
+      'Life Support',
+      'Radiation Exposure',
+      'Power Shortage',
+      'Food Production',
+    ]);
+  });
+
+  it('counts how many sols each goal held for, with no target and no score', () => {
+    for (const outcome of goalOutcomes(playOut(SOLAR, SMART))) {
+      expect(outcome.held).toBeGreaterThanOrEqual(0);
+      expect(outcome.held).toBeLessThanOrEqual(12);
+      expect(outcome.aim.length).toBeGreaterThan(5);
+    }
+  });
+
+  it('says the dust was held when the panels stayed clean', () => {
+    const dust = goalOutcomes(playOut(SOLAR, SMART)).find((outcome) => outcome.id === 'dust-storm');
+
+    expect(dust?.verdict).toBe('held');
+    expect(dust?.detail).toContain('still clean');
+  });
+
+  it('says the power took damage when the batteries ran flat', () => {
+    const power = goalOutcomes(playOut([], SMART)).find((outcome) => outcome.id === 'power');
+
+    expect(power?.verdict).toBe('hurt');
+    expect(power?.detail).toContain('ran flat');
+  });
+
+  it('says the food failed when the food ran out', () => {
+    const run = playOut(['solar-array', 'solar-array', 'batteries', 'batteries', 'regolith-shield'], SMART);
+    const food = goalOutcomes(run).find((outcome) => outcome.id === 'food');
+
+    expect(run.status).toBe('lost');
+    expect(food?.verdict).toBe('failed');
+    expect(food?.detail).toContain('food ran out');
+  });
+
+  it('says the radiation failed when the shielding ran out', () => {
+    const run = playOut(
+      ['solar-array', 'batteries', 'greenhouse'],
+      { ...SMART, flare: 'carry-on' },
+    );
+    const radiation = goalOutcomes(run).find((outcome) => outcome.id === 'radiation');
+
+    expect(radiation?.verdict).toBe('failed');
+    expect(radiation?.detail).toContain('shielding ran out');
+  });
+
+  it('always gives every goal a verdict and a line', () => {
+    for (const outcome of goalOutcomes(playOut(SOLAR, SMART))) {
+      expect(['held', 'hurt', 'failed']).toContain(outcome.verdict);
+      expect(outcome.detail.length).toBeGreaterThan(10);
+    }
   });
 });

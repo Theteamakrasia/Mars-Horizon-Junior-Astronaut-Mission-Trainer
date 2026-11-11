@@ -4,8 +4,10 @@ import { earthCanAnswerInTime, oneWayMinutes, roundTripMinutes } from './comms';
 import { crisisForEvent, earthAdvice, earthIsInTime, pendingCrisis } from './crises';
 import {
   createForecast,
+  DEFAULT_SEED,
   FIRST_EVENT_SOL,
   flareIntensity,
+  forecastIsSpaced,
   LAST_EVENT_SOL,
   MAX_FLARES,
   MIN_EVENTS,
@@ -17,6 +19,7 @@ import {
 } from './forecast';
 import { CORE_MODULES, type ModuleKind } from './modules';
 import { newRun, startOutpost, withState, type RunState } from './run';
+import { SOL_LOG_POINTS } from './science';
 import {
   advanceSol,
   decide,
@@ -35,10 +38,27 @@ const FLARES = [
   { classType: 'M5.0', approximate: true, when: 'in a test' },
 ];
 
-function outpost(region: string, extras: readonly ModuleKind[], flares = FLARES): RunState {
-  const base = withState(newRun(region, 'Test'), { forecast: createForecast(flares) });
+function outpost(region: string, extras: readonly ModuleKind[], seed: number = DEFAULT_SEED, flares = FLARES): RunState {
+  const base = withState(newRun(region, 'Test'), { forecast: createForecast(flares, seed) });
 
   return startOutpost(base, [...CORE_MODULES, ...extras]);
+}
+
+/**
+ * A seed whose timetable has all three kinds of event.
+ *
+ * The timetable is rolled per run, so a test that needs a supply pod cannot
+ * assume one is there. This finds the first seed that has all three, so the
+ * test is about the rule and not about a magic number.
+ */
+function seedWithEveryKind(): number {
+  for (let seed = 1; seed <= 500; seed += 1) {
+    const kinds = new Set(createForecast(FLARES, seed).map((event) => event.kind));
+
+    if (kinds.has('flare') && kinds.has('storm') && kinds.has('supply-pod')) return seed;
+  }
+
+  throw new Error('no seed has all three kinds of event');
 }
 
 /**
@@ -76,6 +96,25 @@ const SOLAR_FIRST: readonly ModuleKind[] = [
   'regolith-shield',
 ];
 const SMART = { flare: 'shelter', storm: 'retract-save', 'supply-pod': 'water' };
+
+/**
+ * A build that closes the loop, so it survives whatever the dice roll.
+ *
+ * The timetable is rolled per run, and a run without an ice miner runs out of
+ * water about a third of the time. That is the point of the ice miner, so the
+ * test that says "you can win" uses a build that can.
+ */
+const CLOSED_LOOP: readonly ModuleKind[] = [
+  'solar-array',
+  'solar-array',
+  'solar-array',
+  'batteries',
+  'batteries',
+  'batteries',
+  'greenhouse',
+  'ice-miner',
+  'regolith-shield',
+];
 
 describe('comms', () => {
   it('makes the delay grow, and a round trip exactly twice a one-way trip', () => {
@@ -159,14 +198,30 @@ describe('forecast', () => {
     expect(forecasts.some((forecast) => !forecast.some((event) => event.kind === 'supply-pod'))).toBe(true);
   });
 
-  it('lets flares come in bursts on neighbouring sols', () => {
-    const burst = Array.from({ length: 300 }, (_, index) => createForecast(FLARES, index + 1)).some((forecast) => {
+  it('lets flares come in bursts, but never on neighbouring sols', () => {
+    const timetables = Array.from({ length: 300 }, (_, index) => createForecast(FLARES, index + 1));
+
+    /* A burst is two flares close together. They still cannot touch: a crisis
+       on the sol after a crisis gives the player no room to breathe. */
+    const burst = timetables.some((forecast) => {
+      const sols = forecast.filter((event) => event.kind === 'flare').map((event) => event.sol);
+
+      return sols.some((sol) => sols.includes(sol + 2));
+    });
+    const touching = timetables.some((forecast) => {
       const sols = forecast.filter((event) => event.kind === 'flare').map((event) => event.sol);
 
       return sols.some((sol) => sols.includes(sol + 1));
     });
 
     expect(burst).toBe(true);
+    expect(touching).toBe(false);
+  });
+
+  it('never puts two events back to back, across many seeds', () => {
+    for (let seed = 1; seed <= 500; seed += 1) {
+      expect(forecastIsSpaced(createForecast(FLARES, seed))).toBe(true);
+    }
   });
 
   it('plans the same sols whatever flares are handed in', () => {
@@ -219,7 +274,7 @@ describe('forecast', () => {
   });
 
   it('warns about each kind of event as far ahead as the real thing allows', () => {
-    const forecast = createForecast(FLARES);
+    const forecast = createForecast(FLARES, seedWithEveryKind());
     const flare = eventOfKind(forecast, 'flare');
     const storm = eventOfKind(forecast, 'storm');
     const pod = eventOfKind(forecast, 'supply-pod');
@@ -320,6 +375,88 @@ describe('advancing a sol', () => {
   });
 });
 
+describe('the main activity', () => {
+  it('spends the chosen activity on the sol and records it', () => {
+    const run = withState(outpost('jezero', SOLAR_FIRST), { chosenActivity: 'survey' });
+    const next = advanceSol(run);
+
+    expect(next.log[0].activity?.id).toBe('survey');
+    expect(next.log[0].activity?.title).toBe('Send the rover out to survey');
+  });
+
+  it('awards the activity its science points, plus the point for the day', () => {
+    const run = withState(outpost('jezero', SOLAR_FIRST), { chosenActivity: 'experiment' });
+
+    expect(advanceSol(run).science).toBe(SOL_LOG_POINTS + 6);
+  });
+
+  it('gives a point for the day even when the sol was spent on a crisis', () => {
+    expect(advanceSol(outpost('jezero', SOLAR_FIRST)).science).toBe(SOL_LOG_POINTS);
+  });
+
+  it('clears the choice once the sol has run, so it is never paid for twice', () => {
+    const run = withState(outpost('jezero', SOLAR_FIRST), { chosenActivity: 'survey' });
+
+    expect(advanceSol(run).chosenActivity).toBeNull();
+  });
+
+  it('adds what the activity makes to the stores', () => {
+    const plain = advanceSol(outpost('jezero', SOLAR_FIRST)).stores.water;
+    const tuned = advanceSol(withState(outpost('jezero', SOLAR_FIRST), { chosenActivity: 'recycle-tune' })).stores.water;
+
+    expect(tuned).toBeGreaterThan(plain);
+  });
+
+  it('spends the activity power, so a flat battery runs that sol in a blackout', () => {
+    const bare = outpost('jezero', []);
+    const flat = withState(bare, { stores: { ...bare.stores, power: 0 } });
+
+    const quiet = advanceSol(flat).log[0].blackout;
+    const busy = advanceSol(withState(flat, { chosenActivity: 'survey' })).log[0].blackout;
+
+    expect(busy).toBeGreaterThan(quiet);
+  });
+
+  it('restores the panels when the crew sweeps them, and never past full', () => {
+    const dusty = withState(outpost('jezero', SOLAR_FIRST), { panelHealth: 0.5 });
+    const swept = advanceSol(withState(dusty, { chosenActivity: 'sweep-panels' }));
+
+    expect(swept.panelHealth).toBeGreaterThan(0.5);
+    expect(swept.panelHealth).toBeLessThanOrEqual(1);
+  });
+
+  it('throws on an activity that does not exist', () => {
+    const run = withState(outpost('jezero', SOLAR_FIRST), { chosenActivity: 'teleport' });
+
+    expect(() => advanceSol(run)).toThrow(RangeError);
+  });
+
+  it('puts the activity aside on a crisis sol, because the crisis is that day', () => {
+    const base = outpost('jezero', SOLAR_FIRST);
+    const flare = eventOfKind(base.forecast, 'flare');
+
+    let state = base;
+
+    /* Play up to the sol before the flare. */
+    while (state.sol < flare.sol - 1) {
+      const crisis = pendingCrisis(state);
+
+      if (crisis !== null) state = decide(state, crisis.id, SMART[crisis.kind] ?? crisis.defaultOptionId);
+      state = advanceSol(state);
+    }
+
+    expect(pendingCrisis(state)).not.toBeNull();
+
+    /* The player has picked an activity for the flare sol. The crisis takes
+       the day, so the activity is not run alongside it. */
+    state = withState(state, { chosenActivity: 'experiment' });
+    state = advanceSol(state);
+
+    expect(state.log[flare.sol - 1].activity).toBeNull();
+    expect(state.log[flare.sol - 1].events.some((event) => event.kind === 'flare')).toBe(true);
+  });
+});
+
 describe('crisis decisions', () => {
   it('asks about each forecast event exactly once, on the sol before it begins', () => {
     let run = outpost('jezero', SOLAR_FIRST);
@@ -391,7 +528,7 @@ describe('crisis decisions', () => {
   });
 
   it('lets the supply pod refill what the player picks', () => {
-    const base = outpost('jezero', SOLAR_FIRST);
+    const base = outpost('jezero', SOLAR_FIRST, seedWithEveryKind());
     const pod = eventOfKind(base.forecast, 'supply-pod');
     const water = (choice: string): number => {
       let run = decide(base, pod.id, choice);
@@ -407,7 +544,7 @@ describe('crisis decisions', () => {
 
 describe('Earth and the delay', () => {
   it('refuses to wait for Earth on a fast crisis but can on a slow one', () => {
-    const run = outpost('jezero', SOLAR_FIRST);
+    const run = outpost('jezero', SOLAR_FIRST, seedWithEveryKind());
     const flare = eventOfKind(run.forecast, 'flare');
     const pod = eventOfKind(run.forecast, 'supply-pod');
 
@@ -416,7 +553,7 @@ describe('Earth and the delay', () => {
   });
 
   it('advises sheltering from a flare, and food or water depending on what runs out first', () => {
-    const run = outpost('jezero', []);
+    const run = outpost('jezero', [], seedWithEveryKind());
 
     expect(earthAdvice(run, crisisForEvent(eventOfKind(run.forecast, 'flare'))).optionId).toBe('shelter');
     expect(['food', 'water']).toContain(earthAdvice(run, crisisForEvent(eventOfKind(run.forecast, 'supply-pod'))).optionId);
@@ -425,10 +562,20 @@ describe('Earth and the delay', () => {
 
 describe('ending a run', () => {
   it('wins by living to the last sol', () => {
-    const run = playOut(outpost('jezero', SOLAR_FIRST), SMART);
+    const run = playOut(outpost('jezero', CLOSED_LOOP), SMART);
 
     expect(run.status).toBe('won');
     expect(run.sol).toBe(WIN_SOL);
+  });
+
+  it('survives without the water, but only just: the tank is nearly empty at the end', () => {
+    /* A greenhouse without an ice miner used to lose the run on water every
+       time. It now survives, on about a tenth of a tank — which is the point
+       of the ice miner, said louder. */
+    const run = playOut(outpost('jezero', SOLAR_FIRST), SMART);
+
+    expect(run.status).toBe('won');
+    expect(run.stores.water).toBeLessThan(20);
   });
 
   it('loses when there is no greenhouse, and says food was what ran out', () => {
@@ -440,7 +587,7 @@ describe('ending a run', () => {
 
   it('loses to a big flare nobody took cover from, with no shielding built', () => {
     const run = playOut(
-      outpost('jezero', ['solar-array', 'batteries', 'greenhouse'], [{ classType: 'X9.3', approximate: true, when: 'in 2017' }]),
+      outpost('jezero', ['solar-array', 'batteries', 'greenhouse'], DEFAULT_SEED, [{ classType: 'X9.3', approximate: true, when: 'in 2017' }]),
       { ...SMART, flare: 'carry-on' },
     );
 

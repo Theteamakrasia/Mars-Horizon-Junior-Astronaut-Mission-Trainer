@@ -1,6 +1,197 @@
 /* ACT — the sol loop. Imported by ./view.ts only.
-   The shared frame is in styles/game-loop.css; only the crisis decision cards
-   add anything of their own. */
+   The shared frame is in styles/game-loop.css; only the crisis decision cards,
+   the daily activity cards and the inspections add anything of their own. */
+
+/* ------------------------------------------------------------ the inspection -- */
+
+/*
+ * The tool you work an order with.
+ *
+ * In Papers, Please the tools are how you see what a document is hiding, and
+ * they unlock one at a time. Here each order carries one, and the stars it
+ * wins are the only thing it changes.
+ */
+.insp {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(6px, 0.7vw, 14px);
+  padding: clamp(8px, 0.85vw, 16px);
+  border-radius: clamp(8px, 0.72vw, 14px);
+  background: var(--gl-card);
+}
+
+.insp__ask {
+  margin: 0;
+  color: var(--gl-ink);
+  font-weight: 800;
+  font-size: clamp(0.62rem, 0.78vw, 0.94rem);
+  line-height: 1.3;
+}
+
+.insp__hint {
+  margin: 0;
+  color: var(--gl-muted);
+  font-weight: 700;
+  font-size: clamp(0.56rem, 0.7vw, 0.84rem);
+}
+
+/* The checklist: press the steps in the right order. */
+.insp__steps,
+.insp__items,
+.insp__pairs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.insp__step,
+.insp__item {
+  padding: 0.25rem 0.6rem;
+  border: 1px solid var(--gl-line);
+  border-radius: 999px;
+  background: var(--gl-panel);
+  color: var(--gl-ink);
+  font: inherit;
+  font-weight: 800;
+  font-size: clamp(0.58rem, 0.72vw, 0.88rem);
+  cursor: pointer;
+}
+
+.insp__step[data-done='true'],
+.insp__item[data-chosen='true'] {
+  background: var(--gl-green-soft);
+  border-color: var(--gl-green);
+  color: var(--gl-green);
+}
+
+.insp__item {
+  border-radius: clamp(6px, 0.6vw, 10px);
+}
+
+/* The timing: a marker sweeping a track, and the safe band on it. */
+.insp__track {
+  position: relative;
+  height: clamp(18px, 2vw, 30px);
+  border-radius: 999px;
+  background: var(--gl-card-strong);
+  overflow: hidden;
+}
+
+.insp__band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--gl-green-soft);
+  border-left: 2px solid var(--gl-green);
+  border-right: 2px solid var(--gl-green);
+}
+
+.insp__marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: clamp(3px, 0.35vw, 6px);
+  margin-left: calc(clamp(3px, 0.35vw, 6px) / -2);
+  background: var(--gl-orange);
+  border-radius: 999px;
+}
+
+.insp__stop {
+  align-self: flex-start;
+  font-size: clamp(0.6rem, 0.74vw, 0.88rem);
+}
+
+/* The radar: a grid of squares to ping. */
+.insp__grid {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.insp__cell {
+  padding: clamp(4px, 0.5vw, 10px);
+  border: 1px solid var(--gl-line);
+  border-radius: clamp(5px, 0.5vw, 9px);
+  background: var(--gl-panel);
+  color: var(--gl-ink);
+  font: inherit;
+  font-weight: 800;
+  font-size: clamp(0.56rem, 0.7vw, 0.84rem);
+  cursor: pointer;
+}
+
+.insp__cell[data-pinged='true'] {
+  background: var(--gl-card-strong);
+  color: var(--gl-muted);
+  cursor: default;
+}
+
+/* The matching: a tool and its job. */
+.insp__pairs {
+  flex-direction: column;
+}
+
+.insp__pair {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.insp__pair-left {
+  min-width: 7em;
+  color: var(--gl-ink);
+  font-weight: 800;
+  font-size: clamp(0.58rem, 0.72vw, 0.88rem);
+}
+
+.insp__select {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.2rem 0.4rem;
+  border: 1px solid var(--gl-line);
+  border-radius: clamp(5px, 0.5vw, 9px);
+  background: var(--gl-panel);
+  color: var(--gl-ink);
+  font: inherit;
+  font-size: clamp(0.56rem, 0.7vw, 0.84rem);
+}
+
+.insp__result {
+  margin: 0;
+  color: var(--gl-green);
+  font-weight: 900;
+  font-size: clamp(0.6rem, 0.74vw, 0.9rem);
+  letter-spacing: 0.04em;
+}
+
+.insp__finish {
+  align-self: flex-start;
+  width: auto;
+  font-size: clamp(0.6rem, 0.74vw, 0.88rem);
+}
+
+/* The button that opens a tool, under its order. */
+.insp__slot {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -0.35em;
+}
+
+.insp__open {
+  padding: 0.15rem 0.55rem;
+  border: 1px dashed var(--gl-line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--gl-muted);
+  font: inherit;
+  font-weight: 800;
+  font-size: clamp(0.5rem, 0.64vw, 0.78rem);
+  cursor: pointer;
+}
+
+.insp__open:hover {
+  border-color: var(--gl-orange);
+  color: var(--gl-orange-deep);
+}
 
 .gl--act .gl__choice-img {
   width: 72%;
@@ -18,45 +209,348 @@
   opacity: 0.75;
 }
 
-/* What the sol added and what it cost, in five small cards. */
-.act-changes {
+/* --------------------------------------------------- the daily activity -- */
+
+.act-orders {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(5px, 0.62vw, 12px);
+}
+
+/*
+ * An order is a document, not a menu item.
+ *
+ * It says what is asked, what it costs, and the two readings the player has
+ * to check before stamping it. The point of the two checks is that the player
+ * approves knowing what they are approving.
+ */
+.act-order {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(4.4rem, 1fr));
-  gap: 0.35rem;
-}
-
-.act-change {
-  padding: 0.4rem 0.5rem;
-  border: 1px solid var(--gl-line);
-  border-radius: 0.6rem;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: clamp(6px, 0.8vw, 16px);
+  width: 100%;
+  padding: clamp(7px, 0.72vw, 14px);
+  border: 2px solid transparent;
+  border-radius: clamp(8px, 0.72vw, 14px);
   background: var(--gl-card);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease;
 }
 
-.act-change__label {
-  display: block;
-  color: var(--gl-muted);
-  font-size: clamp(0.52rem, 0.65vw, 0.75rem);
-  font-weight: 700;
+.act-order:hover:not(:disabled) {
+  background: var(--gl-card-strong);
 }
 
-.act-change__value {
+.act-order:focus-visible {
+  outline: 3px solid var(--gl-orange);
+  outline-offset: 2px;
+}
+
+.act-order[aria-pressed='true'] {
+  border-color: var(--gl-green);
+  background: var(--gl-green-soft);
+}
+
+.act-order:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.act-order__icon {
+  display: grid;
+  place-items: center;
+  width: clamp(26px, 2.4vw, 46px);
+  height: clamp(26px, 2.4vw, 46px);
+  border-radius: 50%;
+  background: var(--gl-panel);
+  font-size: clamp(0.85rem, 1.15vw, 1.4rem);
+}
+
+.act-order__body {
+  min-width: 0;
+}
+
+.act-order__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.2em 0.4em;
+}
+
+.act-order__title {
   display: block;
   color: var(--gl-ink);
-  font-family: var(--gl-display);
-  font-size: clamp(0.68rem, 0.82vw, 0.95rem);
   font-weight: 900;
-  line-height: 1.2;
+  font-size: clamp(0.76rem, 1vw, 1.2rem);
+  line-height: 1.15;
 }
 
-.act-change[data-tone='gain'] .act-change__value {
-  color: var(--gl-green);
+.act-order__detail {
+  display: block;
+  margin-top: 0.1em;
+  color: var(--gl-muted);
+  font-weight: 600;
+  font-size: clamp(0.6rem, 0.75vw, 0.92rem);
+  line-height: 1.25;
 }
 
-.act-change[data-tone='cost'] .act-change__value {
+/* The two readings. They sit together so the player can weigh them against
+   the order above without hunting for either. */
+.act-order__checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  margin-top: 0.3em;
+}
+
+.act-check {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25em;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: var(--gl-card-strong);
+  font-size: clamp(0.53rem, 0.66vw, 0.78rem);
+  font-weight: 700;
+  line-height: 1.45;
+  white-space: nowrap;
+}
+
+.act-check__label {
+  color: var(--gl-muted);
+  font-weight: 800;
+}
+
+.act-check__value {
+  color: var(--gl-ink);
+  font-weight: 900;
+}
+
+.act-check[data-ok='false'] {
+  background: var(--gl-peach);
+}
+
+.act-check[data-ok='false'] .act-check__value {
   color: var(--gl-orange-deep);
 }
 
-.act-change[data-tone='flat'] .act-change__value {
-  color: var(--gl-muted);
+.act-order__warn {
+  display: block;
+  margin-top: 0.2em;
+  color: var(--gl-orange-deep);
+  font-size: clamp(0.55rem, 0.68vw, 0.82rem);
   font-weight: 800;
+  line-height: 1.25;
+}
+
+.act-order__mark {
+  color: var(--gl-green);
+  font-size: clamp(0.9rem, 1.2vw, 1.4rem);
+  font-weight: 900;
+  min-width: 1em;
+  text-align: center;
+}
+
+/* ---------------------------------------------------------------- the desk -- */
+
+/*
+ * A note that landed on the desk: a letter from home, or a word from a
+ * crewmate. Some sols have one and some do not, and that is what keeps
+ * twelve days from being twelve of the same day.
+ */
+.act-note {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: clamp(8px, 0.9vw, 16px);
+  align-items: start;
+  padding: clamp(7px, 0.72vw, 14px);
+  border-radius: clamp(8px, 0.72vw, 14px);
+  background: var(--gl-card);
+  border-left: clamp(3px, 0.4vw, 6px) solid var(--gl-green);
+}
+
+.act-note[data-from='crew'] {
+  border-left-color: var(--gl-orange);
+}
+
+.act-note__mark {
+  font-size: clamp(1rem, 1.4vw, 1.6rem);
+  line-height: 1.1;
+}
+
+.act-note__body {
+  min-width: 0;
+}
+
+.act-note__who {
+  margin: 0;
+  color: var(--gl-green);
+  font-weight: 900;
+  font-size: clamp(0.56rem, 0.72vw, 0.86rem);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.act-note[data-from='crew'] .act-note__who {
+  color: var(--gl-orange-deep);
+}
+
+.act-note__text {
+  margin: 0.2em 0 0;
+  color: var(--gl-ink);
+  font-size: clamp(0.62rem, 0.78vw, 0.94rem);
+  font-weight: 600;
+  font-style: italic;
+  line-height: 1.35;
+}
+
+.act-note__delay {
+  margin: 0.25em 0 0;
+  color: var(--gl-muted);
+  font-size: clamp(0.52rem, 0.66vw, 0.8rem);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+/* --------------------------------------------------------------- the rover -- */
+
+/*
+ * The find, on the desk.
+ *
+ * The nearest thing in the game to a Papers Please traveller: a picture, a
+ * place, a year, a story, and a stamp to give it.
+ */
+.act-find {
+  display: grid;
+  grid-template-columns: clamp(64px, 8vw, 120px) minmax(0, 1fr);
+  gap: clamp(8px, 1vw, 16px);
+  align-items: start;
+  padding: clamp(7px, 0.72vw, 14px);
+  border-radius: clamp(8px, 0.72vw, 14px);
+  background: var(--gl-card);
+}
+
+.act-find__image {
+  width: 100%;
+  border-radius: clamp(6px, 0.5vw, 10px);
+  object-fit: cover;
+  aspect-ratio: 1 / 1;
+  background: var(--gl-card-strong);
+}
+
+.act-find__body {
+  min-width: 0;
+}
+
+.act-find__kicker {
+  margin: 0;
+  color: var(--gl-orange-deep);
+  font-weight: 900;
+  font-size: clamp(0.52rem, 0.66vw, 0.8rem);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.act-find__title {
+  margin: 0.1em 0 0;
+  color: var(--gl-ink);
+  font-family: var(--gl-display);
+  font-size: clamp(0.78rem, 1.02vw, 1.24rem);
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.act-find__story {
+  margin: 0.25em 0 0;
+  color: var(--gl-ink);
+  font-size: clamp(0.6rem, 0.74vw, 0.9rem);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.act-find__fact {
+  margin: 0.2em 0 0;
+  color: var(--gl-muted);
+  font-size: clamp(0.54rem, 0.68vw, 0.82rem);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.act-find__answers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.act-find__answer {
+  font-size: clamp(0.6rem, 0.74vw, 0.88rem);
+}
+
+/* ---------------------------------------------------- the standing orders -- */
+
+/*
+ * The rule book.
+ *
+ * Two rules arrive every sol and the board keeps them all, so the later sols
+ * are harder because there is more to hold in mind rather than a bigger
+ * number. The science is here: every order is a real operating rule.
+ */
+.act-board {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(2px, 0.3vw, 6px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: none;
+}
+
+.act-board__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35em;
+  padding: clamp(2px, 0.25vw, 5px) 0;
+  border-bottom: 1px solid var(--gl-line);
+}
+
+.act-board__row:last-child {
+  border-bottom: 0;
+}
+
+.act-board__text {
+  color: var(--gl-ink);
+  font-weight: 700;
+  font-size: clamp(0.58rem, 0.74vw, 0.9rem);
+  line-height: 1.3;
+}
+
+.act-board__row[data-new='true'] .act-board__text {
+  color: var(--gl-orange-deep);
+  font-weight: 900;
+}
+
+.act-board__new {
+  flex: 0 0 auto;
+  padding: 0 0.4em;
+  border-radius: 999px;
+  background: var(--gl-orange);
+  color: var(--gl-panel);
+  font-size: clamp(0.45rem, 0.56vw, 0.66rem);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.act-board__fact {
+  flex: 1 1 100%;
+  color: var(--gl-muted);
+  font-size: clamp(0.52rem, 0.64vw, 0.78rem);
+  font-weight: 600;
+  line-height: 1.3;
 }

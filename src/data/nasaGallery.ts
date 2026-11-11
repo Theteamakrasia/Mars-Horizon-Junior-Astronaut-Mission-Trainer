@@ -15,6 +15,8 @@
  * here, and a credit line is never removed.
  */
 
+import type { ScienceTopic } from '../sim/topics';
+
 /**
  * Everything every NASA figure needs, whether it belongs to a sol or a region.
  *
@@ -315,12 +317,20 @@ export function regionCard(regionId: string): RegionCard | null {
 export interface NasaFact {
   readonly text: string;
   readonly credit: string;
+  /**
+   * What the fact is about.
+   *
+   * A screen that is teaching about water wants a fact about water, so the
+   * facts carry the same topics the activities do (`sim/topics.ts`).
+   */
+  readonly topic: ScienceTopic;
 }
 
 /** The first fact is also the fallback, so `factFor` can never return undefined. */
 const FIRST_FACT: NasaFact = {
   text: 'A day on Mars, called a sol, is 24 hours and 39 minutes long.',
   credit: 'NASA',
+  topic: 'missions',
 };
 
 /**
@@ -331,20 +341,46 @@ const FIRST_FACT: NasaFact = {
  */
 export const FACTS: readonly NasaFact[] = [
   FIRST_FACT,
-  { text: 'A year on Mars lasts 687 Earth days, almost twice as long as an Earth year.', credit: 'NASA' },
-  { text: 'Mars has two small moons, Phobos and Deimos. Phobos is so close that it rises and sets twice in one sol.', credit: 'NASA/JPL' },
-  { text: 'The tallest volcano in the solar system, Olympus Mons, is about 22 kilometres high.', credit: 'NASA/JPL/USGS' },
-  { text: 'Martian dust is so fine that it makes the sunset on Mars look blue.', credit: 'NASA/JPL-Caltech' },
-  { text: 'Sometimes a dust storm on Mars grows so large that it covers the whole planet.', credit: 'NASA/JPL-Caltech/MSSS' },
-  { text: 'NASA\'s Curiosity rover found evidence that Mars once had rivers and lakes.', credit: 'NASA/JPL-Caltech' },
-  { text: 'Almost all the water on Mars today is frozen, in the polar ice caps and underground.', credit: 'NASA/JPL-Caltech/ASU' },
-  { text: 'The red colour of Mars comes from rusty iron in its dust.', credit: 'NASA/JPL' },
-  { text: 'Mars is about half as wide as Earth.', credit: 'NASA' },
-  { text: 'Perseverance carried a small helicopter called Ingenuity that flew in the thin Martian air.', credit: 'NASA/JPL-Caltech' },
-  { text: 'The air on Mars is about 95% carbon dioxide, so crews must bring their own oxygen.', credit: 'NASA/JPL-Caltech' },
-  { text: 'Valles Marineris is more than 4,000 kilometres long.', credit: 'NASA/JPL/Arizona State University' },
-  { text: 'Mars has no global magnetic field, so crews will need shielding from space radiation.', credit: 'NASA/JPL-Caltech/SwRI' },
-  { text: 'The sun\'s solar wind stripped away much of Mars\'s air a long time ago.', credit: 'NASA/GSFC' },
+  { text: 'A year on Mars lasts 687 Earth days, almost twice as long as an Earth year.', credit: 'NASA', topic: 'missions' },
+  { text: 'Mars has two small moons, Phobos and Deimos. Phobos is so close that it rises and sets twice in one sol.', credit: 'NASA/JPL', topic: 'missions' },
+  { text: 'The tallest volcano in the solar system, Olympus Mons, is about 22 kilometres high.', credit: 'NASA/JPL/USGS', topic: 'missions' },
+  { text: 'Martian dust is so fine that it makes the sunset on Mars look blue.', credit: 'NASA/JPL-Caltech', topic: 'dust' },
+  { text: 'Sometimes a dust storm on Mars grows so large that it covers the whole planet.', credit: 'NASA/JPL-Caltech/MSSS', topic: 'dust' },
+  { text: 'NASA Curiosity found evidence that Mars once had rivers and lakes.', credit: 'NASA/JPL-Caltech', topic: 'water' },
+  { text: 'Almost all the water on Mars today is frozen, in the polar ice caps and underground.', credit: 'NASA/JPL-Caltech/ASU', topic: 'water' },
+  { text: 'The red colour of Mars comes from rusty iron in its dust.', credit: 'NASA/JPL', topic: 'missions' },
+  { text: 'Mars is about half as wide as Earth.', credit: 'NASA', topic: 'missions' },
+  { text: 'Perseverance carried a small helicopter called Ingenuity that flew in the thin Martian air.', credit: 'NASA/JPL-Caltech', topic: 'missions' },
+  { text: 'The air on Mars is about 95% carbon dioxide, so crews must bring their own oxygen.', credit: 'NASA/JPL-Caltech', topic: 'missions' },
+  { text: 'Valles Marineris is more than 4,000 kilometres long.', credit: 'NASA/JPL/Arizona State University', topic: 'missions' },
+  { text: 'Mars has no global magnetic field, so crews will need shielding from space radiation.', credit: 'NASA/JPL-Caltech/SwRI', topic: 'radiation' },
+  { text: 'The solar wind stripped away much of the Martian air a long time ago.', credit: 'NASA/GSFC', topic: 'radiation' },
+  { text: 'Solar panels get dusty on Mars, so rovers tilt toward the Sun to shake the dust off.', credit: 'NASA/JPL-Caltech/MSSS', topic: 'dust' },
+  { text: 'The Mars InSight lander made about 100 watts of power — the same as a dim light bulb.', credit: 'NASA/JPL-Caltech', topic: 'power' },
+  { text: 'A nuclear power unit keeps working in the dark and in a dust storm, which is why NASA rover teams have used radioisotope power.', credit: 'NASA', topic: 'power' },
+  { text: 'Solar cells on Mars rovers get dustier every year, so engineers clean them with wind, not water.', credit: 'NASA/JPL-Caltech/MSSS', topic: 'dust' },
+  { text: 'A solar panel only makes power while the Sun is up, so every Mars outpost needs batteries for the night.', credit: 'NASA', topic: 'power' },
+  { text: 'Dust storms can cut the sunlight on Mars so low that a rover has to go to sleep and wait them out.', credit: 'NASA/JPL-Caltech/MSSS', topic: 'power' },
+  { text: 'Salt water, not fresh, was found in the soil of Gale Crater, and it took millions of years to form.', credit: 'NASA/JPL-Caltech/MSSS', topic: 'water' },
+  { text: 'The Phoenix lander found water ice in the soil and watched it turn straight into vapour.', credit: 'NASA/JPL-Caltech/University of Arizona', topic: 'water' },
+  { text: 'On Earth, water boils at 100 degrees. On Mars it boils at almost nothing, so liquid water needs a sealed tank.', credit: 'NASA', topic: 'water' },
+  { text: 'Mars has rivers today, not just ancient ones: NASA found seasonal flows of salty water on warm slopes.', credit: 'NASA/JPL-Caltech', topic: 'water' },
+  { text: 'Water ice has been found at both poles of Mars and under the dust at middle latitudes.', credit: 'NASA/JPL-Caltech', topic: 'water' },
+  { text: 'Recycling water is essential: astronauts on the space station reuse about 98% of the water they use.', credit: 'NASA', topic: 'water' },
+  { text: 'Astronauts have grown plants in space since the 1970s, on the first NASA space station.', credit: 'NASA', topic: 'food' },
+  { text: 'Plants in space have to be told which way is down, because there is no gravity pulling their roots.', credit: 'NASA', topic: 'food' },
+  { text: 'Every kilogram of food for a Mars crew has to be launched from Earth, so growing it on Mars saves a rocket.', credit: 'NASA', topic: 'food' },
+  { text: 'Growing food gives the crew something to look after, which matters on a long trip.', credit: 'NASA', topic: 'food' },
+  { text: 'On the space station, plants help clean the air as well as feed the crew.', credit: 'NASA', topic: 'food' },
+  { text: 'Curiosity measured radiation on the surface of Mars for years, to work out how much shielding a crew needs.', credit: 'NASA/JPL-Caltech/SwRI', topic: 'radiation' },
+  { text: 'The space station is protected by the magnetic field of Earth, not by a thick wall.', credit: 'NASA', topic: 'radiation' },
+  { text: 'Solar particles reach Mars in minutes, but any answer from Earth takes at least three.', credit: 'NASA', topic: 'radiation' },
+  { text: 'Spacesuit layers are not mainly for cold. They are for radiation, dust and tiny bits of rock.', credit: 'NASA', topic: 'radiation' },
+  { text: 'The Perseverance rover landed in Jezero Crater in 2021 and has been collecting samples ever since.', credit: 'NASA/JPL-Caltech', topic: 'missions' },
+  { text: 'Curiosity has been climbing Mount Sharp in Gale Crater since 2014.', credit: 'NASA/JPL-Caltech/MSSS', topic: 'missions' },
+  { text: 'Ingenuity was the first aircraft to fly on another planet. It made 72 flights.', credit: 'NASA/JPL-Caltech', topic: 'missions' },
+  { text: 'Perseverance caches its rock samples in tubes, so a future spacecraft can pick them up.', credit: 'NASA/JPL-Caltech', topic: 'missions' },
+  { text: 'Martian dust is so fine and sticky that it clings to everything, including spacecraft.', credit: 'NASA/JPL-Caltech', topic: 'dust' },
 ];
 
 /**
@@ -363,5 +399,24 @@ export function factFor(seed: number): NasaFact {
   const found = FACTS[wrapped];
 
   return found ?? FIRST_FACT;
+}
+
+/**
+ * Pick a fact about one particular system.
+ *
+ * A screen teaching about solar panels wants a fact about solar panels, not a
+ * random one — that is what the topics are for (D-051). A topic with no facts
+ * falls back to the first fact rather than returning nothing, so a screen
+ * never has to guard against it.
+ */
+export function factForTopic(topic: ScienceTopic, seed: number): NasaFact {
+  const matching = FACTS.filter((fact) => fact.topic === topic);
+
+  if (matching.length === 0) return FIRST_FACT;
+  if (!Number.isFinite(seed)) return matching[0] ?? FIRST_FACT;
+
+  const wrapped = ((Math.trunc(seed) % matching.length) + matching.length) % matching.length;
+
+  return matching[wrapped] ?? FIRST_FACT;
 }
 

@@ -2,6 +2,16 @@
 
 **Implemented.** `spaceweather.ts` reads live solar flares from two public feeds and
 falls back to famous past flares, labelled approximate, when neither answers.
+`nasaDaily.ts` reads NASA's Astronomy Picture of the Day and falls back to the saved
+gallery when NASA is busy. `nasaGallery.ts` holds the saved gallery: it makes no
+request at all.
+
+**What is *not* here any more.** The rover's catalogue of real NASA finds used to live in
+`data/roverFinds.ts`. It is now in `src/sim/rover.ts`, because the simulation owns the
+rover's whole lifecycle — it is sent out by a work order, it drives on sol time, and it
+comes back with a document on the desk (D-062). `data/` is for things fetched from a
+network; the rover's finds are static data the game already had, and putting them in
+`sim/` keeps the rover's rules and its catalogue in one place.
 
 ## Why this folder is quarantined
 
@@ -36,6 +46,23 @@ without it the demo would show baked history while claiming to be live.
 
 The detail sentence on `base`, and the debrief line, come from `lastDetail()` and name the
 source that actually answered, so the player is never told NASA when it was NOAA.
+
+## The daily picture chain
+
+`fetchDailyFacts()` is the same idea, one source shorter (D-051):
+
+| # | source | endpoint | why it is here |
+| --- | --- | --- | --- |
+| 1 | **NASA APOD** | `api.nasa.gov/planetary/apod?search=Mars` | a real NASA picture and story, dated, every sol |
+| 2 | **saved gallery** | `nasaGallery.ts` | twelve checked NASA cards that are always there, whatever the network does |
+
+This is an **enrichment layer on top of** the saved gallery, never a replacement — D-042
+rejected a runtime NASA image API because a flaky endpoint must not cost the game its
+teaching moment, and that reasoning still holds. The demo is complete without a network.
+`lastDailySource()` reports which of the two answered, so the screen can say so.
+
+The shared `DEMO_KEY` rate-limits this endpoint too (ISS-049): it answered `429` on every
+attempt while this was written. A personal key is the fix (ISS-009, TASK-008).
 
 ## The API key
 

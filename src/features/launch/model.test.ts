@@ -6,6 +6,7 @@ import {
   FLASH_FALL_PCT,
   FLASH_RISE_PCT,
   FLASH_TIMES,
+  NASA_FACT,
   PARTS_DESCRIPTION,
   PARTS,
   PRESS_SHOT,
@@ -133,6 +134,11 @@ describe('the clips that follow the film', () => {
     for (const part of ['propulsion', 'habitat', 'logistics', 'Orion']) {
       expect(PARTS_DESCRIPTION).toContain(part);
     }
+  });
+
+  it('teaches one real fact about the rocket, because no shot is about the rocket', () => {
+    expect(NASA_FACT.trim().length).toBeGreaterThan(30);
+    expect(NASA_FACT).toContain('staging');
   });
 });
 

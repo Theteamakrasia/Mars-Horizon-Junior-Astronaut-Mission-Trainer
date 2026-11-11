@@ -14,7 +14,10 @@
  *   cargo    is scheduled long in advance, so it is the one event with no surprise.
  *
  * The player is warned about each kind as far ahead as the real thing allows
- * (see `visibleForecast`). Only one event is ever active at a time.
+ * (see `visibleForecast`). Only one event is ever active at a time, and **no two
+ * events ever touch**: every event also claims the sol after it, and that sol
+ * stays empty, so a random timetable still reads as a story rather than a
+ * pile-up.
  *
  * Pure and deterministic: the same seed always produces the same timetable, and
  * nothing here calls Math.random.
@@ -164,60 +167,99 @@ export interface EventPlan {
  * sol, and nothing begins while a storm is still over the panels. The storm is
  * placed first because it takes two sols in a row; flares then walk the run sol
  * by sol; the pod takes whatever sol is left.
+ *
+ * **And no two events ever touch.** A crisis on the sol after a crisis gives the
+ * player no room to breathe: the dust from one sol is still on the panels the
+ * next. So every event claims the sol on either side of it, and those sols stay
+ * empty. The quiet sols are what make a random timetable still feel like a
+ * story rather than a pile-up.
  */
 export function planEvents(random: () => number, dustScore: number = NEUTRAL_SCORE.dust): EventPlan {
+  /** Sols that already carry an event. */
   const taken = new Set<number>();
+  /** Sols that must stay quiet so two events never touch. */
+  const quiet = new Set<number>();
   let stormSol: number | null = null;
 
   if (random() < stormChance(dustScore)) {
     stormSol = randomSolBetween(random, FIRST_EVENT_SOL, LAST_EVENT_SOL - STORM_DURATION_SOLS + 1);
 
     for (let offset = 0; offset < STORM_DURATION_SOLS; offset += 1) taken.add(stormSol + offset);
+
+    /* The storm buries the panels for two sols, so the sol on either side of
+       it is quiet. */
+    quiet.add(stormSol - 1);
+    quiet.add(stormSol + STORM_DURATION_SOLS);
   }
 
   const flareSols: number[] = [];
-  let flaredYesterday = false;
+  /* Sols since the last flare. Infinity means "no flare yet".
+   *
+   * It survives a quiet sol on purpose: a sunspot region stays active for days,
+   * so a flare two sols after another is still a burst and still gets the
+   * higher chance. What it may not be is a flare on the sol right after
+   * another — that is the back-to-back the quiet rule forbids. */
+  let sinceFlare = Number.POSITIVE_INFINITY;
 
   for (let sol = FIRST_EVENT_SOL; sol <= LAST_EVENT_SOL; sol += 1) {
-    if (taken.has(sol)) {
-      flaredYesterday = false;
+    if (taken.has(sol) || quiet.has(sol)) {
+      sinceFlare += 1;
       continue;
     }
 
-    const chance: number = flaredYesterday ? FLARE_CHANCE_AFTER_FLARE : FLARE_CHANCE_QUIET;
+    const chance: number = sinceFlare <= 2 ? FLARE_CHANCE_AFTER_FLARE : FLARE_CHANCE_QUIET;
 
-    flaredYesterday = flareSols.length < MAX_FLARES && random() < chance;
+    const flared = flareSols.length < MAX_FLARES && random() < chance;
 
-    if (flaredYesterday) {
+    if (flared) {
       flareSols.push(sol);
       taken.add(sol);
+      /* Both sides, so nothing can land next to this flare. */
+      quiet.add(sol - 1);
+      quiet.add(sol + 1);
+      sinceFlare = 0;
+      continue;
     }
+
+    sinceFlare += 1;
   }
 
   // Every mission faces at least one flare: radiation is the lesson of the game.
   if (flareSols.length === 0) {
-    const sol = pickFreeSol(taken, random);
+    const sol = pickFreeSol(taken, quiet, random);
 
-    flareSols.push(sol);
-    taken.add(sol);
+    if (sol !== null) {
+      flareSols.push(sol);
+      taken.add(sol);
+      quiet.add(sol - 1);
+      quiet.add(sol + 1);
+    }
   }
 
   // A quiet mission gets its cargo pod whatever the dice say.
   const eventCount = flareSols.length + (stormSol === null ? 0 : 1);
-  const podSol = random() < POD_CHANCE || eventCount < MIN_EVENTS ? pickFreeSol(taken, random) : null;
+  const podSol = random() < POD_CHANCE || eventCount < MIN_EVENTS ? pickFreeSol(taken, quiet, random) : null;
 
   return { stormSol, podSol, flareSols };
 }
 
-/** A random sol that nothing has claimed yet. There are always some: at most seven of nine are used. */
-function pickFreeSol(taken: ReadonlySet<number>, random: () => number): number {
+/**
+ * A random sol that nothing has claimed and that is not due to stay quiet.
+ *
+ * Null when there is none. That is not a bug to be avoided: with the quiet rule
+ * a storm plus four flares can use every sol in the window, and a run with no
+ * cargo pod is a perfectly good run — "a storm or a pod may not happen at all".
+ */
+function pickFreeSol(taken: ReadonlySet<number>, quiet: ReadonlySet<number>, random: () => number): number | null {
   const free: number[] = [];
 
   for (let sol = FIRST_EVENT_SOL; sol <= LAST_EVENT_SOL; sol += 1) {
-    if (!taken.has(sol)) free.push(sol);
+    if (!taken.has(sol) && !quiet.has(sol)) free.push(sol);
   }
 
-  return free[Math.floor(random() * free.length)];
+  if (free.length === 0) return null;
+
+  return free[Math.floor(random() * free.length)] ?? null;
 }
 
 /**
@@ -331,6 +373,42 @@ export function eventsStartingOn(
   sol: number,
 ): readonly ForecastEvent[] {
   return forecast.filter((event) => event.sol === sol);
+}
+
+/**
+ * How many quiet sols there must be between any two events.
+ *
+ * One. A crisis on the sol after a crisis is a pile-up, not a story: the player
+ * has no sol to put things right in. The planner claims the sol after every
+ * event, so the rule is a property of the construction rather than a promise in
+ * a comment — and `forecastIsSpaced` is what says so in a test.
+ */
+export const MIN_CLEAR_SOLS = 1;
+
+/**
+ * True when no two events touch.
+ *
+ * An event occupies its own sol and every sol it lasts. Two events touch when
+ * one starts while the other is still running, or on the sol right after it
+ * ends. The planner never builds a timetable that fails this; the function
+ * exists so a test can say so over many seeds, and so anyone who changes the
+ * planner can check they have not broken it.
+ */
+export function forecastIsSpaced(forecast: readonly ForecastEvent[]): boolean {
+  const ordered = [...forecast].sort((a, b) => a.sol - b.sol);
+
+  for (let index = 1; index < ordered.length; index += 1) {
+    const previous = ordered[index - 1];
+    const current = ordered[index];
+
+    if (previous === undefined || current === undefined) continue;
+
+    const previousEnd = previous.sol + previous.durationSols - 1;
+
+    if (current.sol - previousEnd < MIN_CLEAR_SOLS + 1) return false;
+  }
+
+  return true;
 }
 
 /** The storm raging on this sol, if one is. */

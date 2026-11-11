@@ -9,6 +9,7 @@
  * Pure. Takes state, returns new state. No DOM, no network, no Math.random.
  */
 
+import { activityById, type ActivitySpec } from './activities';
 import { stormOn, eventsStartingOn, stormOpacity } from './forecast';
 import {
   CREW_SIZE,
@@ -27,9 +28,11 @@ import {
   type ResourceName,
   type ResourceStores,
 } from './resources';
-import type { DecisionRecord, RunState, SolEvent, SolRecord } from './run';
+import { inspectionStars, type DecisionRecord, type RunState, type SolActivity, type SolEvent, type SolRecord } from './run';
+import { deployRover, discover, pickForSol, remainingFinds, ROVER_FINDS } from './rover';
 import { siteScore } from './regions';
 import { crisisForEvent, optionOf } from './crises';
+import { SOL_LOG_POINTS } from './science';
 
 export type { SolEvent } from './run';
 
@@ -95,6 +98,25 @@ function chosen(run: RunState, crisisId: string): string {
   return event === undefined ? '' : crisisForEvent(event).defaultOptionId;
 }
 
+/**
+ * The main activity the player picked for this sol, or null when there is none.
+ *
+ * Throws on an unknown id, the same way `decide` does: the view only offers
+ * real activities, so a bad id is a bug, and failing loudly is cheaper than
+ * silently running a sol the player never chose.
+ */
+function chosenActivity(run: RunState): ActivitySpec | null {
+  const id = run.chosenActivity;
+
+  if (id === null) return null;
+
+  const spec = activityById(id);
+
+  if (spec === null) throw new RangeError(`No such activity: ${id}`);
+
+  return spec;
+}
+
 /** True when the run cannot continue. Ends on depleted resources, never on death (R-20). */
 export function isRunOver(stores: ResourceStores): boolean {
   return lostStores(stores).length > 0;
@@ -134,11 +156,17 @@ export function advanceSol(run: RunState): RunState {
   let shieldingChange = -systems.shieldingErosion;
   let foodChange = 0;
   let waterChange = 0;
+  let oxygenChange = 0;
   let extraPowerCost = 0;
   let greenhousePaused = false;
   let stormFactor = 1;
 
-  for (const event of eventsStartingOn(run.forecast, sol)) {
+  /* The forecast events starting on this sol. A crisis is that sol's main
+     activity: the event replaces the activity panel (D-040), so an activity
+     chosen for a crisis sol is put aside rather than run alongside it. */
+  const starting = eventsStartingOn(run.forecast, sol);
+
+  for (const event of starting) {
     const choice = chosen(run, event.id);
 
     events.push({ sol, kind: event.kind, summary: event.summary, approximate: event.approximate });
@@ -169,7 +197,7 @@ export function advanceSol(run: RunState): RunState {
 
     if (event.kind === 'storm' && choice === 'expose') {
       panelHealth = Math.max(MIN_PANEL_HEALTH, panelHealth - EXPOSED_PANEL_DAMAGE);
-      notes.push('Dust settled on the panels and they will never be as clean again.');
+      notes.push('Dust settled on the panels. It never washes off.');
     }
   }
 
@@ -181,6 +209,38 @@ export function advanceSol(run: RunState): RunState {
     if (choice === 'expose') stormFactor = 1 - stormOpacity(score.dust);
     else stormFactor = 0;
     if (choice === 'retract-save') greenhousePaused = true;
+  }
+
+  // ---- The main activity for this sol (D-048).
+  //
+  // Its power draw joins the same `extraPowerCost` the flare's shielding
+  // digger uses, so an activity competes with life support for the same kWh:
+  // spend 25 kWh on a rover survey with a flat battery and the sol runs in a
+  // blackout. That is the trade-off the whole game is built around, and it
+  // comes free from the model that was already here.
+  //
+  // A sol with a forecast event has no activity: the crisis is the day's work
+  // (D-040), and running an experiment while sheltering from a flare would
+  // be a story nobody could follow.
+  const activity = starting.length > 0 ? null : chosenActivity(run);
+  let scienceEarned = SOL_LOG_POINTS;
+
+  if (activity !== null) {
+    extraPowerCost += activity.powerCostKwh;
+    foodChange += activity.storeDelta.food ?? 0;
+    waterChange += activity.storeDelta.water ?? 0;
+    oxygenChange += activity.storeDelta.oxygen ?? 0;
+    shieldingChange += activity.storeDelta.shielding ?? 0;
+
+    if (activity.panelRepair !== undefined) {
+      panelHealth = Math.min(1, panelHealth + activity.panelRepair);
+    }
+
+    /* The stars an inspection won multiply the science the order is worth.
+       That is the whole effect: an inspection never touches a store, so the
+       balance of a run does not depend on how well the player did it. */
+    scienceEarned += activity.science * inspectionStars(run, sol, activity.id);
+    notes.push(`Today's activity: ${activity.title}.`);
   }
 
   // ---- Power: the Sun comes up, then the night.
@@ -222,11 +282,11 @@ export function advanceSol(run: RunState): RunState {
 
   if (blackout > 0) {
     notes.push(
-      `The batteries ran flat for part of the sol (${Math.round(blackout * 100)}% of the power needed was missing), so life support and the greenhouse slowed down.`,
+      `Batteries ran flat for ${Math.round(blackout * 100)}% of the sol, so life support slowed down.`,
     );
   }
   if (wasted > 0) {
-    notes.push(`${Math.round(wasted)} kWh of sunshine was wasted because the batteries were already full.`);
+    notes.push(`${Math.round(wasted)} kWh of sunlight wasted: the batteries were already full.`);
   }
 
   // ---- The crew and the plants.
@@ -236,7 +296,7 @@ export function advanceSol(run: RunState): RunState {
 
   const net: ResourceStores = {
     power: level - run.stores.power,
-    oxygen: systems.oxygenGenerated * powered - crewOxygen,
+    oxygen: systems.oxygenGenerated * powered - crewOxygen + oxygenChange,
     water:
       -crewWater * (1 - systems.waterRecycling * powered) -
       systems.electrolysisWater * powered -
@@ -251,6 +311,9 @@ export function advanceSol(run: RunState): RunState {
   const settled: ResourceStores = { ...stores, power: Math.max(0, Math.min(capacity, level)) };
   const after = clampStores(settled, capacity);
 
+  const done: SolActivity | null =
+    activity === null ? null : { id: activity.id, title: activity.title, science: activity.science };
+
   const record: SolRecord = {
     sol,
     stores: after,
@@ -259,8 +322,10 @@ export function advanceSol(run: RunState): RunState {
     powerUsed: demand,
     powerWasted: wasted,
     blackout,
+    panelHealth,
     greenhousePaused,
     used: { oxygen: crewOxygen, water: crewWater, food: crewFood },
+    activity: done,
     events,
     notes,
   };
@@ -268,7 +333,27 @@ export function advanceSol(run: RunState): RunState {
   const depleted = isRunOver(after);
   const status = depleted ? 'lost' : sol >= WIN_SOL ? 'won' : 'active';
 
-  return { ...run, sol, stores: after, status, panelHealth, log: [...run.log, record] };
+  /* The rover. It goes out on a work order like any other, and it comes back
+     with a document on the desk the next sol — so the find is found at the
+     end of the sol that sent it, and the desk shows it from the next one. */
+  let rover = run.rover;
+
+  if (activity !== null && activity.sendsRover === true) {
+    rover = deployRover(rover, sol);
+    rover = discover(rover, ROVER_FINDS, pickForSol(sol, remainingFinds(rover, ROVER_FINDS).length));
+  }
+
+  return {
+    ...run,
+    sol,
+    stores: after,
+    status,
+    panelHealth,
+    science: run.science + scienceEarned,
+    chosenActivity: null,
+    rover,
+    log: [...run.log, record],
+  };
 }
 
 /**

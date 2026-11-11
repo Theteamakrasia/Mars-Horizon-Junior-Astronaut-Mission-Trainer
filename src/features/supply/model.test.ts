@@ -7,15 +7,23 @@ import {
   CORRECT_ANSWER,
   DAYS_PER_MONTH,
   DAYS_PER_PACKET,
+  MISSION_MONTHS,
   QUESTION,
   SUPPLY_BEATS,
   approximateTotalKg,
   astronautDays,
+  choicesFor,
+  focusHandlesEnter,
   hintFor,
   isCorrect,
+  isPlainEnter,
   judge,
   missionDays,
   packsFor,
+  promptFor,
+  puzzleFor,
+  questionFor,
+  seedFrom,
   successSentence,
   workingSentence,
   workingSentenceBlanked,
@@ -135,6 +143,124 @@ describe('CHOICES', () => {
     const locked = CHOICES.filter((value) => value !== CORRECT_ANSWER);
     expect(locked).toHaveLength(CHOICES.length - 1);
     expect(CHOICES.filter((value) => !locked.includes(value))).toEqual([CORRECT_ANSWER]);
+  });
+});
+
+describe('the question changes every run', () => {
+  it('gives the same astronaut the same question every time', () => {
+    expect(puzzleFor('Ada')).toEqual(puzzleFor('Ada'));
+    expect(seedFrom('Ada')).toBe(seedFrom('Ada'));
+  });
+
+  it('gives different astronauts different questions', () => {
+    const names = ['Ada', 'Bob', 'Cleo', 'Dev', 'Eli', 'Fay', 'Gus', 'Hal', 'Ivy', 'Jo'];
+
+    const answers = new Set(names.map((name) => puzzleFor(name).correct));
+
+    expect(answers.size).toBeGreaterThan(1);
+  });
+
+  it('never asks the same question twice in a row for a run of names', () => {
+    /* The point of the change: the answer is not one number forever. */
+    const answers = ['Ada', 'Bob', 'Cleo', 'Dev', 'Eli', 'Fay'].map((name) => puzzleFor(name).correct);
+
+    expect(new Set(answers).size).toBeGreaterThan(1);
+  });
+
+  it('asks about the real crew size, so it agrees with the briefing', () => {
+    for (const name of ['Ada', 'Bob', 'Cleo']) {
+      expect(puzzleFor(name).question.crewSize).toBe(4);
+    }
+  });
+
+  it('only asks about a mission length that is on the list', () => {
+    for (const name of ['Ada', 'Bob', 'Cleo', 'Dev', 'Eli']) {
+      expect(MISSION_MONTHS).toContain(puzzleFor(name).question.months);
+    }
+  });
+
+  it('gives the same question for the same seed', () => {
+    expect(questionFor(7)).toEqual(questionFor(7));
+  });
+});
+
+describe('the options', () => {
+  it('are worked out from the question, so they are always right for it', () => {
+    const question = { months: 3, crewSize: 4 };
+    const days = missionDays(3);
+    const options = choicesFor(question, 0);
+
+    expect(options).toContain(packsFor(3, 4));
+    expect(options).toContain(days / DAYS_PER_PACKET);
+    expect(options).toContain(astronautDays(3, 4));
+    expect(options).toContain(days);
+  });
+
+  it('are the four mistakes a child makes, and nothing else', () => {
+    for (const months of MISSION_MONTHS) {
+      const options = choicesFor({ months, crewSize: 4 }, 0);
+
+      expect(options).toHaveLength(4);
+      expect(new Set(options).size).toBe(4);
+      expect(options).toContain(packsFor(months, 4));
+    }
+  });
+
+  it('offer something on each side of the answer, so both hints stay reachable', () => {
+    for (const months of MISSION_MONTHS) {
+      const correct = packsFor(months, 4);
+      const options = choicesFor({ months, crewSize: 4 }, 0);
+
+      expect(options.some((value) => value < correct)).toBe(true);
+      expect(options.some((value) => value > correct)).toBe(true);
+    }
+  });
+
+  it('are in a different order for different seeds, so no button is memorised', () => {
+    const question = { months: 2, crewSize: 4 };
+    const orders = new Set([0, 1, 2, 3, 4, 5, 6, 7].map((seed) => choicesFor(question, seed).join(',')));
+
+    expect(orders.size).toBeGreaterThan(1);
+  });
+
+  it('are in the same order for the same seed', () => {
+    const question = { months: 2, crewSize: 4 };
+
+    expect(choicesFor(question, 5)).toEqual(choicesFor(question, 5));
+  });
+
+  it('only ever offer whole numbers', () => {
+    for (const name of ['Ada', 'Bob', 'Cleo', 'Dev', 'Eli', 'Fay']) {
+      for (const value of puzzleFor(name).choices) {
+        expect(Number.isInteger(value)).toBe(true);
+        expect(value).toBeGreaterThan(0);
+      }
+    }
+  });
+});
+
+describe('the puzzle for one run', () => {
+  it('hangs together: the question, the answer, the buttons and the prompt agree', () => {
+    const puzzle = puzzleFor('Cleo');
+
+    expect(puzzle.correct).toBe(packsFor(puzzle.question.months, puzzle.question.crewSize));
+    expect(puzzle.choices).toContain(puzzle.correct);
+    expect(puzzle.choices).toHaveLength(4);
+    expect(puzzle.prompt).toBe(promptFor(puzzle.question));
+  });
+
+  it('says the mission length it is asking about', () => {
+    const puzzle = puzzleFor('Cleo');
+    const words = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+
+    expect(words[puzzle.question.months]).toBeDefined();
+    expect(puzzle.prompt).toContain(words[puzzle.question.months]);
+    expect(puzzle.prompt).toContain('ration packets');
+  });
+
+  it('says "month" and not "months" for a one month mission', () => {
+    expect(promptFor({ months: 1, crewSize: 4 })).toContain('one month.');
+    expect(promptFor({ months: 2, crewSize: 4 })).toContain('two months.');
   });
 });
 
@@ -329,5 +455,59 @@ describe('approximateTotalKg', () => {
     for (let months = 1; months <= 6; months++) {
       expect(Number.isInteger(approximateTotalKg(months, 4))).toBe(true);
     }
+  });
+});
+
+describe('isPlainEnter', () => {
+  /** No modifiers held, the ordinary case. */
+  const plain = { alt: false, ctrl: false, meta: false };
+
+  it('accepts an unmodified Enter', () => {
+    expect(isPlainEnter('Enter', plain)).toBe(true);
+  });
+
+  it('ignores a modified Enter', () => {
+    // Alt+Enter, Ctrl+Enter and the Windows key belong to the browser and the
+    // operating system, not to the story.
+    expect(isPlainEnter('Enter', { alt: true, ctrl: false, meta: false })).toBe(false);
+    expect(isPlainEnter('Enter', { alt: false, ctrl: true, meta: false })).toBe(false);
+    expect(isPlainEnter('Enter', { alt: false, ctrl: false, meta: true })).toBe(false);
+  });
+
+  it('ignores every other key', () => {
+    expect(isPlainEnter(' ', plain)).toBe(false);
+    expect(isPlainEnter('Escape', plain)).toBe(false);
+    expect(isPlainEnter('NumpadEnter', plain)).toBe(false);
+    expect(isPlainEnter('enter', plain)).toBe(false);
+  });
+});
+
+describe('focusHandlesEnter', () => {
+  it('leaves a focused button to the browser', () => {
+    // Enter on a focused button already fires a click. Answering it here as well
+    // would advance twice on one press, and on the question screen twice is a
+    // wrong answer.
+    expect(focusHandlesEnter('BUTTON')).toBe(true);
+  });
+
+  it('leaves a focused link to the browser', () => {
+    expect(focusHandlesEnter('A')).toBe(true);
+  });
+
+  it('leaves a focused text field to the player', () => {
+    // There are no fields on this screen today; the next person to add one should
+    // not have to remember that Enter in a field is the player's business.
+    expect(focusHandlesEnter('INPUT')).toBe(true);
+    expect(focusHandlesEnter('TEXTAREA')).toBe(true);
+    expect(focusHandlesEnter('SELECT')).toBe(true);
+  });
+
+  it('claims the key when nothing interactive has the focus', () => {
+    // The body has the focus on arrival, which is exactly when Enter did nothing
+    // (ISS-047).
+    expect(focusHandlesEnter('BODY')).toBe(false);
+    expect(focusHandlesEnter('DIV')).toBe(false);
+    expect(focusHandlesEnter('UL')).toBe(false);
+    expect(focusHandlesEnter('LI')).toBe(false);
   });
 });

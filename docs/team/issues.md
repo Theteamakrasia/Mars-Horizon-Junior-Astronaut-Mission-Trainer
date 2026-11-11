@@ -11,7 +11,26 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
-| ISS-050 | The `drag-editor` placement WIP was unreachable, failed `tsc` and failed `check-markup`, and copies of it sat at the repo root | high | agent | fixed | c9b8904 |
+| ISS-066 | The `drag-editor` placement WIP was unreachable, failed `tsc` and failed `check-markup`, and copies of it sat at the repo root | high | agent | fixed | c9b8904 |
+| ISS-065 | Sol 3 had no tool to work at all, and the sorting tool could never earn three stars | medium | agent | fixed | this branch |
+| ISS-064 | The build screen's browser check failed on a third of runs, because it assumed a desk that was always there | low | agent | fixed | this branch |
+| ISS-061 | The game was unwinnable: 14 build points could not buy a night of power at any landing site | high | agent | fixed | this branch |
+| ISS-060 | The power card showed the level left at dawn, so it read 0% while the game let the player spend power | high | agent | fixed | this branch |
+| ISS-059 | Nothing told the player what the game was, or what to do on a sol | high | agent | fixed | this branch |
+| ISS-063 | The rover was a floating button on a wall clock, outside the run | medium | agent | fixed | this branch |
+| ISS-062 | Clicking a goal re-rendered the panel and threw the player back to the top | medium | agent | fixed | this branch |
+| ISS-058 | The play screens carried 85 to 139 words, too much for the audience | medium | agent | fixed | this branch |
+| ISS-057 | The sol recap sat below the fold, so a change was invisible | high | agent | fixed | this branch |
+| ISS-056 | Building a module moved no number on the HUD, so deploying looked like it did nothing | high | agent | fixed | this branch |
+| ISS-055 | The build card only explained a block while the player owned none of that module | high | agent | fixed | this branch |
+| ISS-054 | The build card counted the extras while the limit counted everything | high | agent | fixed | this branch |
+| ISS-052 | The game never named the five science goals it is about | medium | agent | fixed | 4199bd5 |
+| ISS-051 | The ration check asked the same question every run, so the answer was always 80 | medium | agent | fixed | 9f0fabb |
+| ISS-050 | `architecture.md`'s module-contract table lists exports that do not exist | medium | agent | open | — |
+| ISS-049 | NASA's Astronomy Picture of the Day rejects the shared `DEMO_KEY` with a 429 | medium | agent | fixed | this branch |
+| ISS-048 | The cosmetic sol headlines did not match the forecast schedule | low | agent | fixed | 816e1fb, b471ecb |
+| ISS-047 | The supply screen ignored the Enter key until NEXT had been clicked with a mouse | medium | agent | fixed | this branch |
+| ISS-053 | Four `sim/` modules have no test files, and AGENTS.md's test counts are wrong | medium | agent | open | `sim/run.test.ts`, `sim/forecast.test.ts` added |
 | ISS-043 | Space weather had one live source, so a DONKI outage silently replaced every run's flares with baked history | high | agent | fixed | this branch |
 | ISS-046 | The header advertised "Mission Control / Main Menu" as text, and naming's Back to Main Menu navigated to itself | medium | agent | fixed | d90e838 |
 | ISS-045 | The page title said "Under Construction" and the description called the built game a placeholder | low | agent | fixed | 559c0d6 |
@@ -59,7 +78,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-## ISS-050 — The `drag-editor` placement WIP was unreachable, failed `tsc` and failed `check-markup`, and copies of it sat at the repo root
+## ISS-066 — The `drag-editor` placement WIP was unreachable, failed `tsc` and failed `check-markup`, and copies of it sat at the repo root
 
 - **Reported by:** agent, 2026-11-11, while planning the developer placement editor.
 - **Where:** `src/features/drag-editor/` (all four files), `src/ui/routes.ts`, repo root.
@@ -83,7 +102,6 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 - **Pre-existing:** no; introduced by uncommitted work on `game-loop-ui`.
 
 ---
-
 ## ISS-043 — Space weather had one live source, so a DONKI outage silently replaced every run's flares with baked history
 
 - **Reported by:** agent, 2026-11-09, while verifying the live NASA flare path.
@@ -977,4 +995,381 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-**Next free id: ISS-051.**
+## ISS-047 — The supply screen ignored the Enter key until NEXT had been clicked
+
+- **Reported by:** the owner, 2026-11-10, from the deployed build: on `#/supply` the Enter key did
+  nothing on the first beat, and clicking NEXT with the mouse first made Enter work.
+- **Where:** `src/features/supply/view.ts` (`mountSupply`).
+- **Problem:** the screen had no keyboard handler at all. The only way to advance a beat was
+  `advance.addEventListener('click', revealNext)`, so a keyboard player could not move past the first
+  fact. Enter appeared to work after clicking NEXT only because the mouse click left the focus on the
+  button and the browser activates a focused button on Enter - so the key worked by accident, and only
+  once the screen had been clicked.
+- **Cause:** the briefing got an Enter handler with D-046 ("NEXT (or the Enter key) swaps in the next
+  line"); the supply screen, which has the same NEXT-button shape, never got the same treatment.
+- **Fix:** `isPlainEnter` and `focusHandlesEnter` in `features/supply/model.ts` (pure, tested) and one
+  `window` keydown listener in the view, mirroring the briefing's. Enter advances while NEXT is visible
+  and does nothing once the question is up, so a stray press cannot answer the question. The listener is
+  removed in the teardown.
+- **The same root cause had a second face.** The markup is static, so the screen never cleared the last
+  visit's state: a second visit to #/supply came back with NEXT hidden, the answers still on screen and
+  **eight** answer options instead of four, because the old buttons were never removed. The screen now
+  resets itself when it mounts. Without that reset, Enter would have gone quiet again on every revisit -
+  the same symptom, a different cause.
+- **Pre-existing:** yes; the supply screen has had no keyboard handler since it was built, and it has
+  never reset its state on a mount.
+- **Status:** fixed in this branch. Recorded as D-050.
+
+---
+
+## ISS-052 — The game never named the five science goals it is about
+
+- **Reported by:** agent, 2026-11-11, while checking that the gameplay matched the five science
+  goals the project is about.
+- **Where:** `src/sim/goals.ts` (new), `src/features/act/`, `src/features/debrief/`.
+- **Problem:** every number in the game was real and every number was about one of five things —
+  Martian dust storms, life support, radiation exposure, power shortages and food production — but
+  nowhere did the game say so. A player saw five resource bars falling and had to work out for
+  themselves that the dust was what was blocking the Sun and that a flat battery was what was
+  slowing the air makers. The science was all there and none of it was legible.
+- **Cause:** the goals were implicit in the model rather than named anywhere, and no screen had a
+  reason to ask.
+- **Fix:** `src/sim/goals.ts` names the five goals and reads each one against the run, so every line
+  is a fact about the outpost ("the greenhouse grows 12 food a sol and the crew eat 10"). `act` shows
+  them with a NASA fact each, and `debrief` reports how each fared. Fixed in 4199bd5.
+- **Pre-existing:** yes; the model has always been about these five things.
+
+---
+
+## ISS-051 — The ration check asked the same question every run, so the answer was always 80
+
+- **Reported by:** agent, 2026-11-10, while reviewing the supply screen.
+- **Where:** `src/features/supply/model.ts`, `src/features/supply/view.ts`.
+- **Problem:** the ration question was fixed — two months, four crew, three days per packet — so the
+  answer was always 80 and the buttons were always 20, 80, 240 and 720. A child who played the game twice
+  learned the number instead of the calculation, and the screen that exists to teach arithmetic had become a
+  memory test. The fourth option was worse: 720 was not a mistake anyone could describe, so it was a guess
+  button rather than a wrong answer that teaches something.
+- **Cause:** the question was authored once, when the point was the three-step conversion, and never revisited.
+- **Fix:** the mission length now varies between six authored values, the answer moves with it, and all four
+  buttons are worked out from the question on screen — the answer, plus the three mistakes a child actually makes
+  (forgot the crew, forgot the packet size, forgot both). The order is shuffled too. The variation is seeded
+  from the astronaut's name rather than `Math.random()`, so a demo repeats and a test can pin it. Fixed in
+  9f0fabb.
+- **Pre-existing:** yes; the fixed question shipped with the supply screen.
+
+---
+
+## ISS-050 — `architecture.md`'s module-contract table lists exports that do not exist
+
+- **Reported by:** agent, 2026-11-10, while reading the contract table before changing `sim/`.
+- **Where:** `docs/architecture.md`, the "Module contracts" table.
+- **Problem:** the table describes an older shape of the codebase. `sim/resources` is listed as exporting
+  `StoreChange`, `DrainResult` and a five-argument `drainForSol`; the real signature is
+  `drainForSol(stores, net, powerCapacity)`. `sim/modules` is listed as exporting `STARTING_MODULES`,
+  `canBuild`, `adjustedBuildCost`, `buildPreview`, `upkeepFor` and `extraBatteryCount` — none of which
+  exist. `sim/crises` is listed as exporting `decide`, which lives in `sim/sol.ts`. `sim/sol` is listed as
+  exporting `LedgerEntry` and returning a `SolResult`; the real type is `SolRecord` in `sim/run.ts` and
+  `advanceSol` returns a `RunState`. `ui/gameLoop` is listed as exporting `gameDock`, which does not exist
+  anywhere in the repository. A caller reading the table would write code that does not compile.
+- **Cause:** the table was written once and never reconciled against the code, because nothing enforces it.
+  The checker proves what a file *may* import; it says nothing about what a file exports.
+- **Fix:** partly fixed in the documentation commit of the activity work. The rows for `sim/run`,
+  `sim/sol`, `sim/resources`, `sim/modules`, `sim/crises`, `sim/regions`, `ui/gameLoop`,
+  `data/nasaGallery` and the `act` and `debrief` features are rewritten to match the code, and the
+  new `sim/activities`, `sim/science`, `sim/topics`, `data/nasaDaily`, `dom/dailyFactLoader` and
+  `ui/nasaFeedCard` rows are added. The tree entries for `sim/constants.ts` and `sim/balance.test.ts`,
+  which name files that do not exist, are removed. The remaining stale rows stay open rather than
+  being quietly corrected in a commit about something else.
+- **Pre-existing:** yes; the table has drifted since the game loop was built (2026-11-08).
+
+---
+
+## ISS-049 — NASA's Astronomy Picture of the Day rejects the shared `DEMO_KEY` with a 429
+
+- **Reported by:** agent, 2026-11-10, while probing NASA's live endpoints before designing the daily fact
+  layer.
+- **Where:** `src/data/nasaDaily.ts` (new), `api.nasa.gov/planetary/apod`.
+- **Problem:** `GET https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY` answered once with a real,
+  dated explanation, then the same endpoint returned `429` on every subsequent request, including
+  `?search=Mars`. The shared key is rate-limited in exactly the way ISS-009 describes, so the live NASA
+  daily feed has no guarantee of answering on demo night.
+- **Cause:** `DEMO_KEY` is shared by every project that has not registered a personal key (D-006). The limit
+  is reached by ordinary use, not by abuse.
+- **Fix:** the live feed is an **enrichment layer on top of** the curated gallery, never a replacement
+  (D-050). One request per session, memoised; a 4-second timeout; and on any failure the curated NASA card
+  appears with an honest line saying NASA's picture service is busy. Registering a personal key in
+  `.env.local` removes the limit — `.env.example` already documents how, and TASK-008 is still open.
+- **Pre-existing:** the rate limit is ISS-009; only the discovery that it applies to APOD as well as DONKI
+  is new.
+
+---
+
+## ISS-048 — The cosmetic sol headlines did not match the forecast schedule
+
+- **Reported by:** agent, 2026-11-10, while mapping which sol carries which decision.
+- **Where:** `src/features/act/model.ts`, the `MISSIONS` array and `missionHeadline`.
+- **Problem:** the ten headlines were spread across twelve sols by index arithmetic
+  (`Math.round(((sol - 1) / (WIN_SOL - 1)) * 9)`), so sol 8 displayed "Mission 7: First Harvest" and sol 12
+  displayed "Mission 10: Expand the Outpost". The forecast puts the dust storm on sol 7 and the second flare
+  on sol 10, so the headline a child read on the day of the storm said "First Harvest". The array had no
+  effect on the simulation at all — it was pure decoration carrying a wrong claim about the run.
+- **Cause:** the headlines were written as flavour before the forecast schedule existed, and nothing tied
+  them to it.
+- **Fix:** replaced by `SOL_PLANS` in `src/sim/activities.ts` — twelve real headlines, each carrying the
+  three activities offered on that sol, aligned with the baked crisis sols (D-051). Fixed in 816e1fb.
+- **Pre-existing:** yes; the mismatch shipped with the game loop (2026-11-08).
+
+---
+
+## ISS-053 — Four `sim/` modules have no test files, and AGENTS.md's test counts are wrong
+
+- **Reported by:** agent, 2026-11-10, while adding the activity loop and checking what the sim was covered by.
+- **Where:** `src/sim/run.ts`, `src/sim/forecast.ts`, `src/sim/crises.ts`, `src/sim/comms.ts`; `AGENTS.md` §8.
+- **Problem:** four modules in the layer the project calls its crown jewel have **no test files at all** —
+  there is no `run.test.ts`, `forecast.test.ts`, `crises.test.ts` or `comms.test.ts` in `src/sim/`. The
+  count of nineteen test files and 424 tests is right, but AGENTS.md's per-module counts are not: it claims
+  `sim/modules.ts` has 25 tests (it has 14), `sim/resources.ts` has 18 (it has 7) and `sim/sol.ts` has 12
+  (it has 32), and it attributes 19 tests to `sim/run.ts`, which has none.
+- **Cause:** the modules were written and wired together faster than they were covered, and the document
+  counts were filled in from memory rather than counted.
+- **Fix:** partly fixed. `src/sim/run.test.ts`, `src/sim/balance.test.ts` and `src/sim/forecast.test.ts` are
+  added, because the activity loop changes the run state and the balance it depends on, and because the
+  forecast's event spacing had to be pinned down. AGENTS.md's test counts are corrected to the real
+  numbers. `sim/crises.ts` and `sim/comms.ts` still have no test files, so the issue stays open: those two
+  are untouched by this work, and adding coverage for them is its own job.
+- **Pre-existing:** yes; the gap dates from the game loop build (2026-11-08).
+
+---
+
+**Next free id: ISS-067.**
+
+
+---
+
+## ISS-061 - The game was unwinnable: fourteen build points could not buy a night of power
+
+- **Reported by:** agent, 2026-11-11, while playing the build screen and asking what a player
+  is supposed to do with eighteen points.
+- **Where:** `src/sim/modules.ts` (`BUILD_BUDGET`, `GREENHOUSE_WATER`, `LOAD_KW`, `SHIELDING_BASE`,
+  `SHIELDING_EROSION`), `src/sim/rover.ts` and `src/features/base/`.
+- **Problem:** the lander brings one solar array and one battery bank. A bare outpost draws 12 kW
+  of life support plus heating, which is 144 kWh for one night against 100 kWh of battery. At
+  fourteen build points **no legal build at any of the five landing sites was self-sustaining**,
+  and the win rate was 14 to 23%. Measured over every legal build, eight forecast seeds and
+  five sites, **zero of 3,558 runs ended with all five science goals satisfied** - the game could
+  not be won, let alone played well.
+- **Cause:** the budget was set before the load and the generation were reconciled. Every module
+  that answered a real problem cost more than the budget allowed, so the extra points went
+  nowhere and the night was never covered.
+- **Fix:** five constants in `src/sim/modules.ts` - budget 14 to 18, greenhouse water 5 to 3,
+  greenhouse load 8 to 6, shielding base 20 to 30, shielding erosion 1 to 0.5. The win rate is
+  now 41 to 45% and every site can hold all five systems.
+- **Pre-existing:** yes; the game has always been a resource budget, and the budget was never
+  playable.
+
+---
+
+## ISS-060 - The power card showed the level left at dawn, so it read 0% while the game let the player spend power
+
+- **Reported by:** agent, 2026-11-11, in play testing: "no matter what I do power is always
+  getting to zero, and if power is at 0 how am I able to do other things that requires power".
+- **Where:** `src/features/act/model.ts` (`powerToday`), `src/features/act/view.ts`.
+- **Problem:** the batteries are drained through the night, so the level left at dawn is near zero
+  even for a healthy outpost. The card showed that level, so it read `0%` while the game
+  cheerfully let the player approve a 25 kWh activity. The card and the rules contradicted each
+  other, and nothing said which number the activity prices came out of.
+- **Cause:** the card wanted "how full are the batteries" and the store holds the level after
+  the night. Both are true and they are not the same number.
+- **Fix:** the card now shows `Power today: 400 kWh` - what is left after the panels have
+  filled the batteries and the systems have taken their share - which is exactly the number the
+  activity prices come out of. The day and night strip says the same thing and says whether the
+  batteries cover the night.
+- **Pre-existing:** yes; the card was added with the rest of the HUD.
+
+---
+
+## ISS-059 - Nothing told the player what the game was, or what to do on a sol
+
+- **Reported by:** agent, 2026-11-11, in play testing: "I do not even know what I am playing
+  and what I am doing in the game".
+- **Where:** `src/sim/guide.ts`, `src/ui/guide.ts`, `src/features/act/view.ts`,
+  `src/features/briefing/model.ts`.
+- **Problem:** the game never said what a sol was, what a work order was, what the two readings
+  under one were for, or what the board of rules was. A child meeting the game for the first
+  time had no idea what they were looking at, and a child who lost the thread had no way back
+  in. The briefing ran through the mission and stopped.
+- **Cause:** the screens were built one at a time and each assumed the player had worked out
+  the one before it.
+- **Fix:** a guide of ten steps, each saying where it happens and what to do about it. It opens
+  by itself the first time the player reaches the build screen, and a button in the mission bar
+  brings it back on any later sol. The briefing now also says what a day is - three work
+  orders, approve one, the day happens - and that two new rules arrive every day.
+- **Pre-existing:** yes; the journey screens had been built without a tutorial.
+
+---
+
+## ISS-063 - The rover was a floating button on a wall clock, outside the run
+
+- **Reported by:** agent, 2026-11-11, on the request to "add the rover exploration in the game
+  system - right now we are sending it and we are just showing some facts".
+- **Where:** `src/sim/rover.ts`, `src/sim/run.ts` (`RunState.rover`), `src/ui/roverWidget.ts`
+  (deleted), `src/data/roverFinds.ts` (moved into `sim/rover.ts`).
+- **Problem:** the rover ran on a fifteen-to-sixty-five second real timer and its state lived in
+  a widget rather than in the run. It could not be part of a sol, it did not know what the
+  outpost had built, it was destroyed when the screen was rebuilt, and the debrief could not
+  say what it had found. It was a picture window, not an expedition.
+- **Cause:** the widget was built as an optional extra, and the state was never given a home.
+- **Fix:** the rover's state is in `RunState.rover`. Sending it out is a work order like any
+  other, it drives on sol time, and it comes back with a document on the desk - a real NASA
+  picture, a place from the past, or a rare rock to log, take or leave. The catalogue moved
+  from `data/` to `sim/`, because the simulation now owns the whole lifecycle. It still touches
+  no resource.
+- **Pre-existing:** yes; the rover was added as a widget (D-059).
+
+---
+
+## ISS-062 - Clicking a goal re-rendered the panel and threw the player back to the top
+
+- **Reported by:** agent, 2026-11-11, in play testing: "clicking on goals just scrolls you back
+  up".
+- **Where:** `src/features/act/view.ts`.
+- **Problem:** tapping a goal called `render()`, which replaced the whole panel. The scroll
+  position went with it, so opening a goal threw the player back to the top of the screen -
+  worse than the tap was worth.
+- **Cause:** the detail was built inside the render rather than toggled in place.
+- **Fix:** the detail is shown and hidden in place. Nothing is re-rendered, so the scroll
+  stays where the player left it.
+- **Pre-existing:** yes; it came with the goal tiles.
+
+---
+
+## ISS-058 - The play screens carried 85 to 139 words, too much for the audience
+
+- **Reported by:** agent, 2026-11-11, on the request for a game a child can follow.
+- **Where:** `src/features/act/view.ts`, `src/features/act/model.ts`, `src/sim/activities.ts`.
+- **Problem:** the act panel held 85 words before a sol and 139 after one, and the five science
+  goals alone were about 100 of them - five paragraphs of live readings plus a NASA fact each,
+  all below the decision the player had come to make.
+- **Cause:** each goal wanted to be explained at once, on the screen where the decision was.
+- **Fix:** the goals became the standing orders - short rules on a board - and the live reading
+  moved behind a tap. The act panel is now 64 words before a sol and 97 after one, and the
+  words that were cut were the ones that were below the fold anyway. The module copy was cut
+  to one line each, and the science behind each order is one tap away.
+- **Pre-existing:** yes; the goals section was added in one piece and never measured.
+
+---
+
+## ISS-057 - The sol recap sat below the fold, so a change was invisible
+
+- **Reported by:** agent, 2026-11-11, on the request that "the changes or decisions are not
+  showing".
+- **Where:** `src/features/act/view.ts`.
+- **Problem:** the review of what the last sol did was at the bottom of the panel, under five
+  paragraphs of goals. A child whose power had run flat saw a zero on the bar and no reason
+  for it anywhere on the screen.
+- **Cause:** the recap was written first and the goals were added in front of it.
+- **Fix:** the recap is the first thing in the panel now, and the change ledger sits with it.
+- **Pre-existing:** yes; the recap was added with the goals section.
+
+---
+
+## ISS-056 - Building a module moved no number on the HUD, so deploying looked like it did nothing
+
+- **Reported by:** agent, 2026-11-11, on the request that "the changes are not showing".
+- **Where:** `src/features/base/view.ts`, `src/features/base/model.ts`.
+- **Problem:** clicking `+` re-rendered the panel and said nothing. The count changed by one and
+  a picture appeared in the world, but nothing on the HUD moved - the cards showed the night
+  hours and the days of food and water, none of which a solar array affects - so the most
+  obvious action in the game looked like no action at all.
+- **Cause:** the HUD showed five numbers that no build decision could move.
+- **Fix:** the panel says what it did ("Solar Array added - 2 points spent"), the card flashes,
+  the new figure pops in the world, and the HUD carries a **Day power** card that moves from
+  216 kWh to 864 kWh as the panels go in.
+- **Pre-existing:** yes; the cards were chosen to describe the outpost rather than the build.
+
+---
+
+## ISS-055 - The build card only explained a block while the player owned none of that module
+
+- **Reported by:** agent, 2026-11-11, on the request for "no indications" when deploying.
+- **Where:** `src/features/base/view.ts`.
+- **Problem:** the reason a module could not be added was shown only when the player owned none
+  of it. The first time you tried to build something you did not have was explained; every
+  time after that - which is exactly when you had built your way into a limit - the `+` went
+  dead and said nothing.
+- **Cause:** the guard was `!placement.ok && have === 0`, which reads as "explain the missing
+  module" rather than "explain the block".
+- **Fix:** the reason is shown whenever the button is dead, and it names the limit in words a
+  child can read: "That is the most solar arrays you can have."
+- **Pre-existing:** yes; the guard was written to explain a locked module, and it was reused
+  for the limit.
+
+---
+
+## ISS-054 - The build card counted the extras while the limit counted everything, so the player could not see how many they could add
+
+- **Reported by:** agent, 2026-11-11, on the request for "how many I deploy and what the limit
+  there is".
+- **Where:** `src/features/base/view.ts`, `src/features/base/model.ts`, `src/sim/modules.ts`.
+- **Problem:** the card counted the modules the player had added, but the limit counted the
+  module the lander brought as well. Solar Array has a limit of four and the lander brings one,
+  so the card read `3` with a dead button and no sign that three was the most. The player
+  could not tell whether three was nearly enough or already too many.
+- **Cause:** two different counts, and only one of them was on the screen.
+- **Fix:** `sim/modules.ts` grew `extraLimitOf()`, which is the limit minus the lander's copy,
+  and the card reads `3/3`. A MAX badge says the module is done, and the budget row already
+  read `3 / 9 extras`.
+- **Pre-existing:** yes; the two counts have always disagreed.
+---
+
+## ISS-064 - The build screen's browser check failed on a third of runs, because it assumed a desk that was always there
+
+- **Reported by:** agent, 2026-11-11, while verifying the merge to `main`: the check passed
+  25/25, then 22/23, then 25/25 twice, then failed three times out of five.
+- **Where:** `tools/browser-check-build.mjs`.
+- **Problem:** the check's last step looks for `.insp__open`, the button that opens the tool on
+  an order, and reports the check as failed when there is none. Two things could cause that.
+  A **crisis replaces the desk** (D-040), and the forecast's timetable is rolled from a seed
+  taken from the clock (D-048) - so every page load puts its flares, its storm and its pod on
+  different sols, and a crisis on sol 2 left no desk to look at. And the check assumed the
+  tool it found was always the checklist, so it drove `.insp__step` buttons; on a sol where a
+  different tool was on the desk, it worked nothing and graded an empty attempt.
+- **Cause:** the check was written against a desk that is always there and a tool that is
+  always the same. The recap check a few lines above already knew about the crisis and
+  guarded itself; the tool check did not.
+- **Fix:** the check resolves the crisis when one is showing - clicking the first option,
+  which is what a player does - and then works **whichever** tool the desk gave it: the
+  checklist, the timing, the radar, the sorting, the matching or the packing. Each is played
+  as well as it can be, so the check now proves the whole loop - open, work, finish, stars -
+  and not only the first step of it.
+- **Pre-existing:** yes; the forecast became seeded in D-048 and the check was written before
+  that.
+
+---
+
+## ISS-065 - Sol 3 had no tool to work at all, and the sorting tool could never earn three stars
+
+- **Reported by:** agent, 2026-11-11, while chasing ISS-064. The browser check failed on a
+  sol where the desk had three orders and not one of them could be worked.
+- **Where:** `src/sim/minigames.ts` (`ENGINE_UNLOCK_SOL`), `src/ui/activityPlayer.ts`
+  (`sortInspection`).
+- **Problem:** two halves of the same mistake. The tools unlocked one every second sol -
+  checklist on 1, timing on 3, radar on 5, sorting on 7, matching on 9, packing on 11 - while
+  the sol plan is a fixed curriculum. Sol 3 offers the rover survey, the site map and the
+  experiment, and their tools were radar (sol 5), sorting (sol 7) and packing (sol 11). **All
+  three were still locked, so sol 3 had nothing the player could work** - the desk was three
+  buttons. And separately, the sorting tool's `done()` said "finished when all six items are
+  chosen", while its grading says "three stars when the three good ones are chosen and the
+  other three are not" - so the tool as described could never earn three stars.
+- **Cause:** the unlock schedule and the sol plan are two separate lists, and nothing checked
+  that they agreed. `done()` was never called by anything, so its wrong version sat there
+  unread.
+- **Fix:** the tools now unlock one a sol for the first six - 1, 2, 3, 4, 5, 6 - so **every sol
+  has at least one order the player can work**, and the player has something new to learn
+  every day of the first week. The sorting tool's `done()` says "the player has decided",
+  which is how the tool is actually played. And `src/sim/minigames.test.ts` now holds the
+  rule that was missing: over the whole twelve-sol plan, every sol has an order with an
+  unlocked tool and no build gate. That test is what stops it happening again.
+- **Pre-existing:** yes; the tools arrived with the desk loop and the schedule was never
+  checked against the plan.

@@ -239,7 +239,7 @@ than a documented one.
 - Declared the band a module may be placed in once, in `SPOT_BAND`, and added
   `check-markup` Rule 11 to fail the build if the CSS clamp and the band ever disagree.
 - Deleted the abandoned `drag-editor` feature and the stray copies of it at the repo root
-  (ISS-050). It had eight TypeScript errors, failed the markup check on `pointer-events:
+  (ISS-066). It had eight TypeScript errors, failed the markup check on `pointer-events:
   none`, and was unreachable — no route, no mount, no registry entry.
 
 **Files**
@@ -277,46 +277,195 @@ than a documented one.
 
 ---
 
-## 2026-11-10 — Tidy the build screen: grid the modules, one-line cards, add an encyclopedia
+## 2026-11-11 — Make the game playable, and make it follow
 
 **Did**
 
-- Grouped the outpost equipment on a fixed, non-overlapping grid in `ui/gameLoop.ts`: each
-  `ModuleKind` now has its own slot (4 columns × 2 rows, back row behind / front row in front).
-  Duplicates of a kind step right within their row and shrink, clamped to the panel edge, so
-  the build screen no longer scatters or overlaps modules.
-- Cut the build catalogue card to one line — the `gives` summary only. The `needs` detail no
-  longer crowds the card; it moved into the new encyclopedia.
-- Added a `features/encyclopedia/` screen: one line per piece of equipment, tap to expand the
-  full `gives` / `needs` plus a real NASA fact and credit. Reached from the ☰ Mission Control
-  menu. Registered as a route in `ALL_ROUTES` (not `ROUTE_ORDER` — a reference, not a journey
-  step), with a `#encyclopedia` mount point and a menu button.
-- Also clamped `.gl__figure` in `styles/game-loop.css` as a belt-and-braces guard so a figure
-  can never paint outside the world panel.
+- **Fixed the balance.** The game was unwinnable: at fourteen build points no legal build at any of the five landing sites was self-sustaining, and **zero of 3,558 measured runs** ended with all five science goals satisfied. Five constants in `sim/modules.ts` moved — budget 14→18, greenhouse water 5→3, greenhouse load 8→6, shielding base 20→30, shielding erosion 1→0.5 — and the win rate is now **41–45%**.
+- **Made the goals the learning outcomes rather than a score.** `GOAL_TARGETS`, `goalScore` and `goalsEarned` are gone. `sim/goals.ts` now reports what the player kept running and for how long. The debrief prints the standing orders the player worked under as the keepsake.
+- **Turned the sol into a desk.** Three work orders, each with two readings to check, some with a tool to work them with, and the player approves one. Twenty-four standing orders grow two a sol. The science points and the rank stay; the stars from a tool now multiply the science an order is worth, and touch no store.
+- **Put the rover in the run.** Its state is `RunState.rover`, it is sent out by a work order, it drives on sol time, and it comes back with a document on the desk. `sim/rover.ts` now holds the rules *and* the catalogue of real finds.
+- **Made it follow.** A guide of ten steps, each saying where it happens and what to do about it, which opens by itself the first time the player reaches the build screen and comes back from a button in the mission bar. The briefing now says what a day is before the player has to live one.
+- **Fixed the things a play-test turned up**: the power card read 0% while the game let the player spend power; clicking a goal threw the player back to the top of the panel; building a module moved no number on the HUD; the build card counted the extras while the limit counted everything; the sol recap sat below the fold; the play screens carried 85 to 139 words.
+- **`npm run balance` exists now** and fails the build when a site cannot hold all five systems. It is the only thing that catches the game becoming unwinnable, and the game was unwinnable for a long time before it existed.
 
 **Files**
 
-- `src/ui/gameLoop.ts`, `src/styles/game-loop.css`, `src/features/base/view.ts`
-- `src/features/encyclopedia/{model.ts,view.ts,encyclopedia.css,model.test.ts,README.md}` (new)
-- `src/ui/routes.ts`, `src/ui/registry.ts`, `index.html`
-- `docs/architecture.md`, `docs/team/progress-log.md`, `docs/team/tasks.md`, `src/features/README.md`, `AGENTS.md`, `README.md`
+- New: `src/sim/{standingOrders,minigames,guide,patches,deskNotes}.ts` and their tests, `src/ui/{activityPlayer,guide}.ts`, `tools/balance-check.mts`, `tools/browser-check-{build,rover,journey}.mjs`.
+- Rewritten: `src/sim/goals.ts`, `src/sim/activities.ts`, `src/sim/modules.ts`, `src/features/{act,base,debrief,briefing}/`, `src/ui/gameLoop.ts`, `src/styles/game-loop.css`.
+- Deleted: `src/data/roverFinds.ts` and its test, `src/ui/roverWidget.ts`, `src/ui/rover.css` — the rover's catalogue moved into `sim/rover.ts` because the simulation now owns the whole lifecycle of it.
+- Docs: `AGENTS.md`, `docs/architecture.md`, `docs/game-flow.md`, `docs/team/{decisions,issues,progress-log,tasks}.md`, `README.md`, `src/data/README.md`.
 
 **Problems**
 
-- The layer checker forbids a `data/` import from a `feature-model`, so the NASA fact index
-  stays pure in `model.ts` and the view resolves it through `data/nasaGallery.factFor` at render
-  time. The first pass imported `data/nasaGallery` straight into the model and failed
-  `check-imports`; fixed by moving the lookup into the view.
-- `h()` takes children as separate arguments, not an array — passing an array of spans was a
-  type error until each became its own argument.
-- `npm run check` clean; `npm test` 440 passed in 20 files (was 424; +6 encyclopedia tests plus
-  the new route/registry coverage). Not verified in a real browser.
+- **The game was unwinnable and nothing said so.** Every unit test passed, every browser check passed, and a sensible build still lost every run. The tests checked that the arithmetic was *correct*, not that it was *playable* — the balance lived in five constants that nothing read against each other. This is why `npm run balance` now exists (D-064): a check that only lives in a human's head is a check that stops being run.
+- **The power card and the rules contradicted each other.** The batteries drain through the night, so the level left at dawn is near zero even for a healthy outpost; the card showed that level, so it read 0% while the game happily let the player approve a 25 kWh activity. The card now shows what is left *after* the panels have filled the batteries and the systems have taken their share — which is exactly the number the activity prices come out of.
+- **Two different counts for the same limit.** The build card counted the modules the player had added; the limit counted the module the lander brought as well. Solar Array has a limit of four and the lander brings one, so the card read `3` with a dead button and no sign that three was the most. `sim/modules.ts` grew `extraLimitOf()` and the card reads `3/3`.
+- **A stale module in the Vite dev server.** The guide's `?` button would not render and it was not the code: the server was serving a cached `gameLoop.ts`. Restarting Vite fixed it. If a change is "not there", restart the dev server before debugging the code.
+- **`act` rebuilds its whole screen on every press.** That is why the rover could not live in the DOM (D-062) and why clicking a goal threw the player back to the top of the panel — both are fixed by not re-rendering the whole thing for a small change.
+- **The words.** The act panel carried 85 words before a sol and 139 after one, and the five goals alone were about 100 of them, all below the decision the player had come to make. It is now 64 and 97, the recap is the first thing on the panel, and the science behind each order is one tap away.
+- `npm run check` clean; `npm test` **701 passed** in 32 files; `npm run balance` PASS at every site; production build succeeds. `tools/browser-check-build.mjs` passed 25/25, `tools/browser-check-rover.mjs` 9/9, and `tools/browser-check-journey.mjs` drove the whole journey with no console errors.
+- **The build screen's browser check failed on a third of its runs, and chasing it found a real bug.** The check assumed a desk that was always there and a tool that was always the checklist. The desk is not always there — a crisis replaces it, and the forecast's timetable is rolled per page load — and the tool is not always the checklist, because the tools unlock over the run. Once the check was taught to resolve the crisis and to work whichever tool it was handed, it failed again, and the reason was worth more than the check: **sol 3 had no tool at all.** Its three orders were the rover survey, the site map and the experiment, whose tools (radar, sorting, packing) were all still locked. The desk was three buttons. The tools now unlock one a sol for the first six, and a test over the whole plan says every sol leaves at least one order the player can work (ISS-065).
+- **The sorting tool could never earn three stars.** Its `done()` said "finished when all six items are chosen", while its grading says "three stars when the three good ones are chosen and the other three are not". Nothing called `done()` at all, so the contradiction sat there unread (ISS-065).
 
 **Next**
 
-- Human browser pass of the build screen and encyclopedia (`TASK-049`, which was already
-  open for the whole journey), then confirm the module grid reads cleanly at laptop and
-  phone widths. Nothing is committed yet — TASK-063 needs a branch and a commit.
+- Play it again from the naming menu with a child, and watch the **second** sol. The first one has the guide and the notes; by sol three the board has six rules and the desk has a letter on it, and that is where the thread is easiest to lose.
+- Decide what the rover's finds are *worth* in the debrief — they are recorded now, but a player cannot yet tell whether a find changed anything.
+
+---
+
+## 2026-11-11 — Add the rover
+
+**Did**
+
+- A round rover button on the left edge of `base` and `act`. At base it asks before deploying, then says "Rover deployed!". While exploring, pressing it opens a small window with the rover animation and a "Bring rover back" button.
+- Out exploring, the rover finds real NASA items on a timer: historic sites (Viking 1, Pathfinder and Sojourner, Beagle 2, Schiaparelli) open a large picture-and-story window; rare rocks (Heat Shield Rock, Block Island, the leopard-spot rock) can be collected or left. A red dot sits on the button's top-left until the find is answered.
+- The rules are pure and tested: `sim/rover.ts` takes the pick as a number, so nothing is random inside `sim/`. The draws themselves are seeded from the clock, the same way the forecast is.
+- `naming` resets the rover at the start of every run.
+
+**Files**
+
+- New: `src/sim/rover.ts`, `src/sim/rover.test.ts`, `src/data/roverFinds.ts`, `src/data/roverFinds.test.ts`, `src/ui/roverWidget.ts`, `src/ui/rover.css`, `tools/compress-rover-assets.py`, `tools/browser-check-rover.mjs`, `Assets/images/rover/`.
+- Edited: `src/ui/gameLoop.ts`, `src/features/base/view.ts`, `src/features/act/view.ts`, `src/features/naming/view.ts`, `README.md`, `AGENTS.md`, `docs/architecture.md`, `docs/game-flow.md`, `docs/team/{decisions,progress-log,tasks}.md`.
+
+**Problems**
+
+- **The picture addresses were dead.** `photojournal.jpl.nasa.gov/jpeg/<PIA>.jpg` now redirects to a web page and returns HTML, not a JPEG, so every rover find would have dropped its picture and shown the placeholder instead. The pictures live on NASA's asset CDN now, under a folder built from the PIA number, and all seven were checked against the live server. `data/roverFinds.test.ts` holds the host, the size and the link so this cannot go quiet again.
+- **Three of the seven descriptions did not match NASA's own captions.** The Beagle 2 date was "found 2014" when NASA's own library dates the announcement 16 January 2015, and the leopard-spot rock was said to hold olivine, which no NASA source mentions — its spots hold vivianite and greigite, which is a better lesson anyway. The Viking alt text was left as it was after looking at the picture itself: it does show a plain with the lander in the corner.
+- **The rover's button was heavy.** It was a 1.4 MB PNG for a button drawn at 56-84 px. It is now a 58 KB WebP, indistinguishable side by side, with the PNG kept in `Assets/images/rover/source/` and a script in `tools/` so the conversion can be re-run. The looping animation is the original GIF and is shipped as it is: GIF is the one format every browser plays without argument, and it is only fetched when the player opens the rover's status window.
+- **The animation was a still frame for one commit, and nothing caught it.** The conversion script wrote `save_all=True` without `append_images`, which saves the *first* frame and silently drops the other fifteen, so the rover stood still. The browser check passed all ten of its checks while this was true, because it never opened the window the animation lives in. All three are fixed: the animation is the original GIF again, the script reads from `source/` and checks the animation still has its frames, failing loudly if it does not, and the browser check opens the status window and fingerprints that spot twice to prove the rover is moving. The fingerprint is a screenshot of the region, not a canvas draw — headless Chrome paints the first frame into a canvas every time, so a canvas check reports a moving picture as still.
+- Focus was dropped to the top of the document when a notice closed itself; it now goes back to the rover button. A rover with a find waiting can no longer be recalled, because that left a find the player could never open.
+- `npm run check` clean; `npm test` 621 passed in 28 files; production build succeeds. `tools/browser-check-rover.mjs` drove the real game in headless Chrome and passed all thirteen checks: the NASA picture loads (the leopard-spot rock came up at 714x768 out of `assets.science.nasa.gov`), the rover's animation moves, and there were no console errors. The check now also answers whichever kind of find turns up — a site is logged and a rock is collected — because which one comes up depends on what the rover found.
+- Looking at the pictures changed two of the descriptions. The Viking alt text had been "corrected" to NASA's caption, but the picture itself shows a plain with the lander in the corner, which is what the original said — so the original was kept. The Beagle 2 and leopard-spot rock dates came from NASA's own library, which dates the Beagle 2 announcement to 16 January 2015.
+
+**Next**
+
+- Human browser pass: read the wording aloud to a child, and decide whether the collection should feed the sim or the debrief.
+
+---
+
+## 2026-11-10 — Make Enter work on the supply screen
+
+**Did**
+
+- The supply screen now answers Enter exactly as NEXT does. `isPlainEnter` and
+  `focusHandlesEnter` live in `features/supply/model.ts` — pure, with seven new tests — and
+  the view holds one `window` keydown listener that mirrors the briefing's.
+- The screen resets itself when it mounts: NEXT visible, the answers, the retry, the
+  continue and the working hidden, the result empty, and the answer list cleared.
+- The listener is removed in the teardown, so it cannot go on advancing a screen the
+  player has left, and it cannot fight the briefing's own Enter handler.
+
+**Files**
+
+- `src/features/supply/{model.ts,model.test.ts,view.ts}`,
+  `docs/team/{issues,decisions,progress-log,tasks}.md`, `docs/architecture.md`,
+## 2026-11-10 — Redesign the start screen as a full-bleed scene
+
+**Did**
+
+- The naming screen is now one picture edge to edge: the astronaut stands on the left,
+  Mars fills the right and runs off the top and right of the window, and the menu (title,
+  name field, buttons, trainer card) sits on the right over the planet.
+- The stage moved out of `.naming__body` and became the first child of the section, so it
+  is the backdrop for the whole window and the header sits on top of it. The card frame
+  (`naming__card`) is gone.
+- The title, greeting and form moved into a `.naming__content` wrapper, so the block can
+  be centred in the space above the trainer card, and the panel sits on the right at 44%
+  of the width.
+- START MISSION carries the accent fill every other screen's primary button uses, and
+  "Start over" is the quiet one beside it. The way forward is the bright button.
+- Typography now uses Outfit, the geometric sans the site already loads for the rest of
+  its screens. Panels are translucent and a radial scrim over the planet keeps the menu
+  legible on top of it.
+- The Mars rotation is unchanged: `naming-mars-turn` is still 150s, linear, infinite, and
+  `naming-astronaut-float` is still 9s. Only the geometry around them moved.
+- `view.ts` and `model.ts` are untouched, so the name rules, the 21 model tests and the
+  whole form behaviour are exactly as they were.
+
+**Files**
+
+- `index.html`, `src/features/naming/naming.css`,
+  `docs/team/{decisions,tasks,progress-log}.md`, `docs/architecture.md`,
+  `docs/CHANGELOG.md`
+
+**Problems**
+
+- None blocking. `npm run check` clean, `npm test` 441 in 19 files, `npm run build`
+  warning-free.
+- Two defects came out of the same root cause. The screen had no keyboard handler at all,
+  so Enter did nothing until NEXT had been clicked with the mouse — and it only worked
+  then because the click left the focus on the button, which the browser activates with
+  Enter. Separately, the screen never cleared the previous visit's state: a second visit
+  came back with NEXT hidden, the answers still on screen, and eight answer options
+  instead of four, because the old buttons were never removed. Without the reset, Enter
+  would have gone quiet again on every revisit — the same symptom, a different cause.
+- There is no DOM test setup in this repo (ISS-013, TASK-009), so the fix was verified by
+  driving the real app in headless Chrome: Enter advances from the first beat with nothing
+  focused, advances exactly once when NEXT has the focus, does nothing on the question
+  phase, still picks a focused answer, a revisit starts clean, and the briefing is
+  undisturbed.
+
+**Next**
+
+- The owner checks the screen on their own device. The branch is not pushed yet.
+- None blocking. `npm run check` clean, `npm test` 434 in 19 files, `npm run build`
+  warning-free. The composition was verified by rendering the real app in headless Chrome
+  at 946x538 (the reference's own size), 1366x768, 1920x1080 and 390x844, and by driving
+  the form: typing enables START MISSION, submitting reaches the briefing, and Start over
+  clears the field again.
+- One thing that bit twice: `--window-size` in headless Chrome subtracts the window
+  chrome, so the viewport came out 928x442 and the short-screen media query hid the
+  backdrop. The screenshots were taken through the DevTools Protocol with an explicit
+  viewport override instead.
+- The title is capped at 4rem because "ASTRONAUT" is one line: uncapped, it ran off the
+  right edge of the screen at 1366px wide.
+- `main` moved under this branch (PR #21, the seeded hazards) and both sides had claimed
+  D-048 and TASK-062, so this branch's decision is **D-049** and its tasks **TASK-063**
+  and **TASK-064**. The merge kept both entries; the ids were the only thing renumbered.
+
+**Next**
+
+- The owner checks the screen on their own device; the planet in the reference mockup is
+  darker than the game's own asset, so if they want the mood of the mockup rather than
+  the real planet, a filter on `.naming__mars` is the one-line change.
+
+---
+
+## 2026-11-10 — Enlarge the start screen's planet and astronaut
+
+**Did**
+
+- The planet and the astronaut on the start screen are now enlarged: Mars went from 606x620
+  to 1818x1860 and the astronaut from 620x618 to 1240x1236, both as WebP.
+- They are drawn full-screen — the planet is the width of the window — so the 606px
+  originals were being stretched about three times over on a 1920px screen, which turned the
+  craters to mush and made the planet read as a broken image rather than a planet.
+- The originals are kept untouched in `Assets/images/naming/source/`, and
+  `tools/upscale-naming-assets.py` rebuilds the shipped files from them: a Lanczos resample
+  followed by a light unsharp mask, because Lanczos alone leaves the enlarged crater rims
+  soft. The planet is enlarged 3x (it carries the fine texture); the astronaut 2x (it is a
+  smooth illustration, and 2x is indistinguishable at the size it is drawn).
+- The entry screen's image weight goes from 125 KB to 488 KB, downloaded once on the first
+  screen.
+
+**Files**
+
+- `Assets/images/naming/{mars,astronaut}.webp`, `Assets/images/naming/source/`,
+  `tools/upscale-naming-assets.py`, `docs/architecture.md`, `docs/CHANGELOG.md`
+
+**Problems**
+
+- None blocking. `npm run check` clean, `npm test` 434 in 19 files. The difference was
+  verified by rendering the real app at 1920x1080 and 946x538 in headless Chrome and
+  comparing 1:1 crops of the planet before and after.
+- Pillow is not installed by default here; `py -3 -m pip install Pillow` puts it there. It
+  is a dev-only tool dependency and adds nothing to the shipped bundle.
+
+**Next**
+
+- The owner checks the screen on their own device.
 
 ---
 
@@ -357,6 +506,225 @@ than a documented one.
 **Next**
 
 - Human browser pass (`TASK-049`) of the new forecast, then the production build check.
+
+
+---
+
+## 2026-11-11 — Merge the last of the launch screen's NASA fact
+
+**Did**
+
+- ApurboAbir17's `mission-briefing` branch had one commit that was not in `main`
+  (`19e59c8`, "add facts to supply check and launch reel"). It was written against an
+  older `main`, so it needed unpicking rather than merging.
+- **The launch half is in.** `launch/model.ts` gains `NASA_FACT` — "a rocket that goes far
+  usually drops its empty fuel tanks partway up, which is called staging" — and the view
+  adds it to the screen's spoken description. The films and the shots carry the story for
+  anyone who cannot see them, but no shot is about the rocket itself, and the description
+  is already where the screen's whole spoken content lives, so the fact joins the text
+  rather than the beat list and the reel does not slow down for it.
+- **The supply half is not, and it is not an oversight.** That commit also added a static
+  "NASA fact" beat to `SUPPLY_BEATS` — red romaine lettuce on the space station. The
+  supply screen has since grown a *rotating* NASA fact in its corner
+  (`factFor` into `[data-supply-fact]`, D-047 and TASK-061), so merging the static beat
+  would have shown two NASA facts on one screen and slowed the beat list for a fact the
+  screen already carries.
+
+**Files**
+
+- `src/features/launch/model.ts`, `src/features/launch/view.ts`,
+  `src/features/launch/model.test.ts`
+
+**Problems**
+
+- The branch was two weeks behind `main` in content, not just in commits. Merging it
+  wholesale would have quietly undone D-047's rotating facts, which is the sort of
+  regression a fast-forward looks innocent until someone reads the screen.
+
+**Next**
+
+- Human browser pass of the launch reel's read-aloud text with the new fact in it
+  (TASK-049).
+
+---
+
+## 2026-11-11 — Name the five science goals, and show them on every sol
+
+**Did**
+
+- The game now **says what it is about**. Every number in it was always about one of five
+  things — Martian dust storms, life support, radiation exposure, power shortages and food
+  production — but nothing said so, so a player saw five bars falling and had to work out
+  for themselves that the dust was what was blocking the Sun.
+- New pure module `src/sim/goals.ts` names the five goals and reads each one against the
+  run as it stands. Every line is worked out from the sim: the storm that is actually
+  running, the panels' real output, the stores as they are, the last sol's blackout. So
+  "the greenhouse grows 12 food a sol and the crew eat 10" is a fact about the machine the
+  player is running, not a number to panic at.
+- The **act screen** carries the five goals under the day's activity, each with a coloured
+  dot so the state reads at a glance and a NASA fact about that goal's own system
+  underneath.
+- The **debrief** reports how each goal fared: the dust took so much off the panels, the
+  shielding fell so far, the greenhouse grew less than the crew ate, the batteries ran
+  flat on which sols.
+- Each goal files its NASA fact under a **topic of its own**, so the dust storm and the
+  power shortage never show the same fact. `sim/topics.ts` gains a `dust` topic and five
+  facts move to it.
+- Each activity now says **which goal it is working on**, so the seven that serve a goal
+  are visibly the mission and the five pure-science ones are visibly the science.
+- The suite went from 542 tests in 25 files to **568 tests in 26 files**.
+
+**Files**
+
+- New: `src/sim/goals.ts`, `src/sim/goals.test.ts`
+- Changed: `src/sim/activities.ts`, `src/sim/topics.ts`, `src/data/nasaGallery.ts`,
+  `src/features/act/{model,view}.ts`, `src/features/act/act.css`,
+  `src/features/debrief/{model,view}.ts`, `src/features/debrief/debrief.css`,
+  `docs/architecture.md`, `README.md`, `AGENTS.md`, `docs/team/{decisions,issues,tasks}.md`
+
+**Problems**
+
+- **Two goals had a decision and three did not.** The dust storm and the flare are crises
+  the player answers; life support, power and food were only numbers falling. The activity
+  loop (D-051) is what fixed that — `grow-extra`, `dig-ice`, `recycle-tune`, `air-check`
+  and `stack-shielding` are decisions about the three quieter goals — and naming the goals
+  is what makes it obvious that they are decisions *about* something.
+- The dust facts had been filed under `power`, because dust and panels are the same
+  problem. That meant the dust goal and the power goal would have shown the same fact on
+  the same screen. Hence the new `dust` topic.
+- The activity `topic` and the activity `goal` are not the same thing: `sweep-panels` is
+  filed under `dust` but serves the dust goal, while `air-check` is filed under `missions`
+  but serves life support. Two fields, because one is "what this teaches about" and the
+  other is "which goal this works on".
+- Not yet verified in a browser. The five goal rows are the densest thing on the act panel
+  and nobody has looked at them on a phone yet.
+
+**Next**
+
+- A human browser pass, especially the five goal rows on a small screen (TASK-049).
+
+---
+
+## 2026-11-10 — Never double up the events, and make the ration question change every run
+
+**Did**
+
+- **Two forecast events can never happen back to back** (D-056). The event sols used to be
+  four typed-in constants that happened to be spaced right, so the rule was a comment rather
+  than a rule. They are now worked out from a schedule: each event starts `MIN_CLEAR_SOLS`
+  sols after the previous one has *ended*, so there is always a quiet sol between any two of
+  them — including after the two-sol dust storm, which is still dusting the panels when the
+  next alarm arrives. The schedule the game has always had is unchanged: a flare on sol 3, a
+  pod on sol 5, a storm on sols 7 and 8, and a second flare on sol 10.
+- `forecastIsSpaced(forecast)` is exported so the rule can be asserted, and
+  `src/sim/forecast.test.ts` is new — one of the four `sim/` modules ISS-047 recorded as
+  having no test file at all.
+- **The ration question changes every run** (D-057). It was fixed — two months, four crew,
+  three days per packet — so the answer was always 80 and the buttons were always 20, 80,
+  240 and 720. A child who played twice learned the number instead of the calculation.
+  The mission length now varies between six authored values, the answer moves with it, and
+  all four buttons are worked out from the question on screen: the answer, plus the three
+  mistakes a child actually makes. The order is shuffled too, so there is no button to
+  memorise either.
+- The variation is seeded from the astronaut's name — the one thing that changes between runs
+  — and never from `Math.random()`, so a demo repeats and a test can pin it.
+- The crew size in the question is now read from `sim/modules.ts` rather than typed in, so
+  the ration maths cannot drift from the briefing again.
+- The suite went from 517 tests in 24 files to **542 tests in 25 files**.
+
+**Files**
+
+- New: `src/sim/forecast.test.ts`
+- Changed: `src/sim/forecast.ts`, `src/features/supply/{model,view}.ts`,
+  `src/features/supply/model.test.ts`, `docs/architecture.md`, `docs/game-flow.md`,
+  `AGENTS.md`, `README.md`, `docs/team/{decisions,issues,tasks}.md`
+
+**Problems**
+
+- The forecast's event sols were a *second copy of the truth*: four constants that had to be
+  kept in step with `createForecast` by hand. They are now derived from the placed schedule,
+  so they cannot disagree with it. The old numbers are unchanged — 3, 5, 7, 10 — but they
+  are now a result rather than an input.
+- The fourth answer button, 720, was not a mistake anyone could describe, so it was a guess
+  button rather than a wrong answer that teaches something. Every option is now a specific
+  mistake, worked out from the question.
+- The seeding is the astronaut's name, which means the same name always gets the same
+  question. That is deliberate — a demo must repeat — but it does mean a player who always
+  types the same name sees the same question. A run counter would fix that and cannot be
+  done without putting mutable state in `sim/`, so the name stays.
+
+**Next**
+
+- A human browser pass of the supply screen with a few different names, to confirm the
+  question reads naturally in all six forms (TASK-049).
+
+---
+
+## 2026-11-10 — Give every sol a main activity, a science score and a live NASA picture
+
+**Did**
+
+- **Every sol now has a main activity** (D-051). On the eight calm sols `act` offers three
+  activities and the player picks one; on a crisis sol the crisis replaces the activity
+  panel, so the crisis *is* that day's activity. Twelve activities, each with a real cost,
+  in the new pure module `src/sim/activities.ts` alongside the twelve sol plans.
+- The activity's kWh joins the same `extraPowerCost` path a flare's shielding digger uses,
+  so **an activity competes with life support for the same energy**: spend 25 kWh on a
+  rover survey with a flat battery and that sol runs in a blackout. No new machinery was
+  needed for this — it fell out of the model that was already there.
+- **Science points and a rank** (D-052). `RunState.science` totals the points, and the new
+  `src/sim/science.ts` turns the total into a rank: Explorer, Field Scientist, Research
+  Lead, Senior Scientist, Chief Martian Scientist. The bands are set by what a run can
+  actually earn, so a player who chose nothing is still an Explorer and the top rank is one
+  good run away. The debrief reports the score, the rank and every activity the crew chose.
+- **A live NASA picture per sol** (D-053). The new `src/data/nasaDaily.ts` reads NASA's
+  Astronomy Picture of the Day, filtered to Mars, and falls back to the saved gallery when
+  NASA is busy — an enrichment layer on top of the curated gallery, never a replacement,
+  exactly as D-037 established for space weather. The static facts grew from 15 to 40 and
+  every one is tagged with a topic, so the day's activity is paired with a fact about its
+  own system.
+- The cosmetic `MISSIONS` array is gone. It claimed a headline that disagreed with the
+  forecast — sol 8 read "Mission 7: First Harvest" while the storm was on sol 7 — and it
+  had no effect on the simulation at all. It is now `SOL_PLANS`, twelve real headlines each
+  carrying its three activities.
+- The suite went from 424 tests in 19 files to **517 tests in 24 files**. `src/sim/run.test.ts` and
+  `src/sim/balance.test.ts` were added as well: ISS-053 recorded that the run state had no test file
+  at all, and the activity loop changes exactly that state and the balance it depends on.
+
+**Files**
+
+- New: `src/sim/activities.ts`, `src/sim/science.ts`, `src/sim/topics.ts`,
+  `src/data/nasaDaily.ts`, `src/dom/dailyFactLoader.ts`, `src/ui/nasaFeedCard.ts`
+- Changed: `src/sim/{run,sol}.ts`, `src/features/act/{model,view}.ts`,
+  `src/features/act/act.css`, `src/features/debrief/{model,view}.ts`,
+  `src/data/nasaGallery.ts`, `src/data/README.md`, `docs/architecture.md`,
+  `docs/game-flow.md`, `AGENTS.md`, `README.md`, `docs/team/{decisions,issues,tasks}.md`
+
+**Problems**
+
+- `ice-store` gave more water for less power than `dig-ice` and earned fewer points, so on
+  sol 5 it made `dig-ice` pointless. It became `sample-rock`, a distinct science activity.
+  The fix is its own commit rather than a quiet rewrite.
+- The first set of rank bands put a run that chose nothing at "Field Scientist", because
+  twelve day-log points were enough. The bands were recalibrated against what a run can
+  actually earn.
+- The debrief's `crisisSols` list was wrong at first: a sol with no activity is not
+  necessarily a crisis sol. It now separates crisis sols from sols where nothing was
+  chosen, using the logged events as the evidence.
+- **NASA's APOD endpoint rate-limits the shared `DEMO_KEY`.** It answered `429` on every
+  attempt while this was written (ISS-049). The saved gallery is the guaranteed layer, so
+  the demo is safe either way, but a personal key (TASK-008) is the fix.
+- The NASA Mars Rover Photos API returned `404` for every rover and sol tried from this
+  machine, so it was left out rather than shipped unverified. It is the most striking
+  possible feature and is worth retrying after the demo.
+- Not yet verified in a real browser. `npm run check` and `npm test` are clean and
+  `npm run build` succeeds, but nobody has watched a player pick an activity yet.
+
+**Next**
+
+- A human browser pass of the whole journey, especially the activity cards on a touch
+  screen and the crisis countdown with the new panel (TASK-049).
+- Register a personal `api.nasa.gov` key before the demo (TASK-008, ISS-009).
 
 ---
 

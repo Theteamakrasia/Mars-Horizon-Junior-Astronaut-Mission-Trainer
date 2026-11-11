@@ -9,6 +9,7 @@
 
 import type { ForecastEvent } from './forecast';
 import { type ModuleKind, systemsFor } from './modules';
+import { newRover, collectMaterial, leaveMaterial, logSite, FIND_SCIENCE, type FindAnswer, type RoverState } from './rover';
 import { createInitialStores, type ResourceStores } from './resources';
 
 /** A run is active, or ended one way or the other. No third state. */
@@ -37,6 +38,20 @@ export interface DecisionRecord {
   readonly timedOut: boolean;
 }
 
+/**
+ * What the crew spent a sol on.
+ *
+ * The id, the title and the points are copied onto the record rather than
+ * looked up later, so the debrief can name the activity without needing the
+ * catalogue — and so a record still reads correctly if the catalogue changes.
+ */
+export interface SolActivity {
+  readonly id: string;
+  readonly title: string;
+  /** The science points the activity earned. */
+  readonly science: number;
+}
+
 /** What one sol did, kept so the debrief can reason over the whole run. */
 export interface SolRecord {
   readonly sol: number;
@@ -50,9 +65,13 @@ export interface SolRecord {
   readonly powerWasted: number;
   /** 0-1: the share of the sol's power demand that could not be met. */
   readonly blackout: number;
+  /** 0-1: how clean the panels were at the end of the sol. Dust only ever goes down. */
+  readonly panelHealth: number;
   readonly greenhousePaused: boolean;
   /** What the crew breathed, drank and ate this sol. */
   readonly used: { readonly oxygen: number; readonly water: number; readonly food: number };
+  /** The main activity for this sol, or null when the sol was spent on a crisis. */
+  readonly activity: SolActivity | null;
   readonly events: readonly SolEvent[];
   /** Plain-language things worth knowing about this sol. */
   readonly notes: readonly string[];
@@ -71,6 +90,26 @@ export interface RunState {
   readonly modules: readonly ModuleKind[];
   /** 0-1: how much of the panels' output survives. Dust damage lowers it for good. */
   readonly panelHealth: number;
+  /** Science points earned so far. Activities award them (D-051). */
+  readonly science: number;
+  /** The activity picked for the next sol, or null when none has been picked. */
+  readonly chosenActivity: string | null;
+  /**
+   * What the player won on each inspection, in the order they did them.
+   *
+   * An inspection is a way of working an order, not a resource: it never
+   * changes a store. It changes the science the order is worth, which is the
+   * only thing it is allowed to touch.
+   */
+  readonly inspections: readonly Inspection[];
+  /**
+   * What the rover has been up to.
+   *
+   * The rover is part of the run, not a window floating over it: it is sent out
+   * by a work order like any other, it moves on sol time, and it comes back
+   * with a document on the desk.
+   */
+  readonly rover: RoverState;
   readonly forecast: readonly ForecastEvent[];
   readonly log: readonly SolRecord[];
   readonly decisions: readonly DecisionRecord[];
@@ -91,6 +130,10 @@ export function newRun(regionId: string, astronautName = ''): RunState {
     status: 'active',
     modules: [],
     panelHealth: 1,
+    science: 0,
+    chosenActivity: null,
+    inspections: [],
+    rover: newRover(),
     forecast: [],
     log: [],
     decisions: [],
@@ -105,6 +148,75 @@ export function newRun(regionId: string, astronautName = ''): RunState {
  */
 export function landAt(state: RunState, regionId: string): RunState {
   return newRun(regionId, state.astronautName);
+}
+
+/**
+ * Answer the find the rover brought back.
+ *
+ * The choice is the stamp: a historic site is logged, a rock is collected or
+ * left where it lies. Every answer is worth the same science, because the
+ * rover teaches and the score is for the work rather than for the button
+ * pressed.
+ */
+export function answerRoverFind(state: RunState, answer: FindAnswer): RunState {
+  const find = state.rover.pending;
+
+  if (find === null) return state;
+
+  const rover =
+    answer === 'log'
+      ? logSite(state.rover)
+      : answer === 'collect'
+        ? collectMaterial(state.rover)
+        : leaveMaterial(state.rover);
+
+  /* The wrong answer for the wrong kind changes nothing, and so earns
+     nothing: a rock cannot be logged and a site cannot be collected. */
+  if (rover === state.rover) return state;
+
+  return { ...state, rover, science: state.science + FIND_SCIENCE };
+}
+
+/**
+ * One inspection, and what it won.
+ *
+ * The stars are 0 to 3, and they multiply the science the order is worth.
+ * Nothing else about the outpost changes.
+ */
+export interface Inspection {
+  /** The sol the inspection was done on. */
+  readonly sol: number;
+  /** The order it was done on. */
+  readonly activityId: string;
+  /** 0 to 3 stars. */
+  readonly stars: number;
+}
+
+/**
+ * Record an inspection.
+ *
+ * Doing the same order twice on the same sol keeps the better result, so a
+ * player who wants three stars can go again.
+ */
+export function recordInspection(state: RunState, sol: number, activityId: string, stars: number): RunState {
+  const clamped = Math.max(0, Math.min(3, Math.round(stars)));
+  const existing = state.inspections.find((entry) => entry.sol === sol && entry.activityId === activityId);
+
+  if (existing !== undefined && existing.stars >= clamped) return state;
+
+  const inspections = [
+    ...state.inspections.filter((entry) => !(entry.sol === sol && entry.activityId === activityId)),
+    { sol, activityId, stars: clamped },
+  ];
+
+  return { ...state, inspections };
+}
+
+/** The stars won on an order on a sol, or 1 when it was never inspected. */
+export function inspectionStars(state: RunState, sol: number, activityId: string): number {
+  const found = state.inspections.find((entry) => entry.sol === sol && entry.activityId === activityId);
+
+  return found?.stars ?? 1;
 }
 
 /**
@@ -130,6 +242,10 @@ export function startOutpost(state: RunState, modules: readonly ModuleKind[]): R
     status: 'active',
     modules,
     panelHealth: 1,
+    science: 0,
+    chosenActivity: null,
+    inspections: [],
+    rover: newRover(),
     log: [],
     decisions: [],
     stores: createInitialStores({

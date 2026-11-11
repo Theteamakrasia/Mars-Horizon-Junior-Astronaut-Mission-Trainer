@@ -12,7 +12,31 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 | TASK-090 | Mirror a module in the placement editor | G-4 | agent | done | - | D-067; optional `flip` on a pose; Mirror button and F key; first tests for `ui/gameLoop.ts`; 492 tests |
 | TASK-089 | A pose per module copy, and a way to resize a module | G-4 | agent | done | - | D-066; `baseLayout.json` holds a list per kind; the editor places and scales all 15 copies; crewmate sprite off the build screen; 480 tests |
 | TASK-088 | Move the outpost module layout out of source into a JSON file, with a developer placement editor | G-4 | agent | done | - | D-065; `src/ui/baseLayout.json`, `baseLayout.ts`, `baseLayoutEditor.ts`; `?editlayout=1`; 471 tests. Verified in headless Chrome, including the file round trip |
-| TASK-063 | Grid the outpost modules, cut catalogue cards to one line, add an encyclopedia | G-4 | agent | done | - | `MODULE_SPOT` 4×2 grid in `ui/gameLoop.ts`; new `features/encyclopedia/`; 440 tests. Browser check outstanding (TASK-049) |
+| TASK-087 | Fix the tools: every sol has one to work, the sorting tool can earn three stars, and the browser check can drive any of them | G-4 | agent | done | — | ISS-064, ISS-065. The tools unlock one a sol for the first six; a test over the plan holds the rule |
+| TASK-086 | Update the docs for the balance, the desk loop, the rover and the guide, and merge to `main` | G-6 | agent | done | — | AGENTS.md, `docs/architecture.md`, `docs/game-flow.md`, README, `src/data/README.md`, and the team docs; D-060…D-064, ISS-054…063 |
+| TASK-085 | Fix what play testing turned up: the power card, the goal scroll, the build feedback, the limits, the recap and the word count | G-7 | agent | done | — | ISS-054…058, ISS-060, ISS-062. Six of the ten complaints in one pass |
+| TASK-084 | Add `npm run balance` and the browser checks for the build screen, the rover and the whole journey | G-3 | agent | done | — | D-064. `tools/balance-check.mts` fails when a site cannot hold all five systems; three headless-Chrome checks |
+| TASK-083 | Add a how-to-play guide and say what a day is in the briefing | G-7 | agent | done | — | ISS-059. `sim/guide.ts` (ten steps), `ui/guide.ts`, the mission bar's `?` button, and two new briefing beats |
+| TASK-082 | Put the rover in the run: sol time, a work order to send it, and a document on the desk | G-7 | agent | done | — | D-062. `RunState.rover`; the catalogue moved from `data/` into `sim/rover.ts`; `ui/roverWidget.ts` deleted. Supersedes TASK-078's shape |
+| TASK-081 | Make the five goals the learning outcomes rather than a score, and the standing orders the rule book | G-4 | agent | done | — | D-061. `GOAL_TARGETS`, `goalScore` and `goalsEarned` are gone; `sim/standingOrders.ts` holds twenty-four rules |
+| TASK-080 | Turn the sol into a Papers Please desk: three work orders, two readings each, a tool, and one approval | G-4 | agent | done | — | D-060, D-063. `sim/activities.ts`, `sim/minigames.ts` (six tools), `ui/activityPlayer.ts`; stars multiply science only |
+| TASK-079 | Make the game winnable: the balance made every build lose | G-4 | agent | done | — | ISS-061. Five constants in `sim/modules.ts`; win rate 20% → 43%; every site can hold all five systems |
+| TASK-078 | Add the rover: a button on the outpost screens that finds real NASA places and rare rocks | G-7 | agent | done | — | D-059. `sim/rover.ts`, `data/roverFinds.ts`, `ui/roverWidget.ts`; 28 tests. **Superseded by TASK-082** — the rover is in the run now |
+| TASK-077 | Name the five science goals, show them live on every sol and report how each fared | G-7 | agent | done | — | D-058. `sim/goals.ts`; the act screen and the debrief |
+| TASK-076 | Guarantee the forecast never puts two events back to back | G-4 | agent | done | — | D-056. The quiet sol between every pair, whatever the dice roll |
+| TASK-075 | Make the ration check ask a different question every run, with options derived from it | G-4 | agent | done | — | D-057. The answer was always 80; the mission length, the answer and the button order now move |
+| TASK-074 | Cover the run state with `src/sim/run.test.ts` and correct AGENTS.md's test counts | G-3 | agent | done | — | ISS-053. The activity loop changes `RunState`, so the run state gets covered |
+| TASK-073 | Update the architecture tree, the module contracts, the game flow and the README | G-6 | agent | done | — | ISS-050. The doc matrix §5 of `AGENTS.md` requires it in the same commit as the change |
+| TASK-072 | Show the Mars Science Score, the rank and the activity breakdown in the debrief | G-4 | agent | done | — | D-052. Score, rank and a per-activity list; reuses the existing callout and stats table |
+| TASK-071 | Show NASA's live daily picture and fact in `act` | G-5 | agent | done | — | D-053. One APOD per sol, with the curated card and an honest note as the fallback |
+| TASK-070 | Add `data/nasaDaily.ts`, tag the static facts, and add `dom/dailyFactLoader.ts` | G-5 | agent | done | — | D-053, ISS-049. The `data/README.md` contract: injected fetch, never throws, always reports its source |
+| TASK-069 | Offer the daily activity in `act` and show the science score | G-4 | agent | done | — | D-051, D-052. Three activity cards, a chosen one, the score in the world panel |
+| TASK-068 | Record D-051 to D-055, the post-freeze scope exception, ISS-049 to ISS-050 and this task list | G-6 | agent | done | — | D-055. `docs/game-flow.md` is the document of record |
+| TASK-067 | Score science points, rank the run, and apply the chosen activity in `advanceSol` | G-4 | agent | done | — | D-051, D-052. New `sim/science.ts`; `RunState.science` and `RunState.chosenActivity` |
+| TASK-066 | Add the activity catalogue and the twelve sol plans to `sim/` | G-4 | agent | done | — | D-051, D-054. New `sim/activities.ts` and `sim/topics.ts`; replaces the cosmetic `MISSIONS` array |
+| TASK-065 | Make Enter advance the supply screen like NEXT does | G-4 | agent | done | - | ISS-047, D-050; `isPlainEnter` and `focusHandlesEnter` in the model, one keydown listener in the view, and the screen resets its state on mount |
+| TASK-064 | Enlarge the start screen's planet and astronaut so they stay sharp full-screen | G-4 | agent | done | - | `tools/upscale-naming-assets.py`; originals kept in `Assets/images/naming/source/`; Mars 3x, astronaut 2x |
+| TASK-063 | Redesign the naming start screen as a full-bleed scene | G-4 | agent | done | - | D-049. Stage moved out of the body to be the window backdrop; menu column on the right over Mars; Outfit type, translucent panels, scrim. Mars rotation untouched. Owner checking on their device |
 | TASK-062 | Roll each mission's hazards from a seed instead of a fixed schedule | G-4 | agent | done | - | D-048; `sim/forecast.ts`, `dom/forecastLoader.ts`, `data/spaceweather.ts`, base + act wiring; 434 tests |
 | TASK-061 | Add rotating NASA facts to the supply and launch screens | G-7 | agent | done | - | D-045 follow-up; `factFor`, `[data-supply-fact]`, `[data-launch-parts-fact]` |
 | TASK-060 | Add a real NASA photo to every landing region and rotating NASA facts to base and debrief | G-7 | agent | done | - | D-045; `REGION_CARDS`, `FACTS`, `factFor`; five region cards and ten new tests |
@@ -44,7 +68,7 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 | TASK-029 | `features/base/` — place modules | G-4 | agent | done | — | build panel, stores, storm warning, Start sols |
 | TASK-030 | `features/act/` — advance a sol, resolve the mission | G-4 | agent | done | — | turn-based (D-030); Power Surplus picture; hands to debrief |
 | TASK-031 | `features/debrief/` — explain why a run was won or lost | G-4 | agent | done | — | timeline bars, ledger attribution, confidence note, replay |
-| TASK-046 | Balance acceptance tests and tuning | G-4 | agent | done | — | `sim/balance.test.ts`, 9 tests; numbers in `sim/constants.ts` |
+| TASK-046 | Balance acceptance tests and tuning | G-4 | agent | done | — | `sim/balance.test.ts`, 7 acceptance tests, added with the activity work; the tuning numbers live in `sim/modules.ts` |
 | TASK-047 | Module sprites, cutscenes, storm haze | G-4 | unassigned | cut | — | cut list §11: the loop works without them; reduced-motion CSS kept |
 | TASK-048 | Registry, `index.html` sections, registry/routes tests | G-4 | agent | done | — | 9 routed screens; `check-markup` passes |
 | TASK-049 | Browser acceptance pass of the whole journey + `dist/` check | G-4 | unassigned | open | — | needs a human with a browser; `npm run build` passes |
@@ -104,6 +128,24 @@ ISS-043). A personal key (TASK-008) remains optional.
 
 **Sol stepping is decided: turn-based (D-030).** `advanceSol` runs on a button press in
 `act`; there is no clock abstraction and no ticker.
+
+**TASK-066 to TASK-074 are one post-freeze exception (D-055).** The Nov 8 freeze allowed
+only bug fixes. This pass adds a main activity to every sol, a science score with a rank,
+and a live NASA daily-fact layer. `docs/game-flow.md` is the document of record, the
+work is on branch `feat/daily-activities`, and the exception is recorded in
+`docs/team/decisions.md` rather than taken quietly.
+
+**TASK-079 to TASK-086 are the second post-freeze exception (D-060 to D-064).** The game
+was unwinnable and unfollowable: 0 of 3,558 measured runs won, and a child could play
+twelve sols without ever being told what a sol was. The exception covers the balance
+fix, the Papers Please desk loop, the goals becoming learning outcomes, the rover
+moving into the run, the how-to-play guide, the browser checks and `npm run balance`.
+The branch is `feat/goal-objectives`; the decisions are recorded rather than taken
+quietly.
+
+**The five goals are not a score (D-061).** Any task that wants to "grade" them, count
+them, or put a number on the player's progress against them is a task that contradicts
+the decision. The goals are what the game is *about*; the run is how you show it.
 
 **Task ids were duplicated before this pass.** TASK-035/036/037 each appeared twice
 (CI/deploy work and the naming/routing/cutout work). The older naming/routing/cutout rows

@@ -286,6 +286,18 @@ export const PARTS_DESCRIPTION =
   'vehicle, which carries the crew down to the surface and back.';
 
 /**
+ * A real NASA fact the cinematic teaches with.
+ *
+ * The films and shots carry the story for anyone who cannot see them (the
+ * description), but the teaching here is about the rocket itself, which no shot
+ * is about. It is carried as a fact rather than as a beat: the reel must not slow
+ * down for it, and the description is already the place the whole spoken content
+ * of the screen lives.
+ */
+export const NASA_FACT =
+  'A rocket that goes far usually drops its empty fuel tanks partway up, which is called staging.';
+
+/**
  * The whole runtime, title included.
  *
  * Derived, so it cannot drift from the parts. view.ts sets the hand-off timer from

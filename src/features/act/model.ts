@@ -3,13 +3,75 @@
  *
  * Deliberately thin: every simulation rule — drain, events, loss — lives in
  * `src/sim/sol.ts`, where it is tested. This file only decides how a run is
- * worded and which meters look worrying.
+ * worded, which meters look worrying, and what the day's three activities
+ * say on the screen (D-051).
  */
 
+import { offerFor, planForSol, type ActivitySpec, type ActivityStoreName } from '../../sim/activities';
+import { stormOn, stormOpacity } from '../../sim/forecast';
+import { DUST_SPOTLESS, LIFE_STORE_FLOOR, type ScienceGoal } from '../../sim/goals';
+import { oneWayMinutes } from '../../sim/comms';
+import { noteForSol } from '../../sim/deskNotes';
+import type { FindAnswer, FindKind } from '../../sim/rover';
+import type { EngineKind } from '../../sim/minigames';
+import { ordersThrough, type StandingOrder } from '../../sim/standingOrders';
 import { RESOURCE_NAMES, percentOf, type ResourceName, type ResourceStores } from '../../sim/resources';
 import type { RunState } from '../../sim/run';
-import { systemsFor } from '../../sim/modules';
+import { NIGHT_HOURS, SUN_HOURS, systemsFor } from '../../sim/modules';
+import { siteScore } from '../../sim/regions';
+import { rankProgress, type ScienceRank } from '../../sim/science';
 import { WIN_SOL } from '../../sim/sol';
+import type { ScienceTopic } from '../../sim/topics';
+
+/**
+ * The power picture for the sol about to be played.
+ *
+ * `available` is the number the activity prices come out of, and the number
+ * the power card shows. It is not the level in the batteries: those are
+ * drained through the night, so the level left at dawn is near zero even for
+ * a healthy outpost, and a card that says "Power 0%" while the player still
+ * chooses a 25 kWh activity reads as a broken game rather than a day and
+ * night.
+ */
+export interface TodayPower {
+  /** kWh the crew can spend today, after the panels have filled the batteries. */
+  readonly available: number;
+  /** The batteries' capacity, in kWh. */
+  readonly capacity: number;
+  /** What the systems use over the whole sol, in kWh. */
+  readonly demand: number;
+  /** What the night alone needs, in kWh. */
+  readonly nightNeed: number;
+  /** True when the batteries still cover the night. */
+  readonly nightCovered: boolean;
+}
+
+/** The power picture for the sol about to be played. */
+export function powerToday(run: RunState): TodayPower {
+  const systems = systemsFor(run.modules, run.regionId);
+  const capacity = systems.batteryKwh;
+
+  /* The panels make nothing while they are folded, and a storm that has not
+     been answered yet is still a storm. */
+  const storm = stormOn(run.forecast, run.sol + 1);
+  const choice = storm === null ? null : run.decisions.find((entry) => entry.crisisId === storm.id)?.optionId;
+  const stormFactor =
+    storm === null ? 1 : choice === 'expose' ? 1 - stormOpacity(siteScore(run.regionId).dust) : 0;
+
+  const generated = systems.solarKw * systems.sunFactor * run.panelHealth * stormFactor * SUN_HOURS;
+  const nuclear = (systems.nuclearKw * (SUN_HOURS + NIGHT_HOURS)) / 2;
+  const dayDraw = systems.loadKw * SUN_HOURS;
+  const nightNeed = Math.max(0, systems.loadKw - systems.nuclearKw) * NIGHT_HOURS;
+  const level = capacity <= 0 ? 0 : Math.min(capacity, run.stores.power + generated + nuclear - dayDraw);
+
+  return {
+    available: Math.max(0, Math.round(level)),
+    capacity: Math.round(capacity),
+    demand: Math.round(systems.loadKw * (SUN_HOURS + NIGHT_HOURS)),
+    nightNeed: Math.round(nightNeed),
+    nightCovered: level >= nightNeed,
+  };
+}
 
 /** A headline and a line under it for the sol about to be played. */
 export interface ActPresentation {
@@ -18,31 +80,25 @@ export interface ActPresentation {
 }
 
 /**
- * The ten missions from the README, spread over the run's sols.
+ * The plan for the sol about to be played.
  *
- * They are the story of the outpost growing, shown as the headline. They do not
- * change the rules — the rules are the forecast and the resources.
+ * The plan lives in `sim/activities.ts` because the sim needs it too: the
+ * headline on the screen and the activities on the screen have to be the same
+ * day, and a cosmetic array in this file could drift from the forecast the
+ * way the old `MISSIONS` array did (ISS-048).
  */
-export const MISSIONS: readonly { readonly title: string; readonly subtitle: string }[] = [
-  { title: 'Mission 1: Establish Outpost', subtitle: 'Nothing works without power. Watch the batteries.' },
-  { title: 'Mission 2: Survey the Environment', subtitle: 'Read your site before trusting it.' },
-  { title: 'Mission 3: Robotic Operations', subtitle: 'Rovers do the routine jobs so people do not have to.' },
-  { title: 'Mission 4: First EVA', subtitle: 'Suits, airlocks and the clock: every spacewalk is on a budget.' },
-  { title: 'Mission 5: Find Resources', subtitle: 'What you can find here is cargo you do not have to launch.' },
-  { title: 'Mission 6: Make Water (ISRU)', subtitle: 'Turn local ice and dirt into supplies.' },
-  { title: 'Mission 7: First Harvest', subtitle: 'Food you grow is food you do not launch.' },
-  { title: 'Mission 8: Survive a Major Hazard', subtitle: 'A dust storm tests everything you prepared.' },
-  { title: 'Mission 9: Science Expedition', subtitle: 'Research is the whole point of being here.' },
-  { title: 'Mission 10: Expand the Outpost', subtitle: 'Grow without losing stability.' },
-];
-
-/** The mission for a sol (1-based). Sols past the tenth keep the last mission. */
 export function missionHeadline(run: RunState): ActPresentation {
-  const sol = Math.min(WIN_SOL, run.sol + 1);
-  const index = Math.min(MISSIONS.length - 1, Math.max(0, Math.round(((sol - 1) / (WIN_SOL - 1)) * (MISSIONS.length - 1))));
+  const plan = planForSol(run.sol + 1);
 
-  return MISSIONS[index];
+  if (plan !== null) return { title: plan.title, subtitle: plan.subtitle };
+
+  const last = planForSol(WIN_SOL);
+
+  return { title: last?.title ?? 'Mission complete', subtitle: last?.subtitle ?? 'The outpost is out there, on its own.' };
 }
+
+/** The order the stores are listed in when an activity names a cost or a gain. */
+const ACTIVITY_STORE_ORDER: readonly ActivityStoreName[] = ['oxygen', 'water', 'food', 'shielding'];
 
 export type MeterTone = 'ok' | 'low' | 'critical';
 
@@ -125,5 +181,368 @@ export function secondsLeft(totalSeconds: number, elapsedMs: number): number {
 
 /** Words for a night-power picture, so it can be read aloud as well as seen. */
 export function powerSentence(generatedKw: number, storedKwh: number, nightDrainKw: number): string {
-  return `The arrays make ${generatedKw} kW while the Sun is up. ${storedKwh} kWh is stored. Night costs ${nightDrainKw} kW for 12 hours.`;
+  return `${generatedKw} kW in the Sun · ${storedKwh} kWh stored · ${nightDrainKw} kW at night`;
+}
+
+/* ------------------------------------------------------------- activities -- */
+
+/**
+ * What an activity costs and what it gives, as short lines.
+ *
+ * The numbers come from the catalogue rather than from the sentence beside
+ * them, so a cost can never disagree with the words describing it.
+ */
+export interface ActivityCost {
+  /** What the activity takes, e.g. `−25 kWh`. Empty when it is free. */
+  readonly costs: readonly string[];
+  /** What the activity gives, e.g. `+4 science`. */
+  readonly gains: readonly string[];
+}
+
+/** Split an activity's effect into what it costs and what it gives. */
+export function activityCosts(spec: ActivitySpec): ActivityCost {
+  const costs: string[] = [];
+  const gains: string[] = [];
+
+  if (spec.powerCostKwh > 0) costs.push(`−${spec.powerCostKwh} kWh`);
+
+  for (const name of ACTIVITY_STORE_ORDER) {
+    const value = spec.storeDelta[name] ?? 0;
+
+    if (value === 0) continue;
+
+    const text = `${value > 0 ? '+' : '−'}${Math.abs(value)} ${RESOURCE_LABELS[name].label}`;
+
+    if (value > 0) gains.push(text);
+    else costs.push(text);
+  }
+
+  gains.push(`+${spec.science} science`);
+
+  return { costs, gains };
+}
+
+/** One activity card, ready to draw. */
+export interface ActivityRow {
+  readonly id: string;
+  readonly title: string;
+  readonly detail: string;
+  readonly icon: string;
+  readonly topic: ScienceTopic;
+  readonly science: number;
+  /** The kWh this activity takes out of the batteries. */
+  readonly powerCost: number;
+  readonly costs: readonly string[];
+  readonly gains: readonly string[];
+  /** False when the outpost is not built for it yet. */
+  readonly available: boolean;
+  /** Why it is locked, or null when it is available. */
+  readonly lockedReason: string | null;
+  /** True when the player has already picked this one. */
+  readonly chosen: boolean;
+  /** The system this order looks after, or null for a science-only order. */
+  readonly system: ActivitySystem | null;
+  /** The tool this order can be worked with, or null when it has none. */
+  readonly engine: EngineKind | null;
+}
+
+/** The system an activity looks after, and the reading it is checked against. */
+export interface ActivitySystem {
+  readonly goal: ScienceGoal;
+  readonly label: string;
+  readonly store: 'oxygen' | 'water' | 'food' | 'shielding' | 'panels';
+}
+
+/**
+ * One thing the player has to check before approving an order.
+ *
+ * Papers, Please's job is cross-referencing: a traveller carries a passport
+ * and a work permit and the inspector checks that they agree with each other
+ * and with the day's rules. Here every order carries two checks — what it
+ * costs against the power the outpost has, and the system it looks after
+ * against the reading on the desk.
+ */
+export interface OrderCheck {
+  /** What is being checked. */
+  readonly label: string;
+  /** The numbers, so the player can compare them. */
+  readonly value: string;
+  /** True when the order can go ahead. */
+  readonly ok: boolean;
+  /** Why not, in one short line. Empty when it can. */
+  readonly why: string;
+}
+
+/** The reading for a system, as the order shows it: the number alone. */
+function systemReading(run: RunState, store: ActivitySystem['store']): string {
+  const stores = run.stores;
+
+  switch (store) {
+    case 'oxygen':
+      return `${Math.round(stores.oxygen)}%`;
+    case 'water':
+      return `${Math.round(stores.water)}%`;
+    case 'food':
+      return `${Math.round(stores.food)}%`;
+    case 'shielding':
+      return `${Math.round(stores.shielding)} of 100`;
+    case 'panels':
+      return `${Math.round(run.panelHealth * 100)}%`;
+  }
+}
+
+/** The level a system has to be at for the order to be worth approving. */
+function systemFloor(store: ActivitySystem['store']): number {
+  switch (store) {
+    case 'panels':
+      return DUST_SPOTLESS * 100;
+    default:
+      return LIFE_STORE_FLOOR;
+  }
+}
+
+/**
+ * The two things to check on an order.
+ *
+ * The first is always the power: every order costs some, and the player has
+ * to weigh it against what the outpost has for today. The second is the system
+ * the order looks after — or, for an order that is only about science, a line
+ * saying so, because "this one is for the science points, not the outpost" is
+ * a thing worth being told.
+ */
+export function orderChecks(run: RunState, row: ActivityRow): readonly OrderCheck[] {
+  const power = powerToday(run);
+  const cost = row.powerCost;
+
+  const powerCheck: OrderCheck =
+    cost === 0
+      ? { label: 'Power', value: 'free', ok: true, why: '' }
+      : {
+          label: 'Power',
+          value: `${cost} kWh of ${power.available} kWh for today`,
+          ok: cost <= power.available,
+          why:
+            cost > power.available
+              ? `Not enough power today: you have ${power.available} kWh and it needs ${cost}.`
+              : '',
+        };
+
+  if (row.system === null) {
+    return [
+      powerCheck,
+      { label: 'For', value: 'science points, not the outpost', ok: true, why: '' },
+    ];
+  }
+
+  const reading = systemReading(run, row.system.store);
+  const floor = systemFloor(row.system.store);
+  const level =
+    row.system.store === 'panels'
+      ? Math.round(run.panelHealth * 100)
+      : Math.round(run.stores[row.system.store === 'shielding' ? 'shielding' : row.system.store]);
+
+  return [
+    powerCheck,
+    {
+      label: row.system.label,
+      value: reading,
+      ok: level >= floor,
+      why: level >= floor ? '' : `Below ${floor}. This is worth fixing first.`,
+    },
+  ];
+}
+
+/**
+ * The three activities offered on a sol.
+ *
+ * A locked activity is still listed, with the reason attached: hiding it would
+ * teach nothing, and showing it greyed out tells the player what building
+ * next would be for.
+ */
+export function activityRows(run: RunState, sol: number): readonly ActivityRow[] {
+  return offerFor(run, sol).map((offer) => {
+    const { costs, gains } = activityCosts(offer.spec);
+
+    return {
+      id: offer.spec.id,
+      title: offer.spec.title,
+      detail: offer.spec.detail,
+      icon: offer.spec.icon,
+      topic: offer.spec.topic,
+      science: offer.spec.science,
+      powerCost: offer.spec.powerCostKwh,
+      costs,
+      gains,
+      available: offer.available,
+      lockedReason: offer.lockedReason,
+      chosen: run.chosenActivity === offer.spec.id,
+      system: offer.spec.system ?? null,
+      engine: offer.spec.engine ?? null,
+    };
+  });
+}
+
+/* ----------------------------------------------------------------- goals -- */
+
+/* ---------------------------------------------------------------- the board -- */
+
+/** One standing order on the board, ready to draw. */
+export interface BoardRow {
+  readonly id: string;
+  /** The rule, in one sentence. */
+  readonly text: string;
+  /** The goal it belongs to. */
+  readonly goal: ScienceGoal;
+  /** True when this order arrived today. */
+  readonly isNew: boolean;
+  /** The topic its NASA fact is filed under. */
+  readonly topic: ScienceTopic;
+}
+
+/**
+ * The standing orders on the board for this sol.
+ *
+ * Two arrive on the sol itself and everything earlier is still on the board.
+ * The player works to the whole set, which is what makes the later sols
+ * harder: there is more to hold in mind, not a bigger number.
+ */
+export function boardRows(run: RunState): readonly BoardRow[] {
+  const sol = run.sol + 1;
+
+  return ordersThrough(sol).map((order: StandingOrder) => ({
+    id: order.id,
+    text: order.text,
+    goal: order.goal,
+    isNew: order.sol === sol,
+    topic: order.topic,
+  }));
+}
+
+/* --------------------------------------------------------------- the rover -- */
+
+/** One answer the player can give to the rover's find. */
+export interface RoverAnswer {
+  readonly id: FindAnswer;
+  readonly label: string;
+}
+
+/** The rover's find, and what the player can do about it. */
+export interface RoverDocument {
+  readonly id: string;
+  readonly kind: FindKind;
+  readonly title: string;
+  readonly where: string;
+  readonly when: string;
+  readonly alt: string;
+  readonly story: string;
+  readonly fact: string;
+  readonly credit: string;
+  readonly imageUrl: string;
+  readonly sourceUrl: string;
+  /** The answers the player can give. */
+  readonly answers: readonly RoverAnswer[];
+}
+
+/**
+ * The rover's find, if it is waiting to be answered.
+ *
+ * The find is a document on the desk, exactly like a work order: a picture, a
+ * place, a year, a story, and a stamp to give it. A site is logged; a rock is
+ * collected or left where it lies.
+ */
+export function roverDocument(run: RunState): RoverDocument | null {
+  const find = run.rover.pending;
+
+  if (find === null) return null;
+
+  const answers: readonly RoverAnswer[] =
+    find.kind === 'site'
+      ? [{ id: 'log', label: 'Log the site' }]
+      : [
+          { id: 'collect', label: 'Take the rock' },
+          { id: 'leave', label: 'Leave it there' },
+        ];
+
+  return {
+    id: find.id,
+    kind: find.kind,
+    title: find.title,
+    where: find.where,
+    when: find.when,
+    alt: find.alt,
+    story: find.story,
+    fact: find.fact,
+    credit: find.credit,
+    imageUrl: find.imageUrl,
+    sourceUrl: find.sourceUrl,
+    answers,
+  };
+}
+
+/* ---------------------------------------------------------------- the desk -- */
+
+/** A note that landed on the desk: a letter from home, or a word from a crewmate. */
+export interface DeskNoteRow {
+  readonly id: string;
+  readonly from: 'home' | 'crew';
+  readonly who: string;
+  readonly text: string;
+  /** How long it took to arrive, in minutes. Radio does not hurry. */
+  readonly minutes: number;
+}
+
+/**
+ * The note on the desk for this sol, if there is one.
+ *
+ * Some sols are quiet ones and some are not, and that is the point: a run of
+ * twelve identical days is a run nobody remembers. The delay is real — the
+ * game already teaches that a reply from Earth cannot arrive in time — so
+ * the note says how long it took.
+ */
+export function deskNote(sol: number): DeskNoteRow | null {
+  const note = noteForSol(sol);
+
+  if (note === null) return null;
+
+  return {
+    id: note.id,
+    from: note.from,
+    who: note.who,
+    text: note.text,
+    minutes: oneWayMinutes(sol),
+  };
+}
+
+/* ---------------------------------------------------------------- science -- */
+
+/** The score, the rank it earns, and the road to the next one. */
+export interface ScienceSummary {  readonly points: number;
+  readonly rank: ScienceRank;
+  readonly next: ScienceRank | null;
+  /** 0-100 through the current band. */
+  readonly percent: number;
+  /** How many more points to the next rank. Zero at the top. */
+  readonly toNext: number;
+}
+
+/** What the science score looks like right now. */
+export function scienceSummary(run: RunState): ScienceSummary {
+  const progress = rankProgress(run.science);
+
+  return {
+    points: run.science,
+    rank: progress.current,
+    next: progress.next,
+    percent: progress.percent,
+    toNext: progress.toNext,
+  };
+}
+
+/** One line for the score card, so it can be read aloud as well as seen. */
+export function scienceSentence(summary: ScienceSummary): string {
+  const base = `${summary.points} science points. Your rank is ${summary.rank.title}.`;
+
+  if (summary.next === null) return `${base} That is the top rank.`;
+
+  return `${base} ${summary.toNext} more points to reach ${summary.next.title}.`;
 }
