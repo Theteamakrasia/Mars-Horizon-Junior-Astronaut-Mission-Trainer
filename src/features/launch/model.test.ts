@@ -172,15 +172,27 @@ describe('TOTAL_DURATION_MS', () => {
 });
 
 describe('PARTS', () => {
-  it('is five slides: overview then one part at a time', () => {
+  it('is five slides: one part at a time, and the assembled craft last', () => {
     expect(PARTS).toHaveLength(5);
     expect(PARTS.map((part) => part.id)).toEqual([
-      'overview',
       'propulsion',
       'habitat',
       'logistics',
       'orion',
+      'overview',
     ]);
+  });
+
+  /*
+    The assembled craft is the payoff, not the introduction: it is the one slide
+    that shows every part, so it belongs at the end. It used to open the tour
+    as well as close it, which put the same picture on screen twice.
+  */
+  it('shows the assembled craft once, and last', () => {
+    const ids = PARTS.map((part) => part.id);
+
+    expect(ids.filter((id) => id === 'overview')).toHaveLength(1);
+    expect(ids[ids.length - 1]).toBe('overview');
   });
 
   it('gives every part a name, description and accent colour', () => {

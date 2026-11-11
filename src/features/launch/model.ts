@@ -192,15 +192,18 @@ export interface Part {
   readonly accent: string;
 }
 
-/** The five tour slides, in order: overview first, then one part at a time. */
+/**
+ * The five tour slides, in order: one part at a time, and the assembled craft
+ * LAST.
+ *
+ * The overview used to come first, and that put the same picture on screen
+ * twice - once to open the tour, and again when the tour wrapped back round
+ * to it - before the player had even reached the parts it names. It is the
+ * payoff of the tour rather than its introduction: the player is shown the
+ * four parts on their own, one at a time, and only then sees how they dock
+ * together. It is the last slide, so it is shown once.
+ */
 export const PARTS: readonly Part[] = [
-  {
-    id: 'overview',
-    name: 'Assembled craft',
-    description:
-      'The full spacecraft, all four parts docked together: propulsion, habitat, logistics and Orion.',
-    accent: '#94A3B8',
-  },
   {
     id: 'propulsion',
     name: 'Core propulsion',
@@ -225,6 +228,13 @@ export const PARTS: readonly Part[] = [
     name: 'Orion crew vehicle',
     description: 'Carries the crew down to the surface and back.',
     accent: '#EF4444',
+  },
+  {
+    id: 'overview',
+    name: 'Assembled craft',
+    description:
+      'The full spacecraft, all four parts docked together: propulsion, habitat, logistics and Orion.',
+    accent: '#94A3B8',
   },
 ];
 
@@ -283,7 +293,8 @@ export const PARTS_DESCRIPTION =
   'in turn: the core propulsion stages, which push the craft toward Mars; the ' +
   'transit habitat, home to the crew for the journey; the logistics and safe-haven ' +
   'module, carrying cargo and shelter from solar storms; and the Orion crew ' +
-  'vehicle, which carries the crew down to the surface and back.';
+  'vehicle, which carries the crew down to the surface and back. The tour ends ' +
+  'with the whole spacecraft, all four parts docked together.';
 
 /**
  * A real NASA fact the cinematic teaches with.

@@ -321,12 +321,10 @@ export function mountLaunch(
   const destination = nextStop('launch');
   let handedOff = false;
   let handOffTimer: number | null = null;
-  /** Which part slide is showing: 0 = overview … 4 = Orion. */
+  /** Which part slide is showing: 0 = propulsion … 4 = the assembled craft. */
   let partsIndex = 0;
   /** Whether the parts panel is currently open. */
   let partsOpen = false;
-  /** Whether the tour has wrapped from Orion back to the overview. */
-  let partsLooped = false;
   /** Button listeners, so teardown can remove them. */
   let partsPrevHandler: (() => void) | null = null;
   let partsNextHandler: (() => void) | null = null;
@@ -458,22 +456,27 @@ export function mountLaunch(
     if (dot instanceof HTMLElement) {
       dot.style.backgroundColor = part.accent;
     }
-    // After wrapping from Orion back to the overview, Prev is enabled and Next is
-    // disabled so the player can look back one last time before continuing.
-    partsPrev.disabled = index === 0 && !partsLooped;
-    partsNext.disabled = index === 0 && partsLooped;
-
     /*
-      Once the player has been all the way round the tour there is nothing left
-      to look at: NEXT is greyed out and CONTINUE is the only action left. So
-      CONTINUE takes the orange accent then, and only then - there is one
-      orange button on the row at a time, and it is always the one that moves
-      the player forward.
+      The tour is a straight walk: one part at a time, and the assembled craft
+      last.
 
-      The test is NEXT's own state rather than the tour flag, so stepping back
-      with PREV gives the accent back to NEXT: there are slides left to move
-      forward through, so NEXT is the way forward again.
+      PREV is greyed out on the first slide and NEXT on the last, so the ends of
+      the tour are marked. It used to wrap instead - NEXT on the last slide
+      jumped back to the first - which is what put the assembled-craft picture
+      on screen twice, once to open the tour and again when it wrapped round to
+      it. The wrap is gone, and so is the double showing.
+
+      Once the player reaches the last slide there is nothing left to look at:
+      NEXT is greyed out and CONTINUE is the only action left. So CONTINUE takes
+      the orange accent then, and only then - there is one orange button on the
+      row at a time, and it is always the one that moves the player forward.
+
+      The test is NEXT's own state rather than a separate flag, so stepping
+      back with PREV gives the accent back to NEXT: there are slides left to
+      move forward through, so NEXT is the way forward again.
     */
+    partsPrev.disabled = index === 0;
+    partsNext.disabled = index === PARTS.length - 1;
     partsContinue.classList.toggle('is-primary', partsNext.disabled);
   };
 
@@ -488,23 +491,18 @@ export function mountLaunch(
     const onPrev = (): void => {
       if (partsIndex > 0) {
         partsIndex -= 1;
-      } else if (partsLooped) {
-        // After wrapping from Orion to overview, go to Orion to review
-        partsIndex = PARTS.length - 1;
+        renderPart(partsIndex);
       }
-      renderPart(partsIndex);
     };
 
     const onNext = (): void => {
+      // A straight walk to the end of the tour. It used to wrap round to the
+      // first slide here, which is what showed the assembled-craft picture
+      // twice; the ends of the tour are marked by the buttons instead.
       if (partsIndex < PARTS.length - 1) {
         partsIndex += 1;
-      } else {
-        // Wrap from Orion back to the overview so the player can see the full
-        // assembled craft one more time before continuing.
-        partsIndex = 0;
-        partsLooped = true;
+        renderPart(partsIndex);
       }
-      renderPart(partsIndex);
     };
 
     const onContinue = (): void => {

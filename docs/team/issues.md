@@ -12,6 +12,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
 | ISS-067 | The launch parts-tour image shook forever, and launch.css held the panel twice | medium | agent | fixed | this branch |
+| ISS-069 | The parts tour showed the assembled-craft picture twice, and opened with it | medium | agent | fixed | this branch |
 | ISS-068 | Four different navigation bars, and only one of them was the shared one | medium | agent | fixed | this branch |
 | ISS-066 | The `drag-editor` placement WIP was unreachable, failed `tsc` and failed `check-markup`, and copies of it sat at the repo root | high | agent | fixed | c9b8904 |
 | ISS-065 | Sol 3 had no tool to work at all, and the sorting tool could never earn three stars | medium | agent | fixed | this branch |
@@ -80,7 +81,36 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-## ISS-068 — Four different navigation bars, and only one of them was the shared one
+## ISS-069 — The parts tour showed the assembled-craft picture twice, and opened with it
+
+- **Reported by:** the owner, 2026-11-11: "this image should be shown to the last
+  part, why it is showing twice? remove it from the first part".
+- **Where:** `src/features/launch/model.ts` (`PARTS`), `src/features/launch/view.ts`
+  (`onNext`, `onPrev`, `renderPart`), `src/features/launch/model.test.ts`.
+- **Problem:** the assembled-craft picture was on screen twice in every run of the
+  tour. It opened the tour — it was `PARTS[0]` — and the tour then **wrapped**: NEXT
+  on the last slide set the index back to 0 and set a `partsLooped` flag, which
+  greyed NEXT out and handed the orange accent to CONTINUE. So the player was
+  shown the whole spacecraft once at the start, again at the end, and the four
+  parts it names in between — and the picture that names all four parts was the
+  one shown before the player had seen any of them.
+- **Cause:** the wrap was a loop, not a journey. It was added so that a player who
+  had reached the end could look back one last time, but PREV already does that,
+  and the cost was a repeat of the opening slide.
+- **Fix:** the tour is now a straight walk. `PARTS` is ordered one part at a time —
+  propulsion, habitat, logistics, Orion — with the assembled craft LAST, and NEXT
+  on the last slide is greyed out rather than wrapping round to the first. The
+  `partsLooped` flag is gone. CONTINUE takes the orange accent on the last slide,
+  which is where the tour ends, and stepping back with PREV hands the accent back
+  to NEXT. The assembled-craft picture is shown exactly once, and it is the payoff
+  of the tour rather than its introduction.
+- **Tests:** `model.test.ts` asserted the old order ("overview then one part at a
+  time"), so it was updated to the new one and a second test was added: the
+  assembled craft appears once, and last.
+- **Pre-existing:** yes. The wrap arrived with the interactive parts panel
+  (ISS-033).
+
+---## ISS-068 — Four different navigation bars, and only one of them was the shared one
 
 - **Reported by:** the owner, 2026-11-11, asking for one navigation bar on
   `#/landing-site`, `#/base`, `#/act` and `#/debrief`, and none on the entry screens,

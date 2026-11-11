@@ -59,6 +59,16 @@ than a documented one.
   below the picture. The artwork is left with nothing over it but its own name,
   on a plate at the top, and every word of the caption is on its own ground where
   nothing can cover it.
+- **Stopped the parts tour showing the assembled-craft picture twice.** The tour
+  opened on the whole spacecraft and then **wrapped** back to it at the end, so
+  the same picture was on screen at the start and the finish with the four parts
+  it names in between — and the picture that shows all four parts was the one
+  shown before the player had seen any of them. The tour is now a straight walk:
+  propulsion, habitat, logistics, Orion, and then the assembled craft last. NEXT
+  on the last slide is greyed out instead of wrapping, the `partsLooped` flag is
+  gone, and CONTINUE takes the orange accent there. The assembled-craft picture
+  is shown exactly once, and it is the payoff of the tour rather than its
+  introduction.
 - **Made the landing-site screen scale.** Every size on it was fixed rem and px, so
   nothing grew with the window: a pin label was 13.33px at 1024, 1600 and 1920 alike,
   while the rest of the app scaled. They are now `clamp()`s against the viewport, the
