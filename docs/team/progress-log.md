@@ -8,6 +8,52 @@ than a documented one.
 
 ---
 
+## 2026-11-11 — Merge main, and put the how-to-play panel above the outpost
+
+**Did**
+
+- **Merged `origin/main`** into the branch. Main had moved a long way — 87 files, 13,000
+  lines: the work-order loop, the five goals, the rover, the tools, the guide, the patches.
+  Only the seven documentation files conflicted; every code file merged with both sides
+  intact, including main's new mission bar and the placement editor's depth rule in the
+  same `gameLoop.ts`.
+- **Renumbered the ids main had taken**: the issue became ISS-066, the five decisions
+  D-065 to D-069, and the five tasks TASK-088 to TASK-092. Main's highest were ISS-065,
+  D-064 and TASK-087.
+- **Put the how-to-play panel above the outpost.** The modules on the Mars panel take
+  z-indexes 0 to 79 — each kind has a band of ten, so the copies of one kind order
+  themselves without passing the next kind — and the guide was still at 40. A battery bank
+  painted over the panel. The screen now has a written-down ladder: the modules 0 to 79,
+  the crewmate 90, the hint 95, the bubbles 98, the guide 100, the leave-mission dialog
+  110.
+
+**Files**
+
+- `src/styles/game-loop.css` — the stacking ladder, and the five z-indexes that go with it
+- `docs/architecture.md`, `docs/team/decisions.md`, `docs/team/issues.md`,
+  `docs/team/progress-log.md`, `docs/team/tasks.md`, `AGENTS.md`, `README.md`
+
+**Problems**
+
+- The journey check (`tools/browser-check-journey.mjs`) fails — and it fails **identically
+  on `origin/main` itself**, checked in a clean worktree. It is main's own pre-existing
+  failure, not something the merge caused. The build-screen check
+  (`tools/browser-check-build.mjs`) passes 26 of 26 on the merged branch.
+- The ids needed renumbering twice. Main's issues file goes to ISS-065, not ISS-049 as
+  the first look suggested — the search that found ISS-049 only matched 045 to 049, so
+  050 to 065 went unseen until the merge.
+- `git show` piped through PowerShell decodes as the console code page, not UTF-8, and
+  turns every em dash into three characters. The first merge attempt silently mangled
+  three files. The fix was to redirect through `cmd`, which keeps the bytes.
+
+**Next**
+
+- The layout is one arrangement for every landing region. If the outpost should look
+  different on different ground, that is a second file and a rule for choosing between
+  them.
+
+---
+
 ## 2026-11-11 — A fixed stacking order, and the NASA button where it belongs
 
 **Did**
