@@ -29,6 +29,7 @@ import {
   type ResourceStores,
 } from './resources';
 import type { DecisionRecord, RunState, SolActivity, SolEvent, SolRecord } from './run';
+import { deployRover, discover, pickForSol, remainingFinds, ROVER_FINDS } from './rover';
 import { siteScore } from './regions';
 import { crisisForEvent, optionOf } from './crises';
 import { SOL_LOG_POINTS } from './science';
@@ -329,6 +330,16 @@ export function advanceSol(run: RunState): RunState {
   const depleted = isRunOver(after);
   const status = depleted ? 'lost' : sol >= WIN_SOL ? 'won' : 'active';
 
+  /* The rover. It goes out on a work order like any other, and it comes back
+     with a document on the desk the next sol — so the find is found at the
+     end of the sol that sent it, and the desk shows it from the next one. */
+  let rover = run.rover;
+
+  if (activity !== null && activity.sendsRover === true) {
+    rover = deployRover(rover, sol);
+    rover = discover(rover, ROVER_FINDS, pickForSol(sol, remainingFinds(rover, ROVER_FINDS).length));
+  }
+
   return {
     ...run,
     sol,
@@ -337,6 +348,7 @@ export function advanceSol(run: RunState): RunState {
     panelHealth,
     science: run.science + scienceEarned,
     chosenActivity: null,
+    rover,
     log: [...run.log, record],
   };
 }

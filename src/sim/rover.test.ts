@@ -1,20 +1,22 @@
 import { describe, expect, it } from 'vitest';
 
+import { createForecast } from './forecast';
+import { CORE_MODULES, type ModuleKind } from './modules';
+import { answerRoverFind, newRun, startOutpost, withState, type RunState } from './run';
+import { advanceSol } from './sol';
 import {
   canDiscover,
   collectMaterial,
   deployRover,
   discover,
-  FIRST_FIND_MIN_MS,
-  FIRST_FIND_SPREAD_MS,
+  FIND_SCIENCE,
   leaveMaterial,
   logSite,
   newRover,
-  nextFindDelayMs,
-  NEXT_FIND_MIN_MS,
-  NEXT_FIND_SPREAD_MS,
+  pickForSol,
   recallRover,
   remainingFinds,
+  ROVER_FINDS,
   type RoverFind,
 } from './rover';
 
@@ -46,21 +48,21 @@ describe('deploy and recall', () => {
   });
 
   it('deploys, and deploying again changes nothing', () => {
-    const out = deployRover(newRover());
+    const out = deployRover(newRover(), 1);
 
     expect(out.phase).toBe('exploring');
-    expect(deployRover(out)).toBe(out);
+    expect(deployRover(out, 1)).toBe(out);
   });
 
   it('recalls, and recalling at base changes nothing', () => {
-    const home = recallRover(deployRover(newRover()));
+    const home = recallRover(deployRover(newRover(), 1));
 
     expect(home.phase).toBe('stowed');
     expect(recallRover(home)).toBe(home);
   });
 
   it('will not come home while a find is waiting to be answered', () => {
-    const waiting = discover(deployRover(newRover()), CATALOGUE, 0);
+    const waiting = discover(deployRover(newRover(), 1), CATALOGUE, 0);
     const home = recallRover(waiting);
 
     expect(home).toBe(waiting);
@@ -69,7 +71,7 @@ describe('deploy and recall', () => {
   });
 
   it('comes home once the find has been answered', () => {
-    const answered = logSite(discover(deployRover(newRover()), CATALOGUE, 0));
+    const answered = logSite(discover(deployRover(newRover(), 1), CATALOGUE, 0));
     const home = recallRover(answered);
 
     expect(home.phase).toBe('stowed');
@@ -86,7 +88,7 @@ describe('discover', () => {
   });
 
   it('picks from what is left using the pick number', () => {
-    const out = deployRover(newRover());
+    const out = deployRover(newRover(), 1);
 
     expect(discover(out, CATALOGUE, 0).pending?.id).toBe('site-a');
     expect(discover(out, CATALOGUE, 0.5).pending?.id).toBe('rock-b');
@@ -94,21 +96,21 @@ describe('discover', () => {
   });
 
   it('survives a pick outside 0-1', () => {
-    const out = deployRover(newRover());
+    const out = deployRover(newRover(), 1);
 
     expect(discover(out, CATALOGUE, 5).pending?.id).toBe('site-c');
     expect(discover(out, CATALOGUE, -1).pending?.id).toBe('site-a');
   });
 
   it('holds one find at a time', () => {
-    const first = discover(deployRover(newRover()), CATALOGUE, 0);
+    const first = discover(deployRover(newRover(), 1), CATALOGUE, 0);
 
     expect(canDiscover(first, CATALOGUE)).toBe(false);
     expect(discover(first, CATALOGUE, 0.5)).toBe(first);
   });
 
   it('never finds the same thing twice, and runs dry', () => {
-    let rover = deployRover(newRover());
+    let rover = deployRover(newRover(), 1);
     const seen: string[] = [];
 
     for (let i = 0; i < CATALOGUE.length; i += 1) {
@@ -127,16 +129,16 @@ describe('discover', () => {
   });
 
   it('does not repeat a find after the rover is recalled and sent out again', () => {
-    const first = discover(deployRover(newRover()), CATALOGUE, 0);
-    const again = deployRover(recallRover(logSite(first)));
+    const first = discover(deployRover(newRover(), 1), CATALOGUE, 0);
+    const again = deployRover(recallRover(logSite(first)), 2);
 
     expect(discover(again, CATALOGUE, 0).pending?.id).toBe('rock-b');
   });
 });
 
 describe('answering a find', () => {
-  const siteFound = discover(deployRover(newRover()), CATALOGUE, 0);
-  const rockFound = discover(deployRover(newRover()), CATALOGUE, 0.5);
+  const siteFound = discover(deployRover(newRover(), 1), CATALOGUE, 0);
+  const rockFound = discover(deployRover(newRover(), 1), CATALOGUE, 0.5);
 
   it('logs a site', () => {
     const next = logSite(siteFound);
@@ -168,7 +170,7 @@ describe('answering a find', () => {
   });
 
   it('does nothing when nothing is waiting', () => {
-    const rover = deployRover(newRover());
+    const rover = deployRover(newRover(), 1);
 
     expect(logSite(rover)).toBe(rover);
     expect(collectMaterial(rover)).toBe(rover);
@@ -176,19 +178,148 @@ describe('answering a find', () => {
   });
 });
 
-describe('nextFindDelayMs', () => {
-  it('is quick for the first find', () => {
-    expect(nextFindDelayMs(0, 0)).toBe(FIRST_FIND_MIN_MS);
-    expect(nextFindDelayMs(0, 1)).toBe(FIRST_FIND_MIN_MS + FIRST_FIND_SPREAD_MS);
+describe('the sol the rover is on', () => {
+  it('comes back the sol after it went out', () => {
+    const out = deployRover(newRover(), 4);
+
+    expect(out.returnsOn).toBe(5);
   });
 
-  it('is slower after that', () => {
-    expect(nextFindDelayMs(1, 0)).toBe(NEXT_FIND_MIN_MS);
-    expect(nextFindDelayMs(3, 1)).toBe(NEXT_FIND_MIN_MS + NEXT_FIND_SPREAD_MS);
+  it('stops saying when it is back once it is recalled', () => {
+    const home = recallRover(deployRover(newRover(), 4));
+
+    expect(home.returnsOn).toBeNull();
   });
 
-  it('clamps a pick outside 0-1', () => {
-    expect(nextFindDelayMs(0, -4)).toBe(FIRST_FIND_MIN_MS);
-    expect(nextFindDelayMs(2, 9)).toBe(NEXT_FIND_MIN_MS + NEXT_FIND_SPREAD_MS);
+  it('picks the same find on the same sol', () => {
+    const first = pickForSol(7, 5);
+    const again = pickForSol(7, 5);
+
+    expect(first).toBe(again);
+    expect(first).toBeGreaterThanOrEqual(0);
+    expect(first).toBeLessThan(1);
+  });
+
+  it('walks through the catalogue rather than picking the same one twice', () => {
+    const picks = [1, 2, 3, 4, 5].map((sol) => pickForSol(sol, 5));
+
+    expect(new Set(picks).size).toBeGreaterThan(1);
+  });
+
+  it('copes with nothing left to find', () => {
+    expect(pickForSol(3, 0)).toBe(0);
+  });
+});
+
+/*
+ * The finds are the one place in the game that loads pictures from the open
+ * web, so the addresses are checked here rather than discovered in a browser.
+ *
+ * Photojournal's old `photojournal.jpl.nasa.gov/jpeg/<PIA>.jpg` address now
+ * redirects to a web page instead of serving an image, which silently cost
+ * every rover picture. These tests cannot follow a redirect, but they do hold
+ * the address in place: if NASA's picture host changes again, this fails and
+ * points at the file to fix.
+ */
+const CDN = 'https://assets.science.nasa.gov/dynamicimage/assets/science/psd/photojournal/pia/';
+
+describe('the rover finds', () => {
+  it('has finds to find', () => {
+    expect(ROVER_FINDS.length).toBeGreaterThan(0);
+  });
+
+  it('gives every find its own id, so nothing is found twice', () => {
+    const ids = ROVER_FINDS.map((find) => find.id);
+
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('serves every picture from NASA\'s picture host', () => {
+    for (const find of ROVER_FINDS) {
+      expect(find.imageUrl.startsWith(CDN)).toBe(true);
+    }
+  });
+
+  it('has both kinds of find, so the player has a choice to make', () => {
+    const kinds = new Set(ROVER_FINDS.map((find) => find.kind));
+
+    expect(kinds.has('site')).toBe(true);
+    expect(kinds.has('material')).toBe(true);
+  });
+});
+
+/*
+ * The rover is part of the run, not a window floating over it. It is sent out
+ * by a work order like any other, it moves on sol time, and it comes back
+ * with a document on the desk.
+ */
+describe('the rover in a run', () => {
+  function outpost(extras: readonly ModuleKind[] = []): RunState {
+    const forecast = createForecast([], 6);
+
+    return startOutpost(withState(newRun('jezero', 'Tester'), { forecast }), [...CORE_MODULES, ...extras]);
+  }
+
+  it('starts at base', () => {
+    const run = outpost();
+
+    expect(run.rover.phase).toBe('stowed');
+    expect(run.rover.pending).toBeNull();
+  });
+
+  it('goes out when the exploring order is approved, and is due back next sol', () => {
+    let run = withState(outpost(), { chosenActivity: 'survey' });
+
+    run = advanceSol(run);
+
+    expect(run.rover.phase).toBe('exploring');
+    expect(run.rover.returnsOn).toBe(2);
+  });
+
+  it('brings a find back, and the find waits on the desk', () => {
+    let run = withState(outpost(), { chosenActivity: 'survey' });
+
+    run = advanceSol(run);
+
+    expect(run.rover.pending).not.toBeNull();
+    expect(run.rover.pending?.id).not.toBe('');
+  });
+
+  it('finds nothing twice', () => {
+    let run = outpost();
+    const seen = new Set<string>();
+
+    for (let sol = 0; sol < 4; sol += 1) {
+      run = advanceSol(withState(run, { chosenActivity: 'survey' }));
+      seen.add(run.rover.pending?.id ?? '');
+      run = answerRoverFind(run, 'log');
+    }
+
+    expect(seen.size).toBeGreaterThan(1);
+  });
+
+  it('answers a find, and the science goes up', () => {
+    let run = withState(outpost(), { chosenActivity: 'survey' });
+
+    run = advanceSol(run);
+
+    const before = run.science;
+    const answered = answerRoverFind(run, 'log');
+
+    expect(answered.rover.pending).toBeNull();
+    expect(answered.science).toBe(before + FIND_SCIENCE);
+  });
+
+  it('will not answer a find with the wrong answer', () => {
+    let run = withState(outpost(), { chosenActivity: 'survey' });
+
+    run = advanceSol(run);
+
+    /* A site cannot be collected and a rock cannot be logged, so one of the
+       two answers has to do nothing. */
+    const wrong = run.rover.pending?.kind === 'site' ? 'collect' : 'log';
+    const answered = answerRoverFind(run, wrong);
+
+    expect(answered).toBe(run);
   });
 });

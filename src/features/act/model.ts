@@ -10,6 +10,7 @@
 import { offerFor, planForSol, type ActivitySpec, type ActivityStoreName } from '../../sim/activities';
 import { stormOn, stormOpacity } from '../../sim/forecast';
 import { DUST_SPOTLESS, LIFE_STORE_FLOOR, type ScienceGoal } from '../../sim/goals';
+import type { FindAnswer, FindKind } from '../../sim/rover';
 import { ordersThrough, type StandingOrder } from '../../sim/standingOrders';
 import { RESOURCE_NAMES, percentOf, type ResourceName, type ResourceStores } from '../../sim/resources';
 import type { RunState } from '../../sim/run';
@@ -409,6 +410,67 @@ export function boardRows(run: RunState): readonly BoardRow[] {
     isNew: order.sol === sol,
     topic: order.topic,
   }));
+}
+
+/* --------------------------------------------------------------- the rover -- */
+
+/** One answer the player can give to the rover's find. */
+export interface RoverAnswer {
+  readonly id: FindAnswer;
+  readonly label: string;
+}
+
+/** The rover's find, and what the player can do about it. */
+export interface RoverDocument {
+  readonly id: string;
+  readonly kind: FindKind;
+  readonly title: string;
+  readonly where: string;
+  readonly when: string;
+  readonly alt: string;
+  readonly story: string;
+  readonly fact: string;
+  readonly credit: string;
+  readonly imageUrl: string;
+  readonly sourceUrl: string;
+  /** The answers the player can give. */
+  readonly answers: readonly RoverAnswer[];
+}
+
+/**
+ * The rover's find, if it is waiting to be answered.
+ *
+ * The find is a document on the desk, exactly like a work order: a picture, a
+ * place, a year, a story, and a stamp to give it. A site is logged; a rock is
+ * collected or left where it lies.
+ */
+export function roverDocument(run: RunState): RoverDocument | null {
+  const find = run.rover.pending;
+
+  if (find === null) return null;
+
+  const answers: readonly RoverAnswer[] =
+    find.kind === 'site'
+      ? [{ id: 'log', label: 'Log the site' }]
+      : [
+          { id: 'collect', label: 'Take the rock' },
+          { id: 'leave', label: 'Leave it there' },
+        ];
+
+  return {
+    id: find.id,
+    kind: find.kind,
+    title: find.title,
+    where: find.where,
+    when: find.when,
+    alt: find.alt,
+    story: find.story,
+    fact: find.fact,
+    credit: find.credit,
+    imageUrl: find.imageUrl,
+    sourceUrl: find.sourceUrl,
+    answers,
+  };
 }
 
 /* ---------------------------------------------------------------- science -- */

@@ -29,7 +29,7 @@ import iceMinerUrl from '../../../Assets/images/game-loop/ice-miner.png';
 import lifeSupportUrl from '../../../Assets/images/game-loop/life-support.png';
 import solarUrl from '../../../Assets/images/game-loop/solar.png';
 
-import { consumptionSummary, explainOutcome, goalOutcomes, lowestPoints, nextSteps, reviewDecisions, scienceDetail, scienceHeadline, scienceReport, timeline, usedApproximateData, wentEmpty, type NextStep } from './model';
+import { consumptionSummary, explainOutcome, goalOutcomes, lowestPoints, roverReport, nextSteps, reviewDecisions, scienceDetail, scienceHeadline, scienceReport, timeline, usedApproximateData, wentEmpty, type NextStep } from './model';
 
 const VERDICT_TEXT = { solved: 'Solved early', caught: 'Caught you out', mixed: 'A trade-off' } as const;
 const VERDICT_ICON = { solved: '✅', caught: '⚠️', mixed: '🤔' } as const;
@@ -288,6 +288,19 @@ export function mountDebrief(
       );
     }
 
+    const rover = roverReport(state);
+
+    const roverSection =
+      rover.found === 0
+        ? false
+        : gameSection(
+            'What the rover found',
+            h('p', {
+              class: 'gl__body',
+              text: `The rover turned up ${rover.found} ${rover.found === 1 ? 'thing' : 'things'}: ${rover.visited.length} sites logged, ${rover.collected.length} rocks brought home and ${rover.left.length} left where they lie.`,
+            }),
+          );
+
     const goalSection = gameSection(
       'The five systems you kept running',
       goals,
@@ -313,6 +326,7 @@ export function mountDebrief(
       body: [
         outcome,
         whatHappened,
+        roverSection,
         goalSection,
         gameSection('Mars Science Score', scienceCard, scienceList),
         gameSection('Next time, try…', tips(steps)),

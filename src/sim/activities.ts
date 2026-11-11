@@ -84,6 +84,13 @@ export interface ActivitySpec {
   readonly science: number;
   /** Extra power the activity draws from the batteries, in kWh. */
   readonly powerCostKwh: number;
+  /**
+   * True when this activity sends the rover out to explore.
+   *
+   * The rover drives on sol time, so it comes back with a document on the desk
+   * the next sol. It is the one order that brings the outside world in.
+   */
+  readonly sendsRover?: boolean;
   /** What it adds to, or takes from, the stores. */
   readonly storeDelta: ActivityStores;
   /** How much panel health it restores, capped at 1 by the sim. */
@@ -142,6 +149,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     topic: 'missions',
     science: 4,
     powerCostKwh: 25,
+    sendsRover: true,
     storeDelta: {},
   },
   {

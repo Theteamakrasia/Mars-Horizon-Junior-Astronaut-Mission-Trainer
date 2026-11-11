@@ -165,6 +165,81 @@
   text-align: center;
 }
 
+/* --------------------------------------------------------------- the rover -- */
+
+/*
+ * The find, on the desk.
+ *
+ * The nearest thing in the game to a Papers Please traveller: a picture, a
+ * place, a year, a story, and a stamp to give it.
+ */
+.act-find {
+  display: grid;
+  grid-template-columns: clamp(64px, 8vw, 120px) minmax(0, 1fr);
+  gap: clamp(8px, 1vw, 16px);
+  align-items: start;
+  padding: clamp(7px, 0.72vw, 14px);
+  border-radius: clamp(8px, 0.72vw, 14px);
+  background: var(--gl-card);
+}
+
+.act-find__image {
+  width: 100%;
+  border-radius: clamp(6px, 0.5vw, 10px);
+  object-fit: cover;
+  aspect-ratio: 1 / 1;
+  background: var(--gl-card-strong);
+}
+
+.act-find__body {
+  min-width: 0;
+}
+
+.act-find__kicker {
+  margin: 0;
+  color: var(--gl-orange-deep);
+  font-weight: 900;
+  font-size: clamp(0.52rem, 0.66vw, 0.8rem);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.act-find__title {
+  margin: 0.1em 0 0;
+  color: var(--gl-ink);
+  font-family: var(--gl-display);
+  font-size: clamp(0.78rem, 1.02vw, 1.24rem);
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.act-find__story {
+  margin: 0.25em 0 0;
+  color: var(--gl-ink);
+  font-size: clamp(0.6rem, 0.74vw, 0.9rem);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.act-find__fact {
+  margin: 0.2em 0 0;
+  color: var(--gl-muted);
+  font-size: clamp(0.54rem, 0.68vw, 0.82rem);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.act-find__answers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.act-find__answer {
+  font-size: clamp(0.6rem, 0.74vw, 0.88rem);
+}
+
 /* ---------------------------------------------------- the standing orders -- */
 
 /*

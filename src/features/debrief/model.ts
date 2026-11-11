@@ -411,6 +411,35 @@ export function scienceSentence(report: ScienceReport): string {
   return `${report.points} science points. ${scienceHeadline(report)} ${scienceDetail(report)}`;
 }
 
+/* ------------------------------------------------------------ the rover -- */
+
+/**
+ * What the rover found over the run.
+ *
+ * The rover is part of the run now, so what it brought back belongs in the
+ * debrief next to everything else the crew did.
+ */
+export interface RoverReport {
+  /** How many finds the rover turned up. */
+  readonly found: number;
+  /** Historic sites the crew logged. */
+  readonly visited: readonly string[];
+  /** Rocks the crew brought home. */
+  readonly collected: readonly string[];
+  /** Rocks the crew left where they lie. */
+  readonly left: readonly string[];
+}
+
+/** What the rover found over the run. */
+export function roverReport(run: RunState): RoverReport {
+  return {
+    found: run.rover.found.length,
+    visited: run.rover.visited,
+    collected: run.rover.collected,
+    left: run.rover.left,
+  };
+}
+
 /* ------------------------------------------------------------ the goals -- */
 
 /**

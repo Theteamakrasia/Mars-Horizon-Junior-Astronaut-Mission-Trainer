@@ -293,7 +293,6 @@ export function mountBase(
       panel,
       variant: 'gl--base',
       headerSub: 'BUILD YOUR OUTPOST',
-      rover: true,
       onLeave: () => navigate('naming'),
       mission: {
         job: 'Your job: build an outpost that keeps the crew alive for 12 sols.',

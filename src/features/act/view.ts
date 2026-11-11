@@ -21,7 +21,7 @@ import { loadForecast } from '../../dom/forecastLoader';
 import { h } from '../../dom/h';
 import { earthAdvice, earthIsInTime, optionOf, pendingCrisis, type Crisis } from '../../sim/crises';
 import { oneWayMinutes, roundTripMinutes } from '../../sim/comms';
-import { withState, type RunState } from '../../sim/run';
+import { answerRoverFind, withState, type RunState } from '../../sim/run';
 import { visibleForecast } from '../../sim/forecast';
 import { siteScore, regionById, SITE_AXES } from '../../sim/regions';
 import { advanceSol, decide, powerPicture, WIN_SOL } from '../../sim/sol';
@@ -33,7 +33,7 @@ import { stopReading } from '../../ui/readAloud';
 import { nextStop } from '../../ui/registry';
 import { navigate } from '../../ui/router';
 
-import { activityRows, boardRows, changeRows, meterRows, missionHeadline, orderChecks, powerSentence, powerToday, scienceSummary, secondsLeft } from './model';
+import { activityRows, boardRows, changeRows, meterRows, missionHeadline, orderChecks, powerSentence, powerToday, roverDocument, scienceSummary, secondsLeft } from './model';
 
 import '../../styles/game-loop.css';
 import './act.css';
@@ -336,6 +336,57 @@ export function mountAct(
   }
 
   /**
+   * The rover's find, on the desk.
+   *
+   * The nearest thing in the game to a Papers Please traveller: a picture, a
+   * place, a year, a story, and a stamp to give it. The player is not
+   * reading a fact about the rover; they are answering a document it brought
+   * back.
+   */
+  function roverSection(state: RunState): HTMLElement | false {
+    const document = roverDocument(state);
+
+    if (document === null) return false;
+
+    const card = h(
+      'article',
+      { class: 'act-find' },
+      h('img', { class: 'act-find__image', src: document.imageUrl, alt: document.alt }),
+      h(
+        'div',
+        { class: 'act-find__body' },
+        h('p', { class: 'act-find__kicker', text: `The rover came back · ${document.where} · ${document.when}` }),
+        h('h3', { class: 'act-find__title', text: document.title }),
+        h('p', { class: 'act-find__story', text: document.story }),
+        h('p', { class: 'act-find__fact', text: `NASA fact · ${document.fact} (${document.credit})` }),
+        h(
+          'div',
+          { class: 'act-find__answers' },
+          ...document.answers.map((answer) => {
+            const button = h('button', { class: 'gl__btn gl__btn--navy act-find__answer', type: 'button' }, answer.label);
+
+            button.addEventListener('click', () => {
+              if (run === null) return;
+
+              const answered = answerRoverFind(run, answer.id);
+
+              if (answered === run) return;
+
+              run = answered;
+              setRun(run);
+              render();
+            });
+
+            return button;
+          }),
+        ),
+      ),
+    );
+
+    return gameSection('The rover found something', card);
+  }
+
+  /**
    * The standing orders on the board.
    *
    * The rule book, growing two rules a sol. This is where the science is
@@ -475,6 +526,7 @@ export function mountAct(
     const body: (Node | false)[] = [
       recapSection(state),
       callout,
+      roverSection(state),
       orderSection(state),
       boardSection(state),
       gameSection('Day → Night', dayNight),
@@ -584,6 +636,10 @@ export function mountAct(
       crisis.urgent ? h('div', { class: 'gl__clock' }, h('span', { class: 'gl__clock-bar' }, clockBar), clockText) : false,
       choices,
       earthBox,
+      /* The desk is still the desk. A crisis lands on it; it does not replace
+         it, so a find the rover brought back waits there until it is
+         answered. */
+      roverSection(state),
     ];
 
     /* The alert is the one screen where a struggling reader loses the most:
@@ -679,7 +735,6 @@ export function mountAct(
       panel,
       variant: 'gl--act',
       headerSub: 'RUNNING THE DAY',
-      rover: true,
       onLeave: () => navigate('naming'),
       mission: {
         job: 'Your job: survive 12 Mars days and keep the five systems running.',

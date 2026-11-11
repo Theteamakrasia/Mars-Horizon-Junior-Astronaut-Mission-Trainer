@@ -9,6 +9,7 @@
 
 import type { ForecastEvent } from './forecast';
 import { type ModuleKind, systemsFor } from './modules';
+import { newRover, collectMaterial, leaveMaterial, logSite, FIND_SCIENCE, type FindAnswer, type RoverState } from './rover';
 import { createInitialStores, type ResourceStores } from './resources';
 
 /** A run is active, or ended one way or the other. No third state. */
@@ -93,6 +94,14 @@ export interface RunState {
   readonly science: number;
   /** The activity picked for the next sol, or null when none has been picked. */
   readonly chosenActivity: string | null;
+  /**
+   * What the rover has been up to.
+   *
+   * The rover is part of the run, not a window floating over it: it is sent out
+   * by a work order like any other, it moves on sol time, and it comes back
+   * with a document on the desk.
+   */
+  readonly rover: RoverState;
   readonly forecast: readonly ForecastEvent[];
   readonly log: readonly SolRecord[];
   readonly decisions: readonly DecisionRecord[];
@@ -115,6 +124,7 @@ export function newRun(regionId: string, astronautName = ''): RunState {
     panelHealth: 1,
     science: 0,
     chosenActivity: null,
+    rover: newRover(),
     forecast: [],
     log: [],
     decisions: [],
@@ -129,6 +139,33 @@ export function newRun(regionId: string, astronautName = ''): RunState {
  */
 export function landAt(state: RunState, regionId: string): RunState {
   return newRun(regionId, state.astronautName);
+}
+
+/**
+ * Answer the find the rover brought back.
+ *
+ * The choice is the stamp: a historic site is logged, a rock is collected or
+ * left where it lies. Every answer is worth the same science, because the
+ * rover teaches and the score is for the work rather than for the button
+ * pressed.
+ */
+export function answerRoverFind(state: RunState, answer: FindAnswer): RunState {
+  const find = state.rover.pending;
+
+  if (find === null) return state;
+
+  const rover =
+    answer === 'log'
+      ? logSite(state.rover)
+      : answer === 'collect'
+        ? collectMaterial(state.rover)
+        : leaveMaterial(state.rover);
+
+  /* The wrong answer for the wrong kind changes nothing, and so earns
+     nothing: a rock cannot be logged and a site cannot be collected. */
+  if (rover === state.rover) return state;
+
+  return { ...state, rover, science: state.science + FIND_SCIENCE };
 }
 
 /**
@@ -156,6 +193,7 @@ export function startOutpost(state: RunState, modules: readonly ModuleKind[]): R
     panelHealth: 1,
     science: 0,
     chosenActivity: null,
+    rover: newRover(),
     log: [],
     decisions: [],
     stores: createInitialStores({

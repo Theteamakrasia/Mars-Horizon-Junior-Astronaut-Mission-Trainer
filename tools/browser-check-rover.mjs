@@ -1,30 +1,33 @@
 /*
- * A headless pass over the rover: drive the real game in Chrome, walk the
- * journey to the outpost, deploy the rover, and check that the NASA picture
- * actually loads and the rover's animation actually moves.
+ * A headless pass over the rover: drive the real game in Chrome, walk to the
+ * outpost, send the rover out on a work order, and check that it comes back
+ * with a document on the desk.
  *
  *   npm run build && npm run preview
  *   node tools/browser-check-rover.mjs
  *
  * It needs a served build and Chrome on the machine. It is a check, not a
  * test: `npm test` stays free of a browser.
+ *
+ * The rover used to be a floating button with its own clock: you clicked it,
+ * waited fifteen seconds, and read a fact. It is now part of the run — sent
+ * out by a work order like any other, moving on sol time — so what this
+ * checks is that the find arrives as a document and that answering it works.
  */
 
 import { spawn } from 'node:child_process';
 import { setTimeout as sleep } from 'node:timers/promises';
-import { createHash } from 'node:crypto';
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:4173';
 const CHROME = process.env.CHROME_PATH ?? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 
 const chrome = spawn(CHROME, [
   '--headless=new',
-  '--remote-debugging-port=9222',
+  '--remote-debugging-port=9225',
   '--disable-gpu',
   '--no-first-run',
   '--no-default-browser-check',
-  '--autoplay-policy=no-user-gesture-required',
-  '--user-data-dir=' + process.env.TEMP + '\\rover-chrome-profile',
+  '--user-data-dir=' + process.env.TEMP + '\\rover-chrome-profile-2',
   'about:blank',
 ], { stdio: 'ignore' });
 
@@ -47,7 +50,14 @@ async function evaluate(expression) {
   return result.result.value;
 }
 
-/** Click a button inside a screen, by the words on it. Returns false if there was none. */
+async function waitFor(expression, tries = 60) {
+  for (let i = 0; i < tries; i += 1) {
+    if (await evaluate(expression)) return true;
+    await sleep(250);
+  }
+  return false;
+}
+
 async function clickIn(screenId, text) {
   const clicked = await evaluate(`(() => {
     const screen = document.getElementById(${JSON.stringify(screenId)});
@@ -62,55 +72,6 @@ async function clickIn(screenId, text) {
   return clicked;
 }
 
-/** Click a button anywhere on the page, by the words on it. */
-async function clickAny(text) {
-  const clicked = await evaluate(`(() => {
-    const el = [...document.querySelectorAll('button')]
-      .find((n) => n.offsetParent !== null && n.textContent.trim().includes(${JSON.stringify(text)}) && !n.disabled);
-    if (!el) return 'missing';
-    el.click();
-    return 'clicked';
-  })()`);
-  await sleep(650);
-  return clicked;
-}
-
-async function waitFor(expression, tries = 40) {
-  for (let i = 0; i < tries; i += 1) {
-    if (await evaluate(expression)) return true;
-    await sleep(250);
-  }
-  return false;
-}
-
-/**
- * A fingerprint of what is on screen at one spot, right now.
- *
- * Two of these, taken a moment apart, are different when something is moving
- * there. This is done by screenshotting the region rather than by drawing the
- * image into a canvas: headless Chrome draws the *first* frame of an animated
- * image into a canvas every time, so a canvas check reports a moving picture
- * as still. A screenshot forces a paint, and the animation advances.
- */
-async function regionHash(selector) {
-  const box = await evaluate(`(() => {
-    const el = document.querySelector(${JSON.stringify(selector)});
-    if (!el) return null;
-    const r = el.getBoundingClientRect();
-    if (r.width < 1 || r.height < 1) return null;
-    return { x: r.x, y: r.y, width: r.width, height: r.height };
-  })()`);
-
-  if (box === null) return null;
-
-  const shot = await send('Page.captureScreenshot', {
-    format: 'png',
-    clip: { x: box.x, y: box.y, width: box.width, height: box.height, scale: 1 },
-  });
-
-  return createHash('sha1').update(Buffer.from(shot.data, 'base64')).digest('hex').slice(0, 12);
-}
-
 const results = [];
 function note(name, ok, detail = '') {
   results.push({ name, ok });
@@ -122,7 +83,7 @@ try {
   for (let i = 0; i < 40 && target === null; i += 1) {
     await sleep(250);
     try {
-      target = (await (await fetch('http://localhost:9222/json')).json()).find((t) => t.type === 'page');
+      target = (await (await fetch('http://localhost:9225/json')).json()).find((t) => t.type === 'page');
     } catch {
       /* not up yet */
     }
@@ -155,8 +116,7 @@ try {
   await send('Page.navigate', { url: `${BASE}/#naming` });
   await waitFor(`!!document.getElementById('naming') && !document.getElementById('naming').hidden`);
 
-  // 1. Name the astronaut. The naming screen only listens once it is mounted,
-  //    so the value is set again until the button wakes up.
+  // 1. Name the astronaut and get to the outpost.
   const named = await waitFor(`(() => {
     const input = document.querySelector('[data-naming-input]');
     const submit = document.querySelector('[data-naming-submit]');
@@ -168,8 +128,6 @@ try {
   note('the name is accepted', named);
   await clickIn('naming', 'Start Mission');
 
-  // 2. On to the outpost. The hash router is used to skip the launch reel,
-  //    which is a film and takes its own time; the run already exists by now.
   await evaluate(`location.hash = '#landing-site'`);
   await waitFor(`(() => { const s = document.getElementById('landing-site'); return !!s && !s.hidden; })()`);
   await evaluate(`(() => {
@@ -178,102 +136,96 @@ try {
   })()`);
   await sleep(600);
   await clickIn('landing-site', 'Land here');
-
-  note(
-    'the rover button is on the outpost screen',
-    await waitFor(`!!document.querySelector('#base .rover__fab')`, 40),
-  );
-  note(
-    'the rover starts at base',
-    (await evaluate(`document.querySelector('.rover__status')?.textContent ?? ''`)) === 'Rover',
-  );
-
-  // 3. Deploy it.
-  await evaluate(`document.querySelector('.rover__fab').click()`);
-  await sleep(500);
-  note('the deploy question opens', await waitFor(`!!document.querySelector('.rover__window--small')`));
-  await clickAny('Deploy rover');
+  await waitFor(`!!document.getElementById('base') && !document.getElementById('base').hidden`);
   await sleep(600);
-  note(
-    'the rover is exploring',
-    (await evaluate(`document.querySelector('.rover__status')?.textContent ?? ''`)) === 'Exploring',
-  );
 
-  // 4. The status window, and the animation inside it. The notice that
-  //    follows a deploy closes itself after a few seconds; until then the
-  //    rover button only toggles the notice away.
-  await sleep(4000);
-  await evaluate(`document.querySelector('.rover__fab').click()`);
-  note('the status window opens', await waitFor(`!!document.querySelector('.rover__gif')`));
+  // 2. There is no floating rover button any more: the rover is a work order.
+  note('the rover is not a floating button', (await evaluate(`!!document.querySelector('.rover__fab')`)) === false);
 
-  // The picture is 810 KB, so the element exists a moment before it has
-  // decoded - and until it has, it has no size to fingerprint.
-  const pictureLoaded = await waitFor(`(() => {
-    const img = document.querySelector('.rover__gif');
-    return !!img && img.complete && img.naturalWidth > 0;
-  })()`, 60);
-  note('the rover picture loads', pictureLoaded);
-
-  // Two fingerprints of the same spot, a moment apart. Different means the
-  // rover is moving.
-  const first = await regionHash('.rover__gif');
-  await sleep(450);
-  const second = await regionHash('.rover__gif');
-  note(
-    "the rover's animation moves",
-    first !== null && second !== null && first !== second,
-    first === null || second === null ? 'the rover picture was not on screen' : `${first} then ${second}`,
-  );
-
-  await evaluate(`(() => { const b = document.querySelector('.rover__close'); if (b) b.click(); })()`);
-  await sleep(400);
-
-  // 5. Wait for the first find (15-25 s) and open it.
-  note('the rover finds something', await waitFor(`document.querySelector('.rover')?.dataset.waiting === 'true'`, 160));
-  await evaluate(`document.querySelector('.rover__fab').click()`);
+  await clickIn('base', 'Land & start sol 1');
+  await waitFor(`!!document.getElementById('act') && !document.getElementById('act').hidden`);
   await sleep(900);
-  note('the find window opens', await waitFor(`!!document.querySelector('.rover__window--large')`));
 
-  // 6. The picture is a real NASA picture, not the placeholder.
-  await waitFor(`(() => {
-    const img = document.querySelector('.rover__photo');
-    return !img || (img.complete && img.naturalWidth > 0);
-  })()`, 60);
-  const picture = await evaluate(`(() => {
-    const img = document.querySelector('.rover__photo');
-    if (!img) return { found: false };
+  // 3. Send the rover out on the exploring order. It is offered on some sols
+  //    and not others, so the check plays on until it comes up.
+  let sent = 'missing';
+
+  for (let sol = 0; sol < 5 && sent !== 'clicked'; sol += 1) {
+    const crisis = await evaluate(`!!document.querySelector('#act .gl__choices')`);
+
+    if (crisis) {
+      await evaluate(`(() => { const c = document.querySelector('#act .gl__choice'); if (c) c.click(); })()`);
+      await sleep(900);
+      continue;
+    }
+
+    sent = await evaluate(`(() => {
+      const order = [...document.querySelectorAll('#act .act-order')]
+        .find((n) => (n.querySelector('.act-order__title')?.textContent ?? '').toLowerCase().includes('rover'));
+      if (!order) return 'missing';
+      order.click();
+      return 'clicked';
+    })()`);
+
+    if (sent !== 'clicked') {
+      /* Another order today: stamp something else and run the sol on. */
+      await evaluate(`(() => { const b = document.querySelector('#act .act-order:not([disabled])'); if (b) b.click(); })()`);
+      await sleep(350);
+      await clickIn('act', 'Run sol');
+      await sleep(1100);
+    }
+  }
+
+  note('the exploring order can be stamped', sent === 'clicked', sent);
+
+  if (sent === 'clicked') {
+    await clickIn('act', 'Run sol');
+    await sleep(1300);
+  }
+
+  // 4. The find is on the desk.
+  const find = await evaluate(`(() => {
+    const card = document.querySelector('#act .act-find');
+    if (!card) return null;
+    const image = card.querySelector('.act-find__image');
     return {
-      found: true,
-      width: img.naturalWidth,
-      height: img.naturalHeight,
-      src: img.currentSrc || img.src,
-      placeholder: !!document.querySelector('.rover__figure--empty'),
+      title: card.querySelector('.act-find__title')?.textContent ?? '',
+      kicker: card.querySelector('.act-find__kicker')?.textContent ?? '',
+      answers: [...card.querySelectorAll('.act-find__answer')].map((n) => n.textContent.trim()),
+      imageOk: !!image && image.complete && image.naturalWidth > 0,
+      src: image ? (image.currentSrc || image.src) : '',
     };
   })()`);
+
+  note('the rover comes back with a document', find !== null, find?.title ?? 'no document');
+  note('the document has a NASA picture', find?.imageOk === true, (find?.src ?? '').split('?')[0].split('/').pop());
   note(
-    'the NASA picture loads',
-    picture.found && picture.width > 0 && !picture.placeholder,
-    picture.found ? `${picture.width}x${picture.height} ${picture.src.split('?')[0].split('/').pop()}` : 'no picture element',
+    'and the player can answer it',
+    (find?.answers ?? []).length > 0,
+    (find?.answers ?? []).join(' | '),
   );
 
-  // 7. Answer the find. A site is logged and a rock is collected, so the
-  //    button is picked by its kind rather than by its words: which one
-  //    comes up depends on what the rover found.
-  const findKind = await evaluate(`(() => {
-    const kicker = document.querySelector('.rover__kicker--find');
-    if (!kicker) return 'none';
-    return kicker.textContent.includes('site') ? 'a site' : 'a rock';
+  // 5. Answering it clears the document and pays the science.
+  const scienceBefore = await evaluate(`(() => {
+    const signal = [...document.querySelectorAll('#act .gl__signal')]
+      .find((s) => s.querySelector('.gl__signal-kicker')?.textContent === 'Science');
+    return signal?.querySelector('.gl__signal-text')?.textContent ?? '';
   })()`);
-  await evaluate(`(() => {
-    const b = document.querySelector('.rover__window--large .rover__btn--primary');
-    if (b) b.click();
-  })()`);
-  await sleep(700);
-  note(
-    'the find is answered',
-    (await evaluate(`document.querySelector('.rover__status')?.textContent ?? ''`)) !== 'Found something!',
-    findKind === 'none' ? 'no find was open' : `it was ${findKind}`,
-  );
+
+  await evaluate(`(() => { const b = document.querySelector('#act .act-find__answer'); if (b) b.click(); })()`);
+  await sleep(900);
+
+  const after = await evaluate(`(() => ({
+    stillThere: !!document.querySelector('#act .act-find'),
+    science: (() => {
+      const signal = [...document.querySelectorAll('#act .gl__signal')]
+        .find((s) => s.querySelector('.gl__signal-kicker')?.textContent === 'Science');
+      return signal?.querySelector('.gl__signal-text')?.textContent ?? '';
+    })(),
+  }))()`);
+
+  note('answering the find clears the document', after.stillThere === false);
+  note('and the science goes up', after.science !== scienceBefore, `${scienceBefore} then ${after.science}`);
 
   note('no console errors', consoleErrors.length === 0, consoleErrors.slice(0, 3).join(' | '));
 
