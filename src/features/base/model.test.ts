@@ -5,7 +5,9 @@ import { createForecast } from '../../sim/forecast';
 import {
   addModule,
   allModules,
+  buildCards,
   canPlace,
+  goalPreview,
   pointsLeft,
   previewFor,
   previewSummary,
@@ -145,5 +147,89 @@ describe('base model', () => {
     const summary = previewSummary(['ice-miner'], 'arcadia');
 
     expect(Number.isFinite(summary.waterDays)).toBe(false);
+  });
+
+  it('shows the day power, which is the number that moves when a panel is added', () => {
+    const bare = previewSummary([], 'arcadia');
+    const built = previewSummary(['solar-array', 'solar-array', 'solar-array'], 'arcadia');
+
+    expect(built.dayKwh).toBeGreaterThan(bare.dayKwh);
+    expect(bare.dayKwh).toBeGreaterThan(0);
+  });
+});
+
+describe('the build cards', () => {
+  it('shows the count and the limit on every card', () => {
+    const cards = buildCards([], 'arcadia');
+
+    expect(cards.length).toBeGreaterThan(0);
+
+    for (const card of cards) {
+      expect(card.limit).toBeGreaterThan(0);
+      expect(card.have).toBe(0);
+      expect(card.atLimit).toBe(false);
+      expect(card.blocked).toBe('');
+    }
+  });
+
+  it('counts the lander copy in the total but not in the count the player adds', () => {
+    /* Four solar arrays are allowed and the lander brings one, so the player
+       can add three. The old screen said "3" with a dead button. */
+    const solar = buildCards([], 'arcadia').find((card) => card.kind === 'solar-array');
+
+    expect(solar?.limit).toBe(3);
+    expect(solar?.total).toBe(1);
+  });
+
+  it('says why the add button is dead, once the player owns some', () => {
+    const cards = buildCards(['solar-array', 'solar-array', 'solar-array'], 'arcadia');
+    const solar = cards.find((card) => card.kind === 'solar-array');
+
+    expect(solar?.atLimit).toBe(true);
+    expect(solar?.blocked).toContain('solar arrays');
+  });
+
+  it('says nothing is wrong while the module can still be added', () => {
+    const solar = buildCards(['solar-array'], 'arcadia').find((card) => card.kind === 'solar-array');
+
+    expect(solar?.atLimit).toBe(false);
+    expect(solar?.blocked).toBe('');
+  });
+});
+
+describe('the goals a build can earn', () => {
+  /* A build that closes the loop: power, storage, food, water and shielding. */
+  const CLOSED_LOOP: readonly ModuleKind[] = [
+    'solar-array',
+    'solar-array',
+    'solar-array',
+    'batteries',
+    'batteries',
+    'batteries',
+    'greenhouse',
+    'ice-miner',
+    'regolith-shield',
+  ];
+
+  it('says a bare outpost can hold almost none of them', () => {
+    const goals = goalPreview([], 'arcadia');
+
+    expect(goals.filter((goal) => goal.ok).map((goal) => goal.id)).toEqual(['dust-storm']);
+  });
+
+  it('says a build that closes the loop can hold all five', () => {
+    const goals = goalPreview(CLOSED_LOOP, 'arcadia');
+
+    expect(goals.filter((goal) => !goal.ok)).toEqual([]);
+  });
+
+  it('names what is missing', () => {
+    const goals = goalPreview([], 'arcadia');
+    const food = goals.find((goal) => goal.id === 'food');
+    const radiation = goals.find((goal) => goal.id === 'radiation');
+
+    expect(food?.ok).toBe(false);
+    expect(food?.why).toContain('greenhouse');
+    expect(radiation?.why).toContain('shielding');
   });
 });

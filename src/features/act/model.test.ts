@@ -162,6 +162,17 @@ describe('the five science goals', () => {
 
     expect(new Set(topics).size).toBe(topics.length);
   });
+
+  it('shows how much of each goal has been earned, and what it takes', () => {
+    for (const row of goalRows(run)) {
+      expect(row.held).toBe(0);
+      expect(row.needed).toBeGreaterThan(0);
+      expect(row.percent).toBe(0);
+      expect(row.earned).toBe(false);
+      expect(row.aim.length).toBeGreaterThan(3);
+      expect(row.short.length).toBeLessThanOrEqual(6);
+    }
+  });
 });
 
 describe('the science score', () => {  it('starts at zero and the bottom rank', () => {

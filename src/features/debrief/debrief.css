@@ -102,6 +102,15 @@
   background: var(--gl-peach);
 }
 
+/* An earned goal: the star, and a green edge. */
+.debrief__goal[data-earned='true'] {
+  border-color: var(--gl-green);
+}
+
+.debrief__goal[data-earned='true'] .debrief__goal-icon {
+  color: var(--gl-green);
+}
+
 .debrief__goal-icon {
   font-size: clamp(0.85rem, 1.15vw, 1.4rem);
   line-height: 1.2;
@@ -114,6 +123,15 @@
   font-weight: 800;
   font-size: clamp(0.72rem, 0.92vw, 1.12rem);
   line-height: 1.15;
+}
+
+/* How many sols counted, beside the verdict. */
+.debrief__goal-count {
+  color: var(--gl-muted);
+  font-family: var(--gl-body);
+  font-size: 0.78em;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .debrief__goal-detail {

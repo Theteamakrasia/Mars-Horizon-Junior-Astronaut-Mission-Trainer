@@ -11,7 +11,7 @@
  */
 
 import { crisisForEvent, optionOf } from '../../sim/crises';
-import { goalById, type ScienceGoal } from '../../sim/goals';
+import { goalById, goalProgress, goalsEarned, SCIENCE_GOALS, type ScienceGoal } from '../../sim/goals';
 import { systemsFor, countOf, NIGHT_HOURS, type ModuleKind } from '../../sim/modules';
 import { RESOURCE_NAMES, type ResourceName } from '../../sim/resources';
 import type { RunState, SolRecord } from '../../sim/run';
@@ -413,13 +413,27 @@ export function scienceSentence(report: ScienceReport): string {
 
 /* ------------------------------------------------------------ the goals -- */
 
-/** How one of the five science goals fared over the run. */
-export interface GoalOutcome {
+/**
+ * How one goal fared, before the objective count is joined on.
+ *
+ * `held` — it was fine. `hurt` — it was damaged or dipped. `failed` — it ran
+ * out.
+ */
+interface GoalVerdict {
   readonly id: ScienceGoal;
   readonly title: string;
-  /** `held` — it was fine. `hurt` — it was damaged or dipped. `failed` — it ran out. */
   readonly verdict: 'held' | 'hurt' | 'failed';
   readonly detail: string;
+}
+
+/** How one of the five science goals fared over the run. */
+export interface GoalOutcome extends GoalVerdict {
+  /** Sols that counted towards the goal. */
+  readonly held: number;
+  /** Sols needed to earn it. */
+  readonly needed: number;
+  /** True once the goal is earned. */
+  readonly earned: boolean;
 }
 
 /**
@@ -439,7 +453,7 @@ export function goalOutcomes(run: RunState): readonly GoalOutcome[] {
   const title = (id: ScienceGoal): string => goalById(id)?.title ?? id;
 
   /* -- Martian Dust Storm ----------------------------------------------- */
-  const dust: GoalOutcome = (() => {
+  const dust: GoalVerdict = (() => {
     if (run.panelHealth <= 0.25) {
       return {
         id: 'dust-storm',
@@ -469,7 +483,7 @@ export function goalOutcomes(run: RunState): readonly GoalOutcome[] {
   })();
 
   /* -- Life Support ------------------------------------------------------ */
-  const life: GoalOutcome = (() => {
+  const life: GoalVerdict = (() => {
     if (ended.includes('oxygen')) {
       return {
         id: 'life-support',
@@ -506,7 +520,7 @@ export function goalOutcomes(run: RunState): readonly GoalOutcome[] {
   })();
 
   /* -- Radiation Exposure ------------------------------------------------ */
-  const radiation: GoalOutcome = (() => {
+  const radiation: GoalVerdict = (() => {
     if (ended.includes('shielding')) {
       return {
         id: 'radiation',
@@ -534,7 +548,7 @@ export function goalOutcomes(run: RunState): readonly GoalOutcome[] {
   })();
 
   /* -- Power Shortage ---------------------------------------------------- */
-  const power: GoalOutcome = (() => {
+  const power: GoalVerdict = (() => {
     if (blackouts.length > 0) {
       const sols = blackouts.join(', ');
 
@@ -558,7 +572,7 @@ export function goalOutcomes(run: RunState): readonly GoalOutcome[] {
   })();
 
   /* -- Food Production --------------------------------------------------- */
-  const food: GoalOutcome = (() => {
+  const food: GoalVerdict = (() => {
     if (ended.includes('food')) {
       return {
         id: 'food',
@@ -594,7 +608,51 @@ export function goalOutcomes(run: RunState): readonly GoalOutcome[] {
     };
   })();
 
-  return [dust, life, radiation, power, food];
+  /* The count of sols that counted is joined on here, so the debrief and the
+     act screen cannot disagree about how far the crew got. */
+  const objectives = goalProgress(run);
+
+  return [dust, life, radiation, power, food].map((outcome) => {
+    const objective = objectives.find((entry) => entry.id === outcome.id);
+
+    return {
+      ...outcome,
+      held: objective?.held ?? 0,
+      needed: objective?.needed ?? 1,
+      earned: objective?.earned ?? false,
+    };
+  });
+}
+
+/**
+ * How many of the five goals the crew earned.
+ *
+ * This is the score of the run, as distinct from the outcome of the run:
+ * surviving twelve sols is winning, and holding the goals is the grade.
+ */
+export interface GoalScore {
+  readonly earned: number;
+  readonly total: number;
+  /** True when every one of the five was earned. */
+  readonly complete: boolean;
+  /** One line about it. */
+  readonly headline: string;
+}
+
+/** The goal score for a finished run. */
+export function goalScore(run: RunState): GoalScore {
+  const earned = goalsEarned(run);
+  const total = SCIENCE_GOALS.length;
+
+  return {
+    earned,
+    total,
+    complete: earned === total,
+    headline:
+      earned === total
+        ? 'Full Science Mission! All five goals earned.'
+        : `${earned} of ${total} mission goals earned.`,
+  };
 }
 
 /**
