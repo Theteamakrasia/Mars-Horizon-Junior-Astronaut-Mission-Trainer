@@ -8,6 +8,7 @@ import {
   activityRows,
   boardRows,
   changeRows,
+  deskNote,
   meterRows,
   missionHeadline,
   orderChecks,
@@ -175,6 +176,12 @@ describe('the daily activity', () => {
     const checks = rest === undefined ? [] : orderChecks(run, rest);
 
     expect(checks[1]?.value).toContain('science points');
+  });
+
+  it('puts a note on some sols and not on others', () => {
+    expect(deskNote(2)).not.toBeNull();
+    expect(deskNote(2)?.minutes).toBeGreaterThan(0);
+    expect(deskNote(1)).toBeNull();
   });
 
   it('puts the standing orders on the board and marks the new ones', () => {

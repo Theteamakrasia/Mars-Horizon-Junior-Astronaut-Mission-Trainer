@@ -33,7 +33,7 @@ import { stopReading } from '../../ui/readAloud';
 import { nextStop } from '../../ui/registry';
 import { navigate } from '../../ui/router';
 
-import { activityRows, boardRows, changeRows, meterRows, missionHeadline, orderChecks, powerSentence, powerToday, roverDocument, scienceSummary, secondsLeft } from './model';
+import { activityRows, boardRows, changeRows, deskNote, meterRows, missionHeadline, orderChecks, powerSentence, powerToday, roverDocument, scienceSummary, secondsLeft } from './model';
 
 import '../../styles/game-loop.css';
 import './act.css';
@@ -336,6 +336,33 @@ export function mountAct(
   }
 
   /**
+   * A note that landed on the desk.
+   *
+   * The warm part of the game. Some sols have one and some do not, which is
+   * what keeps twelve days from being twelve of the same day.
+   */
+  function noteSection(state: RunState): HTMLElement | false {
+    const note = deskNote(state.sol + 1);
+
+    if (note === null) return false;
+
+    const card = h(
+      'article',
+      { class: 'act-note', 'data-from': note.from },
+      h('span', { class: 'act-note__mark', 'aria-hidden': 'true', text: note.from === 'home' ? '✉' : '☺' }),
+      h(
+        'div',
+        { class: 'act-note__body' },
+        h('p', { class: 'act-note__who', text: note.from === 'home' ? `A message from ${note.who}` : `${note.who}, from the crew` }),
+        h('p', { class: 'act-note__text', text: note.text }),
+        h('p', { class: 'act-note__delay', text: `It took ${note.minutes} minutes to arrive. Nothing ever does.` }),
+      ),
+    );
+
+    return gameSection('On the desk', card);
+  }
+
+  /**
    * The rover's find, on the desk.
    *
    * The nearest thing in the game to a Papers Please traveller: a picture, a
@@ -526,6 +553,7 @@ export function mountAct(
     const body: (Node | false)[] = [
       recapSection(state),
       callout,
+      noteSection(state),
       roverSection(state),
       orderSection(state),
       boardSection(state),

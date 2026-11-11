@@ -10,6 +10,8 @@
 import { offerFor, planForSol, type ActivitySpec, type ActivityStoreName } from '../../sim/activities';
 import { stormOn, stormOpacity } from '../../sim/forecast';
 import { DUST_SPOTLESS, LIFE_STORE_FLOOR, type ScienceGoal } from '../../sim/goals';
+import { oneWayMinutes } from '../../sim/comms';
+import { noteForSol } from '../../sim/deskNotes';
 import type { FindAnswer, FindKind } from '../../sim/rover';
 import { ordersThrough, type StandingOrder } from '../../sim/standingOrders';
 import { RESOURCE_NAMES, percentOf, type ResourceName, type ResourceStores } from '../../sim/resources';
@@ -470,6 +472,40 @@ export function roverDocument(run: RunState): RoverDocument | null {
     imageUrl: find.imageUrl,
     sourceUrl: find.sourceUrl,
     answers,
+  };
+}
+
+/* ---------------------------------------------------------------- the desk -- */
+
+/** A note that landed on the desk: a letter from home, or a word from a crewmate. */
+export interface DeskNoteRow {
+  readonly id: string;
+  readonly from: 'home' | 'crew';
+  readonly who: string;
+  readonly text: string;
+  /** How long it took to arrive, in minutes. Radio does not hurry. */
+  readonly minutes: number;
+}
+
+/**
+ * The note on the desk for this sol, if there is one.
+ *
+ * Some sols are quiet ones and some are not, and that is the point: a run of
+ * twelve identical days is a run nobody remembers. The delay is real — the
+ * game already teaches that a reply from Earth cannot arrive in time — so
+ * the note says how long it took.
+ */
+export function deskNote(sol: number): DeskNoteRow | null {
+  const note = noteForSol(sol);
+
+  if (note === null) return null;
+
+  return {
+    id: note.id,
+    from: note.from,
+    who: note.who,
+    text: note.text,
+    minutes: oneWayMinutes(sol),
   };
 }
 
