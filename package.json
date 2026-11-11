@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "balance": "vite-node tools/balance-check.mts",
     "check": "node scripts/check-imports.mjs && node scripts/check-markup.mjs && tsc --noEmit"
   },
   "devDependencies": {
