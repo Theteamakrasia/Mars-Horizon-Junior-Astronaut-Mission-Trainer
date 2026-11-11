@@ -561,9 +561,9 @@ disk, and **Reset** puts it back the way it was.
 
 The file does not hold the stacking order. That is a rule in
 [`src/ui/baseLayout.ts`](src/ui/baseLayout.ts) — the regolith shields are the furthest
-thing away and the habitat is the nearest, with the solar arrays and the battery banks
-stepping towards the camera — so the outpost cannot be drawn in the wrong order by
-accident.
+thing away and the habitat is the nearest, and the copies of a kind recede from the
+camera as they are added, so the first solar array is the nearest of them — so the
+outpost cannot be drawn in the wrong order by accident.
 
 This is a developer tool. It only exists in a dev build and is compiled out of a
 production bundle, so a player can never reach it.

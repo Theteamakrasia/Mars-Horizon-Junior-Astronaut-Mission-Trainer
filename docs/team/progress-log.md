@@ -14,8 +14,9 @@ than a documented one.
 
 - Gave the outpost a **fixed stacking order**: shields, ice miner, solar arrays,
   greenhouse, nuclear unit, battery banks, life support, habitat — farthest to nearest. The
-  copies of a kind step towards the camera where that reads right (solar array 1 < 2 < 3 <
-  4) and the two regolith shields share one depth.
+  copies of a kind **recede** from the camera as they are added, so the first solar array —
+  the one that comes with the lander — is the nearest and the fourth is the furthest back.
+  The two regolith shields share one depth.
 - **`z` is gone from the layout file.** A pose is now where it is, how big, and which way
   round. The order is a rule in code, so the game cannot draw the outpost wrong whatever
   the file says.
