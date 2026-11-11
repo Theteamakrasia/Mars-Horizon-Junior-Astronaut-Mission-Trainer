@@ -229,9 +229,23 @@
   font-weight: 700;
 }
 
+/*
+ * The region name and its NASA button, on one line.
+ *
+ * The panel is a flex column, so without this row the button lands on its own
+ * line under the name. The name can be long — "Jezero Crater" — so the row
+ * wraps rather than squeezing the button.
+ */
+.landing-site__name-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+}
+
 .landing-site__name {
   font-size: 1.5rem;
-  margin: 0 0 0.25rem 0;
+  margin: 0;
   font-weight: 700;
   letter-spacing: 0.02em;
   transition: color 140ms ease;
@@ -331,15 +345,6 @@
   opacity: 1;
 }
 
-/* The real NASA picture of the chosen region. */
-.landing-site__nasa {
-  margin: 0 0 0.75rem;
-}
-
-.landing-site__nasa[hidden] {
-  display: none;
-}
-
 .landing-site__actions {
   margin-top: auto;
   padding-top: 0.75rem;
@@ -374,6 +379,32 @@
 .landing-site__button:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+/*
+ * The NASA data button, beside the region name.
+ *
+ * Filled with the game's own button colour so it reads as something to press
+ * rather than a label. The amber the region name turns when it is selected
+ * is deliberately not used here: the two sit next to each other, and the same
+ * colour would make them read as one thing.
+ *
+ * This rule comes after the plain `.landing-site__button` rule on purpose —
+ * they have the same specificity, so the later one wins.
+ */
+.landing-site__button--nasa-data {
+  flex: 0 0 auto;
+  padding: 0.5rem 1rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  background: #df542b;
+  border-color: #df542b;
+  color: #f5f0e3;
+}
+
+.landing-site__button--nasa-data:hover:not(:disabled) {
+  background: #cf4726;
+  border-color: #cf4726;
 }
 
 .landing-site__button--land {
@@ -462,4 +493,70 @@
     animation: none;
     opacity: 0;
   }
+
+  .landing-site__nasa-modal {
+    animation: none;
+  }
+}
+
+/* --- NASA data modal popup --- */
+
+.landing-site__nasa-modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 50;
+  background: rgba(11, 16, 21, 0.6);
+  backdrop-filter: blur(4px);
+  padding: clamp(12px, 1.2vw, 24px);
+}
+
+.landing-site__nasa-modal {
+  position: relative;
+  max-width: clamp(320px, 70vw, 700px);
+  width: 100%;
+  padding: clamp(16px, 1.6vw, 32px);
+  border-radius: clamp(12px, 1.2vw, 24px);
+  background: #fff;
+  color: #22324a;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  animation: landing-nasa-modal-open 220ms ease-out;
+}
+
+@keyframes landing-nasa-modal-open {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.landing-site__nasa-modal-close {
+  position: absolute;
+  top: clamp(10px, 1vw, 16px);
+  right: clamp(10px, 1vw, 16px);
+  width: clamp(28px, 3vw, 36px);
+  height: clamp(28px, 3vw, 36px);
+  border: none;
+  border-radius: 50%;
+  background: #121a24;
+  color: #fff;
+  font-size: clamp(1rem, 1.4vw, 1.6rem);
+  line-height: 1;
+  cursor: pointer;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.landing-site__nasa-modal-close:hover {
+  background: #cf4726;
+}
+
+/* The NASA card inside the modal should not have its own read button cluttering things. */
+.landing-site__nasa-modal .nasa-card__actions {
+  display: none;
 }

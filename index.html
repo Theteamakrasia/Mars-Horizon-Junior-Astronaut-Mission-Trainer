@@ -740,7 +740,19 @@
             />
           </div>
 
-          <h3 class="landing-site__name" data-landing-name></h3>
+          <!-- The region name and the button that opens its NASA data, on one
+               line. The name can be long, so the row wraps rather than
+               squeezing the button. -->
+          <div class="landing-site__name-row">
+            <h3 class="landing-site__name" data-landing-name></h3>
+            <button
+              class="landing-site__button landing-site__button--nasa-data"
+              type="button"
+              data-landing-nasa-data
+            >
+              NASA data
+            </button>
+          </div>
           <p class="landing-site__blurb" data-landing-blurb></p>
           <ul class="landing-site__axes" data-landing-axes>
             <li class="landing-site__axis" data-landing-axis="water">
@@ -765,10 +777,6 @@
             </li>
           </ul>
           <p class="landing-site__summary" data-landing-summary></p>
-
-          <!-- The real NASA picture of the selected region, filled by
-               landing-site/view.ts. Hidden until a pin is chosen. -->
-          <div class="landing-site__nasa" data-landing-nasa hidden></div>
 
           <div class="landing-site__actions">
             <button
