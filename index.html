@@ -315,9 +315,20 @@
     </section>
 
     <!-- The launch cinematic. Two stills, the launch film, and the title card. It
-         plays through and hands itself to the next stop; there is no skip and no
-         control of any kind, which is why launch/view.ts sets exactly one timer
-         and it is the only way off this screen.
+         plays through and hands itself to the next stop.
+
+         There is one control: a SKIP button, which appears halfway through the
+         departure and takes the player straight to the spacecraft parts tour -
+         the screen the reel ends on anyway. The title card is the one beat that
+         always plays; after that, the player can cut the reel whenever they
+         like.
+
+         The button starts hidden and launch/view.ts reveals it when the reel is
+         halfway through its departure.
+
+         A direct child of .launch, NOT of .launch__stage: the stage is a 16:9
+         letterboxed box with overflow:hidden, and a control inside it is clipped
+         on a narrow window (the same trap as ISS-041).
 
          Both stills are alt="" here because they are pictures that are shown in
          sequence with motion between them. The description a screen reader gets is
@@ -397,6 +408,20 @@
 
       </div>
 
+      <!-- SKIP. Shown halfway through the departure, by launch/view.ts.
+
+           Pressing it stops the reel where it stands and opens the parts tour,
+           which is where the reel ends anyway - so a player who skips sees
+           exactly what a player who watches sees, just sooner. The title card is
+           the one beat that always plays.
+
+           tabindex="-1" on the panel below is for the same reason the button
+           needs one: pressing SKIP makes the button disappear, so the focus has
+           to land somewhere real. -->
+      <button class="launch__skip" type="button" data-launch-skip hidden>
+        Skip
+      </button>
+
       <!-- The parts tour panel. A direct child of .launch, NOT of .launch__stage:
            the stage is the cinematic's own layer, and the panel inside it
            inherited that box. On any viewport whose stage was shorter than the
@@ -418,6 +443,7 @@
       <div
         class="launch__parts-panel"
         data-launch-parts-panel
+        tabindex="-1"
         hidden
       >
         <img

@@ -24,7 +24,7 @@ than eyeballed, and it is what `npm run check` protects.
 
 ## The invariant, and why it is enforced
 
-795 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
+801 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
 reference it would still work, and the cost would surface later as an untestable bug.
 Enforced as `no-dom-in-pure-zone`.
 
@@ -1079,9 +1079,12 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `DOCKING_DESCRIPTION` | what the docking clip shows, for screen readers |
 | | `PARTS` | five tour slides: overview then one named part at a time, each with name, description and accent colour |
 | | `PARTS_DESCRIPTION` | all four parts the tour names, for screen readers |
-| | `TOTAL_DURATION_MS` | title + shots + both films; the reel's *nominal* runtime, not a timer — the screen exits at the Continue button in the parts tour, or when the last film ends |
+| | `SKIP_LABEL`, `SKIP_DESCRIPTION` | the skip button's word and its aria text; the description says where the player goes, because "Skip" alone does not say skip *what* (D-072) |
+| | `FILMS_BEGIN_MS` | the slot the films start at — title plus both stills, derived from them so the reel's timing cannot drift from its parts |
+| | `SKIP_APPEARS_MS` | when the skip button turns up: halfway through the departure, derived from `FILMS_BEGIN_MS`. Up before the films, so the films can be cut, and up after the title card, which always plays (D-072) |
+| | `TOTAL_DURATION_MS` | title + shots + both films; the reel's *nominal* runtime, not a timer — the screen exits at the Continue button in the parts tour, when the last film ends, or when the player skips |
 | | `resolveBeatStart` | `(earliestMs, readyAtMs) -> ms`; a beat starts at the later of its slot and its clip's readiness |
-| `features/launch/view` | `mountLaunch` | `(root, run) -> teardown`; plays the stills, then the launch film and the docking clip, then opens the interactive parts tour. Beats are media-driven: only the launch film loads up front, the docking clip loads when the film's beat starts, each has a poster, and a beat waits for its clip rather than being skipped. Reduced motion holds the stills and both films. The parts tour is static images and text — Prev / Next move between parts, disabled at the boundaries, Continue hands off. The parts tour also shows a rotating NASA fact per part from `factFor(index)` into `[data-launch-parts-fact]`, so the tour teaches while it shows. |
+| `features/launch/view` | `mountLaunch` | `(root, run) -> teardown`; plays the stills, then the launch film and the docking clip, then opens the interactive parts tour. Beats are media-driven: only the launch film loads up front, the docking clip loads when the film's beat starts, each has a poster, and a beat waits for its clip rather than being skipped. Reduced motion holds the stills and both films. A **SKIP** button appears halfway through the departure — whether or not the clip has buffered — and cuts the reel to the parts tour, which is where the reel ends anyway (D-072); the parts panel takes the focus when it opens, because the skip button vanishes under the player's finger. The parts tour is static images and text — Prev / Next move between parts, disabled at the boundaries, Continue hands off. The parts tour also shows a rotating NASA fact per part from `factFor(index)` into `[data-launch-parts-fact]`, so the tour teaches while it shows. |
 | `dom/floatAstronaut` | `startFloatingAstronaut` | `(wrapper, {deformLayer, reducedMotion}) -> teardown`; cancels rAF, removes the resize listener, detaches the grab, clears the transform |
 | `dom/keys` | `KeyModifiers`, `isPlainEnter`, `focusHandlesEnter` | `(key, modifiers) -> boolean` and `(tagName) -> boolean`. The shared keyboard rules: a plain Enter is the only key a screen answers, and a focused button, link or field keeps Enter for itself. Pure, and shared because a feature never imports another feature (R-5) |
 | `dom/pointerGrab` | `attachGrab` | `(target, handlers, options) -> teardown` |

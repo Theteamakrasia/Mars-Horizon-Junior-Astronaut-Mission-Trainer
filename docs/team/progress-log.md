@@ -8,6 +8,83 @@ than a documented one.
 
 ---
 
+## 2026-11-11 — A SKIP button on the launch cinematic
+
+**Did**
+
+- **Gave the launch reel an exit.** The SKIP button appears halfway through the departure —
+  2.6 s in, while the press-conference still is on screen — and it cuts the reel straight
+  to the spacecraft parts tour. That is the screen the reel ends on anyway, so a player
+  who skips sees the same four parts and the same NASA facts, just sooner (D-072). The
+  title card is the one beat that always plays.
+- **Made the button appear whether or not the clip has buffered.** Tying it to the slot
+  rather than to the clip's readiness means a download that has not finished is exactly
+  when a player wants a way out, which is the case a skip exists for.
+- **Halved the wait for the button.** It used to turn up with the films, 5.25 s in; it
+  now turns up at 2.6 s, which is halfway through the departure. The films are eight
+  seconds and the departure is five, so an escape hatch that only opened in the second
+  half of the wait was not much of an escape hatch.
+- **Made the reel actually stop.** Pending timers cleared, `ended` listeners removed, both
+  clips paused, and a `skipped` flag — which is what a late `loadeddata` finds, so a clip
+  that finishes downloading after the skip cannot restart a film behind the tour. A clip
+  that was still downloading is unloaded, so a skipped reel does not pull a megabyte
+  nobody will watch.
+- **Moved the focus when the tour opens.** The skip button vanishes under the player's
+  finger, so the parts panel takes the focus (`tabindex="-1"`).
+- **Re-applied the whole thing on top of `origin/main`**, which had rewritten the launch
+  reel while this work was uncommitted: `main` gained the shared keyboard rules
+  (`dom/keys.ts`), the tour ending on the assembled craft, and a redrawn stage. The skip
+  was ported onto that reel rather than merged into it, and the decision was renumbered
+  **D-072** because main had taken D-070 and D-071 for the desk hub and the NASA layer.
+
+**Files**
+
+- `index.html` — the button, as a direct child of `#launch` and not inside the letterboxed
+  stage; `tabindex="-1"` on the parts panel
+- `src/features/launch/view.ts` — `revealSkip`, `stopReel`, the `skipped` flag, the focus
+  move, and the teardown reset
+- `src/features/launch/model.ts` — `SKIP_LABEL`, `SKIP_DESCRIPTION`, `FILMS_BEGIN_MS`,
+  `SKIP_APPEARS_MS`
+- `src/features/launch/launch.css` — `.launch__skip`; the dim rule now covers the title
+  card, which was the one cinematic layer it missed
+- `src/features/launch/model.test.ts` — six tests
+- `tools/browser-check-journey.mjs` — drives the skip instead of sleeping through the reel,
+  and measures how long the button takes to appear rather than assuming it
+- `docs/architecture.md`, `docs/game-flow.md`, `docs/team/decisions.md`,
+  `docs/team/progress-log.md`, `docs/team/tasks.md`, `README.md`
+
+**Problems**
+
+- **The button's behaviour is not unit-tested.** Vitest runs in node with no DOM (ISS-013),
+  and adding jsdom would be a new dependency (AGENTS.md §10). The model gets coverage for
+  the copy and for the timing; the behaviour is covered by the browser check instead.
+  Recorded here rather than left looking covered.
+- **The teardown has to reset the button and cancel its timer.** The section element
+  outlives the mount, so a remount that inherited a visible button would offer it over
+  the title card — the one beat that always plays — and a timer left running would
+  reveal it on a screen the player had already gone from. Caught by leaving the screen
+  and coming back in the browser check.
+- **The merge was not a merge.** Git conflicted on exactly the two files `main` had
+  rewritten — `launch/view.ts` and `launch.css` — and taking either side would have lost
+  something real: `main`'s side loses the skip, this side loses the rewritten stage, the
+  Enter handling and the reordered tour. The skip was re-applied to `main`'s version by
+  hand, which is why the diff is smaller than the first draft. The same was true of the
+  decision: both sides had claimed D-070, so the entry was renumbered rather than
+  merged, and `TASK-093` became `TASK-095` for the same reason.
+- **The earlier duplicate `launch.css` blocks are gone.** They were this branch's, and
+  `main`'s rewrite of the file removed them, so nothing needed doing — noted because the
+  first draft of this entry said they should be tidied separately.
+- **The journey check passes.** An older entry says it fails on this branch and on
+  `origin/main`; it does not. It runs the whole journey with no console errors on both.
+  The note was stale, not the check — worth knowing before anyone trusts that line again.
+
+**Next**
+
+- The skip is recorded nowhere. If the debrief should say that a player cut the launch
+  film, that is a run flag and a different change.
+
+---
+
 ## 2026-11-11 — Merge main's navigation bar and launch tour, and keep both sides' issues
 
 **Did**

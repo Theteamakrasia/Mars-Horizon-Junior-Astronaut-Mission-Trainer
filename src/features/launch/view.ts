@@ -28,8 +28,10 @@
  * reached. Reduced motion does not shorten the runtime — it holds every picture
  * still for exactly as long as it would have moved.
  *
- * There is no skip. The screen's only exit is the Continue button in the parts
- * tour, or the hand-off when the last film ends if the tour is never reached.
+ * There is one control: a SKIP button that appears halfway through the
+ * departure and cuts the reel straight to the parts tour - the screen the reel
+ * ends on anyway. It is the one exit offered before the films are over, and
+ * the title card is the one beat that always plays.
  */
 
 import { nextStop } from '../../ui/registry';
@@ -56,11 +58,15 @@ import {
   DOCKING_DESCRIPTION,
   DOCKING_DURATION_MS,
   FADE_MS,
+  FILMS_BEGIN_MS,
   NASA_FACT,
   PARTS_DESCRIPTION,
   PARTS,
   PRESS_SHOT,
   SHOTS,
+  SKIP_APPEARS_MS,
+  SKIP_DESCRIPTION,
+  SKIP_LABEL,
   TITLE,
   TITLE_DURATION_MS,
   VIDEO_DESCRIPTION,
@@ -181,6 +187,7 @@ export function mountLaunch(
   const partsPrev = require<HTMLButtonElement>(root, '[data-launch-parts-prev]');
   const partsNext = require<HTMLButtonElement>(root, '[data-launch-parts-next]');
   const partsContinue = require<HTMLButtonElement>(root, '[data-launch-parts-continue]');
+  const skip = require<HTMLButtonElement>(root, '[data-launch-skip]');
 
   const shots = [...root.querySelectorAll<HTMLElement>('[data-launch-shot]')];
 
@@ -193,6 +200,16 @@ export function mountLaunch(
   }
 
   title.textContent = TITLE;
+
+  /*
+   * The skip button's copy comes from the model, like the title's.
+   *
+   * The visible label is one word; the aria-label says what pressing it does,
+   * because a button that reads "Skip" alone does not say skip *what* - and on
+   * this screen there are two films and a tour between them.
+   */
+  skip.textContent = SKIP_LABEL;
+  skip.setAttribute('aria-label', SKIP_DESCRIPTION);
 
   /*
    * One passage describing the whole sequence, rather than an alt on each frame.
@@ -271,8 +288,7 @@ export function mountLaunch(
   const mountedAt = performance.now();
   const now = (): number => performance.now() - mountedAt;
 
-  const shotsTotal = SHOTS.reduce((total, shot) => total + shot.durationMs, 0);
-  const filmBegins = TITLE_DURATION_MS + shotsTotal;
+  const filmBegins = FILMS_BEGIN_MS;
   const dockingBegins = filmBegins + VIDEO_DURATION_MS;
 
   const beats: Beat[] = [
@@ -323,6 +339,16 @@ export function mountLaunch(
   const destination = nextStop('launch');
   let handedOff = false;
   let handOffTimer: number | null = null;
+  /** The skip button's own timer, so the teardown can cancel it. */
+  let skipTimer: number | null = null;
+  /**
+   * True once the player has skipped the reel.
+   *
+   * The reel is over from that moment, so nothing may start it again. This is
+   * the flag a late `loadeddata` finds: a clip that finished downloading after
+   * the skip would otherwise report in and start a film behind the tour.
+   */
+  let skipped = false;
   /** Which part slide is showing: 0 = propulsion … 4 = the assembled craft. */
   let partsIndex = 0;
   /** Whether the parts panel is currently open. */
@@ -340,6 +366,60 @@ export function mountLaunch(
     handedOff = true;
 
     if (destination !== null) navigate(destination);
+  };
+
+  /**
+   * Show the skip button.
+   *
+   * Called halfway through the departure, and hidden again when the tour
+   * opens. It appears whether or not the clip has buffered: a download that has
+   * not finished is exactly when a player wants a way out.
+   */
+  const revealSkip = (): void => {
+    skip.hidden = false;
+  };
+
+  /**
+   * Stop the reel where it stands.
+   *
+   * Everything that could still fire has to be cancelled. A pending timer would
+   * start a beat that was supposed to be over; a clip with an `ended` listener
+   * still attached would open the tour a second time; a clip that has not
+   * finished downloading would report in later and start a film behind the
+   * tour. The `skipped` flag covers that last one, because it arrives after
+   * this function has run.
+   */
+  const stopReel = (): void => {
+    skipped = true;
+
+    for (const beat of beats) {
+      if (beat.timer !== null) {
+        window.clearTimeout(beat.timer);
+        beat.timer = null;
+      }
+      if (beat.endedHandler !== null) {
+        beat.el.removeEventListener('ended', beat.endedHandler);
+        beat.endedHandler = null;
+      }
+      beat.el.pause();
+
+      /*
+       * A clip that has not started yet is still downloading, and the player is
+       * never going to see it. Unloading it aborts the download - the reel keeps
+       * one film on the wire at a time, and a skipped reel should keep it that
+       * way rather than pull a megabyte nobody will watch. The clip that is
+       * playing keeps its frame, which the tour covers anyway.
+       */
+      if (!beat.started && beat.loaded) {
+        beat.el.removeAttribute('src');
+        beat.el.load();
+      }
+    }
+
+    if (handOffTimer !== null) {
+      window.clearTimeout(handOffTimer);
+      handOffTimer = null;
+    }
   };
 
   /**
@@ -484,13 +564,26 @@ export function mountLaunch(
     partsContinue.classList.toggle('is-primary', partsNext.disabled);
   };
 
-  /** Open the interactive parts tour after the docking clip ends. */
+  /** Open the interactive parts tour after the docking clip ends, or after a skip. */
   const openPartsPanel = (): void => {
     if (partsOpen) return;
     partsOpen = true;
     partsPanel.hidden = false;
     root.classList.add('launch__cinematic-dimmed');
     renderPart(partsIndex);
+
+    // The skip button has served its purpose, and it is the tour's job now.
+    skip.hidden = true;
+
+    /*
+     * Move the focus onto the panel.
+     *
+     * Pressing SKIP removes the button the player was on, so without this the
+     * focus would fall back to the body and a keyboard player would be told
+     * nothing about what opened. The panel carries tabindex="-1" for this
+     * reason alone; it is not a tab stop of its own.
+     */
+    partsPanel.focus({ preventScroll: true });
 
     const onPrev = (): void => {
       if (partsIndex > 0) {
@@ -543,14 +636,28 @@ export function mountLaunch(
     partsNext.addEventListener('click', onNext);
     partsContinue.addEventListener('click', onContinue);
 
-    // The key is only answered once the tour is open: the cinematic has no skip,
-    // and Enter must not be a way out of it.
+    // The key is only answered once the tour is open: the cinematic's one exit is
+    // the SKIP button, and Enter alone must not be a way out of it.
     window.addEventListener('keydown', onKeyDown);
 
     partsPrevHandler = onPrev;
     partsNextHandler = onNext;
     partsContinueHandler = onContinue;
     partsKeyHandler = onKeyDown;
+  };
+
+  /**
+   * The player cut the reel short.
+   *
+   * The tour is where the reel ends, so the skip lands there rather than on the
+   * next screen: a player who skips sees the same spacecraft lesson a player
+   * who watches sees, just sooner. The tour's Continue then hands off to the
+   * interior exactly as it does when the films play out.
+   */
+  const onSkip = (): void => {
+    if (skipped || partsOpen) return;
+    stopReel();
+    openPartsPanel();
   };
 
   /**
@@ -561,6 +668,8 @@ export function mountLaunch(
    * `loadeddata`/`seeked` handler calls this again when it is.
    */
   const begin = (index: number): void => {
+    if (skipped) return;
+
     const beat = beats[index];
     if (beat.started || beat.awaitingPredecessor) return;
 
@@ -612,6 +721,8 @@ export function mountLaunch(
    * `ended` listener is dropped because a failed clip will never fire it.
    */
   const onError = (index: number): void => {
+    if (skipped) return;
+
     const beat = beats[index];
 
     if (beat.endedHandler !== null) {
@@ -640,6 +751,8 @@ export function mountLaunch(
     beat.el.addEventListener('error', beat.errorHandler);
   });
 
+  skip.addEventListener('click', onSkip);
+
   /*
    * Start the reel. The film's earliest slot is its beat in the sequence; whether
    * it starts then or later is decided by `begin` against its readiness.
@@ -647,6 +760,15 @@ export function mountLaunch(
   if (destination !== null) {
     loadFilm(beats[0]);
     begin(0);
+
+    /*
+     * The skip button appears halfway through the departure.
+     *
+     * On its own timer rather than with a beat, because the button is not tied
+     * to the films: it is up before them, so a player who has decided they have
+     * had enough does not have to sit out the rest of the stills to say so.
+     */
+    skipTimer = window.setTimeout(revealSkip, Math.max(0, SKIP_APPEARS_MS - now()));
   }
 
   return () => {
@@ -666,10 +788,12 @@ export function mountLaunch(
     }
 
     if (handOffTimer !== null) window.clearTimeout(handOffTimer);
+    if (skipTimer !== null) window.clearTimeout(skipTimer);
 
     if (partsPrevHandler !== null) partsPrev.removeEventListener('click', partsPrevHandler);
     if (partsNextHandler !== null) partsNext.removeEventListener('click', partsNextHandler);
     if (partsContinueHandler !== null) partsContinue.removeEventListener('click', partsContinueHandler);
+    skip.removeEventListener('click', onSkip);
 
     // The key listener lives on the window, so it has to come off again here:
     // left in place it would keep answering Enter for the launch screen after
@@ -678,6 +802,15 @@ export function mountLaunch(
       window.removeEventListener('keydown', partsKeyHandler);
       partsKeyHandler = null;
     }
+
+    /*
+     * The section outlives the mount, so the button must not outlive the reel.
+     *
+     * Coming back to this screen starts again at the title card, and a remount
+     * that inherited a visible skip button would offer it over the title card,
+     * which is the one beat that always plays.
+     */
+    skip.hidden = true;
 
     root.classList.remove('launch__cinematic-dimmed');
     partsPanel.hidden = true;

@@ -42,7 +42,7 @@ flowchart TD
     Naming -->|"Start Mission"| Briefing
     Briefing -->|"YES, or auto after the last beat"| Supply
     Supply -->|"correct answer reveals CONTINUE"| Launch
-    Launch -->|"film ends"| Interior
+    Launch -->|"film ends, or SKIP"| Interior
     Interior -->|"every room visited"| Site
     Site -->|"select a pin + Land here"| Base
     Base -->|"Land &amp; start sol 1"| Act
