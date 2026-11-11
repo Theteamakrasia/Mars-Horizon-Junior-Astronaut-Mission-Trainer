@@ -420,6 +420,26 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         supply falls back to DEFAULT_POSES; an
     │   │                                         out-of-range number is clamped, not discarded.
     │   ├── baseLayout.test.ts          complete   55 tests. Every input literal.
+    │   ├── dayTracker.ts               complete   the mission-day tracker in the header (D-070).
+    │   │                                         Exports DayState, DayModel, dayModel,
+    │   │                                         dayTracker. `dayModel(run, advanced?)` is
+    │   │                                         pure and reads the day in play off the run
+    │   │                                         (`sol + 1`), so the tracker cannot disagree
+    │   │                                         with the simulation. `dayTracker(model)` draws
+    │   │                                         the day, the total and one pip per mission
+    │   │                                         day. Lives in `ui/` because base, act and
+    │   │                                         debrief all draw it and one feature may never
+    │   │                                         import another (R-5).
+    │   ├── dayTracker.test.ts          complete   10 tests. The model only: there is no jsdom
+    │   │                                         yet (ISS-013), so the DOM half is checked in
+    │   │                                         a real browser by tools/browser-check-day.mjs.
+    │   ├── day-tracker.css             complete   the tracker's own rules: the day in the
+    │   │                                         game's tokens, the twelve pips, the rail
+    │   │                                         between them, and the two animations (the
+    │   │                                         day in play breathes, the day just flown
+    │   │                                         flashes). Imported by dayTracker.ts only, the
+    │   │                                         way nasa-card.css sits next to nasaCard.ts
+    │   │                                         (R-15).
     │   ├── baseLayoutEditor.ts         complete   the placement editor (D-065 to D-069). Exports
     │   │                                         startLayoutEditor(root) -> teardown. Dev-only:
     │   │                                         a developer drags the fifteen copies of the
@@ -972,10 +992,12 @@ returns to `landing`, which keeps running behind the mounted screen.
 | `features/landing-site/view` | `mountLandingSite` | `(root, run, setRun) -> teardown`; map + five pins + Site Analysis panel, LAND HERE calls `landAt` then navigates to `nextStop('landing-site')`. Selecting a pin also shows that region's real NASA photo and fact (`regionCard`). It also prepends the shared navigation bar (`gameHeader('LANDING SITE', …)`) and removes it on teardown, so this screen carries the same bar as `base`, `act` and `debrief` |
 | `ui/gameLoop` | `gameScreen`, `gameWorld`, `gamePanel`, `gameSection`, `gameHeader`, `gameHud` | the shared frame from the Figma frames (D-038): one `.gl` root, the illustrated world panel, and the scrolling right-hand panel. Every word, number and variant arrives in an options object; no `sim/` rule is applied here |
 | | `moduleFigures`, `moduleArt`, `MODULE_ART`, `WORLD_BACKGROUND`, `ASTRONAUT_SPRITE` | the artwork the world panel draws, owned here so `base`, `act` and `debrief` do not copy the imports |
-| | `gameHeader`, `gameHud`, `gameDock` | `gameHeader(sub?, onLeave?)`: without `onLeave` the right-hand label is plain decorative text; with it, it is a Menu button opening an in-screen leave dialog with Keep playing / Leave mission (D-044). `gameHud` draws the five resource cards (`HudStat`) and `gameDock` the three-tab dock. The pause/settings/BUILD pills and the dock are `aria-hidden` spans, not buttons (D-038) |
+| | `gameHeader`, `gameHud`, `gameDock` | `gameHeader(sub?, onLeave?, day?)`: without `onLeave` the right-hand label is plain decorative text; with it, it is a Menu button opening an in-screen leave dialog with Keep playing / Leave mission (D-044). `day` puts the mission-day tracker in the bar between the brand and the control (D-070); a screen with no run in play passes none and its bar is unchanged. `gameHud` draws the five resource cards (`HudStat`) and `gameDock` the three-tab dock. The pause/settings/BUILD pills and the dock are `aria-hidden` spans, not buttons (D-038) |
 | | `gameSection` | `(label, ...content) -> section`; an uppercase label and its body |
-| | `gameScreen` | `(options) -> section`; takes `mission?: MissionBarOptions`, whose `help` slot carries the guide's `?` button (D-060). The rover button is gone: the rover is part of the run now, not a widget on the wall (D-062) |
+| | `gameScreen` | `(options) -> section`; takes `mission?: MissionBarOptions`, whose `help` slot carries the guide's `?` button (D-060), and `day?: DayModel`, the mission-day tracker for the header (D-070). The rover button is gone: the rover is part of the run now, not a widget on the wall (D-062) |
 | | `moduleFigures`, `moduleArt`, `MODULE_ART`, `WORLD_BACKGROUND`, `ASTRONAUT_SPRITE` | artwork placement and the bundled asset URLs; the only import site for the figures base, act and debrief share |
+| `ui/dayTracker` | `dayModel`, `dayTracker` | `dayModel(run, advanced?) -> DayModel`: the mission-day tracker read off a run. Pure. The day in play is `sol + 1`, because `run.sol` counts the sols already flown; a finished run has no day in play. The total comes from `WIN_SOL`, never from a number typed here. `advanced` is the sol that has just been flown, which the act screen passes so one pip can flash (D-070) |
+| | `DayModel`, `DayState` | `DayModel` is `{day, done, total, states, advanced}` — the day in play, the days flown, the length of the mission, one state per day (`done`, `current` or `upcoming`) and the sol that just moved. `DayState` is that per-day state |
 | `features/base/model` | `BUILDABLE`, `canPlace`, `addModule`, `removeModule`, `pointsLeft` | build rules over the `sim/modules.ts` catalogue (D-032) |
 | | `previewFor`, `previewSummary`, `upkeepFor`, `upcomingWarnings` | the calm-sol projection. `previewSummary` gives the five resource cards one number each, from the same projection as the sentences |
 | `features/base/view` | `mountBase` | `(root, run, setRun) -> teardown`; the outpost on Mars, the catalogue steppers, and Land & start sol 1 → `startOutpost` then `act`. Holds a mutable local `extras` so a second build is not applied to stale data; it also shows a rotating NASA fact beside the build panel from `factFor`. Each card says why its button is dead and counts the extras against the same limit the game uses (ISS-054, ISS-055), the HUD carries a Day power card that moves as the panels go in (ISS-056), and the guide opens here the first time the player arrives (D-060) |

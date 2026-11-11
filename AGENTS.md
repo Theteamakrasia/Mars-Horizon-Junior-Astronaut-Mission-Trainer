@@ -249,6 +249,7 @@ opening its folder — that is the whole point of the layout.
 | **The standing orders — the rule book the player works to** | `src/sim/standingOrders.ts` — complete, 7 tests |
 | **The six tools, and how they are graded** | `src/sim/minigames.ts` — complete, 23 tests |
 | **The how-to-play guide** | `src/sim/guide.ts` — complete, 6 tests |
+| **The mission-day tracker** (the day in play, the total, twelve pips) | `src/ui/dayTracker.ts` — complete, 10 tests; the CSS in `src/ui/day-tracker.css` |
 | **The patches a run earns** | `src/sim/patches.ts` — complete, 7 tests |
 | **The notes that land on the desk** | `src/sim/deskNotes.ts` — complete, 8 tests |
 | **What a lesson is about** (power, dust, water, food, radiation, missions) | `src/sim/topics.ts` |

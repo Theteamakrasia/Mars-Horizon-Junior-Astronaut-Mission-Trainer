@@ -16,6 +16,7 @@ import { h } from '../dom/h';
 import { navigate } from './router';
 import type { ModuleKind } from '../sim/modules';
 import { MODULE_POSES, depthFor, poseFor } from './baseLayout';
+import { dayTracker, type DayModel } from './dayTracker';
 
 /* The artwork is bundled by Vite, never fetched: the Figma asset URLs expire. */
 import astronautUrl from '../../Assets/images/interior/sprite/interact-alt.webp';
@@ -222,6 +223,14 @@ export interface ScreenOptions {
   readonly onLeave?: () => void;
   /** The line that says what the player is playing. */
   readonly mission?: MissionBarOptions;
+  /**
+   * The mission-day tracker for the header.
+   *
+   * A screen with a run in play passes one; a screen without one leaves the
+   * header exactly as it was. The model comes from `ui/dayTracker.ts`, which
+   * reads it off the run — this file only draws it.
+   */
+  readonly day?: DayModel;
 }
 
 /**
@@ -232,8 +241,12 @@ export interface ScreenOptions {
  * real Menu button that asks before abandoning an unsaved run. Without it, the
  * header keeps the old non-interactive label, because a screen with nothing to
  * leave should not offer a control that does nothing.
+ *
+ * `day` puts the mission-day tracker in the bar, between the brand and the
+ * control. A screen with a run in play passes one; a screen without one (the
+ * encyclopedia, the landing-site map) passes nothing and its bar is unchanged.
  */
-export function gameHeader(sub?: string, onLeave?: () => void): HTMLElement {
+export function gameHeader(sub?: string, onLeave?: () => void, day?: DayModel): HTMLElement {
   const subtitle = sub ?? 'GAME LOOP';
 
   const header = h(
@@ -251,6 +264,8 @@ export function gameHeader(sub?: string, onLeave?: () => void): HTMLElement {
       ),
     ),
   );
+
+  if (day !== undefined) header.append(dayTracker(day));
 
   if (onLeave === undefined) {
     header.append(h('nav', { class: 'gl__nav', 'aria-label': 'Primary', text: 'Mission Control / Main Menu' }));
@@ -462,7 +477,7 @@ export function gameScreen(options: ScreenOptions): HTMLElement {
   return h(
     'div',
     { class: options.variant === undefined ? 'gl' : `gl ${options.variant}` },
-    gameHeader(options.headerSub, options.onLeave),
+    gameHeader(options.headerSub, options.onLeave, options.day),
     options.mission === undefined ? null : missionBar(options.mission),
     gameHud(options.hud),
     main,

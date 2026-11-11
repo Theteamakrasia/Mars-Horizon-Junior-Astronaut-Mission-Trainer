@@ -33,6 +33,7 @@ Versions will be assigned when the project begins publishing releases.
 
 ### Added
 
+- **A mission-day tracker in the header.** The nav bar now says which day of the twelve the player is on, and carries twelve pips — one per mission day — so the days already flown, the day in play and the days still to come are visible at a glance. It is on every screen with a run in play, at all five landing regions, the day in play breathes quietly, and the day just flown flashes once.
 - **A how-to-play guide.** Ten steps, each one saying where it happens and what to do about it. It opens by itself the first time the player reaches the build screen, and a `?` button in the mission bar brings it back on any later sol.
 - **A mission bar** on every play screen, saying in one line what the player is playing.
 - The briefing now says what a day is before the player has to live one: three work orders, approve one, the day happens.

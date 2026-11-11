@@ -29,6 +29,7 @@ import { visibleForecast } from '../../sim/forecast';
 import { siteScore, regionById, SITE_AXES } from '../../sim/regions';
 import { advanceSol, decide, powerPicture, WIN_SOL } from '../../sim/sol';
 import { gamePanel, gameScreen, gameSection, gameWorld, moduleArt, moduleFigures, type HudStat, type SignalCard } from '../../ui/gameLoop';
+import { dayModel } from '../../ui/dayTracker';
 import { nasaCard } from '../../ui/nasaCard';
 import { nasaFeedCard } from '../../ui/nasaFeedCard';
 import { readButton } from '../../ui/readButton';
@@ -70,6 +71,14 @@ const CRISIS_ART: Readonly<Record<Crisis['kind'], readonly { readonly src?: stri
   'supply-pod': [{ src: moduleArt('habitat') }, { glyph: '📦' }, { glyph: '🛠' }],
 };
 
+/**
+ * How long the day tracker keeps flashing the sol that has just been flown.
+ *
+ * Longer than the flash itself (700ms) so a click straight after the sol ran
+ * does not cut it off halfway.
+ */
+const ADVANCE_FLASH_MS = 1500;
+
 export function mountAct(
   mount: HTMLElement,
   initial: RunState | null,
@@ -87,6 +96,10 @@ export function mountAct(
   let guideOpen = false;
   let clockNodes: { readonly bar: HTMLElement; readonly text: HTMLElement } | null = null;
   let pendingFocus: HTMLElement | null = null;
+  /** The sol that has just been flown, so the day tracker can flash it. */
+  let advancedSol = 0;
+  /** The timer that forgets it again. */
+  let advanceTimer: number | null = null;
   /* NASA's live daily pictures. Empty when NASA did not answer, and the screen
      says so rather than showing a broken card. */
   let dailyFacts: readonly DailyFact[] = [];
@@ -104,6 +117,14 @@ export function mountAct(
     run = advanceSol(run);
     setRun(run);
 
+    /* The sol that has just been flown, so the header's day tracker can flash
+       that one pip. The screen rebuilds its whole DOM on every render, so an
+       animation on its own would replay every time the player picked an
+       activity. Marking the pip is what makes the flash happen on the advance
+       and not on the other renders. */
+    advancedSol = run.sol;
+    scheduleAdvanceClear();
+
     if (run.status !== 'active') {
       navigate(nextStop('act') ?? 'debrief');
 
@@ -111,6 +132,21 @@ export function mountAct(
     }
 
     render();
+  }
+
+  /**
+   * Forget the sol that was just flown, after the flash has had time to play.
+   *
+   * Held rather than cleared on the next render, so a click a moment after the
+   * sol ran does not cut the flash in half.
+   */
+  function scheduleAdvanceClear(): void {
+    if (advanceTimer !== null) window.clearTimeout(advanceTimer);
+
+    advanceTimer = window.setTimeout(() => {
+      advanceTimer = null;
+      advancedSol = 0;
+    }, ADVANCE_FLASH_MS);
   }
 
   function choose(crisis: Crisis, optionId: string, timedOut: boolean): void {
@@ -841,6 +877,7 @@ showAstronaut: false,
       variant: 'gl--act',
       headerSub: 'RUNNING THE DAY',
       onLeave: () => navigate('naming'),
+      day: dayModel(state, advancedSol),
       mission: {
         job: 'Your job: survive 12 Mars days and keep the five systems running.',
         progress: `Sol ${state.sol} of ${WIN_SOL} · ${science.points} points · ${science.rank.title}`,
@@ -914,6 +951,12 @@ showAstronaut: false,
     disposed = true;
     controller.abort();
     stopTimer();
+
+    if (advanceTimer !== null) {
+      window.clearTimeout(advanceTimer);
+      advanceTimer = null;
+    }
+
     clockNodes = null;
     mount.replaceChildren();
   };

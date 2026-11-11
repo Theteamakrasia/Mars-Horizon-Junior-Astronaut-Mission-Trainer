@@ -576,10 +576,11 @@ player decision, the sol loop, what is built and where a new event plugs in are 
 | Live NASA daily pictures | **Built** — Astronomy Picture of the Day → the saved gallery |
 | The rover | **Built** — part of the run: sent out by an order, comes back with a document (D-062) |
 | The how-to-play guide | **Built** — ten steps; it opens by itself at the build screen |
+| The mission-day tracker | **Built** — the day in play and twelve pips, in the header at every landing site (D-070) |
 | The balance | **Checked, not assumed** — `npm run balance` fails if a site cannot hold all five systems (D-064) |
-| Tests | **772 tests in 35 files** (`npm test`, 2026-11-11) |
+| Tests | **786 tests in 37 files** (`npm test`, 2026-11-12) |
 | Checks | **Clean** — import layers, banned APIs, markup, strict typecheck |
-| Browser checks | **Green** — build 25/25, rover 9/9, the whole journey with no console errors |
+| Browser checks | **Green** — build 25/25, rover 9/9, the day tracker 28/28, the whole journey with no console errors |
 | Save / resume | **Not built** — in-memory only (D-003) |
 | Login before `naming` | **Not built** — Supabase deferred (D-003, TASK-022) |
 | Plan phase | **Deliberately not built** — do not add unasked (D-029) |

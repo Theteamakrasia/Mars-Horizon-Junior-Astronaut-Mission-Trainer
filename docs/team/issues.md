@@ -11,6 +11,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
+| ISS-071 | The act panel's sol counter said "Sol 0 of 12" on the first desk, while everything else on the screen was about sol 1 | low | agent | accepted | — |
 | ISS-067 | The launch parts-tour image shook forever, and launch.css held the panel twice | medium | agent | fixed | this branch |
 | ISS-070 | The launch parts tour could only be moved through with the mouse | medium | agent | fixed | this branch |
 | ISS-069 | The parts tour showed the assembled-craft picture twice, and opened with it | medium | agent | fixed | this branch |
@@ -79,6 +80,27 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | ISS-012 | No CI; nothing runs checks on push | low | agent | fixed | adc5767 |
 | ISS-013 | Vitest runs node-env, no jsdom, so DOM is untestable | low | unassigned | open | — |
 | ISS-014 | `base.css` calls the page non-interactive while draggable | low | agent | fixed | this branch |
+
+---
+
+## ISS-071 — The act panel's sol counter said "Sol 0 of 12" on the first desk, while everything else on the screen was about sol 1
+
+- **Reported by:** agent, 2026-11-12, while adding the mission-day tracker (D-070).
+- **Where:** `src/features/act/view.ts` — the `missionPanel` kicker and the mission bar's
+  progress line.
+- **Problem:** the act panel's kicker reads `Sol {run.sol} of 12`, and `run.sol` counts
+  the sols **already flown**. On the first desk it therefore read "Sol 0 of 12", while
+  the plan on the screen, the three work orders and the button all said sol 1. The
+  number was a count of what was behind the player wearing the clothes of the day they
+  were on.
+- **Cause:** the kicker was written before the day and the count were ever different
+  things, and the two were never separated.
+- **Fix:** not fixed here. The mission-day tracker now carries the day the player is
+  on (D-070), which is `sol + 1` and reads "DAY 1" on that first desk. The plain sol
+  count stays in the mission bar because the player asked for it and it counts a
+  different fact — the sols behind you — but the panel kicker still repeats the old
+  wording, and it is the one place the two are easy to confuse.
+- **Pre-existing:** yes, since the desk was written.
 
 ---
 
