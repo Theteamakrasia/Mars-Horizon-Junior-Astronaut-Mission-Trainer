@@ -11,6 +11,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
+| ISS-069 | The journey check never found the naming screen, so it could not fail and could not pass | medium | agent | fixed | this branch |
 | ISS-066 | The `drag-editor` placement WIP was unreachable, failed `tsc` and failed `check-markup`, and copies of it sat at the repo root | high | agent | fixed | c9b8904 |
 | ISS-065 | Sol 3 had no tool to work at all, and the sorting tool could never earn three stars | medium | agent | fixed | this branch |
 | ISS-064 | The build screen's browser check failed on a third of runs, because it assumed a desk that was always there | low | agent | fixed | this branch |
@@ -75,6 +76,27 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | ISS-012 | No CI; nothing runs checks on push | low | agent | fixed | adc5767 |
 | ISS-013 | Vitest runs node-env, no jsdom, so DOM is untestable | low | unassigned | open | — |
 | ISS-014 | `base.css` calls the page non-interactive while draggable | low | agent | fixed | this branch |
+
+---
+
+## ISS-069 — The journey check never found the naming screen, so it could not fail and could not pass
+
+- **Reported by:** agent, 2026-11-11, while re-running the journey browser check.
+- **Where:** `tools/browser-check-journey.mjs` (the `Page.navigate` URL).
+- **Problem:** the check asked for `http://127.0.0.1:5173/#naming`. Vite's dev server binds
+  the **IPv6** loopback by default, so the IPv4 address answers nothing: every step printed
+  `none` — *1 naming → none, 2 briefing → none, … 7 base → none* — and the check ended
+  with `ERRORS: none`, because a page that never loaded raises no console error. The check
+  had been reporting the same thing on `origin/main` for days, and it was read as a game
+  problem rather than as a broken check.
+- **Cause:** the address was written once, by hand, with the IPv4 loopback in it. Nothing
+  checked that the dev server was actually listening there, and the check has no
+  assertions — it prints what it sees — so a page that never loaded looked the same as a
+  page that loaded and went wrong.
+- **Fix:** the check asks for `http://localhost:5173`, which is what Vite prints. The whole
+  journey now runs: naming → briefing → supply → launch → interior → landing-site → base,
+  with no console errors.
+- **Pre-existing:** yes; the address dates from the check's first version.
 
 ---
 
@@ -1142,7 +1164,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-**Next free id: ISS-067.**
+**Next free id: ISS-070.**
 
 
 ---
