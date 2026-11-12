@@ -80,6 +80,15 @@ than a documented one.
   the matched set", and the pairs now leave the table and leave that set behind — so
   the count is a counter of pairs found, not the size of a set. Caught by reading the
   code back after the change, before it was played.
+- **The memory game compared the wrong two cards (ISS-077).** The cards were numbered
+  before the deck was shuffled, so a card's number was not its place, and the game
+  compared `deck[number]` — a card the player had never touched. Two identical cards
+  were therefore almost never a pair, and the browser check passed anyway because it
+  only asked whether *a* pair came off the table: with the wrong comparison one came
+  off roughly one time in six. The owner found it by playing. The deck is now shuffled
+  first and numbered after, the rule lives in `sim/trainingMemory.ts` where a test can
+  hold it, and the browser check reads the face of both cards the game takes away and
+  asserts they are the same face.
 
 **Next**
 
