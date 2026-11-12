@@ -33,12 +33,23 @@
  *     therefore: grow from the bottom of the frame, so the ground rises toward
  *     the camera, with the whole frame swaying very slightly.
  *
- * One continuous descent
- * ----------------------
- * The three chute frames are one shot split into three: each begins where the
- * one before it ended, so the dissolve between them is a change of size and not
- * a jump. That is why the scales run 1.00 -> 1.06 -> 1.08 -> 1.10 rather than
- * restarting. The landing frame continues the same run.
+ * ONE WAY DOWN, the whole time
+ * -----------------------------
+ * The descent is one move and never stops: 1.00, 1.06, 1.08, 1.10, 1.15.
+ * Every frame from the first chute picture to the last grows from the **same
+ * point** — the bottom of the frame — so the ground stays where it is while
+ * the capsule comes down towards it.
+ *
+ * That is the whole fix for the move that read as a zoom-out. The landing
+ * frame used to grow from the bottom while the chute frame before it grew from
+ * the middle, and the two disagreed about where the ground was: the dissolve
+ * showed the same picture at two different sizes and it read as the camera
+ * pulling back. One origin for the whole descent, and the zoom only ever goes
+ * the same way.
+ *
+ * The approach frame grows from the middle and the descent from the bottom,
+ * and that change is hidden: the black beat sits between them, so the one
+ * place the origin moves is a place nothing is showing.
  *
  * Nothing here is load-bearing
  * -----------------------------
@@ -123,7 +134,7 @@ export interface Beat {
 export const CAPTION_FADE_MS = 400;
 
 /** The whole runtime, in ms. The hand-off happens on this number. */
-export const TOTAL_DURATION_MS = 32000;
+export const TOTAL_DURATION_MS = 17000;
 
 /** The label on the skip button. One word: it is a control, not a sentence. */
 export const SKIP_LABEL = 'Skip';
@@ -134,21 +145,25 @@ export const SKIP_DESCRIPTION = 'Skip the landing sequence and go straight to th
 /**
  * The film.
  *
- * The beats overlap on purpose: the next picture starts to arrive while the
- * one before it is still there, which is what makes the descent read as one
- * continuous shot rather than three cuts.
+ * Seventeen seconds. The beats overlap on purpose: the next picture starts to
+ * arrive while the one before it is still there, which is what makes the
+ * descent read as one continuous shot rather than four cuts.
+ *
+ * The origin of the descent is `50% 100%` on every one of its frames — the
+ * bottom of the frame, where the ground is. That is what keeps the zoom going
+ * one way.
  */
 export const BEATS: readonly Beat[] = [
   {
     id: 'approach',
     image: 'approach',
     startMs: 0,
-    fadeMs: 600,
-    fadeOutStartMs: 9000,
-    fadeOutMs: 500,
-    endMs: 9000,
-    captionFromMs: 700,
-    captionToMs: 8400,
+    fadeMs: 350,
+    fadeOutStartMs: 5000,
+    fadeOutMs: 350,
+    endMs: 5000,
+    captionFromMs: 400,
+    captionToMs: 4600,
     camera: {
       scaleFrom: 1,
       scaleTo: 1.12,
@@ -171,13 +186,13 @@ export const BEATS: readonly Beat[] = [
   {
     id: 'black',
     image: null,
-    startMs: 9000,
-    fadeMs: 500,
+    startMs: 5000,
+    fadeMs: 350,
     fadeOutStartMs: null,
     fadeOutMs: 0,
-    endMs: 10500,
-    captionFromMs: 9550,
-    captionToMs: 10450,
+    endMs: 6700,
+    captionFromMs: 5400,
+    captionToMs: 6600,
     camera: null,
     overlay: null,
     caption: {
@@ -190,13 +205,13 @@ export const BEATS: readonly Beat[] = [
   {
     id: 'chuteFar',
     image: 'chuteFar',
-    startMs: 10500,
+    startMs: 6700,
     fadeMs: 800,
     fadeOutStartMs: null,
     fadeOutMs: 0,
-    endMs: 15500,
-    captionFromMs: 11300,
-    captionToMs: 14500,
+    endMs: 9300,
+    captionFromMs: 7000,
+    captionToMs: 9000,
     camera: {
       scaleFrom: 1,
       scaleTo: 1.06,
@@ -206,7 +221,7 @@ export const BEATS: readonly Beat[] = [
       translateYTo: 0,
       rotateFrom: 0,
       rotateTo: 0,
-      origin: '50% 42%',
+      origin: '50% 100%',
     },
     overlay: 'dust',
     caption: {
@@ -219,13 +234,13 @@ export const BEATS: readonly Beat[] = [
   {
     id: 'chuteMid',
     image: 'chuteMid',
-    startMs: 14700,
+    startMs: 9100,
     fadeMs: 800,
     fadeOutStartMs: null,
     fadeOutMs: 0,
-    endMs: 20500,
-    captionFromMs: 15500,
-    captionToMs: 19300,
+    endMs: 11600,
+    captionFromMs: 9400,
+    captionToMs: 11300,
     camera: {
       scaleFrom: 1.06,
       scaleTo: 1.08,
@@ -235,7 +250,7 @@ export const BEATS: readonly Beat[] = [
       translateYTo: 0,
       rotateFrom: 0,
       rotateTo: 0,
-      origin: '50% 42%',
+      origin: '50% 100%',
     },
     overlay: 'dust',
     caption: {
@@ -248,13 +263,13 @@ export const BEATS: readonly Beat[] = [
   {
     id: 'chuteNear',
     image: 'chuteNear',
-    startMs: 19700,
+    startMs: 11400,
     fadeMs: 800,
     fadeOutStartMs: null,
     fadeOutMs: 0,
-    endMs: 25500,
-    captionFromMs: 20500,
-    captionToMs: 24300,
+    endMs: 13900,
+    captionFromMs: 11700,
+    captionToMs: 13600,
     camera: {
       scaleFrom: 1.08,
       scaleTo: 1.1,
@@ -264,7 +279,7 @@ export const BEATS: readonly Beat[] = [
       translateYTo: 0,
       rotateFrom: 0,
       rotateTo: 0,
-      origin: '50% 42%',
+      origin: '50% 100%',
     },
     overlay: 'dust',
     caption: {
@@ -277,20 +292,24 @@ export const BEATS: readonly Beat[] = [
   {
     id: 'landing',
     image: 'chuteLanding',
-    startMs: 24700,
+    startMs: 13700,
     fadeMs: 800,
-    fadeOutStartMs: 31200,
+    fadeOutStartMs: 16200,
     fadeOutMs: 800,
-    endMs: 31200,
-    captionFromMs: 25500,
-    captionToMs: 30800,
+    endMs: 16200,
+    captionFromMs: 14000,
+    captionToMs: 15900,
     camera: {
       scaleFrom: 1.1,
       scaleTo: 1.15,
       translateXFrom: 0,
       translateYFrom: 0,
       translateXTo: 0,
-      translateYTo: 0,
+      /* The ground comes up to meet the capsule: the picture slides down as it
+         grows, so the horizon moves down the frame and there is more ground in
+         it. The bottom of the frame is already off the screen at this zoom, so
+         the slide never shows an edge. */
+      translateYTo: 2.4,
       rotateFrom: 0,
       rotateTo: 0,
       origin: '50% 100%',
@@ -423,7 +442,7 @@ export function swayAt(beat: Beat, tMs: number): number {
 
   const seconds = (tMs - beat.startMs) / 1000;
 
-  return Number((Math.sin(seconds * 0.9) * 0.6).toFixed(4));
+  return Number((Math.sin(seconds * 1.1) * 0.6).toFixed(4));
 }
 
 /** How thick the dust haze over the landing frame is, 0 to 1. */
@@ -436,7 +455,7 @@ export function hazeOpacityAt(beat: Beat, tMs: number): number {
 }
 
 /** When the warm flash at the end of the landing frame fires, in ms. */
-export const FLASH_FROM_MS = 30800;
+export const FLASH_FROM_MS = 15800;
 
 /** How long the flash lasts, in ms. */
 export const FLASH_MS = 400;

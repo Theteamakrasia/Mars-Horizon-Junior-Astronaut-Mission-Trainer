@@ -76,8 +76,14 @@ describe('the film', () => {
     expect((last.fadeOutStartMs ?? 0) + last.fadeOutMs).toBe(TOTAL_DURATION_MS);
   });
 
-  it('runs for about half a minute', () => {
-    expect(TOTAL_DURATION_MS).toBe(32000);
+  it('runs for about seventeen seconds', () => {
+    expect(TOTAL_DURATION_MS).toBe(17000);
+  });
+
+  it('is quick enough that nobody is waiting to skip it', () => {
+    // The film used to run for half a minute. It is now a short sequence: the
+    // player is on the map, and the outpost is the thing they want.
+    expect(TOTAL_DURATION_MS).toBeLessThan(20000);
   });
 });
 
@@ -138,13 +144,40 @@ describe('the camera', () => {
     expect(landing.camera?.origin).toBe('50% 100%');
   });
 
-  it('keeps the chute in the middle of the frame', () => {
-    for (const beat of PICTURE_BEATS.slice(1, 4)) {
-      expect(beat.camera?.origin).toBe('50% 42%');
+  it('grows the whole descent from one point, so the zoom never turns back', () => {
+    /*
+      The move that read as a zoom-out.
+
+      The landing frame used to grow from the bottom of the frame while the
+      chute frame before it grew from the middle, so the two disagreed about
+      where the ground was and the dissolve showed the same picture at two
+      different sizes. One origin for the whole descent is the fix: the ground
+      stays where it is and the capsule comes down towards it.
+    */
+    for (const beat of PICTURE_BEATS.slice(1)) {
+      expect(beat.camera?.origin).toBe('50% 100%');
     }
   });
-});
 
+  it('only ever grows', () => {
+    for (const beat of PICTURE_BEATS) {
+      const camera = beat.camera;
+
+      if (camera === null) continue;
+
+      expect(camera.scaleTo).toBeGreaterThanOrEqual(camera.scaleFrom);
+    }
+  });
+
+  it('brings the ground up to meet the capsule on the last frame', () => {
+    // The picture slides down as it grows, so the horizon moves down the frame
+    // and there is more ground in it.
+    const landing = BEATS[BEATS.length - 1] as Beat;
+
+    expect(landing.camera?.translateYTo).toBeGreaterThan(0);
+    expect(landing.camera?.translateYFrom).toBe(0);
+  });
+});
 describe('easeInOut', () => {
   it('starts at the start and ends at the end', () => {
     expect(easeInOut(0)).toBeCloseTo(0, 6);
@@ -188,19 +221,19 @@ describe('imageOpacityAt', () => {
   it('is fully there in the middle of the beat', () => {
     const approach = BEATS[0] as Beat;
 
-    expect(imageOpacityAt(approach, 5000)).toBe(1);
+    expect(imageOpacityAt(approach, 2500)).toBe(1);
   });
 
   it('is nothing once the picture has gone', () => {
     const approach = BEATS[0] as Beat;
 
-    expect(imageOpacityAt(approach, 9500)).toBe(0);
+    expect(imageOpacityAt(approach, 5400)).toBe(0);
   });
 
   it('fades in over the own fade', () => {
     const approach = BEATS[0] as Beat;
 
-    expect(imageOpacityAt(approach, 300)).toBeCloseTo(0.5, 5);
+    expect(imageOpacityAt(approach, 175)).toBeCloseTo(0.5, 5);
   });
 
   it('leaves the picture before it fades out, so the dissolve is continuous', () => {
@@ -220,8 +253,8 @@ describe('the black beat', () => {
     const approach = BEATS[0] as Beat;
     const chuteFar = BEATS[2] as Beat;
 
-    expect(imageOpacityAt(approach, 9500)).toBe(0);
-    expect(imageOpacityAt(chuteFar, 10000)).toBe(0);
+    expect(imageOpacityAt(approach, 5400)).toBe(0);
+    expect(imageOpacityAt(chuteFar, 6000)).toBe(0);
   });
 
   it('holds for about a second', () => {
@@ -250,7 +283,7 @@ describe('cameraTransformAt', () => {
   });
 
   it('says nothing for the black beat, which has no picture', () => {
-    expect(cameraTransformAt(BLACK_BEAT, 10000)).toBe('none');
+    expect(cameraTransformAt(BLACK_BEAT, 6000)).toBe('none');
   });
 });
 
@@ -259,7 +292,7 @@ describe('the caption', () => {
     const approach = BEATS[0] as Beat;
 
     expect(captionOpacityAt(approach, approach.captionFromMs - 1)).toBe(0);
-    expect(captionOpacityAt(approach, 5000)).toBe(1);
+    expect(captionOpacityAt(approach, 2500)).toBe(1);
     expect(captionOpacityAt(approach, approach.captionToMs + 1)).toBe(0);
   });
 
@@ -273,15 +306,15 @@ describe('the caption', () => {
   });
 
   it('knows which beat is speaking', () => {
-    expect(captionBeatAt(5000)?.id).toBe('approach');
-    expect(captionBeatAt(10000)?.id).toBe('black');
-    expect(captionBeatAt(12000)?.id).toBe('chuteFar');
+    expect(captionBeatAt(2000)?.id).toBe('approach');
+    expect(captionBeatAt(6000)?.id).toBe('black');
+    expect(captionBeatAt(7500)?.id).toBe('chuteFar');
   });
 
   it('is off the screen between the beats', () => {
     // There is a moment between one caption and the next where nothing is
     // said, so the words never pile up.
-    expect(captionBeatAt(14600)).toBeNull();
+    expect(captionBeatAt(5000)).toBeNull();
   });
 
   it('names the fact ids the data file has to answer for', () => {
@@ -348,7 +381,7 @@ describe('the movement on top of the picture', () => {
   it('puts no haze over the other frames', () => {
     const approach = BEATS[0] as Beat;
 
-    expect(hazeOpacityAt(approach, 5000)).toBe(0);
+    expect(hazeOpacityAt(approach, 2500)).toBe(0);
   });
 
   it('flashes once, at the end of the landing', () => {
@@ -365,8 +398,8 @@ describe('the movement on top of the picture', () => {
 describe('imageBeatAt', () => {
   it('is the frame that owns the screen at that moment', () => {
     expect(imageBeatAt(2000)?.image).toBe('approach');
-    expect(imageBeatAt(12000)?.image).toBe('chuteFar');
-    expect(imageBeatAt(26000)?.image).toBe('chuteLanding');
+    expect(imageBeatAt(7500)?.image).toBe('chuteFar');
+    expect(imageBeatAt(14500)?.image).toBe('chuteLanding');
   });
 
   it('is nothing before the film starts', () => {

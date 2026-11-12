@@ -51,6 +51,7 @@ import {
   captionOpacityAt,
   flashOpacityAt,
   hazeOpacityAt,
+  imageBeatAt,
   imageOpacityAt,
   shakeAt,
   swayAt,
@@ -61,20 +62,16 @@ import {
 import './landing-cinematic.css';
 
 /* Typed asset imports, so Vite fingerprints these and emits them into dist/. */
-import approachUrl from '../../../Assets/images/landing-cinematic/02-approach.jpeg';
-import chuteFarUrl from '../../../Assets/images/landing-cinematic/03-chute-far.jpeg';
-import chuteMidUrl from '../../../Assets/images/landing-cinematic/04-chute-mid.jpeg';
-import chuteNearUrl from '../../../Assets/images/landing-cinematic/05-chute-near.jpeg';
-import chuteLandingUrl from '../../../Assets/images/landing-cinematic/06-chute-landing.jpeg';
+import { LANDING_FRAME_URLS } from '../../ui/landingFrames';
 
-/** The five frames, by the key the model gives them. Keeps the model DOM-free. */
-const IMAGES: Readonly<Record<CinematicImage, string>> = {
-  approach: approachUrl,
-  chuteFar: chuteFarUrl,
-  chuteMid: chuteMidUrl,
-  chuteNear: chuteNearUrl,
-  chuteLanding: chuteLandingUrl,
-};
+/**
+ * The five frames, by the key the model gives them.
+ *
+ * The URLs live in `ui/landingFrames.ts`, because the shell fetches the frames
+ * before the player reaches them and the two must not disagree about which
+ * picture is which.
+ */
+const IMAGES: Readonly<Record<CinematicImage, string>> = LANDING_FRAME_URLS;
 
 /** How long the screen takes to fade to black when the player skips. */
 const SKIP_FADE_MS = 260;
@@ -173,6 +170,10 @@ export function mountLandingCinematic(
 
     const scene = h('div', { class: 'landing-cinematic__scene' }, frame, overlay);
 
+    /* Which beat this layer is. It is how the browser check knows what is on
+       the screen, and it costs one attribute. */
+    scene.dataset.landingScene = beat.id;
+
     layers.push({ beat, scene, frame, haze, flash });
     pictures.push(image);
   }
@@ -242,6 +243,8 @@ export function mountLandingCinematic(
   let finished = false;
   let paused = false;
   let captionBeatId: string | null = null;
+  /** The last whole second written to the screen element's clock. */
+  let lastStamp = -1;
   /** The timer that carries a skipped film to the hand-off. */
   let skipTimer = 0;
 
@@ -252,8 +255,41 @@ export function mountLandingCinematic(
    * of truth for what the screen looks like at any point in the film.
    */
   function paint(t: number): void {
+    /*
+      The film's own clock, on the screen element.
+
+      It is the only way to know what the film is showing rather than what the
+      wall clock says, and the browser check uses it to sample the right
+      moments. It is written when the rounded second changes, not every frame.
+    */
+    const stamp = Math.round(t);
+
+    if (stamp !== lastStamp) {
+      lastStamp = stamp;
+      root.dataset.landingTime = String(stamp);
+    }
+
+    /* The picture that owns the screen, and whether it is on its way out. */
+    const current = imageBeatAt(t);
+    const fadingOut =
+      current !== null && current.fadeOutStartMs !== null && t >= current.fadeOutStartMs;
+
     for (const layer of layers) {
-      const opacity = imageOpacityAt(layer.beat, t);
+      let opacity = imageOpacityAt(layer.beat, t);
+
+      /*
+        A picture that is on its way out reveals black, not the picture under
+        it.
+
+        The frames are stacked, and the dissolve is the next one coming up over
+        the last. So the frame below the landing shot is still sitting there at
+        full strength - and when the landing shot faded out, it would have
+        revealed the parachute frame again for a moment, which read as the film
+        going backwards at the very end. The picture that is leaving takes the
+        ones under it with it, and what is left is the black the film fades
+        into.
+      */
+      if (fadingOut && layer.beat !== current) opacity = 0;
 
       layer.scene.style.opacity = opacity.toFixed(3);
 
