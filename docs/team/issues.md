@@ -11,7 +11,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
-| ISS-102 | The landing film's Skip button was in the bottom right, where the launch reel's is in the top right | low | agent | open | — |
+| ISS-102 | The landing film's Skip button was in the bottom right, where the launch reel's is in the top right | low | agent | fixed | 3e2d07c |
 | ISS-101 | The training check ran a sol and never answered the crisis on it, so the sol never happened | medium | agent | fixed | this branch |
 | ISS-100 | The setup window check expected a sparkle that is now a drawn icon, and read the cost as the wrong thing | low | agent | fixed | this branch |
  and still carried emoji, with a drawn icon set supplied | medium | agent | fixed | this branch |
