@@ -31,6 +31,8 @@ const errors = [];
 const notes = [];
 /** True until the check has cleared the record for itself. */
 let fresh = true;
+/** Set by the page's load event, so a reload can be waited for properly. */
+let pageLoaded = false;
 
 function note(text, ok, detail = "") {
   notes.push({ text, ok, detail });
@@ -292,6 +294,7 @@ try {
 
     if (message.method === "Runtime.exceptionThrown") errors.push(message.params.exceptionDetails.exception?.description ?? message.params.exceptionDetails.text);
     if (message.method === "Runtime.consoleAPICalled" && message.params.type === "error") errors.push(message.params.args.map((a) => a.value ?? a.description).join(" "));
+    if (message.method === "Page.loadEventFired") pageLoaded = true;
   });
 
   await send("Runtime.enable");
@@ -391,9 +394,24 @@ try {
 
   console.log("8 a refresh keeps the training");
   const before = await trainingState();
+
+  /*
+   * The page is reloaded, not re-walked. `toAct()` starts a *new* mission, and
+   * naming clears the training day for one - a new mission is a new day - so
+   * the re-walk threw away the very thing this step is about to measure
+   * (ISS-096). A refresh is the thing under test.
+   *
+   * The wait is for the new document's load event: for a moment after a reload
+   * CDP still evaluates against the page being left, and that page has a desk
+   * on show too, so a poll would answer from the wrong document and the step
+   * would pass for the wrong reason.
+   */
+  pageLoaded = false;
   await send("Page.reload", {});
-  await sleep(2000);
-  await toAct();
+  for (let index = 0; index < 40 && !pageLoaded; index += 1) await sleep(250);
+  await waitFor(`!!document.getElementById("act") && !document.getElementById("act").hidden`);
+  await sleep(1200);
+
   const after = await trainingState();
   note("the day is still two games on", after.count.includes("2/2"), after.count);
   note("the tasks are still open", after.tasksLocked === "false", after.tasks);

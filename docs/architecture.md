@@ -24,7 +24,7 @@ than eyeballed, and it is what `npm run check` protects.
 
 ## The invariant, and why it is enforced
 
-810 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
+962 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
 reference it would still work, and the cost would surface later as an untestable bug.
 Enforced as `no-dom-in-pure-zone`.
 
@@ -152,7 +152,9 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                             Chrome: the build screen's limits and reasons,
     │   │                                             the desk's three orders and six checks, the
     │   │                                             standing orders on the board, the guide, a tool
-    │   │                                             worked for stars, and no console errors. 25 checks.
+    │   │                                             worked for stars, and no console errors. 58 checks
+    │   │                                             (a few fewer when a crisis lands on the sol the
+    │   │                                             check runs).
     │   ├── browser-check-journey.mjs      complete   Node only. Drives the whole journey from the
     │   │                                             naming screen to the outpost and asserts that no
     │   │                                             console error appears on the way.
@@ -160,16 +162,23 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         training section on the standing orders, all six games opening
     │   │                                         and drawing themselves, two games won for points, the day's
     │   │                                         two-game limit refusing a third, and the record surviving a
-    │   │                                         refresh. 37 checks.
-    │   └── browser-check-rover.mjs         complete   ~230 lines. Node only. Drives the real game in
+    │   │                                         refresh. 40 checks.
+    │   ├── browser-check-rover.mjs         complete   ~230 lines. Node only. Drives the real game in
 │                                                 headless Chrome over the DevTools Protocol: names the
 │                                                 astronaut, walks to the outpost, deploys the rover
 │                                                 and checks that the NASA picture really loads and
 │                                                 that the rover's animation really moves. A check,
 │                                                 not a test - `npm test` stays free of a browser.
 │                                                 Needs `npm run build && npm run preview`.
+    │   └── browser-check-save.mjs          complete   Node only. Drives the save in headless Chrome:
+    │                                                 a first visit is asked for a name, starting a
+    │                                                 mission writes the run down, coming back to the
+    │                                                 root shows the greeting and CONTINUE, CONTINUE
+    │                                                 returns to the screen they left, a reload on the
+    │                                                 hash gets its run back, and START OVER takes the
+    │                                                 save away. 15 checks (D-081).
 │
-│   All ten are dev tools: not scanned by `npm run check`, and they add no runtime dependency.
+│   All eleven are dev tools: not scanned by `npm run check`, and they add no runtime dependency.
 │
 ├── scripts/
 │   └── check-imports.mjs               complete   Zone + banned-API checker, 9 rule ids.
@@ -254,6 +263,13 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         `modules`, `science`, `chosenActivity`, `rover`
     │   │                                         and `inspections`. The last two are what put the
     │   │                                         rover and the tools inside the run (D-062).
+    │   ├── save.ts                     complete   SAVE_VERSION, encodeRun, decodeRun: writing a run
+    │   │                                         down and reading it back. Pure, so the whole save
+    │   │                                         format is testable without a browser. The spine is
+    │   │                                         refused rather than guessed at, and everything past
+    │   │                                         it is repaired from a fresh run (D-081). 19 tests.
+    │   ├── save.test.ts                complete   19 tests: the round trip, a refused spine, and the
+    │   │                                         repairs.
     │   ├── activities.ts               complete   ActivitySpec, ActivityOffer, ActivityStores,
     │   │                                         ActivityRequirement, SolPlan, ACTIVITY_CATALOGUE,
     │   │                                         SOL_PLANS, activityById, planForSol, lockedReason,
@@ -422,6 +438,13 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         exactly one screen. Stops any read-aloud before
     │   │                                         a route change. Wired into `main.ts`.
     │   │                                         DOM behaviour UNVERIFIED in a browser.
+    │   ├── save.ts                     complete   SavedGame, readSave, writeSave, clearSave,
+    │   │                                         isSaveableScreen, resumeScreen. The run in this
+    │   │                                         browser's storage: one versioned key, every read
+    │   │                                         wrapped, and where CONTINUE sends the player. The
+    │   │                                         only file that knows storage exists (D-081).
+    │   ├── save.test.ts                complete   8 tests: which screens are worth resuming on, and
+    │   │                                         where CONTINUE falls back to when one is not.
     │   ├── button-strip.ts             complete   createButtonStrip(root, options) -> ButtonStripSpec;
     │   │                                         full-width fixed-height bottom strip owning Next /
     │   │                                         Prev / action buttons; teardown mandatory.
@@ -489,7 +512,9 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         a sheet is not affected by the panel's own
     │   │                                         scroll or its one-column collapse. The body
     │   │                                         scrolls, so its children are told not to
-    │   │                                         shrink (ISS-076).
+    │   │                                         shrink (ISS-076). Two backdrops: a section
+    │   │                                         sheet at 105, and one opened over it at
+    │   │                                         108 (D-079).
     │   ├── training.ts                 complete  trainingSection(run, options) -> HTMLElement,
     │   │                                         openTrainingGame(id, options) -> TrainingGameScreen | null,
     │   │                                         readTrainingRecord, writeTrainingDay, applyTrainingRecord. The
@@ -945,7 +970,9 @@ There is **no navigation bar on the entry screen**. The app has one navigation b
 shared `.gl__header` drawn by `gameHeader()` in `ui/gameLoop.ts`, and it appears on
 exactly the four screens a player reaches once they are under way: `landing-site`,
 `base`, `act` and `debrief`. `naming` and `briefing` carry none, and neither do
-`supply`, `launch` or `interior`. Before this pass the app had four separate headers
+`supply`, `launch` or `interior`. The header's encyclopedia book is on **three** of those
+four: it is earned by reaching the outpost, so `landing-site` carries the same bar without
+it (D-080). Before this pass the app had four separate headers
 (`naming__header`, `briefing__header`, `landing-site__header` and `.gl__header`), each
 sized and drawn differently.
 
@@ -953,9 +980,11 @@ The planet rotates **in the image plane** (`rotate()`), not on a 3D axis. This i
 forced by the asset: a sphere spun about its own axis looks identical, so a `rotateY`
 would appear to do nothing (D-020).
 
-Zero storage and no backend. The only state is the in-memory `RunState` that
-`main.ts` owns and passes to each screen as `(root, run, setRun)`; a refresh loses it,
-because persistence is deferred (D-003).
+The only game state is the `RunState` that `main.ts` owns and passes to each screen as
+`(root, run, setRun)`. It is also **written to this browser as it changes** and loaded
+before the router starts, so a closed tab can be picked back up from the menu's CONTINUE
+(D-081). There is still no backend: the save is one `localStorage` key, not an account, so
+a different browser starts a different run and Supabase remains deferred (D-003).
 
 There are two network paths outside the landing page, both in `data/`.
 
@@ -989,13 +1018,17 @@ which of the two it is showing.
     `startFloatingAstronaut`, storing the teardown.
 11. The `change` listener attaches **only** when no URL override was requested.
 12. The first `requestAnimationFrame` is scheduled.
-13. `main.ts` collects the landing page's own layers into `landingLayers`, then
-    `startScreenRouter()` calls `startRouter`, which resolves the hash — defaulting to
-    `naming` — and mounts that screen, hiding the landing layers behind it.
-14. In a dev build with `?editlayout=1`, `main.ts` loads `ui/baseLayoutEditor` with a
+13. `main.ts` collects the landing page's own layers into `landingLayers`.
+14. The saved run is read (`readSave` in `ui/save.ts`) and put back into `run` **before**
+    anything mounts, so a browser that restored a tab on `#/act` gets the desk with its run
+    rather than the desk's "no run" fallback (D-081).
+15. `startScreenRouter()` calls `startRouter`, which resolves the hash — defaulting to
+    `naming` — and mounts that screen, hiding the landing layers behind it. Mounting a
+    journey screen writes the save again, so the resume point follows the player.
+16. In a dev build with `?editlayout=1`, `main.ts` loads `ui/baseLayoutEditor` with a
     dynamic import. The editor is attached to whichever screen is mounted, and to
     nothing in a production build (D-065).
-15. In a dev build, a layout file with problems in it is listed in the console
+17. In a dev build, a layout file with problems in it is listed in the console
     (D-068). The game still starts: it falls back to what it can.
 
 Routing is last so every screen it can mount is already defined. `BACK TO MAIN MENU`
@@ -1039,7 +1072,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 | `ui/activityPlayer` | `Inspection`, `InspectionResult`, `makeInspection` | `(engine, sol) -> Inspection`; the work-order player for one order: which tool it uses, what the two readings ask for, and how it is graded. The grading itself is in `sim/minigames.ts`, so the rules stay pure (D-060). `Inspection.done()` reports whether the player has finished; nothing gates on it yet, so the Finish button is always there |
 | `ui/guide` | `guidePanel`, `guideButton` | `guidePanel(onClose) -> HTMLElement`; the how-to-play **popup**, returned as the **backdrop** so the caller can mount it on `document.body`. The astronaut stands on the left and the words are in a speech bubble on the right, **one step per page**, with a header pill, a tail pointing at him, Next, Back, page dots, Read aloud and a close button. It owns `Escape`, the backdrop click, a Tab trap, `ArrowLeft`/`ArrowRight` to turn pages, and hands the focus back to the `?` button when it closes. Mounted on the document rather than inside the screen, so a redraw behind it cannot reset the page (ISS-077). `guideButton(onOpen) -> HTMLButtonElement`; the `?` icon button in the header, beside Menu, on every screen that opts in with `ScreenOptions.help`. The words are in `sim/guide.ts` (D-060, D-070, D-073) |
 | `ui/icons` | `IconName`, `ICON_PATHS`, `RESOURCE_ICON`, `RANK_ICON`, `icon` | `ICON_PATHS: Record<IconName, readonly Shape[]>` — the game's 35 stroked 24×24 line drawings, drawn through `dom/svg.svg`. `icon(name, label?) -> SVGSVGElement`: decorative and hidden from a screen reader unless `label` is given, in which case it becomes an `img` with that name. `RESOURCE_ICON` maps the five stores, `RANK_ICON` the five science ranks. Pure data plus one DOM builder, so a test can read every path without a browser (D-070) |
-| `ui/sheet` | `SheetOptions`, `sheet`, `sheetCloseButton` | `(options: {icon, kicker?, title, body, footer?, doneLabel?, onClose}) -> HTMLElement`; one section of a screen as a dialog over it: backdrop, card, header bar, scrolling `.sheet__body`, closing button, and one `onClose` for the close button, the done button, the backdrop and `Escape`. A Tab trap keeps focus inside. The body's children keep their own heights and the body scrolls, so a picture is never clipped by its own card (ISS-076). `sheetCloseButton(mounted) -> HTMLElement \| null` finds the button to focus once it is in the document. The act hub's five or six tiles open into it (D-070) |
+| `ui/sheet` | `SheetOptions`, `sheet`, `sheetCloseButton` | `(options: {icon, kicker?, title, body, footer?, doneLabel?, layer?, onClose}) -> HTMLElement`; one section of a screen as a dialog over it: backdrop, card, header bar, scrolling `.sheet__body`, closing button, and one `onClose` for the close button, the done button, the backdrop and `Escape`. A Tab trap keeps focus inside. The body's children keep their own heights and the body scrolls, so a picture is never clipped by its own card (ISS-076). `layer` picks the rung of the stacking ladder: `section` (105) by default, `tool` (108) for a sheet opened **over** another sheet. `sheetCloseButton(mounted) -> HTMLElement \| null` finds the button to focus once it is in the document. The act hub's five or six tiles open into it (D-070) |
 | `sim/drift` | `stepDrift` | `(state, dt, size, viewport) -> DriftResult`; reflects off walls, returns the fastest `Impact` or null |
 | | `createInitialDrift` | `(size, viewport, speed) -> DriftState`; random 30-45 degree diagonal. **5 `Math.random()` calls** |
 | | `driftSpeedForViewport` | `(width) -> number`, clamped 96..176 px/s |
@@ -1126,7 +1159,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 | `sim/trainingSolar` | `generateSolarPuzzle`, `solarFlow`, `rotateSolarTile`, `solarTapsNeeded`, `solarPerformance` | the power board, generated rather than written down: a route is carved and every tile on it is turned away from its answer, so the game is always winnable and never starts solved (D-075) |
 | `sim/trainingCargo` | `CARGO_BOXES`, `CARGO_ITEMS`, `dealCargoRound`, `cargoPerformance` | the supplies that land and the stores they belong in. Every store gets at least one crate (D-075) |
 | `sim/trainingAsteroid` | `ASTEROID_GOAL`, `ASTEROID_SECONDS`, `asteroidDelay`, `asteroidLife`, `asteroidIsDecoy`, `asteroidAccuracy`, `asteroidPerformance` | the round outside the outpost: what drifts past, how fast, and what a friendly satellite costs the player (D-075) |
-| `ui/training` | `trainingSection`, `openTrainingGame`, `readTrainingRecord`, `writeTrainingDay`, `applyTrainingRecord` | the ASTRONAUT TRAINING section at the top of the Standing orders sheet, the dialog a game is played in, and the record of the day's training. The record is written to `localStorage` under one key, so a refresh does not hand the player the same two games again; everything else in the run is still in memory (D-075) |
+| `ui/training` | `trainingSection`, `openTrainingGame`, `readTrainingRecord`, `writeTrainingDay`, `applyTrainingRecord` | the ASTRONAUT TRAINING section at the top of the Standing orders sheet, the dialog a game is played in, and the record of the day's training. The record is written to `localStorage` under one key, so a refresh does not hand the player the same two games again (D-075); the run itself is saved separately by `ui/save.ts` (D-081) |
 | | `applyTrainingRecord` | `(run) => RunState`; puts the written-down training back onto a run that has not trained yet today. A run that has already trained keeps what it did — the session is the truer record, and a browser that refused to write must not take points away (D-075) |
 | `ui/trainingGame` | `TrainingGameContext`, `TrainingGameHandle`, `TrainingGameMount` | the contract every training game keeps: a status line, a completion callback, a generator, and a `destroy` that stops every timer the game started (D-075) |
 | `sim/patches` | `Patch`, `patchesFor`, `PATCH_COUNT` | the ten badges a run earns, worked out from the run itself; the debrief prints the ones that were earned (D-060). No `icon`: `features/debrief/view.ts` maps a patch id to an `IconName` (D-070) |
@@ -1144,10 +1177,14 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `RunStatus`, `SolEvent`, `DecisionRecord`, `SolRecord`, `SolActivity`, `Inspection` | what a sol did: the stores, the net, the blackout, the activity, the events and the notes. `Inspection` is how many stars an order was worked for |
 | | `newRun` | `(regionId, astronautName?) -> RunState` |
 | | `landAt` | `(run, regionId) -> RunState`; sets the region, keeping the astronaut's name |
+| | `hasReachedOutpost` | `(run: RunState \| null) -> boolean`; true once a landing site has been chosen, so the crew is on Mars. The one question a screen asks about how far a run has got — it gates the header's encyclopedia book, and `base`'s no-run fallback fails it on purpose (D-080) |
 | | `startOutpost` | `(run, modules) -> RunState`; lands the outpost with full batteries and the shielding those modules give, and resets the score |
 | | `withState` | `(run, patch) -> RunState` |
 | | `answerRoverFind` | `(run, answer) -> RunState`; answers the find the rover brought back and adds `FIND_SCIENCE`. A no-op when nothing waits |
 | | `recordInspection`, `inspectionStars` | how an order was worked, and how many stars it won (D-063) |
+| `sim/save` | `SAVE_VERSION` | 1 — bumped when `RunState` changes shape in a way the decoder cannot repair, so an old save is ignored rather than half-read (D-081) |
+| | `encodeRun` | `(run) -> unknown`; the run as something `JSON.stringify` can carry. A copy, so a later `withState` cannot reach into text already written |
+| | `decodeRun` | `(unknown) -> RunState \| null`; the spine (sol, region, name, stores, status, modules, panel health, science) is required, and everything past it is repaired from a fresh run. Null when there is no run to resume |
 | `ui/routes` | `Route` | `'naming' \| 'briefing' \| 'supply' \| 'launch' \| 'interior' \| 'landing' \| 'landing-site' \| 'base' \| 'act' \| 'debrief'` |
 | | `ROUTE_ORDER` | the routes in play order, `naming` first |
 | | `DEFAULT_ROUTE` | `'naming'` — the entry screen (D-021) |
@@ -1156,6 +1193,10 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `nextRoute`, `previousRoute` | `(route) -> Route \| null`; null at the ends |
 | `ui/router` | `startRouter` | `({onRoute, onUnknownHash?}) -> teardown`; fires `onRoute` once immediately and on every `hashchange`; normalises an unknown hash via `replaceState` |
 | | `navigate` | `(route) => void`; assigns `location.hash` so Back works. `startRouter` calls `stopReading()` on every route change so a voice cannot follow the player into the next screen |
+| `ui/save` | `SavedGame` | `{ run, screen }` — the run and the screen the player left it on |
+| | `readSave`, `writeSave`, `clearSave` | the one versioned key (`mars-horizon.save.v1`), every read wrapped. A browser that refuses storage costs the player nothing but the ability to come back (D-081) |
+| | `isSaveableScreen` | `(route) -> boolean`; a stop in the journey, and not the menu that offers CONTINUE |
+| | `resumeScreen` | `(save) -> Route`; the screen they left, or — for a save that cannot go there — the report, the desk or the briefing, in that order |
 | `ui/registry` | `screenMount` | `(route) => selector \| null`; null when nothing is built for that route |
 | | `resolveScreen` | `(route) => ScreenFactory \| null`; null when nothing is built |
 | | `nextStop` | `(route) => Route \| null`; the next built screen, or the placeholder when the next is unbuilt |
@@ -1165,7 +1206,8 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `normaliseName` | trims and collapses whitespace runs |
 | | `checkName` | `(raw) -> {ok, value, problem}`; returns the normalised value so a caller never normalises twice |
 | | `displayName` | strips control characters and caps length — the one string interpolated into markup |
-| `features/naming/view` | `mountNaming` | `(root, run, setRun) -> teardown`; START MISSION disabled until the name is usable |
+| | `ReturningPlayer`, `ReturningMenu`, `returningMenu` | `({name, sol, landed, finished}) -> {greeting, note}`; the menu's two lines for a player with a run on this device — "Welcome back, Riley." and where they stopped (D-081) |
+| `features/naming/view` | `mountNaming` | `(root, run, setRun) -> teardown`; START MISSION disabled until the name is usable. With a save on the device it shows the greeting, CONTINUE and START OVER instead of the form |
 | `features/supply/model` | `SUPPLY_BEATS`, `CHOICES`, `CORRECT_ANSWER` | the six spoken facts, the four answer buttons and the right answer |
 | | `packsFor`, `judge`, `hintFor` | the ration arithmetic and what to say about a wrong pick; no answer in the working until it is earned |
 | | `isPlainEnter` | `(key, modifiers) -> boolean`; an unmodified Enter is the one key the screen answers |
@@ -1179,7 +1221,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 | `features/landing-site/view` | `mountLandingSite` | `(root, run, setRun) -> teardown`; map + five pins + Site Analysis panel, LAND HERE calls `landAt` then navigates to `nextStop('landing-site')`. Selecting a pin also shows that region's real NASA photo and fact (`regionCard`). It also prepends the shared navigation bar (`gameHeader('LANDING SITE', …)`) and removes it on teardown, so this screen carries the same bar as `base`, `act` and `debrief` |
 | `ui/gameLoop` | `gameScreen`, `gameWorld`, `gamePanel`, `gameSection`, `gameHeader`, `gameHud`, `HeaderOptions`, `PanelOptions`, `ScreenOptions`, `HudStat`, `SignalCard`, `WorldOptions` | the shared frame from the Figma frames (D-038): one `.gl` root, the illustrated world panel, and the scrolling right-hand panel. Every word, number and variant arrives in an options object; no `sim/` rule is applied here. `HudStat.icon`, `SignalCard.icon` and `WorldOptions.weatherIcon` are `IconName`, never a glyph (D-070) |
 | | `moduleFigures`, `moduleArt`, `MODULE_ART`, `WORLD_BACKGROUND`, `ASTRONAUT_SPRITE` | the artwork the world panel draws, owned here so `base`, `act` and `debrief` do not copy the imports |
-| | `gameHeader`, `gameHud`, `gameDock` | `gameHeader(options: HeaderOptions)`; without `onLeave` the right-hand label is plain decorative text; with it, the right side becomes the book (encyclopedia), the screen's own `help` button and a Menu button opening an in-screen leave dialog with Keep playing / Leave mission (D-044). `showEncyclopedia: false` hides the book on the page the book leads to (ISS-072). `gameHud` draws the five resource cards (`HudStat`) and `gameDock` the three-tab dock. `day` puts the mission-day tracker in the bar, between the brand and the controls: a screen with a run in play passes one, and a screen without one leaves its bar unchanged (D-070). The pause/settings/BUILD pills and the dock are `aria-hidden` spans, not buttons (D-038) |
+| | `gameHeader`, `gameHud`, `gameDock` | `gameHeader(options: HeaderOptions)`; without `onLeave` the right-hand label is plain decorative text; with it, the right side becomes the screen's own `help` button and a Menu button opening an in-screen leave dialog with Keep playing / Leave mission (D-044), plus the **encyclopedia book when the screen asks for it** — `showEncyclopedia` is off unless a screen passes true, and only `base`, `act` and `debrief` do, because the reference is earned at the outpost (D-080). `gameHud` draws the five resource cards (`HudStat`) and `gameDock` the three-tab dock. `day` puts the mission-day tracker in the bar, between the brand and the controls: a screen with a run in play passes one, and a screen without one leaves its bar unchanged (D-070). The pause/settings/BUILD pills and the dock are `aria-hidden` spans, not buttons (D-038) |
 | | `gameSection` | `(label, ...content) -> section`; an uppercase label and its body |
 | | `gameScreen` | `(options: ScreenOptions) -> section`; `help` carries the guide's `?` icon button in the header (D-060, D-070), and `panel.corner` puts the panel head's one right-hand fact in place (the science points, on `act`). There is no mission bar: it was removed in D-070, so the panel's own kicker names the day. `day?: DayModel` puts the mission-day tracker in the header (D-070). The rover button is gone: the rover is part of the run now, not a widget on the wall (D-062) |
 | | `moduleFigures`, `moduleArt`, `MODULE_ART`, `WORLD_BACKGROUND`, `ASTRONAUT_SPRITE` | artwork placement and the bundled asset URLs; the only import site for the figures base, act and debrief share |
@@ -1200,7 +1242,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `hubTiles(run, context)`, `HubSection`, `HubTile`, `HubContext` | the desk as five buttons, or six once a sol has run: each a label, one line of state, a `chips` list for the review, and whether it `attention`s. Pure words — no icon, because a model may not import `ui/` (D-070) |
 | | `scienceSummary`, `scienceSentence` | the score, the rank, and the road to the next one |
 | | `powerToday` | `(run) => number`; the power the crew can actually spend today — what is left after the panels have filled the batteries and the systems have taken their share. It is the number the order prices come out of, and the number the power card shows (ISS-060) |
-| `features/act/view` | `mountAct` | `(root, run, setRun) -> teardown`; **the desk is a hub of five buttons, or six after a sol** (D-070): today's tasks, the desk, the standing orders, the colony stats, NASA's real data, and the review of the last sol. Each is a label and one line of state, and each opens its section as a `ui/sheet` over the desk. The review tile carries the sol's net-change chips, so a change is never only behind a button (ISS-057). The science points sit in the panel head's top right and `Sol N of 12` in its kicker (ISS-073). The **real data sheet is the whole NASA layer** (D-071): the live daily picture, the saved card for the sol, the landing region's own photograph, NASA's own space-weather readings with their source, and two NASA facts; the tile counts what is behind it. Run sol calls `advanceSol`, then `setRun`; a finished run navigates to `debrief`. A crisis replaces the hub in place, with its countdown and "take your time" switch (D-040). An activity's pictogram is mapped from its id here, not in `sim/` |
+| `features/act/view` | `mountAct` | `(root, run, setRun) -> teardown`; **the desk is a hub of five buttons, or six after a sol** (D-070): today's tasks, the desk, the standing orders, the colony stats, NASA's real data, and the review of the last sol. Each is a label and one line of state, and each opens its section as a `ui/sheet` over the desk. The review tile carries the sol's net-change chips, so a change is never only behind a button (ISS-057). The science points sit in the panel head's top right and `Sol N of 12` in its kicker (ISS-073). The **real data sheet is the whole NASA layer** (D-071): the live daily picture, the saved card for the sol, the landing region's own photograph, NASA's own space-weather readings with their source, and two NASA facts; the tile counts what is behind it. The **mini game opens in its own sheet**, over the orders it belongs to, and never inside the desk sheet (D-079, ISS-093). Run sol calls `advanceSol`, then `setRun`; a finished run navigates to `debrief`. A crisis replaces the hub in place, with its countdown and "take your time" switch (D-040). An activity's pictogram is mapped from its id here, not in `sim/` |
 | `features/debrief/model` | `explainOutcome` | `(run) -> {headline, detail, confident}`; conservative ledger attribution — only claims a cause when a logged fact establishes it, otherwise `confident: false` and the screen points at the timeline |
 | | `scienceReport`, `scienceHeadline`, `scienceDetail`, `scienceSentence` | what science the run did, the rank it earned, and every activity the crew chose. Measures the science, not the outcome (D-052) |
 | | `consumptionSummary`, `lowestPoints`, `blackoutSols`, `reviewDecisions`, `timeline` | arithmetic over the log; per-decision verdicts from fixed option rules; one row per sol |
@@ -1291,10 +1333,15 @@ Deliberate shortcuts, and why each was accepted.
    jsdom (ISS-013), so the pure half (`routes.ts`) carries the tests. The browser
    behaviour is unverified (TASK-049).
 4. **Routing is hash-based rather than a state machine.** Costs a URL bar and a
-   `hashchange` listener. Rejected multi-page because there is no persistence, so a
-   navigation would lose the run state a multi-mission loop needs.
-5. **No persistence of any kind.** No `localStorage`, no cookie, no backend. Accepted:
-   Supabase is deferred (D-003).
+   `hashchange` listener. Rejected multi-page because a navigation between HTML
+   pages would still lose the in-memory run, and the save that could restore it is
+   written on one origin (D-081). Hash routing also keeps the landing page alive
+   behind the game and lets every screen be deep-linked for the demo.
+5. **One device-local save, and no backend.** The run and the training day are written to
+   `localStorage` under two versioned keys (`mars-horizon.save.v1`,
+   `mars-horizon.training.v1`), so a closed tab can be resumed and two training games cannot
+   be farmed by refreshing (D-075, D-081). No cookie, no account, no server: Supabase is
+   still deferred (D-003), and clearing the cache is a new game.
 6. **`MAX_SUBSTEP_SECONDS` is duplicated as `1/120` in `drift.ts` and `deform.ts`.**
    Accepted because the integrators are independent and could legitimately diverge.
 7. **`starfield.ts` uses `Math.random()` with no seeding option.** The field is decorative

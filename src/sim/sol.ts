@@ -174,7 +174,7 @@ const ZERO: ResourceStores = { power: 0, oxygen: 0, water: 0, food: 0, shielding
  * found slows life support. Everything else follows from how much of the sol the
  * lights stayed on.
  */
-export function advanceSol(run: RunState): RunState {
+export function advanceSol(run: RunState, roverRoll?: number): RunState {
   if (run.status !== 'active') return run;
 
   const sol = run.sol + 1;
@@ -327,7 +327,7 @@ export function advanceSol(run: RunState): RunState {
    * fit is what spills.
    */
   let level = run.stores.power + generatedDay + (generatedNuclear / 2) - dayDraw - extraPowerCost;
-  const wasted = Math.max(0, level - capacity);
+  let wasted = Math.max(0, level - capacity);
 
   level = Math.min(capacity, level);
 
@@ -340,6 +340,14 @@ export function advanceSol(run: RunState): RunState {
   if (level < 0) {
     unmet += -level;
     level = 0;
+  }
+
+  /* Night power from a nuclear unit has nowhere to go when the batteries are
+     already full. It used to vanish without a word, so the review showed a gain
+     that never reached the battery. It is counted as wasted like the sunlight. */
+  if (level > capacity) {
+    wasted += level - capacity;
+    level = capacity;
   }
 
   const demand = loadKw * (SUN_HOURS + NIGHT_HOURS) + extraPowerCost;
@@ -435,7 +443,12 @@ export function advanceSol(run: RunState): RunState {
 
   if (activity !== null && activity.sendsRover === true) {
     rover = deployRover(rover, sol);
-    rover = discover(rover, ROVER_FINDS, pickForSol(sol, remainingFinds(rover, ROVER_FINDS).length));
+    const pick =
+      roverRoll === undefined
+        ? pickForSol(sol, remainingFinds(rover, ROVER_FINDS).length)
+        : Math.min(0.999, Math.max(0, roverRoll));
+
+    rover = discover(rover, ROVER_FINDS, pick);
   }
 
   return {

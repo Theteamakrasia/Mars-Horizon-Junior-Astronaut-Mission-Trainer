@@ -211,7 +211,15 @@ export interface ScreenOptions {
    * build screen each own whether theirs is open.
    */
   readonly help?: HTMLElement | null;
-  /** Set false on the encyclopedia itself, where the book would link to itself. */
+  /**
+   * The book in the header.
+   *
+   * **Off unless the screen asks for it.** The encyclopedia is a reference to
+   * equipment and modules, and it is earned by reaching the outpost: `base`,
+   * `act` and `debrief` pass true once the crew has landed, and every screen
+   * before that draws the same bar without it (D-080). A screen that forgets
+   * the option shows no reference book, which is the safe way to be wrong.
+   */
   readonly showEncyclopedia?: boolean;
 }
 
@@ -223,10 +231,10 @@ export interface HeaderOptions extends Pick<ScreenOptions, 'headerSub' | 'onLeav
  *
  * Drawn as the standard page header: a rocket mark, the MARS HORIZON brand,
  * the screen name, and its controls on the right. With `onLeave` those controls
- * are the reference (a book), the screen's help, and a Menu button that asks
- * before abandoning an unsaved run. Without it, the header keeps the old
- * non-interactive label, because a screen with nothing to leave should not
- * offer a control that does nothing.
+ * are the reference (a book, when the screen asks for it), the screen's help,
+ * and a Menu button that asks before abandoning an unsaved run. Without it, the
+ * header keeps the old non-interactive label, because a screen with nothing to
+ * leave should not offer a control that does nothing.
  *
  * `day` puts the mission-day tracker in the bar, between the brand and the
  * controls. A screen with a run in play passes one; a screen without one (the
@@ -278,7 +286,7 @@ export function gameHeader(options: HeaderOptions = {}): HTMLElement {
   const actions = h(
     'nav',
     { class: 'gl__actions', 'aria-label': 'Screen controls' },
-    options.showEncyclopedia === false ? null : book,
+    options.showEncyclopedia === true ? book : null,
     options.help ?? null,
     button,
   );

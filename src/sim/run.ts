@@ -3,8 +3,10 @@
  * it down; features must never import each other to get it (`npm run check`
  * fails that as `cross-feature`).
  *
- * There is no persistence in this project, so a RunState lives only as long as
- * the page does. Supabase is deferred — see decision D-003.
+ * It is written to this browser's storage as it changes (`ui/save.ts`), so a run
+ * outlives the tab it was played in. That is a device-local save and nothing
+ * more: there is no account and no server, so a different browser starts a
+ * different run. Supabase is deferred — see D-003, and D-081 for the save.
  */
 
 import type { ForecastEvent } from './forecast';
@@ -116,7 +118,7 @@ export interface RunState {
   readonly sol: number;
   /** Set by `landing-site`. Empty until then. */
   readonly regionId: string;
-  /** Set by `naming`. In memory only, so a refresh loses it (D-003). */
+  /** Set by `naming`. Written down with the rest of the run (D-081). */
   readonly astronautName: string;
   readonly stores: ResourceStores;
   readonly status: RunStatus;
@@ -191,6 +193,20 @@ export function newRun(regionId: string, astronautName = ''): RunState {
  */
 export function landAt(state: RunState, regionId: string): RunState {
   return newRun(regionId, state.astronautName);
+}
+
+/**
+ * True once the crew is on Mars: a landing site has been chosen, so an outpost
+ * is real.
+ *
+ * This is the question a screen asks when it needs to know whether the player
+ * has got as far as the outpost — the header's encyclopedia book is one, and it
+ * is only offered from `base` onwards (D-080). It cannot be "is there a run",
+ * because `base` falls back to `newRun('')` when it is handed none, and a run
+ * with no region has not landed anywhere.
+ */
+export function hasReachedOutpost(run: RunState | null): boolean {
+  return run !== null && run.regionId !== '';
 }
 
 /**

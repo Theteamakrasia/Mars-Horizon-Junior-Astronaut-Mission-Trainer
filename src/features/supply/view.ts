@@ -189,7 +189,14 @@ export function mountSupply(
    * again rather than remember the answer.
    */
   const puzzle = puzzleFor(run?.astronautName ?? '');
-  const choices = puzzle.choices;
+  /* Same question, but the buttons are shuffled afresh on every visit so the
+     answer is never in the same place twice. */
+  const choices = [...puzzle.choices];
+
+  for (let i = choices.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [choices[i], choices[j]] = [choices[j] as number, choices[i] as number];
+  }
   const correct = puzzle.correct;
   const prompt = puzzle.prompt;
   const months = puzzle.question.months;

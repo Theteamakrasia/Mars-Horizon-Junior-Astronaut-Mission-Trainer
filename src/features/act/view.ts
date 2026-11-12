@@ -26,7 +26,7 @@ import { loadForecast, type LoadedForecast } from '../../dom/forecastLoader';
 import { h } from '../../dom/h';
 import { canAffordOption, earthAdvice, earthIsInTime, fallbackOption, optionOf, pendingCrisis, type Crisis } from '../../sim/crises';
 import { oneWayMinutes, roundTripMinutes } from '../../sim/comms';
-import { answerRoverFind, recordInspection, withState, type RunState } from '../../sim/run';
+import { answerRoverFind, hasReachedOutpost, recordInspection, withState, type RunState } from '../../sim/run';
 import { makeInspection, type Inspection } from '../../ui/activityPlayer';
 import { guideButton, guidePanel } from '../../ui/guide';
 import { ENGINE_NAME, engineUnlocked, type EngineKind } from '../../sim/minigames';
@@ -116,6 +116,33 @@ const ORDER_ICON: Readonly<Record<string, IconName>> = {
 /** The pictogram for an order the catalogue does not name. */
 const ORDER_ICON_FALLBACK: IconName = 'clipboard';
 
+/**
+ * The order the day's tasks are shown in.
+ *
+ * Kept outside the screen so leaving the desk and coming back during the same
+ * sol does not deal the tasks again; a new sol (or a new run) draws a new order.
+ */
+let taskOrderSol = -1;
+let taskOrderIds: string[] = [];
+
+function shuffleForSol<T extends { readonly id: string }>(rows: readonly T[], sol: number): readonly T[] {
+  const same = taskOrderSol === sol && taskOrderIds.length === rows.length && rows.every((row) => taskOrderIds.includes(row.id));
+
+  if (!same) {
+    const ids = rows.map((row) => row.id);
+
+    for (let i = ids.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [ids[i], ids[j]] = [ids[j] as string, ids[i] as string];
+    }
+
+    taskOrderSol = sol;
+    taskOrderIds = ids;
+  }
+
+  return [...rows].sort((a, b) => taskOrderIds.indexOf(a.id) - taskOrderIds.indexOf(b.id));
+}
+
 export function mountAct(
   mount: HTMLElement,
   initial: RunState | null,
@@ -133,9 +160,13 @@ export function mountAct(
   let openSheet: HubSection | null = null;
   /** Where the open sheet was scrolled to, so a redraw does not jump to the top. */
   let sheetScroll = 0;
+  /** The same, for the mini game's own sheet, which sits over the section. */
+  let toolScroll = 0;
   /** What to focus after the next render, because the thing they were on is replaced. */
   let focusSheet = false;
   let focusTile: HubSection | null = null;
+  /** The order whose inspect button to focus when the mini game closes. */
+  let focusToolButton: string | null = null;
   /** Whether the how-to-play guide is open. */
   let guideOpen = false;
   /**
@@ -189,7 +220,7 @@ export function mountAct(
     /* A new sol is a new day of training: the record for it is put back on
        the run, so the two games are available again and the points of the
        day before are left alone. */
-    run = applyTrainingRecord(advanceSol(run));
+    run = applyTrainingRecord(advanceSol(run, Math.random()));
     setRun(run);
 
     /* The sol that has just been flown, so the header's day tracker can flash
@@ -357,6 +388,26 @@ export function mountAct(
     openSheet = null;
     sheetScroll = 0;
     focusTile = closed;
+    /* A mini game belongs to the section it was opened from. Closing that
+       section closes the tool with it, or it would still be there next time
+       the player opened the section (ISS-093). */
+    openTool = null;
+    toolScroll = 0;
+    render();
+  }
+
+  /**
+   * Close the mini game's sheet and put the player back on the order.
+   *
+   * The section sheet underneath is never closed: the player was working an
+   * order, and closing the tool puts them back on that order with it stamped.
+   */
+  function closeTool(): void {
+    const worked = openTool?.activityId ?? null;
+
+    openTool = null;
+    toolScroll = 0;
+    focusToolButton = worked;
     render();
   }
 
@@ -460,6 +511,11 @@ export function mountAct(
 
   /* ------------------------------------------------------------- sections -- */
 
+  /** Today's work orders in a random order that stays put for the whole sol. */
+  function shuffledRows(state: RunState): ReturnType<typeof activityRows> {
+    return shuffleForSol(activityRows(state, state.sol + 1), state.sol + 1);
+  }
+
   /**
    * The work orders for today.
    *
@@ -469,7 +525,7 @@ export function mountAct(
    * a menu with three buttons on it.
    */
   function orderList(state: RunState): HTMLElement {
-    const rows = activityRows(state, state.sol + 1);
+    const rows = shuffledRows(state);
     const list = h('div', { class: 'act-orders' });
 
     for (const row of rows) {
@@ -539,11 +595,16 @@ export function mountAct(
         );
 
         inspect.addEventListener('click', () => {
+          /* The mini game opens in its OWN sheet, over this one (ISS-093). It
+             used to switch the player to the desk sheet and hang the tool off
+             the desk, which merged two unrelated things and left the tool
+             there after it was closed. */
           openTool = { activityId: row.id, tool: makeInspection(row.engine as EngineKind, state.sol + 1) };
-          openSection('desk');
+          focusSheet = true;
+          render();
         });
 
-        list.append(h('div', { class: 'insp__slot' }, inspect));
+        list.append(h('div', { class: 'insp__slot', 'data-activity': row.id }, inspect));
       }
     }
 
@@ -554,7 +615,7 @@ export function mountAct(
 
   /** What today's tasks say under the orders, and the fact behind the subject. */
   function tasksBody(state: RunState): readonly (Node | false)[] {
-    const rows = activityRows(state, state.sol + 1);
+    const rows = shuffledRows(state);
     const picked = rows.some((row) => row.chosen);
 
     const note =
@@ -617,11 +678,14 @@ export function mountAct(
 
         run = recordInspection(run, state.sol + 1, activityId, grade.stars);
         setRun(run);
-      } else {
-        openTool = null;
+        render();
+
+        return;
       }
 
-      render();
+      /* Closing goes through closeTool, so the player lands back on the order
+         they were working however they left the tool. */
+      closeTool();
     });
 
     const result =
@@ -721,18 +785,22 @@ export function mountAct(
     );
   }
 
-  /** Everything waiting on the desk, in the order a duty officer would pick it up. */
+  /**
+   * Everything waiting on the desk, in the order a duty officer would pick it up.
+   *
+   * The desk is the desk: a note from home and the rover's find. The mini game
+   * is NOT here — it is worked on an order, so it opens in its own sheet over
+   * the orders (ISS-093).
+   */
   function deskBody(state: RunState): readonly (Node | false)[] {
     const note = deskNoteCard(state);
     const find = roverCard(state);
-    const tool = inspectionSection(state);
-    const nothing = note === false && find === false && tool === false;
+    const nothing = note === false && find === false;
 
     return [
       nothing ? h('p', { class: 'gl__note', text: 'The desk is clear. Nothing new landed today.' }) : false,
       note,
       find,
-      tool,
     ];
   }
 
@@ -1258,6 +1326,28 @@ export function mountAct(
     });
   }
 
+  /**
+   * The mini game's own sheet, over the section it was opened from.
+   *
+   * It is a sheet of its own rather than a part of one: the tool belongs to an
+   * order, not to the desk, and a tool that hangs off the desk is a tool that
+   * outlives the order it was for (ISS-093). The section sheet stays behind
+   * it, so closing the tool puts the player back on the order.
+   */
+  function toolSheetFor(state: RunState): HTMLElement | null {
+    if (openTool === null) return null;
+
+    return sheet({
+      icon: 'pick',
+      kicker: `Sol ${state.sol + 1} of ${WIN_SOL}`,
+      title: openTool.tool.name,
+      body: [inspectionSection(state)],
+      doneLabel: 'Back to the orders',
+      layer: 'tool',
+      onClose: closeTool,
+    });
+  }
+
   /** A crisis: the same shell, with the decision where the hub was. */
   function crisisPanel(state: RunState, crisis: Crisis): HTMLElement {
     const sol = state.sol + 1;
@@ -1467,9 +1557,15 @@ export function mountAct(
       headerSub: 'RUNNING THE DAY',
       onLeave: () => navigate('naming'),
       day: dayModel(state, advancedSol),
+      showEncyclopedia: hasReachedOutpost(run),
       help: guideButton(() => {
         guideOpen = true;
         openSheet = null;
+        /* The guide is over everything, so the mini game goes with it: a tool
+           that is still open behind the guide would be waiting when it closed
+           (ISS-093). */
+        openTool = null;
+        toolScroll = 0;
         render();
       }),
     });
@@ -1491,6 +1587,12 @@ export function mountAct(
 
     if (open !== null) screen.append(open);
 
+    /* The mini game's sheet goes on top of the section sheet, and only while
+       the section sheet is there to be on top of. */
+    const tool = open === null ? null : toolSheetFor(state);
+
+    if (tool !== null) screen.append(tool);
+
     mount.replaceChildren(screen);
 
     /* A training game is open over the desk, so it has to survive the
@@ -1504,12 +1606,18 @@ export function mountAct(
       if (body !== null) body.scrollTop = sheetScroll;
     }
 
+    if (tool !== null) {
+      const body = tool.querySelector<HTMLElement>('.sheet__body');
+
+      if (body !== null) body.scrollTop = toolScroll;
+    }
+
     /* Focus follows the thing that was replaced: into the sheet when it opens,
        back to its button when it closes. */
     if (focusSheet) {
       focusSheet = false;
 
-      const close = open === null ? null : sheetCloseButton(open);
+      const close = tool !== null ? sheetCloseButton(tool) : open === null ? null : sheetCloseButton(open);
 
       if (close !== null) close.focus();
       /* A sheet can only be open on a calm sol; if one is not, the tiles are
@@ -1520,6 +1628,15 @@ export function mountAct(
 
       focusTile = null;
       mount.querySelector<HTMLElement>(`.act-tile[data-tile="${target}"]`)?.focus();
+    } else if (focusToolButton !== null) {
+      /* The mini game closed: the player goes back to the order they were
+         working, not to the hub and not to the top of a list. */
+      const target = focusToolButton;
+
+      focusToolButton = null;
+      mount
+        .querySelector<HTMLElement>(`.insp__slot[data-activity="${target}"] .insp__open`)
+        ?.focus();
     }
 
     if (pendingFocus !== null) {

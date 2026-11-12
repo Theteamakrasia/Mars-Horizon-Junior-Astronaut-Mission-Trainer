@@ -6,6 +6,200 @@ Newest entry on top. Four bullets: **Did**, **Files**, **Problems**, **Next**.
 say so and say why - a clean change with an unexplained problem underneath is worse
 than a documented one.
 
+## 2026-11-12 — A run survives the tab it was played in
+
+**Did**
+
+- **Wrote the run down as it changes.** One versioned `localStorage` key
+  (`mars-horizon.save.v1`), written on every `setRun` and after every mount, so the last
+  screen the player saw is the one they come back to. D-081 reverses the persistence half
+  of D-003 for this device only; Supabase is still deferred and there is still no backend.
+- **Greeted the returning player by name.** The menu — which is `naming` (D-021) — now
+  shows "Welcome back, Riley.", the sol they stopped on, and CONTINUE / START OVER in
+  place of the name field. START OVER clears the save and goes back to asking for a name.
+- **Sent CONTINUE to the screen they left**, because the screen is written beside the run.
+  A child who closed the tab with the day's work orders open gets the work orders back,
+  not a restarted day; the three screens that are not journey stops are never a resume
+  point.
+- **Loaded the save before the router starts**, so a browser that restored a tab on
+  `#/act` gets the desk with its run rather than the desk's "no run" fallback.
+- Asserted the whole story in `tools/browser-check-save.mjs`: first visit, start, leave,
+  come back, CONTINUE, a reload on the hash, and START OVER.
+
+**Files**
+
+- `src/sim/save.ts` — `SAVE_VERSION`, `encodeRun`, `decodeRun`; pure, 19 tests
+- `src/sim/save.test.ts`
+- `src/ui/save.ts` — `readSave`, `writeSave`, `clearSave`, `isSaveableScreen`,
+  `resumeScreen`; 8 tests over the pure half
+- `src/ui/save.test.ts`
+- `src/main.ts` — save on change and on mount, clear on a null run, load before routing
+- `src/features/naming/{model,view}.ts` — `returningMenu`, the returning block and its
+  handlers; `src/features/naming/naming.css`
+- `index.html` — the returning block, and the section comment
+- `src/sim/run.ts` — the comments that said the run is lost on refresh
+- `src/ui/router.ts`, `src/ui/routes.ts`, `src/sim/training.ts`,
+  `src/features/landing-site/README.md` — the comments that said there is no persistence
+- `tools/browser-check-save.mjs`
+- `tools/browser-check-training.mjs` — step 8 now reloads instead of re-walking the
+  journey, and waits for the new document (ISS-096)
+- `docs/team/{decisions,issues,tasks,progress-log}.md`, `docs/architecture.md`,
+  `docs/game-flow.md`, `README.md`, `AGENTS.md`
+
+**Problems**
+
+- **The first draft had a `live` flag** — "your mission is still running in this tab" — to
+  tell the in-game MENU apart from a player who had come back. It stopped being answerable
+  the moment the save is loaded at boot: a restored run and a live one are the same object
+  in the same variable. Dropped rather than faked. The note is a sentence about the run
+  ("You stopped on sol 4"), which is true in both cases.
+- **A restored tab was the case that nearly shipped broken.** The save is written and the
+  menu reads it, but nothing put the run back into `main.ts` before the router ran, so a
+  reload on `#/briefing` would have mounted the briefing with no run at all — a screen
+  saying "no run" with a perfectly good save on disk. The load now happens before
+  `startScreenRouter`.
+- **Decoding is forgiving except the spine.** The first version refused any save with a
+  field out of range, which would have thrown away a whole run over one bad rover find.
+  Now the spine (sol, stores, status, region, name, modules, panel health, science) is
+  required and everything past it is repaired from a fresh run.
+- **A broken training record would have started sol 1 again**, because that is what
+  `newRun` holds. The two-a-sol rule reads its day from the record, so a stale day would
+  have *unlocked* the work orders it exists to lock. It now starts the current day
+  (`emptyTraining(sol + 1)`), and a test pins it.
+- **The browser check read the page it was trying to leave.** For a moment after a
+  reload, CDP still evaluates against the old document, and the old document has a
+  visible naming screen too — so "wait until the naming screen is visible" answered
+  from the page being left, and the check reported a save that was never broken. The
+  check now waits for the new document's load event, which cannot be faked. Worth
+  remembering for every browser check in this repo, not just this one.
+- **The training browser check was already broken, and it was not the game's fault.**
+  It reported 37/40 — the same on the unmodified tree, before the save existed. Step 8
+  was meant to prove that a refresh does not hand the player the same two training
+  games again, and it did that by re-walking the journey from the naming screen — where
+  starting a new mission clears the training day, because a new mission is a new day. The
+  check destroyed the thing it was about to measure. Logged as ISS-096; it now reloads
+  and reads the desk where it is, and waits for the load event like the save check does.
+- **`npm run check` and all 996 tests pass**; the save was driven end to end in headless
+  Chrome before this entry was written — 15 checks, all green, against the dev server and
+  against the production build. The training check is 40/40 again, and the balance still
+  holds at every landing site.
+
+**Next**
+
+- There is still no cross-device save and no account: a different browser is a different
+  run. Supabase is deferred and unowned (D-003, TASK-022), and nothing here schedules it.
+- No migration path between `SAVE_VERSION`s yet — the first bump that needs one will have
+  to add it, and until then an old save is ignored rather than migrated.
+
+---
+
+## 2026-11-12 — The encyclopedia is earned at the outpost
+
+**Did**
+
+- **Gated the book behind the outpost.** The encyclopedia was one click away on every
+  screen with the header, the landing-site map included: before choosing a site a player
+  could open a reference to every module in the game, and leave the journey from it. The
+  book now appears on `base`, `act` and `debrief` — the screens with a landed run — and
+  nowhere before them (D-080, ISS-094).
+- **Made the option opt-in rather than opt-out**, which is the half of the fix that lasts:
+  `showEncyclopedia` draws the book only when a screen asks, so the next screen added
+  before the outpost cannot inherit it by forgetting to say no.
+- **Answered it with one pure question.** `hasReachedOutpost(run)` in `sim/run.ts` is true
+  once a landing site has been chosen, and the three screens ask it. It cannot be "is
+  there a run", because `base` draws itself from `newRun('')` when it is handed none.
+- **Asserted both ends in the browser check**: no book on the map, a book on the build
+  screen.
+
+**Files**
+
+- `src/sim/run.ts` — `hasReachedOutpost`, with four tests in `run.test.ts`
+- `src/ui/gameLoop.ts` — the book is drawn only when a screen asks for it
+- `src/features/{base,act,debrief}/view.ts` — `showEncyclopedia: hasReachedOutpost(run)`
+- `src/features/encyclopedia/view.ts` — the redundant `showEncyclopedia: false` removed
+- `tools/browser-check-build.mjs` — the map has no book
+- `docs/team/{decisions,issues,tasks,progress-log}.md`, `docs/architecture.md`,
+  `AGENTS.md`
+
+**Problems**
+
+- **The leak was a default, not a decision.** Nobody chose to put the book on the map: the
+  header shows it unless told otherwise, and when the hub pass (D-070) gave the map the
+  same bar for a byte-identical header, the book came with it. A check that only asserted
+  the book *exists* on `base` could not have caught it; the new assertion checks where it
+  is absent.
+- **`base` fabricates a run when it is handed none** (`newRun('', 'Astronaut')`), so a
+  screen-local `true` would have offered the book for a run that never landed. That is why
+  the gate is a predicate on `regionId` rather than a constant.
+- **The merge entry from `78d5596` was committed below main's five entries**, so the file
+  had stopped reading newest-first. It sits at the top now, with this entry above it.
+- **`decisions.md` carried a doubled `---` and a wrong id** — D-078 said "Logged as
+  ISS-077", which is ISS-090 after the renumbering. Both came from the merge; both are
+  fixed here.
+
+**Next**
+
+- Nothing asserts the book is absent from `act`'s "not ready" fallback or the debrief's
+  empty state. The default makes it true, and a browser check for a screen nobody reaches
+  is not worth a run yet.
+
+---
+
+## 2026-11-12 — Merge main's training, day tracker and guide popup, and keep both sides
+
+**Did**
+
+- **Merged `origin/main`** (33 commits: the astronaut training system and its
+  two-a-sol lock, the mission-day tracker, the how-to-play popup, the launch skip and
+  five play-test fixes) into `game-loop-ui`, keeping both sides: main's training, tracker
+  and popup, and this branch's hub, real-data sheet and tool sheet.
+- **Renumbered this branch's entries**, because main had taken the ids while the branch
+  was open: the mini game's `ISS-077` became **ISS-093** and its `D-072` became
+  **D-079**, `TASK-095` became **TASK-101**. The two landing-site bugs got **ISS-091**
+  and **ISS-092**, with **TASK-102**.
+- **Taught the rover check the training rule.** Every sol starts the two-game count
+  again, so a check that opens the orders without training drives nothing; it now trains
+  whenever the tile says locked, and the rover is sent on mission 2 as designed.
+- **Corrected the test count to 958 in 46 files** in `AGENTS.md`, `README.md` and
+  `docs/architecture.md` — main carried 810 in two places while its own README table
+  said 958.
+
+**Files**
+
+- `docs/architecture.md`, `docs/team/{decisions,issues,tasks,progress-log}.md` — both
+  sides' entries, newest first, with this branch's ids moved up
+- `index.html` — main's `tabindex` on the parts panel kept through the reformat
+- `tools/browser-check-rover.mjs` — trains whenever the orders are locked
+- `tools/browser-check-day.mjs` — a crisis kicker counts as the day's count
+- `AGENTS.md`, `README.md` — the test count
+
+**Problems**
+
+- **`index.html` was the merge's silent risk.** This branch had reformatted the whole
+  file, so main's new markup — the skip button, the `tabindex` on the parts panel —
+  landed in a file whose every line had changed. The merge was clean apart from the parts
+  panel, and the skip button survived, but a reformat makes a file git cannot help with.
+- **The rover check was green on main and red on the merge**, and the cause was not the
+  code: today's tasks are locked until the crew trains, and the count resets every sol, so
+  a check that opens the orders without training reads "missing" for five sols and blames
+  the rover.
+- **The day check assumed no crisis.** On a crisis sol the panel kicker is the crisis
+  ("Sol 2 · Supply pod"), so it now only requires the kicker to begin with the day's
+  number.
+- **The journey check ran green and empty.** It drives the dev server on port 5173, not
+  the preview on 4173; run against the preview every step reads "none" and it looks like
+  the game is dead — the same lesson as ISS-074.
+- **Two `---` separators and a duplicate `D-072`** came out of the merge in
+  `decisions.md`, and a full-line `=======` was left in the triage table. All three were
+  the merge's, not the content's.
+
+**Next**
+
+- The tool sheet's two exits and the data sheet's length are still worth a look in a
+  browser, now that both sit in the merged screen.
+
+---
+
 ## 2026-11-12 — The day tracker, built to the reference strip
 
 **Did**
@@ -411,6 +605,101 @@ Olympus Mons (2 water gives 6% a sol).
 
 - The skip is recorded nowhere. If the debrief should say that a player cut the launch
   film, that is a run flag and a different change.
+
+---
+
+## 2026-11-12 — The NASA dialog always closes, and the map fills the screen
+
+**Did**
+
+- **Gave the landing-site NASA dialog one shape.** The ✕, the backdrop dismiss and the
+  opener's focus now exist whether or not a region has been chosen (ISS-091), so "No NASA
+  data available for this region." is a dialog a child can leave instead of a dead end.
+- **Let the map fill its cell** (ISS-092). The stage kept a 16:9 box and centred it, so it
+  was letterboxed inside a column it was already too short for; it now fills the cell and
+  the picture crops instead of floating with bands above and below it.
+- **Reformatted `index.html`** to the project's line width while in there, and shortened the
+  page title from "Mars Horizon — Junior Astronaut Mission Trainer" to "Mars Horizon", which
+  is what a tab has room for.
+
+**Files**
+
+- `src/features/landing-site/view.ts` — one modal builder for both states
+- `src/features/landing-site/landing-site.css` — the stage fills its cell
+- `index.html` — the reformat and the title
+- `docs/team/issues.md`, `docs/team/progress-log.md`
+
+**Problems**
+
+- **The first attempt at the dialog removed the modal from the overlay.** Restructuring the
+  two branches into one dropped the `appendChild`, so the backdrop drew and the card did
+  not: the owner saw a blank blurred screen and reported "no nasa data is being showed now".
+  A dialog that renders nothing looks exactly like one that failed to load, and that was
+  worse than the dead end it replaced.
+- **Both bugs came from a branch that skipped the shared path.** The empty state skipped the
+  close button; the stage skipped the fill. Neither was wrong when it was written; both
+  became wrong once everything else took the shared path.
+- **`tsc` was happy with the broken modal.** The missing `appendChild` is not a type error
+  and no test covers the dialog's contents, so only a browser caught it — twice.
+
+**Next**
+
+- Nothing on `landing-site` asserts the dialog or the map's fill in a browser. The build
+  check covers `act`'s sheets; a modal check here would have caught both of these.
+
+---
+
+## 2026-11-12 — The mini game gets its own sheet, and stops merging with the desk
+
+**Did**
+
+- **Gave the mini game its own sheet**, layered over the sheet it came from (D-079,
+  ISS-093). Pressing "inspect" on an order no longer replaces **Today's tasks** with the
+  desk sheet: the tool opens in a sheet of its own, on top, and the orders stay behind it.
+- **The desk sheet is the desk again** — a note from home and the rover's find, and
+  nothing else, in any state. The tool was never the desk's; it belongs to an order.
+- **A tool can no longer outlive its section.** It used to be cleared in one place only,
+  so closing the sheet with the ✕, pressing Escape, or opening the guide left it set and
+  it was waiting on the desk the next time that opened.
+- **Closing the tool puts the player back on the order** they were working — the focus
+  lands on that order's inspect button, not on the hub and not on the top of a list.
+- **The stacking ladder has its rung written down**: 108, the tool sheet, over the
+  section sheet at 105, so the order of the two is a rule and not an accident.
+
+**Files**
+
+- `src/features/act/view.ts` — the tool's own sheet, `closeTool()`, the leak closed, the
+  focus, and the desk sheet's new contents
+- `src/ui/sheet.ts`, `src/ui/sheet.css` — the `layer` option and the `--tool` backdrop
+- `src/styles/game-loop.css` — the ladder's new rung
+- `tools/browser-check-build.mjs` — five new assertions
+- `docs/architecture.md`, `docs/team/decisions.md`, `docs/team/issues.md`,
+  `docs/team/progress-log.md`, `docs/team/tasks.md`, `src/features/act/README.md`
+
+**Problems**
+
+- **The bug was two symptoms and one cause**, and the cause was a shortcut that looked
+  like it worked: the "inspect" button reached the tool by switching the player to the
+  desk sheet. Git merges and type checks were both happy with it; only a child playing it
+  noticed that the desk had a mini game in it.
+- **`openTool` was cleared in exactly one place** — the second press of the tool's Finish
+  button. Every other way out of the sheet (the ✕, Escape, the guide, opening another
+  section) left it set, which is why the tool was waiting on the desk later.
+- **Two buttons said "Done"** once the tool had a sheet of its own: the tool's own
+  Finish/Done button and the sheet's footer button. The footer's is now "Back to the
+  orders", so the two say different things.
+- **The browser check passed with the bug in place.** It opened the tool and worked it,
+  which worked — the tool was simply in the wrong sheet. The check now asserts *where*
+  the tool is, not just that it can be worked.
+- **The first run of the browser check failed wholesale** because the preview server was
+  not running: every assertion after the base screen failed, and the output looked like
+  a broken game. It was a dead server, not a broken build.
+
+**Next**
+
+- The tool's sheet has a **Back to the orders** button in its footer and the tool's own
+  Finish button in the body. Two ways out of one dialog is fine, but worth a look in a
+  browser to see whether a child reads both as the same button.
 
 ---
 

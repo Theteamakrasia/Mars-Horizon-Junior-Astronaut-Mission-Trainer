@@ -8,7 +8,7 @@
       name="description"
       content="Mars Horizon — Junior Astronaut Mission Trainer. Run a Mars outpost for 12 sols and keep power, air, water, food and radiation shielding in balance."
     />
-    <title>Mars Horizon — Junior Astronaut Mission Trainer</title>
+    <title>Mars Horizon</title>
     <!-- Inline SVG favicon: avoids a 404 on /favicon.ico with no extra request. -->
     <link
       rel="icon"
@@ -38,7 +38,11 @@
            Also pick-up-able: the pointer handlers live in pointerGrab.ts. -->
       <div id="astronaut" class="astronaut">
         <div id="astronaut-deform" class="astronaut__deform">
-          <img id="astronaut-img" class="astronaut__img" alt="Cartoon astronaut floating in space, draggable" />
+          <img
+            id="astronaut-img"
+            class="astronaut__img"
+            alt="Cartoon astronaut floating in space, draggable"
+          />
         </div>
       </div>
 
@@ -67,7 +71,11 @@
          A header above it would only offer a way out of the one screen that has
          not started yet. The one navigation bar in the app lives in
          ui/gameLoop.ts (gameHeader) and is drawn by landing-site, base, act and
-         debrief - the screens a player reaches once they are under way. -->
+         debrief - the screens a player reaches once they are under way.
+
+         A player returning to a tab they closed is greeted by name here and
+         offered CONTINUE instead of the form, because the run is written down
+         as it changes (D-081, ui/save.ts). -->
     <section id="naming" class="naming" aria-labelledby="naming-title">
       <div class="naming__stage" aria-hidden="true">
         <img
@@ -92,11 +100,45 @@
                block, and the trainer card below them is pinned to the bottom of
                the panel. -->
           <div class="naming__content">
-            <h1 class="naming__title" id="naming-title">Welcome<br />Astronaut</h1>
-            <p class="naming__greeting" data-naming-greeting role="status" aria-live="polite"></p>
+            <h1 class="naming__title" id="naming-title">
+              Welcome<br />Astronaut
+            </h1>
+            <p
+              class="naming__greeting"
+              data-naming-greeting
+              role="status"
+              aria-live="polite"
+            ></p>
+
+            <!-- The returning player's menu. Shown instead of the form when this
+                 device already has a run, so a child who closed the tab is
+                 greeted by name rather than asked to start again. Filled in by
+                 features/naming/view.ts and hidden by default, because a first
+                 visit must see the form. -->
+            <div class="naming__resume" data-naming-resume hidden>
+              <p class="naming__resume-note" data-naming-resume-note></p>
+              <div class="naming__actions">
+                <button
+                  class="naming__button naming__button--primary"
+                  type="button"
+                  data-naming-continue
+                >
+                  Continue
+                </button>
+                <button
+                  class="naming__button"
+                  type="button"
+                  data-naming-restart
+                >
+                  Start over
+                </button>
+              </div>
+            </div>
 
             <form class="naming__form" data-naming-form novalidate>
-              <label class="naming__visually-hidden" for="naming-input">Your astronaut's name</label>
+              <label class="naming__visually-hidden" for="naming-input"
+                >Your astronaut's name</label
+              >
               <input
                 class="naming__input"
                 id="naming-input"
@@ -126,7 +168,8 @@
           <aside class="naming__trainer">
             <p class="naming__trainer-head">
               <span class="naming__trainer-flag">
-                <span class="naming__trainer-dot" aria-hidden="true"></span> Trainer Mode
+                <span class="naming__trainer-dot" aria-hidden="true"></span>
+                Trainer Mode
               </span>
               <span class="naming__trainer-state">Active</span>
             </p>
@@ -173,7 +216,11 @@
 
         <!-- One message, swapped in place. The copy lives in briefing/model.ts,
              where it is unit tested; aria-live announces each swap. -->
-        <p class="briefing__message" data-briefing-message aria-live="polite"></p>
+        <p
+          class="briefing__message"
+          data-briefing-message
+          aria-live="polite"
+        ></p>
 
         <p class="briefing__hint" data-briefing-hint aria-live="polite"></p>
 
@@ -226,7 +273,11 @@
 
          Every element supply/view.ts queries carries a data hook below.
          scripts/check-markup.mjs fails the build if one is removed. -->
-    <section id="supply" class="supply" aria-label="Supply check at Mission Control">
+    <section
+      id="supply"
+      class="supply"
+      aria-label="Supply check at Mission Control"
+    >
       <div class="supply__stage">
         <!-- Two scene images, stacked, because you cannot crossfade one element into
              itself: whichever is front is opaque, the other sits behind it at zero
@@ -262,7 +313,9 @@
 
           <!-- NEXT sits with the speech, the way a reader turns a page. It is the
                only thing that brings up the next line. -->
-          <button class="supply__advance" type="button" data-supply-next>Next</button>
+          <button class="supply__advance" type="button" data-supply-next>
+            Next
+          </button>
         </div>
 
         <!-- The answers, on the RIGHT. The astronaut and his pointing hand own the
@@ -405,7 +458,6 @@
         <div class="launch__title-card" aria-hidden="true">
           <p class="launch__title-text" data-launch-title></p>
         </div>
-
       </div>
 
       <!-- SKIP. Shown halfway through the departure, by launch/view.ts.
@@ -472,7 +524,10 @@
              only one button on a row should be the orange action. -->
         <div class="launch__parts-dock">
           <div class="launch__parts-caption">
-            <p class="launch__parts-description" data-launch-parts-description></p>
+            <p
+              class="launch__parts-description"
+              data-launch-parts-description
+            ></p>
 
             <!-- A short NASA fact per part, so the tour teaches while it shows. -->
             <p class="launch__parts-fact" data-launch-parts-fact></p>
@@ -604,7 +659,13 @@
         <p class="interior__hint" data-interior-hint></p>
 
         <div class="interior__controls">
-          <div class="interior__dpad" data-interior-pad role="group" aria-label="Walk" hidden>
+          <div
+            class="interior__dpad"
+            data-interior-pad
+            role="group"
+            aria-label="Walk"
+            hidden
+          >
             <button
               class="interior__pad interior__pad--left"
               type="button"
@@ -694,7 +755,11 @@
 
          Every element landing-site/view.ts queries carries a data hook below.
          scripts/check-markup.mjs fails the build if one is removed. -->
-    <section id="landing-site" class="landing-site" aria-labelledby="landing-site-title">
+    <section
+      id="landing-site"
+      class="landing-site"
+      aria-labelledby="landing-site-title"
+    >
       <div class="landing-site__body">
         <!-- The map stage, locked to 16:9 so pins stay on the same feature at
              any window size. Pins are positioned in stage percentages. -->
@@ -706,7 +771,11 @@
             aria-hidden="true"
             decoding="async"
           />
-          <ul class="landing-site__pins" data-landing-pins aria-label="Choose a landing region">
+          <ul
+            class="landing-site__pins"
+            data-landing-pins
+            aria-label="Choose a landing region"
+          >
             <li>
               <button
                 type="button"
@@ -766,8 +835,16 @@
         </div>
 
         <!-- Site Analysis panel. aria-live so the selected region is announced. -->
-        <div class="landing-site__panel" data-landing-panel role="region" aria-label="Site Analysis" aria-live="polite">
-          <h2 class="landing-site__title" id="landing-site-title">Site Analysis</h2>
+        <div
+          class="landing-site__panel"
+          data-landing-panel
+          role="region"
+          aria-label="Site Analysis"
+          aria-live="polite"
+        >
+          <h2 class="landing-site__title" id="landing-site-title">
+            Site Analysis
+          </h2>
 
           <!-- Two stacked layers, because one image cannot crossfade into itself.
                This wrapper is the positioned ancestor the absolute layers resolve
@@ -807,23 +884,38 @@
           <ul class="landing-site__axes" data-landing-axes>
             <li class="landing-site__axis" data-landing-axis="water">
               <span class="landing-site__axis-name">Water</span>
-              <span class="landing-site__axis-score" data-landing-score="water"></span>
+              <span
+                class="landing-site__axis-score"
+                data-landing-score="water"
+              ></span>
             </li>
             <li class="landing-site__axis" data-landing-axis="sun">
               <span class="landing-site__axis-name">Sun</span>
-              <span class="landing-site__axis-score" data-landing-score="sun"></span>
+              <span
+                class="landing-site__axis-score"
+                data-landing-score="sun"
+              ></span>
             </li>
             <li class="landing-site__axis" data-landing-axis="terrain">
               <span class="landing-site__axis-name">Terrain</span>
-              <span class="landing-site__axis-score" data-landing-score="terrain"></span>
+              <span
+                class="landing-site__axis-score"
+                data-landing-score="terrain"
+              ></span>
             </li>
             <li class="landing-site__axis" data-landing-axis="dust">
               <span class="landing-site__axis-name">Dust</span>
-              <span class="landing-site__axis-score" data-landing-score="dust"></span>
+              <span
+                class="landing-site__axis-score"
+                data-landing-score="dust"
+              ></span>
             </li>
             <li class="landing-site__axis" data-landing-axis="temp">
               <span class="landing-site__axis-name">Temp</span>
-              <span class="landing-site__axis-score" data-landing-score="temp"></span>
+              <span
+                class="landing-site__axis-score"
+                data-landing-score="temp"
+              ></span>
             </li>
           </ul>
           <p class="landing-site__summary" data-landing-summary></p>
@@ -838,7 +930,11 @@
               Land here
             </button>
           </div>
-          <p class="landing-site__hint" data-landing-hint aria-live="polite"></p>
+          <p
+            class="landing-site__hint"
+            data-landing-hint
+            aria-live="polite"
+          ></p>
         </div>
       </div>
     </section>

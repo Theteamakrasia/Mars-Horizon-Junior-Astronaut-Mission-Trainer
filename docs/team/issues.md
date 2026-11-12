@@ -11,6 +11,12 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
+| ISS-096 | The training browser check re-walked the journey to test a refresh, so it always failed | medium | agent | fixed | this branch |
+| ISS-095 | Closing the tab lost the whole run, and the menu asked for the name again | high | agent | fixed | this branch |
+| ISS-094 | The encyclopedia was one click away before the player had an outpost | medium | agent | fixed | this branch |
+| ISS-093 | The mini game merged with the desk sheet, and stayed there after it closed | medium | agent | fixed | this branch |
+| ISS-092 | The landing-site map left a blank band above and below the picture | low | agent | fixed | this branch |
+| ISS-091 | "NASA data" before a region was chosen opened a dialog with no way out | high | agent | fixed | this branch |
 | ISS-090 | The guide was rebuilt on every redraw, so the page a child was reading was thrown back to the first | medium | agent | fixed | this branch |
 | ISS-089 | The memory game compared the wrong two cards, so a matching pair was never a pair | high | agent | fixed | this branch |
 | ISS-088 | The sol record kept only the net change per store, so the review could not say what a day made or used | medium | agent | fixed | this branch |
@@ -100,6 +106,124 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | ISS-014 | `base.css` calls the page non-interactive while draggable | low | agent | fixed | this branch |
 
 ---
+
+## ISS-096 - The training browser check re-walked the journey to test a refresh, so it always failed
+
+- **Reported by:** the agent, 2026-11-12, while checking the save (D-081): `node
+  tools/browser-check-training.mjs` reported 37/40, and the three failures were all in step 8,
+  "a refresh keeps the training".
+- **Where:** `tools/browser-check-training.mjs` — step 8, and the `toAct()` helper it calls.
+- **Problem:** step 8 was meant to prove that a page refresh does not hand the player the same
+  two training games again. It reloaded the page and then called `toAct()`, which walks the
+  whole journey from the naming screen — and naming's submit handler clears the training day,
+  because a new mission is a new day. The check therefore destroyed the thing it was about to
+  measure: the desk came up with `0/2 GAMES COMPLETED`, the tasks locked again, and the science
+  score back at nothing. The three failures were the check's own fault, not the game's.
+- **Cause:** `toAct()` was written as "get to the desk by any means", and step 8 used it as "get
+  back to the desk after a refresh". Those are different questions, and only one of them should
+  start a new mission. The step had been failing since the naming screen began clearing the
+  training record on submit, and the README still claimed the check was green.
+- **Fix:** step 8 now reloads and reads the desk where it is, instead of walking the journey
+  again — and waits for the new document's load event, so the read is of the page that came back
+  and not of the one being left (the same trap `browser-check-save.mjs` hit).
+- **Pre-existing:** yes — it failed the same way on the unmodified tree, 37/40, before the save
+  existed. Found while adding `browser-check-save.mjs`.
+
+## ISS-095 - Closing the tab lost the whole run, and the menu asked for the name again
+
+- **Reported by:** the owner, 2026-11-12: *"if a player leaves/closes browser and comes
+  back later, he'll see the main menu where it'll greet him as the same he inputed in last
+  game, then show continue option and start over option."*
+- **Where:** `src/main.ts`, `src/features/naming/view.ts`, `index.html`.
+- **Problem:** the run lived in the shell's memory and nowhere else, so closing the tab
+  ended a twelve-sol mission without a word — and coming back to the menu asked a player
+  who had named their astronaut an hour earlier to name them again.
+- **Cause:** deliberate, once. D-003 deferred Supabase, and "no persistence at all" was the
+  simplest way to keep that deferral honest. The training day (D-075) had already made the
+  narrower exception, so the rule was being upheld in the docs rather than in the code.
+- **Fix:** the run is written to one versioned `localStorage` key as it changes and loaded
+  before the router starts; the menu shows the astronaut's name, the sol they stopped on,
+  and CONTINUE / START OVER in place of the name field (D-081). Supabase is still deferred.
+- **Pre-existing:** yes — since the first screen; found by the owner before the freeze.
+
+## ISS-094 - The encyclopedia was one click away before the player had an outpost
+
+- **Reported by:** the owner, 2026-11-12: *"allow encyclopedia only after when player
+  reached base page and not before."*
+- **Where:** `src/ui/gameLoop.ts` — `gameHeader`, the `showEncyclopedia` option, and
+  `src/features/landing-site/view.ts`.
+- **Problem:** the book sat in the header of every screen that had the bar, the landing-site
+  map included. Before choosing a site or building anything, a player could open a
+  reference to every module in the game and, from it, leave the journey altogether — the
+  reference arrived before the thing it explains, and it read as a promise that the game
+  had started when it had not.
+- **Cause:** the option defaulted to *showing* and only the encyclopedia passed `false`.
+  That was correct when the bar was written, because only `base`, `act` and `debrief` drew
+  it. Then the hub pass (D-070) gave `landing-site` the same bar for a byte-identical
+  header, and the book came with it — nobody had to choose it, so nobody noticed it.
+- **Fix:** the book is opt-in. `gameHeader` draws it only when `showEncyclopedia` is true,
+  and the three screens with a landed run ask with the new pure `hasReachedOutpost(run)`
+  (`sim/run.ts`), which also keeps `base`'s no-run fallback from showing it. The browser
+  check asserts the map has no book and the build screen has one.
+- **Pre-existing:** yes; it arrived with the shared bar and was found by the owner while
+  reviewing the screens before the freeze.
+
+## ISS-092 - The landing-site map left a blank band above and below the picture
+
+- **Reported by:** the owner, 2026-11-12: *"the map image is not filling up the full space.
+  can see blank space above and below."*
+- **Where:** `src/features/landing-site/landing-site.css` - `.landing-site__stage`.
+- **Problem:** the map sat in the middle of the screen with strips of empty background above
+  and below it, so a screen built around one picture had a picture that did not fill it.
+- **Cause:** the stage carried `aspect-ratio: 16 / 9` and `align-self: center`. It shares
+  its row with the Site Analysis panel, so it is width-constrained: at 16:9 its height comes
+  up short of the space the screen gives it, and centring split the shortfall into a band at
+  the top and a band at the bottom.
+- **Fix:** the stage fills its grid cell. The map already drew with `object-fit: cover`, so
+  it crops to the cell rather than being letterboxed inside it, and the pins stay on their
+  features because they are placed in stage percentages rather than at pixel offsets.
+
+## ISS-091 - "NASA data" before a region was chosen opened a dialog with no way out
+
+- **Reported by:** the owner, 2026-11-12: *"when not selected any landing site clicking nasa
+  data opens this but doesn't have any close button so gets stuck."*
+- **Where:** `src/features/landing-site/view.ts` - `buildNasaDataModal()`.
+- **Problem:** with no region chosen, the NASA dialog showed "No NASA data available for
+  this region." and nothing else: no ✕, no backdrop dismiss, no key handler. The only way
+  past it was a page reload.
+- **Cause:** the empty state was a branch of its own, building a paragraph and returning, so
+  the close button and the backdrop handler - both written in the other branch - never
+  existed. The opener also focused `.landing-site__nasa-modal-close` unconditionally, which
+  threw on the element that was not there.
+- **Fix:** one modal for both states. The ✕, its handler and the backdrop dismiss are wired
+  before the branch, and the body is either the message or the card. The opener focuses a
+  button that now always exists.
+
+## ISS-093 - The mini game merged with the desk sheet, and stayed there after it closed
+
+- **Reported by:** the player, 2026-11-12: *"when opening a mini game from daily task it's
+  getting merged with view desk. then opening view desk is also showing the mini game
+  under desk content. it should not get merged with desk."*
+- **Where:** `src/features/act/view.ts` — the "inspect" button in `orderList`, and
+  `deskBody`.
+- **Problem:** two symptoms, one cause. Opening a mini game from **Today's tasks**
+  **replaced** the tasks sheet with the **desk** sheet, and the tool was rendered inside
+  the desk sheet, under the desk's own content. And because `openTool` was cleared in
+  exactly one place — the second press of the tool's Finish button — closing the sheet
+  any other way (the ✕, Escape, the guide) left it set, so **the next time the desk sheet
+  opened, the mini game was there again**, under the desk content.
+- **Cause:** the hub refactor (D-070) moved the act screen's sections into sheets but
+  left the mini game where it had always been — part of the desk. The "inspect" button
+  was made to reach it by switching the player to the desk sheet, which worked and merged
+  two unrelated things in the same breath: a tool belongs to an *order*, and the desk is
+  the note from home and the rover's find.
+- **Fix:** the mini game opens in **its own sheet**, over the sheet it came from, and
+  closes with it. The desk sheet no longer contains the tool in any form, and the tool
+  cannot outlive its section: closing the section, or opening the guide, closes the tool
+  too (D-079). The stacking ladder gains a rung for it — 108, the tool sheet over the
+  section sheet at 105.
+- **Pre-existing:** yes; it arrived with the hub in D-070 and was found by the player on
+  the first day of playing it.
 
 ## ISS-090 — The guide was rebuilt on every redraw, so the page a child was reading was thrown back to the first
 
@@ -1587,7 +1711,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-**Next free id: ISS-091.**
+**Next free id: ISS-095.**
 
 
 ---

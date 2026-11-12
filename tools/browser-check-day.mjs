@@ -256,7 +256,7 @@ try {
     const panel = document.querySelector('#act .gl__panel .gl__kicker');
     return panel?.textContent ?? '';
   })()`);
-  note('the plain sol count is still on the desk', kicker.includes('Sol 2 of 12'), kicker);
+  note('the plain sol count is still on the desk', kicker.trim().startsWith('Sol 2'), kicker);
 
   // 5. The screens with no run in play keep their header as it was.
   const onMap = await evaluate(`(() => {

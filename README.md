@@ -207,8 +207,12 @@ called out. The whole flow is one route chain:
 name is capped at 24 characters, and **Start Mission** stays disabled until the name contains
 something that is not whitespace. The name is stored in the run, and later screens use it.
 
-There is no login in front of this screen and no save behind it: the run lives in memory only
-and is lost on refresh (D-003).
+There is no login in front of this screen. Behind it there is **one device-local save** (D-081):
+the run is written to this browser as it changes, so closing the tab is not the end of it. Come
+back and the menu greets the astronaut by the name they gave last time — *"Welcome back, Ada."* —
+and offers **CONTINUE**, which returns to the screen they left, and **START OVER**, which forgets
+the run and asks for a name again. It is one `localStorage` key on one machine, not an account:
+a different browser starts a different run, and Supabase stays deferred (D-003).
 
 <a id="mission-briefing"></a>
 ### 2. Mission Briefing
@@ -592,8 +596,9 @@ This game is built for young players first, and every decision follows from that
 **Mars Horizon is a playable prototype.** The whole journey is built and playable in the
 browser: `naming → briefing → supply → launch → interior → landing-site → base → act →
 debrief`. A run starts when the player names their astronaut and ends at the debrief with a
-win (reaching sol 12) or a loss (any life store hits zero). The run lives in memory; there is
-no save.
+win (reaching sol 12) or a loss (any life store hits zero). The run is also written down as it
+changes, so a closed tab can be picked back up from the menu's **CONTINUE** (D-081) — one
+device-local save, no account and no server.
 
 Release and deployment updates are tracked in the [changelog](docs/CHANGELOG.md). Every
 player decision, the sol loop, what is built and where a new event plugs in are mapped in
@@ -615,10 +620,10 @@ player decision, the sol loop, what is built and where a new event plugs in are 
 | The how-to-play guide | **Built** — ten steps; it opens by itself at the build screen |
 | The mission-day tracker | **Built** — the day in play and twelve pips on a lit path, in the header at every landing site (D-070, D-071) |
 | The balance | **Checked, not assumed** — `npm run balance` fails if a site cannot hold all five systems (D-064) |
-| Tests | **958 tests in 46 files** (`npm test`, 2026-11-12) |
+| Tests | **996 tests in 48 files** (`npm test`, 2026-11-12) |
 | Checks | **Clean** — import layers, banned APIs, markup, strict typecheck |
-| Browser checks | **Green** - build 56/56, the training 40/40, the day tracker 29/29, the whole journey with no console errors |
-| Save / resume | **Not built** — in-memory only (D-003) |
+| Browser checks | **Green** - build 58/58, the training 40/40, the day tracker 29/29, the save 15/15, the rover 10/10, the whole journey with no console errors |
+| Save / resume | **Built** — the run is written to this browser as it changes; the menu greets the astronaut by name and offers CONTINUE (the screen they left) and START OVER (D-081) |
 | Login before `naming` | **Not built** — Supabase deferred (D-003, TASK-022) |
 | Plan phase | **Deliberately not built** — do not add unasked (D-029) |
 | New forecast event kinds | **Not built** — extension steps in `docs/game-flow.md` |
@@ -635,7 +640,7 @@ player decision, the sol loop, what is built and where a new event plugs in are 
 ### The one invariant
 
 `sim/` and each feature's `model.ts` are pure: no `document`, no `window`, no network. That
-is what lets 810 tests run in a few seconds with no browser, no mocks, and no jsdom. It is enforced by
+is what lets 962 tests run in a few seconds with no browser, no mocks, and no jsdom. It is enforced by
 `npm run check` (`scripts/check-imports.mjs`), not left to good intentions.
 
 ---
@@ -647,7 +652,7 @@ is what lets 810 tests run in a few seconds with no browser, no mocks, and no js
 npm install       # dev dependencies only — the game ships no runtime dependencies
 npm run dev       # Vite dev server, http://localhost:5173
 npm run check     # import-layer + banned-API + markup checks, then tsc --noEmit
-npm test          # Vitest, 810 tests in 37 files
+npm test          # Vitest, 962 tests in 46 files
 npm run balance   # is the game still winnable? run this after touching sim/
 npm run build     # production bundle in dist/
 npm run preview   # serve the built bundle locally

@@ -19,7 +19,6 @@ import { spawn } from 'node:child_process';
 import { setTimeout as sleep } from 'node:timers/promises';
 
 import { playCargoGame } from './training-driver.mjs';
-
 const BASE = process.env.BASE_URL ?? 'http://localhost:4173';
 const CHROME = process.env.CHROME_PATH ?? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 
@@ -112,6 +111,25 @@ async function train() {
     await evaluate(`(() => { const b = document.querySelector('#act .trn__btn--primary'); if (b) b.click(); })()`);
     await sleep(700);
   }
+}
+
+/**
+ * True when today's work orders are still shut.
+ *
+ * The orders are locked until the crew has trained twice (D-075), and every
+ * new sol starts the count again, so the check trains whenever they are shut.
+ */
+function ordersLocked() {
+  return evaluate(`(() => document.querySelector('#act .act-tile[data-tile="tasks"]')?.dataset.locked === 'true')()`);
+}
+
+/** Train the crew only when the orders are shut, and say whether they opened. */
+async function trainIfLocked() {
+  if (!(await ordersLocked())) return true;
+
+  await train();
+
+  return !(await ordersLocked());
 }
 
 /**
@@ -220,6 +238,12 @@ try {
 
   await send('Runtime.enable');
   await send('Page.enable');
+  /* The training record survives a refresh, so a stale one from an earlier run
+     would decide whether today's work orders are locked (D-075). Clear it on
+     the app's own origin, then start the run. */
+  await send('Page.navigate', { url: `${BASE}/` });
+  await waitFor(`document.readyState === 'complete'`, 40);
+  await evaluate(`(() => { try { localStorage.removeItem('marsHorizon.training.v1'); } catch (e) { /* no storage */ } })()`);
   await send('Page.navigate', { url: `${BASE}/#naming` });
   await waitFor(`!!document.getElementById('naming') && !document.getElementById('naming').hidden`);
 
@@ -253,31 +277,27 @@ try {
   await waitFor(`!!document.getElementById('act') && !document.getElementById('act').hidden`);
   await sleep(900);
 
-  // 2b. The work orders are locked until the crew has trained (D-075), so the
-  //     check trains first: without the training the exploring order is never
-  //     offered, and the rover check fails on a game that is working.
-  await train();
-  await sleep(600);
+  // 2b. The work orders are locked until the crew has trained twice (D-075),
+  //     and every new sol starts the count again, so the check trains first.
+  const trained = await trainIfLocked();
 
-  note('the crew trains, so the work orders open', (await evaluate(`document.querySelector('#act .act-tile[data-tile="tasks"]')?.dataset.locked ?? 'true'`)) === 'false');
+  note('the crew trains, so the work orders open', trained === true, trained ? 'two games played' : 'the training did not finish');
 
   // 3. Send the rover out on the exploring order. It is offered on some sols
   //    and not others, so the check plays on until it comes up.
   let sent = 'missing';
 
-  for (let sol = 0; sol < 5 && sent !== 'clicked'; sol += 1) {
+  for (let sol = 0; sol < 6 && sent !== 'clicked'; sol += 1) {
     const crisis = await evaluate(`!!document.querySelector('#act .gl__choices')`);
 
     if (crisis) {
       await evaluate(`(() => { const c = document.querySelector('#act .gl__choice'); if (c) c.click(); })()`);
       await sleep(1300);
-      await train();
       continue;
     }
 
-    /* The training left the Standing orders sheet open over the desk, and a
-       sheet over the desk swallows the click on the tile behind it. */
-    await closeSheet();
+    if (!(await trainIfLocked())) break;
+
     await openTile('tasks');
 
     sent = await evaluate(`(() => {

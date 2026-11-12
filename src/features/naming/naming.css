@@ -192,6 +192,32 @@
   gap: 0.7rem;
 }
 
+/* ---------- RETURNING PLAYER ----------
+   Shown instead of the form when this device already has a run (D-081): the
+   greeting above already carries the name, so this is where they stopped and
+   the two things they can do about it. CONTINUE takes the accent exactly as
+   START MISSION does — the panel should not look like a different screen just
+   because the player has been here before. */
+.naming__resume {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+/* `hidden` is the switch the view toggles. Both blocks are display:flex, which
+   beats the attribute's own display:none, so they would otherwise both show. */
+.naming__resume[hidden],
+.naming__form[hidden] {
+  display: none;
+}
+
+.naming__resume-note {
+  margin: 0;
+  font-size: clamp(0.8rem, 1.2vw, 0.95rem);
+  line-height: 1.45;
+  color: #c3cbd1;
+}
+
 .naming__input {
   width: 100%;
   padding: 0.45rem 0.9rem;

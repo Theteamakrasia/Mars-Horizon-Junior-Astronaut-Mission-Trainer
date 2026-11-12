@@ -55,7 +55,6 @@ export function mountEncyclopedia(
         variant: 'gl--encyclopedia',
         headerSub: 'ENCYCLOPEDIA',
         onLeave: () => navigate('naming'),
-        showEncyclopedia: false,
         fullWidth: true,
       }),
     );

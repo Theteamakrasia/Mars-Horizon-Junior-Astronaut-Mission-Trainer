@@ -30,6 +30,7 @@
      95       the hint line, on the panel.
      98       the bubbles over the panel: the place, the weather, the speech.
     105       a section sheet, over the panel.
+    108       the mini game's sheet, over the section sheet it came from.
     110       the leave-mission dialog.
     120       the how-to-play popup, over everything.
 
@@ -930,8 +931,12 @@
   font-weight: 600;
   line-height: 1.22;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  /* The standard name, so an editor has nothing to warn about and a browser
+     that knows it needs no prefix. Firefox still ships only the -webkit- form,
+     and every engine that clamps needs `display: -webkit-box` above. */
+  line-clamp: 2;
   overflow: hidden;
 }
 
