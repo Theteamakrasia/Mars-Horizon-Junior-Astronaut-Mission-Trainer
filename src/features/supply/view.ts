@@ -32,6 +32,7 @@ import { navigate } from '../../ui/router';
 import type { RunState } from '../../sim/run';
 import { createButtonStrip } from '../../ui/button-strip';
 import { factFor } from '../../data/nasaGallery';
+import { playSfx } from '../../ui/sfx';
 
 import './supply.css';
 
@@ -335,6 +336,7 @@ const reduced = prefersReducedMotion();
     bubbleText.textContent = text;
     bubble.hidden = false;
     bubble.dataset.supplyPhase = 'in';
+    playSfx('dialogue-pop');
   };
 
   let timers: number[] = [];
@@ -445,6 +447,7 @@ const reduced = prefersReducedMotion();
       // NEXT is hidden only now, once the question is actually up. Hiding it after
       // the last fact - which is what this did first - left the player with no way
       // to reach the question at all: five facts, then a dead screen.
+      playSfx('dialogue-next');
       swapTo(speaker, prompt, () => {
         askQuestion();
         advance.hidden = true;
@@ -455,6 +458,7 @@ const reduced = prefersReducedMotion();
     const fact = SUPPLY_BEATS[index];
     index += 1;
 
+    playSfx('dialogue-next');
     swapTo(fact.label, fact.line);
   };
 
@@ -533,6 +537,7 @@ const reduced = prefersReducedMotion();
   const onRetry = (): void => {
     if (solved) return;
 
+    playSfx('retry-ready');
     retry.hidden = true;
     setScene('question');
     setChoicesEnabled(true);
@@ -570,14 +575,19 @@ const reduced = prefersReducedMotion();
     // everything, so it would be silently scored as a wrong answer.
     if (!Number.isFinite(value)) return;
 
+    playSfx('answer-select');
+
     if (isCorrect(value, correct)) {
+      playSfx('answer-correct');
       showRight();
     } else {
+      playSfx('answer-wrong');
       showWrong(value);
     }
   }
 
   const onContinue = (): void => {
+    playSfx('ui-confirm');
     // nextStop inserts the under-construction interstitial when the next scene is
     // not built, so this needs no special casing now or when later scenes land.
     const next = nextStop('supply');

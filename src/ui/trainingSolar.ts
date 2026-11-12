@@ -8,6 +8,7 @@
 
 import { h } from '../dom/h';
 import { icon } from './icons';
+import { playSfx } from './sfx';
 import {
   SOLAR_SIZE,
   generateSolarPuzzle,
@@ -48,7 +49,7 @@ export const mountSolar: TrainingGameMount = (root, context) => {
   root.append(board, hint);
 
   function tileNode(tile: SolarTile, lit: boolean): HTMLElement {
-    const node = h('button', { class: `trn__wire${lit ? ' trn__wire--lit' : ''}`, type: 'button', 'aria-label': 'Turn this tile' });
+    const node = h('button', { class: `trn__wire${lit ? ' trn__wire--lit' : ''}`, type: 'button', 'aria-label': 'Turn this tile', 'data-sfx-hover': 'off' });
     const open = solarOpens(tile);
 
     SIDES.forEach((side, index) => {
@@ -94,6 +95,7 @@ export const mountSolar: TrainingGameMount = (root, context) => {
   function turn(row: number, column: number): void {
     if (finished || over) return;
 
+    playSfx('wire-turn');
     tiles = rotateSolarTile(tiles, row, column);
     used += 1;
     paint();

@@ -8,6 +8,7 @@
 
 import { h } from '../dom/h';
 import { icon, type IconName } from './icons';
+import { playSfx } from './sfx';
 import { dealMemoryDeck, memoryDifficulty, memoryMatch, memoryPerformance } from '../sim/trainingMemory';
 import type { TrainingGameMount } from './trainingGame';
 
@@ -93,6 +94,7 @@ export const mountMemory: TrainingGameMount = (root, context) => {
               class: `trn__face${showing ? ' trn__face--open' : ''}${matched.has(card.id) ? ' trn__face--matched' : ''}`,
               type: 'button',
               'aria-label': showing ? card.face : 'A card face down',
+              'data-sfx-hover': 'off',
             },
             icon(showing ? name : 'question', showing ? card.face : undefined),
           );
@@ -110,6 +112,7 @@ export const mountMemory: TrainingGameMount = (root, context) => {
     if (busy || finished || gone.has(id) || open.has(id) || matched.has(id)) return;
 
     open.add(id);
+    playSfx('memory-flip');
 
     if (first === null) {
       first = id;
@@ -133,6 +136,7 @@ export const mountMemory: TrainingGameMount = (root, context) => {
       open.delete(other);
       open.delete(id);
       hint.textContent = found === pairs ? 'Every pair found!' : `That is a pair! ${found} of ${pairs} found.`;
+      playSfx('memory-pair');
       paint();
 
       later(() => {
@@ -165,6 +169,7 @@ export const mountMemory: TrainingGameMount = (root, context) => {
     }
 
     busy = true;
+    playSfx('memory-nomatch');
     paint();
 
     later(() => {

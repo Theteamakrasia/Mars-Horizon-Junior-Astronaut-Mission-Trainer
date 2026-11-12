@@ -42,6 +42,12 @@ export interface FloatingAstronautOptions {
    * pointer is not the kind of motion this preference targets.
    */
   reducedMotion?: boolean;
+  /** Called when the astronaut is picked up. */
+  onGrab?: () => void;
+  /** Called when the astronaut is thrown. */
+  onToss?: () => void;
+  /** Called when the astronaut bounces off the viewport edge. */
+  onBounce?: () => void;
 }
 
 /**
@@ -63,7 +69,7 @@ export function startFloatingAstronaut(
   wrapper: HTMLElement,
   options: FloatingAstronautOptions,
 ): () => void {
-  const { deformLayer, reducedMotion = false } = options;
+  const { deformLayer, reducedMotion = false, onGrab: grabSfx, onToss: tossSfx, onBounce: bounceSfx } = options;
 
   const viewport: Size = {
     width: window.innerWidth,
@@ -117,7 +123,18 @@ export function startFloatingAstronaut(
     const deltaSeconds = Math.min((now - lastTime) / 1000, MAX_DELTA_SECONDS);
     lastTime = now;
 
+    const before = frame.drift.velocity;
     frame = stepAstronaut(frame, deltaSeconds, grab, frameOptions());
+
+    if (grab === null && !reducedMotion && bounceSfx !== undefined) {
+      const after = frame.drift.velocity;
+      const bounced =
+        (before.x !== 0 && Math.sign(before.x) !== Math.sign(after.x)) ||
+        (before.y !== 0 && Math.sign(before.y) !== Math.sign(after.y));
+
+      if (bounced) bounceSfx();
+    }
+
     render(frame.deform);
 
     frameId = requestAnimationFrame(tick);
@@ -160,6 +177,7 @@ export function startFloatingAstronaut(
     };
 
     wrapper.classList.add('is-held');
+    grabSfx?.();
   };
 
   const onDrag = (pointer: Vec2, velocity: Vec2): void => {
@@ -183,7 +201,10 @@ export function startFloatingAstronaut(
     // flick across the screen is exactly the kind of large self-directed motion
     // the preference is about. He resumes his slow drift from where he was
     // dropped instead of carrying the throw.
-    resumeDrift(reducedMotion ? { x: 0, y: 0 } : velocity);
+    const thrown = reducedMotion ? { x: 0, y: 0 } : velocity;
+
+    if (thrown.x !== 0 || thrown.y !== 0) tossSfx?.();
+    resumeDrift(thrown);
   };
 
   const onCancel = (): void => {

@@ -268,11 +268,11 @@ export function startLayoutEditor(root: HTMLElement): () => void {
   const readout = h('p', { class: 'ble__readout', text: 'Pick a module.' });
   const jsonArea = h('textarea', { class: 'ble__json', rows: '12', readonly: true, spellcheck: false });
 
-  const download = h('button', { class: 'ble__btn', type: 'button' }, 'Download JSON');
-  const copy = h('button', { class: 'ble__btn', type: 'button' }, 'Copy JSON');
-  const mirror = h('button', { class: 'ble__btn', type: 'button', 'aria-pressed': 'false', title: 'Mirror the selected module (F)' }, '⇄ Mirror');
-  const reset = h('button', { class: 'ble__btn', type: 'button' }, 'Reset');
-  const done = h('button', { class: 'ble__btn ble__btn--primary', type: 'button' }, 'Done');
+  const download = h('button', { class: 'ble__btn', type: 'button', 'data-sfx': 'none', 'data-sfx-hover': 'off' }, 'Download JSON');
+  const copy = h('button', { class: 'ble__btn', type: 'button', 'data-sfx': 'none', 'data-sfx-hover': 'off' }, 'Copy JSON');
+  const mirror = h('button', { class: 'ble__btn', type: 'button', 'aria-pressed': 'false', title: 'Mirror the selected module (F)', 'data-sfx': 'none', 'data-sfx-hover': 'off' }, '⇄ Mirror');
+  const reset = h('button', { class: 'ble__btn', type: 'button', 'data-sfx': 'none', 'data-sfx-hover': 'off' }, 'Reset');
+  const done = h('button', { class: 'ble__btn ble__btn--primary', type: 'button', 'data-sfx': 'none', 'data-sfx-hover': 'off' }, 'Done');
 
   const toolbar = h(
     'div',

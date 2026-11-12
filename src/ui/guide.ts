@@ -21,6 +21,7 @@ import { GUIDE_STEPS, type GuideStep } from '../sim/guide';
 import { icon } from './icons';
 import { readButton } from './readButton';
 import { stopReading } from './readAloud';
+import { playSfx } from './sfx';
 
 import './guide.css';
 
@@ -172,6 +173,7 @@ export function guidePanel(onClose: () => void): HTMLElement {
 
     if (wanted < 0 || wanted >= GUIDE_STEPS.length) return;
 
+    playSfx('guide-page-turn');
     page = wanted;
     paint(direction);
   }
@@ -182,6 +184,7 @@ export function guidePanel(onClose: () => void): HTMLElement {
 
     closed = true;
     stopReading();
+    playSfx('ui-close-sheet');
     onClose();
 
     window.requestAnimationFrame(() => {
@@ -192,8 +195,12 @@ export function guidePanel(onClose: () => void): HTMLElement {
   }
 
   next.addEventListener('click', () => {
-    if (page === GUIDE_STEPS.length - 1) shut();
-    else go(1);
+    if (page === GUIDE_STEPS.length - 1) {
+      playSfx('guide-done');
+      shut();
+    } else {
+      go(1);
+    }
   });
 
   back.addEventListener('click', () => go(-1));

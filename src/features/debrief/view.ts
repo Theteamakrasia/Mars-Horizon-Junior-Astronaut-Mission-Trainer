@@ -31,6 +31,7 @@ function topicOf(goal: ScienceGoal): ScienceTopic {
 }
 import { navigate } from '../../ui/router';
 import { clearTrainingRecord } from '../../ui/training';
+import { playSfx } from '../../ui/sfx';
 
 import '../../styles/game-loop.css';
 import './debrief.css';
@@ -128,6 +129,7 @@ export function mountDebrief(
 
   function showJournal(): void {
     mode = 'journal';
+    playSfx('debrief-journal');
     render('back-link');
   }
 
@@ -570,6 +572,13 @@ export function mountDebrief(
     const panel = mode === 'debrief' ? debriefPanel(run) : journalPanel(run);
 
     mount.replaceChildren(gameScreen({ hud: hudFor(run), world: worldFor(run), panel, variant: 'gl--debrief', headerSub: 'MISSION DEBRIEF', onLeave: () => navigate('naming'), day: dayModel(run), showEncyclopedia: hasReachedOutpost(run) }));
+
+    if (mode === 'debrief') {
+      playSfx(run.status === 'won' ? 'debrief-win' : 'debrief-lose');
+      const earned = patchReport(run).earned.length;
+      if (earned > 0) window.setTimeout(() => playSfx('patch-earned'), 400);
+      window.setTimeout(() => playSfx('certificate-reveal'), earned > 0 ? 900 : 400);
+    }
 
     if (focus !== undefined) mount.querySelector<HTMLElement>(`[data-focus="${focus}"]`)?.focus();
   }

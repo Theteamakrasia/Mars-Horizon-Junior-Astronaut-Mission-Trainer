@@ -8,6 +8,7 @@
 
 import { h } from '../dom/h';
 import { icon } from './icons';
+import { playSfx } from './sfx';
 import {
   ROVER_MAPS,
   ROVER_STEPS,
@@ -55,10 +56,10 @@ export const mountRover: TrainingGameMount = (root, context) => {
       : 'Drive the rover to the outpost.',
   });
 
-  const up = h('button', { class: 'trn__pad-key', type: 'button', 'aria-label': 'Drive up' }, '▲');
-  const left = h('button', { class: 'trn__pad-key', type: 'button', 'aria-label': 'Drive left' }, '◀');
-  const down = h('button', { class: 'trn__pad-key', type: 'button', 'aria-label': 'Drive down' }, '▼');
-  const right = h('button', { class: 'trn__pad-key', type: 'button', 'aria-label': 'Drive right' }, '▶');
+  const up = h('button', { class: 'trn__pad-key', type: 'button', 'aria-label': 'Drive up', 'data-sfx-hover': 'off' }, '▲');
+  const left = h('button', { class: 'trn__pad-key', type: 'button', 'aria-label': 'Drive left', 'data-sfx-hover': 'off' }, '◀');
+  const down = h('button', { class: 'trn__pad-key', type: 'button', 'aria-label': 'Drive down', 'data-sfx-hover': 'off' }, '▼');
+  const right = h('button', { class: 'trn__pad-key', type: 'button', 'aria-label': 'Drive right', 'data-sfx-hover': 'off' }, '▶');
 
   up.addEventListener('click', () => drive('up'));
   left.addEventListener('click', () => drive('left'));
@@ -106,6 +107,7 @@ export const mountRover: TrainingGameMount = (root, context) => {
     const ground = map[newRow]?.[newColumn];
 
     if (ground === undefined || ground === '#') {
+      playSfx('rover-bump');
       hint.textContent = 'There is a rock in the way. Try another way.';
       paint(true);
 
