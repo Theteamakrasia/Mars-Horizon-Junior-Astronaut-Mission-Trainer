@@ -12,6 +12,15 @@
   background: rgba(10, 18, 30, 0.55);
 }
 
+/*
+ * A sheet opened OVER another sheet: the mini game over the section it came
+ * from. It needs its own rung on the stacking ladder, or the two sheets would
+ * be ordered by the accident of the order they happen to be mounted in.
+ */
+.sheet__backdrop--tool {
+  z-index: 108;
+}
+
 .sheet__card {
   display: flex;
   flex-direction: column;

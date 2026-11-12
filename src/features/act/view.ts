@@ -133,9 +133,13 @@ export function mountAct(
   let openSheet: HubSection | null = null;
   /** Where the open sheet was scrolled to, so a redraw does not jump to the top. */
   let sheetScroll = 0;
+  /** The same, for the mini game's own sheet, which sits over the section. */
+  let toolScroll = 0;
   /** What to focus after the next render, because the thing they were on is replaced. */
   let focusSheet = false;
   let focusTile: HubSection | null = null;
+  /** The order whose inspect button to focus when the mini game closes. */
+  let focusToolButton: string | null = null;
   /** Whether the how-to-play guide is open. */
   let guideOpen = false;
   /**
@@ -357,6 +361,26 @@ export function mountAct(
     openSheet = null;
     sheetScroll = 0;
     focusTile = closed;
+    /* A mini game belongs to the section it was opened from. Closing that
+       section closes the tool with it, or it would still be there next time
+       the player opened the section (ISS-093). */
+    openTool = null;
+    toolScroll = 0;
+    render();
+  }
+
+  /**
+   * Close the mini game's sheet and put the player back on the order.
+   *
+   * The section sheet underneath is never closed: the player was working an
+   * order, and closing the tool puts them back on that order with it stamped.
+   */
+  function closeTool(): void {
+    const worked = openTool?.activityId ?? null;
+
+    openTool = null;
+    toolScroll = 0;
+    focusToolButton = worked;
     render();
   }
 
@@ -531,11 +555,16 @@ export function mountAct(
         );
 
         inspect.addEventListener('click', () => {
+          /* The mini game opens in its OWN sheet, over this one (ISS-093). It
+             used to switch the player to the desk sheet and hang the tool off
+             the desk, which merged two unrelated things and left the tool
+             there after it was closed. */
           openTool = { activityId: row.id, tool: makeInspection(row.engine as EngineKind, state.sol + 1) };
-          openSection('desk');
+          focusSheet = true;
+          render();
         });
 
-        list.append(h('div', { class: 'insp__slot' }, inspect));
+        list.append(h('div', { class: 'insp__slot', 'data-activity': row.id }, inspect));
       }
     }
 
@@ -609,11 +638,14 @@ export function mountAct(
 
         run = recordInspection(run, state.sol + 1, activityId, grade.stars);
         setRun(run);
-      } else {
-        openTool = null;
+        render();
+
+        return;
       }
 
-      render();
+      /* Closing goes through closeTool, so the player lands back on the order
+         they were working however they left the tool. */
+      closeTool();
     });
 
     const result =
@@ -713,18 +745,22 @@ export function mountAct(
     );
   }
 
-  /** Everything waiting on the desk, in the order a duty officer would pick it up. */
+  /**
+   * Everything waiting on the desk, in the order a duty officer would pick it up.
+   *
+   * The desk is the desk: a note from home and the rover's find. The mini game
+   * is NOT here — it is worked on an order, so it opens in its own sheet over
+   * the orders (ISS-093).
+   */
   function deskBody(state: RunState): readonly (Node | false)[] {
     const note = deskNoteCard(state);
     const find = roverCard(state);
-    const tool = inspectionSection(state);
-    const nothing = note === false && find === false && tool === false;
+    const nothing = note === false && find === false;
 
     return [
       nothing ? h('p', { class: 'gl__note', text: 'The desk is clear. Nothing new landed today.' }) : false,
       note,
       find,
-      tool,
     ];
   }
 
@@ -1189,6 +1225,28 @@ export function mountAct(
     });
   }
 
+  /**
+   * The mini game's own sheet, over the section it was opened from.
+   *
+   * It is a sheet of its own rather than a part of one: the tool belongs to an
+   * order, not to the desk, and a tool that hangs off the desk is a tool that
+   * outlives the order it was for (ISS-093). The section sheet stays behind
+   * it, so closing the tool puts the player back on the order.
+   */
+  function toolSheetFor(state: RunState): HTMLElement | null {
+    if (openTool === null) return null;
+
+    return sheet({
+      icon: 'pick',
+      kicker: `Sol ${state.sol + 1} of ${WIN_SOL}`,
+      title: openTool.tool.name,
+      body: [inspectionSection(state)],
+      doneLabel: 'Back to the orders',
+      layer: 'tool',
+      onClose: closeTool,
+    });
+  }
+
   /** A crisis: the same shell, with the decision where the hub was. */
   function crisisPanel(state: RunState, crisis: Crisis): HTMLElement {
     const sol = state.sol + 1;
@@ -1384,6 +1442,11 @@ export function mountAct(
       help: guideButton(() => {
         guideOpen = true;
         openSheet = null;
+        /* The guide is over everything, so the mini game goes with it: a tool
+           that is still open behind the guide would be waiting when it closed
+           (ISS-093). */
+        openTool = null;
+        toolScroll = 0;
         render();
       }),
     });
@@ -1405,6 +1468,12 @@ export function mountAct(
 
     if (open !== null) screen.append(open);
 
+    /* The mini game's sheet goes on top of the section sheet, and only while
+       the section sheet is there to be on top of. */
+    const tool = open === null ? null : toolSheetFor(state);
+
+    if (tool !== null) screen.append(tool);
+
     mount.replaceChildren(screen);
 
     /* A training game is open over the desk, so it has to survive the
@@ -1418,12 +1487,18 @@ export function mountAct(
       if (body !== null) body.scrollTop = sheetScroll;
     }
 
+    if (tool !== null) {
+      const body = tool.querySelector<HTMLElement>('.sheet__body');
+
+      if (body !== null) body.scrollTop = toolScroll;
+    }
+
     /* Focus follows the thing that was replaced: into the sheet when it opens,
        back to its button when it closes. */
     if (focusSheet) {
       focusSheet = false;
 
-      const close = open === null ? null : sheetCloseButton(open);
+      const close = tool !== null ? sheetCloseButton(tool) : open === null ? null : sheetCloseButton(open);
 
       if (close !== null) close.focus();
       /* A sheet can only be open on a calm sol; if one is not, the tiles are
@@ -1434,6 +1509,15 @@ export function mountAct(
 
       focusTile = null;
       mount.querySelector<HTMLElement>(`.act-tile[data-tile="${target}"]`)?.focus();
+    } else if (focusToolButton !== null) {
+      /* The mini game closed: the player goes back to the order they were
+         working, not to the hub and not to the top of a list. */
+      const target = focusToolButton;
+
+      focusToolButton = null;
+      mount
+        .querySelector<HTMLElement>(`.insp__slot[data-activity="${target}"] .insp__open`)
+        ?.focus();
     }
 
     if (pendingFocus !== null) {

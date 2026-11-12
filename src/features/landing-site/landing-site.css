@@ -61,12 +61,10 @@
 .landing-site__stage {
   position: relative;
   min-width: 0;
-  aspect-ratio: 16 / 9;
-  /* The map keeps its own 16:9 because the five pins are positioned in stage
-     percentages - a different ratio would move them off the feature they mark.
-     Centred in the column rather than pinned to the top, so the artwork sits in
-     the middle of the space it has instead of hanging from the header. */
-  align-self: center;
+  /* The stage fills its grid cell so nothing shows above or below the map.
+     The map keeps its own proportions with object-fit: cover, so pins stay on
+     their features where the artwork lands; the small crop on the long axis is
+     the alternative to letterboxing strips on both axes. */
   background: #080c11;
   overflow: hidden;
 }

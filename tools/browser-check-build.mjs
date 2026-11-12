@@ -514,6 +514,27 @@ try {
     await sleep(400);
   };
 
+  /** Close the topmost sheet, whichever one it is. */
+  const closeTopSheet = async () => {
+    await evaluate(`(() => {
+      const cards = [...document.querySelectorAll('#act .sheet__card')];
+      const top = cards[cards.length - 1];
+      const b = top ? top.querySelector('.sheet__close') : null;
+      if (b) b.click();
+    })()`);
+    await sleep(400);
+  };
+
+  /** What the sheets on screen are: how many, what they are called, what is in them. */
+  const sheetsNow = () => evaluate(`(() => ({
+    count: document.querySelectorAll('#act .sheet__card').length,
+    titles: [...document.querySelectorAll('#act .sheet__card .sheet__title')].map((n) => n.textContent),
+    tools: document.querySelectorAll('#act .sheet__backdrop--tool .insp').length,
+    deskHasTool: [...document.querySelectorAll('#act .sheet__card')].some(
+      (c) => (c.querySelector('.sheet__title')?.textContent ?? '') === 'Check the desk' && !!c.querySelector('.insp'),
+    ),
+  }))()`);
+
   const hub = await evaluate(`(() => {
     const tiles = [...document.querySelectorAll('#act .act-tile')];
     return {
@@ -606,6 +627,14 @@ try {
   if (opened === 'clicked') {
     await sleep(600);
 
+    /* The mini game opens in its OWN sheet, over the orders, and it never
+       joins the desk (ISS-093). */
+    const withTool = await sheetsNow();
+
+    note('the tool opens in its own sheet', withTool?.count === 2, `${withTool?.count ?? 0} sheets`);
+    note('the orders are still behind it', (withTool?.titles ?? []).includes("Today's tasks"), (withTool?.titles ?? []).join(' | '));
+    note('and the tool is in that sheet, not on the desk', (withTool?.tools ?? 0) === 1 && withTool?.deskHasTool === false, `${withTool?.tools ?? 0} tools`);
+
     const tool = await workTheTool();
 
     await evaluate(`(() => { const b = document.querySelector('#act .insp__finish'); if (b) b.click(); })()`);
@@ -625,6 +654,22 @@ try {
     note('working the tool shows the stars', stars !== null && stars.lit + stars.empty === 3, `${tool}: ${stars?.label ?? 'nothing'}`);
     note('and the stars are counted', ['0', '1', '2', '3'].includes(stars?.count ?? ''), stars?.count ?? '');
   }
+
+  /* Closing the tool puts the player back on the orders, and the tool does not
+     follow them to the desk (ISS-093). */
+  await closeTopSheet();
+  const afterTool = await sheetsNow();
+
+  note('closing the tool leaves the orders open', afterTool?.count === 1 && (afterTool?.titles ?? []).includes("Today's tasks"), (afterTool?.titles ?? []).join(' | '));
+
+  await closeSheet();
+
+  /* And the desk is the desk: a tool that outlived its order would be waiting
+     there, which is what the player reported (ISS-093). */
+  await openTile('desk');
+  const deskSheet = await sheetsNow();
+
+  note('the desk sheet holds no tool', deskSheet?.deskHasTool === false, (deskSheet?.titles ?? []).join(' | '));
 
   await closeSheet();
 

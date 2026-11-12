@@ -414,6 +414,156 @@ Olympus Mons (2 water gives 6% a sol).
 
 ---
 
+## 2026-11-12 — Merge main's training, day tracker and guide popup, and keep both sides
+
+**Did**
+
+- **Merged `origin/main`** (33 commits: the astronaut training system and its
+  two-a-sol lock, the mission-day tracker, the how-to-play popup, the launch skip and
+  five play-test fixes) into `game-loop-ui`, keeping both sides: main's training, tracker
+  and popup, and this branch's hub, real-data sheet and tool sheet.
+- **Renumbered this branch's entries**, because main had taken the ids while the branch
+  was open: the mini game's `ISS-077` became **ISS-093** and its `D-072` became
+  **D-079**, `TASK-095` became **TASK-101**. The two landing-site bugs got **ISS-091**
+  and **ISS-092**, with **TASK-102**.
+- **Taught the rover check the training rule.** Every sol starts the two-game count
+  again, so a check that opens the orders without training drives nothing; it now trains
+  whenever the tile says locked, and the rover is sent on mission 2 as designed.
+- **Corrected the test count to 958 in 46 files** in `AGENTS.md`, `README.md` and
+  `docs/architecture.md` — main carried 810 in two places while its own README table
+  said 958.
+
+**Files**
+
+- `docs/architecture.md`, `docs/team/{decisions,issues,tasks,progress-log}.md` — both
+  sides' entries, newest first, with this branch's ids moved up
+- `index.html` — main's `tabindex` on the parts panel kept through the reformat
+- `tools/browser-check-rover.mjs` — trains whenever the orders are locked
+- `tools/browser-check-day.mjs` — a crisis kicker counts as the day's count
+- `AGENTS.md`, `README.md` — the test count
+
+**Problems**
+
+- **`index.html` was the merge's silent risk.** This branch had reformatted the whole
+  file, so main's new markup — the skip button, the `tabindex` on the parts panel —
+  landed in a file whose every line had changed. The merge was clean apart from the parts
+  panel, and the skip button survived, but a reformat makes a file git cannot help with.
+- **The rover check was green on main and red on the merge**, and the cause was not the
+  code: today's tasks are locked until the crew trains, and the count resets every sol, so
+  a check that opens the orders without training reads "missing" for five sols and blames
+  the rover.
+- **The day check assumed no crisis.** On a crisis sol the panel kicker is the crisis
+  ("Sol 2 · Supply pod"), so it now only requires the kicker to begin with the day's
+  number.
+- **The journey check ran green and empty.** It drives the dev server on port 5173, not
+  the preview on 4173; run against the preview every step reads "none" and it looks like
+  the game is dead — the same lesson as ISS-074.
+- **Two `---` separators and a duplicate `D-072`** came out of the merge in
+  `decisions.md`, and a full-line `=======` was left in the triage table. All three were
+  the merge's, not the content's.
+
+**Next**
+
+- The tool sheet's two exits and the data sheet's length are still worth a look in a
+  browser, now that both sit in the merged screen.
+
+---
+
+## 2026-11-12 — The NASA dialog always closes, and the map fills the screen
+
+**Did**
+
+- **Gave the landing-site NASA dialog one shape.** The ✕, the backdrop dismiss and the
+  opener's focus now exist whether or not a region has been chosen (ISS-091), so "No NASA
+  data available for this region." is a dialog a child can leave instead of a dead end.
+- **Let the map fill its cell** (ISS-092). The stage kept a 16:9 box and centred it, so it
+  was letterboxed inside a column it was already too short for; it now fills the cell and
+  the picture crops instead of floating with bands above and below it.
+- **Reformatted `index.html`** to the project's line width while in there, and shortened the
+  page title from "Mars Horizon — Junior Astronaut Mission Trainer" to "Mars Horizon", which
+  is what a tab has room for.
+
+**Files**
+
+- `src/features/landing-site/view.ts` — one modal builder for both states
+- `src/features/landing-site/landing-site.css` — the stage fills its cell
+- `index.html` — the reformat and the title
+- `docs/team/issues.md`, `docs/team/progress-log.md`
+
+**Problems**
+
+- **The first attempt at the dialog removed the modal from the overlay.** Restructuring the
+  two branches into one dropped the `appendChild`, so the backdrop drew and the card did
+  not: the owner saw a blank blurred screen and reported "no nasa data is being showed now".
+  A dialog that renders nothing looks exactly like one that failed to load, and that was
+  worse than the dead end it replaced.
+- **Both bugs came from a branch that skipped the shared path.** The empty state skipped the
+  close button; the stage skipped the fill. Neither was wrong when it was written; both
+  became wrong once everything else took the shared path.
+- **`tsc` was happy with the broken modal.** The missing `appendChild` is not a type error
+  and no test covers the dialog's contents, so only a browser caught it — twice.
+
+**Next**
+
+- Nothing on `landing-site` asserts the dialog or the map's fill in a browser. The build
+  check covers `act`'s sheets; a modal check here would have caught both of these.
+
+---
+
+## 2026-11-12 — The mini game gets its own sheet, and stops merging with the desk
+
+**Did**
+
+- **Gave the mini game its own sheet**, layered over the sheet it came from (D-079,
+  ISS-093). Pressing "inspect" on an order no longer replaces **Today's tasks** with the
+  desk sheet: the tool opens in a sheet of its own, on top, and the orders stay behind it.
+- **The desk sheet is the desk again** — a note from home and the rover's find, and
+  nothing else, in any state. The tool was never the desk's; it belongs to an order.
+- **A tool can no longer outlive its section.** It used to be cleared in one place only,
+  so closing the sheet with the ✕, pressing Escape, or opening the guide left it set and
+  it was waiting on the desk the next time that opened.
+- **Closing the tool puts the player back on the order** they were working — the focus
+  lands on that order's inspect button, not on the hub and not on the top of a list.
+- **The stacking ladder has its rung written down**: 108, the tool sheet, over the
+  section sheet at 105, so the order of the two is a rule and not an accident.
+
+**Files**
+
+- `src/features/act/view.ts` — the tool's own sheet, `closeTool()`, the leak closed, the
+  focus, and the desk sheet's new contents
+- `src/ui/sheet.ts`, `src/ui/sheet.css` — the `layer` option and the `--tool` backdrop
+- `src/styles/game-loop.css` — the ladder's new rung
+- `tools/browser-check-build.mjs` — five new assertions
+- `docs/architecture.md`, `docs/team/decisions.md`, `docs/team/issues.md`,
+  `docs/team/progress-log.md`, `docs/team/tasks.md`, `src/features/act/README.md`
+
+**Problems**
+
+- **The bug was two symptoms and one cause**, and the cause was a shortcut that looked
+  like it worked: the "inspect" button reached the tool by switching the player to the
+  desk sheet. Git merges and type checks were both happy with it; only a child playing it
+  noticed that the desk had a mini game in it.
+- **`openTool` was cleared in exactly one place** — the second press of the tool's Finish
+  button. Every other way out of the sheet (the ✕, Escape, the guide, opening another
+  section) left it set, which is why the tool was waiting on the desk later.
+- **Two buttons said "Done"** once the tool had a sheet of its own: the tool's own
+  Finish/Done button and the sheet's footer button. The footer's is now "Back to the
+  orders", so the two say different things.
+- **The browser check passed with the bug in place.** It opened the tool and worked it,
+  which worked — the tool was simply in the wrong sheet. The check now asserts *where*
+  the tool is, not just that it can be worked.
+- **The first run of the browser check failed wholesale** because the preview server was
+  not running: every assertion after the base screen failed, and the output looked like
+  a broken game. It was a dead server, not a broken build.
+
+**Next**
+
+- The tool's sheet has a **Back to the orders** button in its footer and the tool's own
+  Finish button in the body. Two ways out of one dialog is fine, but worth a look in a
+  browser to see whether a child reads both as the same button.
+
+---
+
 ## 2026-11-11 — Merge main's navigation bar and launch tour, and keep both sides' issues
 
 **Did**

@@ -281,12 +281,11 @@ export function mountLandingSite(
     const card = selectedRegionId ? regionCard(selectedRegionId) : null;
     const overlay = h('div', { class: 'landing-site__nasa-modal-overlay' });
 
-    if (card === null) {
-      overlay.appendChild(
-        h('div', { class: 'landing-site__nasa-modal' }, h('p', { text: 'No NASA data available for this region.' })),
-      );
-      return overlay;
-    }
+    const close = (): void => {
+      nasaDataOpen = false;
+      overlay.remove();
+      nasaDataOverlay = null;
+    };
 
     const modal = h(
       'div',
@@ -297,16 +296,12 @@ export function mountLandingSite(
         'aria-label': 'Close NASA data',
         text: '✕',
       }),
-      nasaCard(card, 'A real NASA picture'),
+      card === null
+        ? h('p', { text: 'No NASA data available for this region.' })
+        : nasaCard(card, 'A real NASA picture'),
     );
+
     overlay.appendChild(modal);
-
-    const close = (): void => {
-      nasaDataOpen = false;
-      overlay.remove();
-      nasaDataOverlay = null;
-    };
-
     modal.querySelector('.landing-site__nasa-modal-close')!.addEventListener('click', close);
     overlay.addEventListener('click', (event: MouseEvent) => {
       if (event.target === overlay) close();
