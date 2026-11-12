@@ -11,7 +11,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
-| ISS-097 | The game drew its own pictograms and still carried emoji, with a drawn icon set supplied | medium | agent | open | — |
+| ISS-097 | The game drew its own pictograms and still carried emoji, with a drawn icon set supplied | medium | agent | fixed | this branch |
 | ISS-095 | The training check asserted a refresh keeping the training, which the newest code had removed | medium | agent | fixed | this branch |
 | ISS-094 | The encyclopedia was one click away before the player had an outpost | medium | agent | fixed | this branch |
 | ISS-093 | The mini game merged with the desk sheet, and stayed there after it closed | medium | agent | fixed | this branch |
@@ -127,8 +127,13 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
   `Assets/images/game-loop/`, so it belongs on the cream panel.
 - **Cause:** the icon set was written by hand (D-070) before the drawn set existed.
 - **Fix:** `src/ui/icons.ts` reads the 56 assets and draws them, `src/dom/svg.ts` learns
-  colour, the module emoji leave `sim/`, and the last emoji leave the UI. D-082 records
-  the choice.
+  colour, the module emoji leave `sim/`, and the last emoji leave the UI. **One picture
+  per thing**: `RESOURCE_ICON`, `RANK_ICON` and `MODULE_ICON` in `src/ui/icons.ts` are
+  now the only maps from a thing to its drawing, so a store looks the same on the build
+  screen, on the desk and in the debrief, and the training games' shelves wear the
+  game's own stores. `scripts/check-imports.mjs` resolves relative asset imports and
+  fails a drawing in `Assets/icons/` that the game does not draw, so the set and the
+  game cannot drift apart. D-082 records the choice.
 - **Pre-existing:** yes, since D-070.
 
 ## ISS-095 - The training check asserted a refresh keeping the training, which the newest code had removed

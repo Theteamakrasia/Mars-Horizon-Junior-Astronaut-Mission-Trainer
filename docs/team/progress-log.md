@@ -6,6 +6,69 @@ Newest entry on top. Four bullets: **Did**, **Files**, **Problems**, **Next**.
 say so and say why - a clean change with an unexplained problem underneath is worse
 than a documented one.
 
+## 2026-11-12 — Drew every pictogram from the supplied icon set
+
+**Did**
+
+- **Replaced the 35 hand-drawn line icons with the 56 supplied drawings.** `Assets/icons/`
+  is read at build time with `?raw` and parsed into path data, so the game still draws
+  one inline `<svg>` per icon and `icon()` keeps its signature. `src/dom/svg.ts` learned
+  colour: a shape now carries its own fill, stroke, width, linecap, linejoin and
+  fill-rule, because the drawings are filled and coloured rather than stroked in ink.
+- **Made one picture per thing.** `RESOURCE_ICON`, `RANK_ICON` and a new `MODULE_ICON`
+  in `src/ui/icons.ts` are now the only maps from a thing to its drawing. The build
+  screen, the desk and the debrief show the same water, food and radiation wall, and the
+  cargo game's shelves wear the game's own stores. The first pass left the build screen
+  drawing its own drop, leaf and shield next to the desk's bottle, carrot and wall — the
+  owner saw it and it was wrong.
+- **Took the last of the emoji out.** The module emoji left `sim/modules.ts` and the
+  encyclopedia model; the stars, the padlock, the tick and the points mark became
+  drawings; the speaker, the stop square and the door became plain words, because the
+  supplied set has no counterpart for them. The `☰` on the Menu button stays a character:
+  it is a dingbat, not an emoji, and it is drawn the same way on every machine.
+- **Verified the tree**: `npm run check`, 967 tests, build, `npm run balance`, and all
+  five browser checks — plus screenshots of every screen, looked at.
+
+**Files**
+
+- `src/ui/icons.ts`, `src/ui/icons.css`, `src/ui/icons.test.ts` — the new set, the parser, 11 tests
+- `src/dom/svg.ts` — a shape carries its paint
+- `src/sim/modules.ts`, `src/features/encyclopedia/{model.ts,model.test.ts}` — the module emoji are gone
+- `src/features/{base,act,debrief,encyclopedia,landing-site}/view.ts` — one picture per store; the arrows are chevrons
+- `src/ui/{gameLoop,training,trainingCargo,trainingMerge,readButton,nasaCard,nasaFeedCard}.ts` — the last emoji
+- `scripts/check-imports.mjs` — relative asset imports resolve, and a drawing nobody draws fails the check
+- `docs/team/{decisions,issues,tasks,progress-log}.md` — D-082, ISS-097, TASK-105
+- `docs/architecture.md`, `AGENTS.md`, `icons-list.md` — the icon set is described as it is
+
+**Problems**
+
+- **The new drawings are filled pictures, not strokes, so they cannot follow the ink.**
+  Every rule that tinted an icon — `color:` on the card, the tile, the callout — is now
+  dead, and the CSS had to be retuned: a filled 96-unit picture inks about 57% of its box,
+  so the box is 1.55em wide and the ink lands about where the old line drawing did. The
+  places where the icon size was in `em` of a wrapper's font-size needed checking one by
+  one, and the training game's shelves needed their store pictures made bigger by hand.
+- **The `close` drawing has no supplied counterpart**, so the X on the guide, the section
+  sheet and the training dialog is still the old line drawing, scaled into the same box
+  and keeping its `currentColor` stroke. It is the one icon in the set that is not from
+  the folder, and the folder is checked against the code, so it had to be drawn by hand
+  rather than imported.
+- **The set and the code can drift apart.** The supplied folder was on disk with 56 files
+  and the game drew 35 of its own; nothing would have said so. `check-imports.mjs` now
+  fails a drawing in `Assets/icons/` that the game does not draw, and it resolves relative
+  asset imports as well, so a mistyped asset path fails the check instead of the build.
+- **The icons-list.md that came with the set was out of date**: it named `habitat.svg`
+  where the file is `habitat-module.svg`, and it listed no `close`. It is rewritten to
+  match the files on disk.
+
+**Next**
+
+- The eight module drawings are in the set and mapped, but nothing on screen uses them
+  yet — the module artwork on the outpost panel and in the encyclopedia is still the PNG.
+  Placing them is a separate decision (D-082, Rejected (g)).
+
+---
+
 ## 2026-11-12 — Pulled main's sprite and shuffle work, and settled the training rule
 
 **Did**
