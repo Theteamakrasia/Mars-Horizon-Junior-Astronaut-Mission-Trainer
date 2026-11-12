@@ -11,6 +11,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
+| ISS-097 | The game drew its own pictograms and still carried emoji, with a drawn icon set supplied | medium | agent | open | — |
 | ISS-095 | The training check asserted a refresh keeping the training, which the newest code had removed | medium | agent | fixed | this branch |
 | ISS-094 | The encyclopedia was one click away before the player had an outpost | medium | agent | fixed | this branch |
 | ISS-093 | The mini game merged with the desk sheet, and stayed there after it closed | medium | agent | fixed | this branch |
@@ -105,6 +106,30 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | ISS-014 | `base.css` calls the page non-interactive while draggable | low | agent | fixed | this branch |
 
 ---
+
+## ISS-097 - The game drew its own pictograms and still carried emoji, with a drawn icon set supplied
+
+- **Reported by:** the owner, 2026-11-12: a set of 56 drawn SVG icons, supplied in
+  `Assets/icons/`, with `icons-list.md` mapping each one to the place it is used.
+- **Where:** `src/ui/icons.ts` (35 hand-drawn 24×24 line drawings), `src/dom/svg.ts`
+  (a shape that is a stroke or a fill and nothing else), `src/sim/modules.ts` (eight
+  module emoji), `src/features/encyclopedia/model.ts` (`EncyclopediaEntry.emoji`), and
+  the emoji still in the UI: `src/ui/readButton.ts`, `src/ui/nasaCard.ts`,
+  `src/ui/nasaFeedCard.ts`, `src/ui/training.ts`, `src/ui/trainingCargo.ts`,
+  `src/ui/gameLoop.ts`, `src/features/base/view.ts`, `src/features/encyclopedia/view.ts`
+  and `src/features/landing-site/view.ts`.
+- **Problem:** the game draws its own pictograms, in one ink, and carries nine emoji
+  that the operating system draws. An emoji is a different picture on Windows, Android
+  and iOS, at a size the game cannot set — the reason D-070 gave for moving off them —
+  and the pictograms are not the ones that were designed for the game. The supplied set
+  is drawn in the game's own palette (cream `#FFF4DB`, navy `#293A49`, orange
+  `#D66B46`) and in the same hand as the module artwork already in
+  `Assets/images/game-loop/`, so it belongs on the cream panel.
+- **Cause:** the icon set was written by hand (D-070) before the drawn set existed.
+- **Fix:** `src/ui/icons.ts` reads the 56 assets and draws them, `src/dom/svg.ts` learns
+  colour, the module emoji leave `sim/`, and the last emoji leave the UI. D-082 records
+  the choice.
+- **Pre-existing:** yes, since D-070.
 
 ## ISS-095 - The training check asserted a refresh keeping the training, which the newest code had removed
 
