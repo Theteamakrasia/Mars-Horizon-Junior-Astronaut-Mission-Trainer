@@ -8,6 +8,78 @@ than a documented one.
 
 ---
 
+## 2026-11-12 — Six training games on the standing orders sheet
+
+**Did**
+
+- **Put six mini-games in the Standing orders sheet.** The ASTRONAUT TRAINING section
+  sits at the top of the rule book, with the day's progress, the six cards and a
+  progress bar. Resource Merge, Memory Match, Rover Parking, Solar Panel Power-Up,
+  Cargo Sorting and Asteroid Defender are six real games, not six pictures of games
+  (D-073).
+- **Made the rule a rule, not a button.** Two games a sol, any two of them, and each
+  game paid for once a sol. The rules engine refuses a third game and says why, so a
+  player who finds a way past the button is not paid for it. Today's work orders are
+  locked until the second game is done — the tile is dimmed and wears a padlock, and
+  the desk carries a callout saying how to unlock it.
+- **Kept the game's own currency and its own art.** The points are science points, the
+  `★ N points` the panel already shows, scaled down to 2/3/4; the tiles use the game's
+  own 24×24 line drawings, not emoji; the section is the game's cream paper, navy ink
+  and one orange.
+- **Wrote the day's training down.** The project has no save, so the training record
+  is the one thing kept in `localStorage`: a refresh no longer hands the player the
+  same two games again, and the points they earned are still on the score.
+- **Put every rule where a test can reach it.** Each game is a pure module in `sim/`
+  and a drawing module in `ui/` behind one shared contract: 113 new tests, and a
+  headless-Chrome check that plays two of the games for real, refuses a third, and
+  refreshes the page (37 checks).
+
+**Files**
+
+- `src/sim/training.ts` — the rules engine: the six games' words, the daily limit,
+  the reward table, `trainingDay`, `canStartTraining`, `completeTraining`, and the
+  generator the games are handed instead of `Math.random`.
+- `src/sim/trainingMerge.ts`, `trainingMemory.ts`, `trainingRover.ts`,
+  `trainingSolar.ts`, `trainingCargo.ts`, `trainingAsteroid.ts` — the rules of the
+  six games, one module each, with a test file beside each.
+- `src/sim/run.ts` — `RunState.training`: what the crew has done today.
+- `src/ui/training.ts` — the section, the game dialog, and the record in
+  `localStorage`. `src/ui/trainingGame.ts` — the contract. `src/ui/training*.ts` — the
+  six games on the screen. `src/ui/training.css` — their styling.
+- `src/features/act/model.ts`, `src/features/act/view.ts`, `src/features/act/act.css`
+  — the lock on the tasks tile, the callout, and the section in the Standing orders
+  sheet. `src/ui/icons.ts` — a padlock.
+- `tools/browser-check-training.mjs` — the check.
+
+**Problems**
+
+- **The crates in the cargo round could only be picked up with a mouse.** They were
+  selected on `pointerup`, so a keyboard — and the headless check — could not pick one
+  up at all. The browser check found it on the first run: the round never finished.
+  Selection now happens on `click`, which a keypress and a tap both fire, and the drag
+  is kept for the pointer path. It was caught before the commit, so there is no issue
+  to log.
+- **Two of the three rover maps could not be finished.** The maps were written by eye
+  and two of them had the outpost walled off. They are now proved by a breadth-first
+  search in the test, and the move budget is built from the shortest route, so a map
+  that cannot be finished cannot be shipped.
+- **The deck dealt the same number to two cards.** `deck.push({id: deck.length}, {id:
+  deck.length})` read the length before either push, so both cards of a pair shared a
+  number. The test caught it.
+- **The science rank ladder was not re-based.** A player who trains every sol earns
+  about ninety-six points over a run, and the ladder tops out at fifty, so the debrief's
+  rank now measures the training as well as the work. The reward values were scaled
+  down rather than the ladder changed, and the five numbers are the owner's to move
+  (D-073).
+
+**Next**
+
+- The owner to decide what the points are spent on: there is no shop in the game to
+  spend them in, and the build screen's budget is reached before sol one.
+- The owner's eyes on the training in the real game, on a laptop and on a tablet.
+
+---
+
 ## 2026-11-11 — A SKIP button on the launch cinematic
 
 **Did**

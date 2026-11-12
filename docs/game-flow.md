@@ -115,7 +115,11 @@ The other sols are the player's: the desk offers three orders and the player app
 
 ```mermaid
 flowchart TD
-    A["Open the desk<br/>(the hub of buttons)"] --> P["Today's tasks → three work orders;<br/>check the two readings on each"]
+    A["Open the desk<br/>(the hub of buttons)"] --> T{"two training games<br/>done today?"}
+    T -->|"no"| T2["Today's tasks is locked.<br/>Standing orders → ASTRONAUT TRAINING:<br/>play two of the six games"]
+    T2 --> T3["+science points"]
+    T3 --> T
+    T -->|"yes"| P["Today's tasks → three work orders;<br/>check the two readings on each"]
     P --> W{"a tool to work?"}
     W -->|"yes"| W2["Work it → stars"]
     W -->|"no"| Q
@@ -183,6 +187,18 @@ orders, the colony stats, NASA's real data, and — once a sol has run — the r
 last sol. Each button carries one line of state, and each opens its section as a sheet
 over the desk, so the day is readable at a glance and the player opens only the part they
 came for.
+
+### 3a. The day's training
+Today's work orders are **locked until the crew has done two training games** (D-073).
+The six games — Resource Merge, Memory Match, Rover Parking, Solar Panel Power-Up,
+Cargo Sorting and Asteroid Defender — live at the top of the **Standing orders sheet**,
+because that is where a rule book lives and the training is now a rule the crew works
+to. The lock is on the tile, in a callout on the desk, and in the rules engine itself:
+`canStartTraining` refuses a third game and `completeTraining` refuses to pay for a
+game twice. Two games a sol, any two of them, and the points are science points on the
+one balance the game already has. The day's record is written to `localStorage`, so a
+refresh does not hand the player the same two games again; everything else in the run is
+still in memory, exactly as it was.
 
 | Step | What happens |
 | --- | --- |
@@ -397,6 +413,7 @@ totals within 1 of 17/25, so there is no perfect landing spot.
 | The two readings on an order | Built | `sim/activities.ts`, `ui/activityPlayer.ts` | view only |
 | The six tools and the stars | Built | `sim/minigames.ts` | `sim/run.ts` (`inspections`), `sim/sol.ts` (science × stars) |
 | The standing orders | Built | `sim/standingOrders.ts` | `sim/sol.ts` (two new rules a sol); view only |
+| The six training games | Built | `sim/training.ts` and six game modules | `sim/run.ts` (`training`), `ui/training.ts` (the section, the dialog, the record) |
 | Science score and rank | Built | `sim/science.ts` | `sim/run.ts` (`science`), `features/debrief/model.ts` |
 | The five learning goals | Built | `sim/goals.ts` | `sim/standingOrders.ts` (the rules); the debrief prints the record |
 | Flare crisis | Built | `sim/crises.ts` | `sim/sol.ts` (`FLARE_DRAIN`, factors) |

@@ -329,6 +329,12 @@ the desk, until there are twenty-four of them. They are the five learning goals 
 order you meet them, and they are also the keepsake: the debrief prints the standing orders
 you worked under.
 
+**At the top of the standing orders is the crew's training** (D-073). Six small games -
+Resource Merge, Memory Match, Rover Parking, Solar Panel Power-Up, Cargo Sorting and
+Asteroid Defender - and the day's work orders stay locked until the crew has finished any
+two of them. Each game is worth a few science points, and the day's record is written
+down, so a refresh cannot hand you the same two games twice.
+
 Also on the desk: a **note from home** or the crew, and — if you sent the rover out — the
 **document the rover brings back**, a real NASA picture of a place from the past or a rare
 rock to log, take or leave.
