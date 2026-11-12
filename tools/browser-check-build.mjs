@@ -437,31 +437,36 @@ try {
   );
 
   // 7. The guide. It opens by itself the first time the player reaches the
-  //    build screen, and the help button in the header brings it back.
+  //    build screen, and the help button in the header brings it back. It is a
+  //    popup now - a speech bubble with the crewmate in it, one page at a
+  //    time - and it is mounted on the body rather than inside the screen, so
+  //    a redraw behind it cannot throw the reader back to page one.
   const guide = await evaluate(`(() => {
-    const panel = document.querySelector('#base .gl__guide');
+    const panel = document.querySelector('body .guide__bubble');
     return {
       open: !!panel,
-      steps: panel ? panel.querySelectorAll('.gl__guide-step').length : 0,
+      page: panel ? panel.querySelectorAll('.guide__page').length : 0,
+      dots: panel ? panel.querySelectorAll('.guide__dots > *').length : 0,
       button: !!document.querySelector('#base .gl__icon-button[aria-label="How to play"]'),
       book: !!document.querySelector('#base .gl__icon-button[aria-label="Encyclopedia"]'),
     };
   })()`);
 
   note('the guide is open on the first build screen', guide.open === true);
-  note('and it has steps in it', guide.steps >= 8, `${guide.steps} steps`);
+  note('and it shows a page of it', guide.page === 1, `${guide.page} page(s)`);
+  note('with a dot for every page', guide.dots >= 8, `${guide.dots} dots`);
   note('the header has a button to bring it back', guide.button === true);
   note('and the encyclopedia is one click away in the header', guide.book === true);
 
-  await evaluate(`(() => { const b = document.querySelector('#base .gl__guide-close'); if (b) b.click(); })()`);
+  await evaluate(`(() => { const b = document.querySelector('body .guide__close'); if (b) b.click(); })()`);
   await sleep(400);
-  note('and it can be closed', (await evaluate(`!document.querySelector('#base .gl__guide')`)) === true);
+  note('and it can be closed', (await evaluate(`!document.querySelector('body .guide__bubble')`)) === true);
 
   await evaluate(`(() => { const b = document.querySelector('#base .gl__icon-button[aria-label="How to play"]'); if (b) b.click(); })()`);
   await sleep(400);
-  note('and opened again', (await evaluate(`!!document.querySelector('#base .gl__guide')`)) === true);
+  note('and opened again', (await evaluate(`!!document.querySelector('body .guide__bubble')`)) === true);
 
-  await evaluate(`(() => { const b = document.querySelector('#base .gl__guide-close'); if (b) b.click(); })()`);
+  await evaluate(`(() => { const b = document.querySelector('body .guide__close'); if (b) b.click(); })()`);
   await sleep(300);
 
   // 7b. Put the build back to the lander's own kit.

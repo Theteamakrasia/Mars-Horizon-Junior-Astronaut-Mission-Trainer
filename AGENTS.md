@@ -139,6 +139,12 @@ act → the hub: five buttons, six once a sol has run       features/act/model.t
       (sim/guide.ts) is an icon button in the header
 ```
 
+**The guide is a popup, and it is mounted on `document.body`** (D-073). Not inside
+the screen: both `base` and `act` redraw themselves when the live space weather
+arrives, and a popup that lived in the screen was rebuilt on every redraw, which
+threw a child reading page three back to page one (ISS-077). Outside the screen, a
+redraw behind it changes nothing.
+
 **No save, and two live network paths.** The whole run — name, region, stores, modules,
 the science score, the rover's finds and the per-sol ledger — lives in `main.ts` memory
 only and is lost on refresh.
@@ -279,8 +285,8 @@ opening its folder — that is the whole point of the layout.
 | The placement editor itself | `src/ui/baseLayoutEditor.ts` — dev-only, compiled out of a production build |
 | **The rover, and what it finds** | `src/sim/rover.ts` — **built**, 31 tests; its state is `RunState.rover` |
 | **The work-order player and the six tools** | `src/ui/activityPlayer.ts`, `src/sim/minigames.ts` — **built** |
-| **The how-to-play guide** | `src/ui/guide.ts`, `src/sim/guide.ts` — **built**; the `?` icon beside Menu |
-| **The pictograms** (34 line drawings, the five stores, the five ranks) | `src/ui/icons.ts` — `IconName`, `ICON_PATHS`, `icon()`; drawn through `src/dom/svg.ts` (D-070) |
+| **The how-to-play guide** | `src/ui/guide.ts`, `src/sim/guide.ts` — **built**; a **popup** with the astronaut on the left and a speech bubble on the right, one step per page (D-073); the `?` icon beside Menu |
+| **The pictograms** (35 line drawings, the five stores, the five ranks) | `src/ui/icons.ts` — `IconName`, `ICON_PATHS`, `icon()`; drawn through `src/dom/svg.ts` (D-070) |
 | **A section opened over a screen** (the desk's six buttons) | `src/ui/sheet.ts` — backdrop, header, scrolling body, close, `Escape` and a Tab trap (D-070) |
 | **The header's book / help / Menu, and the panel's corner fact** | `src/ui/gameLoop.ts` — `HeaderOptions`, `ScreenOptions.help`, `PanelOptions.corner` |
 | **Is the game still winnable?** | `npm run balance` — `tools/balance-check.mts`; fails if a site cannot hold all five systems |

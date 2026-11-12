@@ -108,6 +108,12 @@ export function mountBase(
   let guideOpen = false;
   /** The guide has been offered once, so it never ambushes the player twice. */
   let guideShown = false;
+  /**
+   * The mounted popup. It lives on `document.body`, not inside the screen, so
+   * a background redraw (the live forecast arriving) cannot reset the page the
+   * child is reading or replay its entrance.
+   */
+  let guideEl: HTMLElement | null = null;
   /** The toast node in the current tree, so it can be taken away without a redraw. */
   let toastNode: HTMLElement | null = null;
 
@@ -127,6 +133,14 @@ export function mountBase(
       toastNode = null;
       live.textContent = '';
     }, TOAST_MS);
+  }
+
+  /** Close the guide, and take the popup off the document. */
+  function closeGuide(): void {
+    guideOpen = false;
+    guideEl?.remove();
+    guideEl = null;
+    render();
   }
 
   function render(focusKey?: string): void {
@@ -363,10 +377,15 @@ export function mountBase(
       guideOpen = true;
     }
 
-    if (guideOpen) screen.append(guidePanel(() => {
-      guideOpen = false;
-      render();
-    }));
+    if (guideOpen && guideEl === null) {
+      guideEl = guidePanel(closeGuide);
+      document.body.append(guideEl);
+    }
+
+    if (!guideOpen && guideEl !== null) {
+      guideEl.remove();
+      guideEl = null;
+    }
 
     live.textContent = toast;
     screen.append(live);
@@ -396,6 +415,8 @@ export function mountBase(
     disposed = true;
     controller.abort();
     if (toastTimer !== null) window.clearTimeout(toastTimer);
+    guideEl?.remove();
+    guideEl = null;
     mount.replaceChildren();
   };
 }

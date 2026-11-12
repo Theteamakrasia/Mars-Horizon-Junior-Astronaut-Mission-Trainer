@@ -301,6 +301,42 @@ Olympus Mons (2 water gives 6% a sol).
 
 ---
 
+## 2026-11-12 — The how-to-play guide is a popup the astronaut reads
+
+**Did**
+
+- **Turned the guide into a popup.** It was a list of ten panels stacked in a scroll; it is now the crewmate standing on the left and a **speech bubble on the right**, one step per page, with a navy "How to play" pill on the bubble's top edge, a tail pointing at the astronaut, **Next**, **Back**, ten page dots, a **Read aloud** button and a close button. The screen behind is dimmed (D-078).
+- **Left the ten steps alone.** They were already one sentence each, written for a child; the problem was how many were on screen at once, not how long each was. `sim/guide.ts` and its six tests are untouched.
+- **Made the popup behave like a dialog.** It owns `Escape`, the backdrop click, a Tab trap, `ArrowLeft`/`ArrowRight` to turn the pages, and it hands the focus back to the `?` button when it closes. The whole thing is `aria-modal`, and the page of words is a live region so a screen reader announces each turn.
+- **Put the astronaut beside the bubble, not inside it**, and gave the bubble a real tail, so the figure is a person talking rather than a sticker in a balloon. He floats gently, the bubble pops up, and each page slides in from the side you turned from.
+- **Fixed the guide being rebuilt on every redraw.** Both the build screen and the desk redraw when the live space weather arrives, and the popup was being rebuilt with the screen — throwing a child reading page three back to page one and replaying the entrance over the top of them. The popup is now mounted on `document.body` and survives a redraw (ISS-090).
+- **Kept the existing UI untouched.** The `?` icon already in the header, between the encyclopedia book and Menu, is still the only way in. No new button, no change to the header, no change to the screens behind.
+
+**Files**
+
+- `src/ui/guide.ts` — rewritten: `guidePanel` returns the backdrop, the page state lives inside the popup, and the popup owns the keyboard and the focus
+- `src/ui/guide.css` — new: the backdrop, the astronaut's stage, the bubble and its tail, the header pill, the page dots, the footer row
+- `src/ui/icons.ts` — a `bulb` pictogram for the header pill, so the set is 35 drawings
+- `src/styles/game-loop.css` — the old `.gl__guide*` rules are out, and the stacking ladder now puts the popup at 120, above the leave-mission dialog
+- `src/features/base/view.ts`, `src/features/act/view.ts` — the popup is mounted on `document.body` and removed on close and on unmount
+- `Assets/images/guide/astronaut.png` — the cutout that stands beside the bubble
+- `docs/architecture.md`, `docs/game-flow.md`, `docs/CHANGELOG.md`, `docs/team/decisions.md` (D-078), `docs/team/issues.md` (ISS-090), `docs/team/progress-log.md`, `docs/team/tasks.md` (TASK-096), `README.md`, `AGENTS.md`
+
+**Problems**
+
+- **The guide was reset by a network request.** This was the one real bug, and it only appeared because paging made the page number into state: the old scrolling guide was rebuilt on every redraw too, and nobody could tell, because the words were all on screen either way. It was found by driving the popup in a headless browser and watching it jump back to page one. Fixed by mounting the popup on `document.body` rather than inside the screen (ISS-090).
+- **The page-turn animation had to be restarted by hand.** Removing and re-adding a class is the only way to make a CSS animation play again, and it needs a forced reflow between the two — `void content.offsetWidth` — or the browser coalesces the two changes into one and nothing plays. Easy to lose and hard to notice, because the text still changes.
+- **The user was testing the wrong server.** There are two checkouts of this repo on the machine, each with a dev server: `localhost:5173` is `feat/day-progress-tracker` and `localhost:5174` is this branch. The old guide on 5173 was not a failure of this work — it was a different branch entirely, fifteen commits behind `main`. Worth knowing that a screenshot of "not working" can be a screenshot of the wrong checkout.
+- **The whole app renders dark in some browsers.** Chrome's "Auto Dark Mode for Web Contents" inverts the light theme. It is a browser setting, not the repo: the deployed `index.html` asks for `color-scheme: dark`. The popup keeps its cream bubble either way, which is what the reference art shows, so no change was needed — but it is why the same screen looks different on two machines.
+- **The astronaut cutout is a placeholder.** The image the design calls for was not available as a file, so the game's existing cutout is standing in. The artwork is one file (`Assets/images/guide/astronaut.png`) and nothing else depends on it.
+
+**Next**
+
+- The astronaut artwork: drop the final cutout over `Assets/images/guide/astronaut.png` and it updates on the next reload. The bubble's tail and the figure's position are sized for a standing figure, so a transparent background is what matters.
+- The guide is still opened by the `?` button on `base` and `act` only. It is in `ui/`, so any screen can take it — the encyclopedia and the debrief are the obvious next ones.
+
+---
+
 ## 2026-11-11 — A SKIP button on the launch cinematic
 
 **Did**
