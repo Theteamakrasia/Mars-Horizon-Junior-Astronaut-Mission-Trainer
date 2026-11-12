@@ -8,6 +8,47 @@ than a documented one.
 
 ---
 
+## 2026-11-12 — The NASA dialog always closes, and the map fills the screen
+
+**Did**
+
+- **Gave the landing-site NASA dialog one shape.** The ✕, the backdrop dismiss and the
+  opener's focus now exist whether or not a region has been chosen (ISS-091), so "No NASA
+  data available for this region." is a dialog a child can leave instead of a dead end.
+- **Let the map fill its cell** (ISS-092). The stage kept a 16:9 box and centred it, so it
+  was letterboxed inside a column it was already too short for; it now fills the cell and
+  the picture crops instead of floating with bands above and below it.
+- **Reformatted `index.html`** to the project's line width while in there, and shortened the
+  page title from "Mars Horizon — Junior Astronaut Mission Trainer" to "Mars Horizon", which
+  is what a tab has room for.
+
+**Files**
+
+- `src/features/landing-site/view.ts` — one modal builder for both states
+- `src/features/landing-site/landing-site.css` — the stage fills its cell
+- `index.html` — the reformat and the title
+- `docs/team/issues.md`, `docs/team/progress-log.md`
+
+**Problems**
+
+- **The first attempt at the dialog removed the modal from the overlay.** Restructuring the
+  two branches into one dropped the `appendChild`, so the backdrop drew and the card did
+  not: the owner saw a blank blurred screen and reported "no nasa data is being showed now".
+  A dialog that renders nothing looks exactly like one that failed to load, and that was
+  worse than the dead end it replaced.
+- **Both bugs came from a branch that skipped the shared path.** The empty state skipped the
+  close button; the stage skipped the fill. Neither was wrong when it was written; both
+  became wrong once everything else took the shared path.
+- **`tsc` was happy with the broken modal.** The missing `appendChild` is not a type error
+  and no test covers the dialog's contents, so only a browser caught it — twice.
+
+**Next**
+
+- Nothing on `landing-site` asserts the dialog or the map's fill in a browser. The build
+  check covers `act`'s sheets; a modal check here would have caught both of these.
+
+---
+
 ## 2026-11-12 — The mini game gets its own sheet, and stops merging with the desk
 
 **Did**

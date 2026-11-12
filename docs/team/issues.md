@@ -11,6 +11,8 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
+| ISS-092 | The landing-site map left a blank band above and below the picture | low | agent | fixed | this branch |
+| ISS-091 | "NASA data" before a region was chosen opened a dialog with no way out | high | agent | fixed | this branch |
 | ISS-077 | The mini game merged with the desk sheet, and stayed there after it closed | medium | agent | fixed | this branch |
 | ISS-076 | The sheet squashed what was inside it, so a NASA picture covered its own caption | medium | agent | fixed | this branch |
 | ISS-075 | The "Real data" section showed one picture, so the game looked like it owned one NASA picture | low | agent | fixed | this branch |
@@ -88,7 +90,38 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-## ISS-077 — The mini game merged with the desk sheet, and stayed there after it closed
+## ISS-092 - The landing-site map left a blank band above and below the picture
+
+- **Reported by:** the owner, 2026-11-12: *"the map image is not filling up the full space.
+  can see blank space above and below."*
+- **Where:** `src/features/landing-site/landing-site.css` - `.landing-site__stage`.
+- **Problem:** the map sat in the middle of the screen with strips of empty background above
+  and below it, so a screen built around one picture had a picture that did not fill it.
+- **Cause:** the stage carried `aspect-ratio: 16 / 9` and `align-self: center`. It shares
+  its row with the Site Analysis panel, so it is width-constrained: at 16:9 its height comes
+  up short of the space the screen gives it, and centring split the shortfall into a band at
+  the top and a band at the bottom.
+- **Fix:** the stage fills its grid cell. The map already drew with `object-fit: cover`, so
+  it crops to the cell rather than being letterboxed inside it, and the pins stay on their
+  features because they are placed in stage percentages rather than at pixel offsets.
+
+## ISS-091 - "NASA data" before a region was chosen opened a dialog with no way out
+
+- **Reported by:** the owner, 2026-11-12: *"when not selected any landing site clicking nasa
+  data opens this but doesn't have any close button so gets stuck."*
+- **Where:** `src/features/landing-site/view.ts` - `buildNasaDataModal()`.
+- **Problem:** with no region chosen, the NASA dialog showed "No NASA data available for
+  this region." and nothing else: no ✕, no backdrop dismiss, no key handler. The only way
+  past it was a page reload.
+- **Cause:** the empty state was a branch of its own, building a paragraph and returning, so
+  the close button and the backdrop handler - both written in the other branch - never
+  existed. The opener also focused `.landing-site__nasa-modal-close` unconditionally, which
+  threw on the element that was not there.
+- **Fix:** one modal for both states. The ✕, its handler and the backdrop dismiss are wired
+  before the branch, and the body is either the message or the card. The opener focuses a
+  button that now always exists.
+
+## ISS-077 - The mini game merged with the desk sheet, and stayed there after it closed
 
 - **Reported by:** the player, 2026-11-12: *"when opening a mini game from daily task it's
   getting merged with view desk. then opening view desk is also showing the mini game
