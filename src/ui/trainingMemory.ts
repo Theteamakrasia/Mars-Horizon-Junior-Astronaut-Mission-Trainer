@@ -8,26 +8,34 @@
 
 import { h } from '../dom/h';
 import { icon, type IconName } from './icons';
-import { MEMORY_FACES, dealMemoryDeck, memoryPerformance } from '../sim/trainingMemory';
+import { MEMORY_FACES, MEMORY_PAIRS, dealMemoryDeck, memoryPerformance } from '../sim/trainingMemory';
 import type { TrainingGameMount } from './trainingGame';
 
 /** How long a pair that does not match stays face up. */
 const FLIP_BACK_MS = 800;
 
+/** How long a pair that matches is shown before it is taken off the table. */
+const TAKE_AWAY_MS = 350;
+
 /**
  * The table.
  *
- * Twelve cards, face down. Two are turned over at a time: a pair stays up,
- * anything else turns back down. The clock runs beside the tries.
+ * Twelve cards, face down. Two are turned over at a time: a pair stays up for
+ * a moment and is then taken off the table, and anything else turns back down.
+ * The clock runs beside the tries.
  */
 export const mountMemory: TrainingGameMount = (root, context) => {
   const deck = dealMemoryDeck(context.random);
   const open = new Set<number>();
   const matched = new Set<number>();
+  /** The pairs that have been taken off the table. */
+  const gone = new Set<number>();
 
   let first: number | null = null;
   let busy = false;
   let tries = 0;
+  /** How many pairs have been found. The pairs leave the table, so this is the count, not the set. */
+  let found = 0;
   let finished = false;
 
   const startedAt = Date.now();
@@ -53,26 +61,34 @@ export const mountMemory: TrainingGameMount = (root, context) => {
     context.setStatus(`Tries: ${tries} · Time: ${seconds}s`);
   }
 
+  /**
+   * The cards still on the table.
+   *
+   * A pair that has been found is taken away, so the table closes up as the
+   * player works: what is left is the memory they still have to do.
+   */
   function paint(): void {
     board.replaceChildren(
-      ...deck.map((card) => {
-        const showing = open.has(card.id) || matched.has(card.id);
-        const face = MEMORY_FACES.indexOf(card.face);
-        const name = (face >= 0 ? (['helmet', 'rocket', 'rover', 'sun', 'oxygen', 'droplet'] as readonly IconName[])[face] : 'box') ?? 'box';
-        const node = h(
-          'button',
-          {
-            class: `trn__face${showing ? ' trn__face--open' : ''}${matched.has(card.id) ? ' trn__face--matched' : ''}`,
-            type: 'button',
-            'aria-label': showing ? card.face : 'A card face down',
-          },
-          icon(showing ? name : 'question', showing ? card.face : undefined),
-        );
+      ...deck
+        .filter((card) => !gone.has(card.id))
+        .map((card) => {
+          const showing = open.has(card.id) || matched.has(card.id);
+          const face = MEMORY_FACES.indexOf(card.face);
+          const name = (face >= 0 ? (['helmet', 'rocket', 'rover', 'sun', 'oxygen', 'droplet'] as readonly IconName[])[face] : 'box') ?? 'box';
+          const node = h(
+            'button',
+            {
+              class: `trn__face${showing ? ' trn__face--open' : ''}${matched.has(card.id) ? ' trn__face--matched' : ''}`,
+              type: 'button',
+              'aria-label': showing ? card.face : 'A card face down',
+            },
+            icon(showing ? name : 'question', showing ? card.face : undefined),
+          );
 
-        node.addEventListener('click', () => turn(card.id));
+          node.addEventListener('click', () => turn(card.id));
 
-        return node;
-      }),
+          return node;
+        }),
     );
 
     status();
@@ -101,14 +117,27 @@ export const mountMemory: TrainingGameMount = (root, context) => {
       matched.add(id);
       open.delete(other);
       open.delete(id);
+      found += 1;
       paint();
 
-      if (matched.size === deck.length) {
+      if (found === MEMORY_PAIRS) {
         finished = true;
         hint.textContent = 'Every pair found!';
 
         later(() => context.onComplete(memoryPerformance(tries)), 400);
+
+        return;
       }
+
+      /* The pair is shown for a moment so the player sees that it matched,
+         and then it is taken off the table. */
+      later(() => {
+        gone.add(other);
+        gone.add(id);
+        matched.delete(other);
+        matched.delete(id);
+        paint();
+      }, TAKE_AWAY_MS);
 
       return;
     }

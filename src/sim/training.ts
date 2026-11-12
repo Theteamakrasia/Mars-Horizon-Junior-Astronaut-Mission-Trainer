@@ -68,7 +68,8 @@ export const TRAINING_GAMES: readonly TrainingGame[] = [
     category: 'Memory',
     difficulty: 'Very Easy',
     description: 'Turn cards over and find every matching pair.',
-    instructions: 'Tap two cards. If they match they stay open. Find all six pairs with as few tries as you can!',
+    instructions:
+      'Tap two cards. If they match they are taken off the table. Find all six pairs with as few tries as you can!',
     winMessage: 'Your memory is sharp, astronaut.',
   },
   {
