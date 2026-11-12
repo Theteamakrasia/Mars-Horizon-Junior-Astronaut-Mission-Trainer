@@ -116,6 +116,10 @@ async function toAct() {
   await ev(`(() => { const p = document.querySelector("#landing-site .landing-site__pin"); if (p) p.click(); })()`);
   await sleep(800);
   await tap("#landing-site [data-landing-land]");
+  /* The landing film plays between the map and the outpost. Its own Skip
+     button is the way past it, and it is the path a player takes. */
+  await waitFor(`!!document.getElementById("landing-cinematic") && !document.getElementById("landing-cinematic").hidden`);
+  await tap("#landing-cinematic .landing-cinematic__skip");
   await sleep(1500);
   await ev(`(() => { const b = [...document.querySelectorAll("#base button")].find((n) => n.textContent.includes("Land & start sol 1")); if (b) b.click(); })()`);
   await waitFor(`!!document.getElementById("act") && !document.getElementById("act").hidden`);
@@ -428,13 +432,13 @@ try {
   await sleep(600);
   /* The button is disabled while the space weather is loading, and a crisis
      replaces the hub on the sol. */
-  for (let attempt = 0; attempt < 30; attempt += 1) {
+  for (let attempt = 0; attempt < 40; attempt += 1) {
     const crisis = await ev(`!!document.querySelector("#act .gl__choices")`);
 
     if (crisis) {
       await ev(`(() => { const c = document.querySelector("#act .gl__choice"); if (c) c.click(); })()`);
       await sleep(1400);
-      break;
+      continue;
     }
 
     const outcome = await ev(`(() => {
@@ -447,8 +451,25 @@ try {
     })()`);
 
     if (outcome === "clicked") {
-      await sleep(1600);
-      break;
+      /*
+        The sol is not flown until the crisis on it is answered, and a crisis
+        can replace the hub the moment the sol starts. So the day counter is
+        what says the sol is done, and the loop keeps going until it moves:
+        stopping on the click alone left a crisis unanswered, the sol never
+        completed, and the day's training never started again - which failed
+        every check after it for reasons that had nothing to do with training.
+      */
+      const moved = await waitFor(
+        `document.querySelector("#act .gl__day-number")?.textContent?.trim() === "2"`,
+        20,
+      );
+
+      if (moved) {
+        await sleep(500);
+        break;
+      }
+
+      continue;
     }
 
     await sleep(600);

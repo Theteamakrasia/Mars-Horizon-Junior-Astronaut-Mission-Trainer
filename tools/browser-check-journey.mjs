@@ -19,6 +19,7 @@
  */
 import { spawn } from "node:child_process";
 import { setTimeout as sleep } from "node:timers/promises";
+const BASE = process.env.BASE_URL ?? "http://localhost:5173";
 const chrome = spawn("C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe", ["--headless=new","--remote-debugging-port=9250","--disable-gpu","--no-first-run","--no-default-browser-check","--window-size=1600,1000","--user-data-dir=" + process.env.TEMP + "\\journey-chrome-profile","about:blank"], { stdio: "ignore" });
 let socket; let nextId = 1; const pending = new Map(); const errors = [];
 function send(m, p = {}) { const id = nextId++; socket.send(JSON.stringify({ id, method: m, params: p })); return new Promise((res, rej) => pending.set(id, { resolve: res, reject: rej })); }
@@ -36,7 +37,7 @@ try {
   /* `localhost`, not `127.0.0.1`: Vite's dev server listens on the IPv6 loopback
      by default, and a browser asked for the IPv4 address gets nothing at all.
      Every step then reads "none" and the check looks like a game problem. */
-  await send("Page.navigate", { url: "http://localhost:5173/#naming" });
+  await send("Page.navigate", { url: BASE + "/#naming" });
   await waitFor(`!!document.getElementById("naming") && !document.getElementById("naming").hidden`);
   await waitFor(`(() => { const i = document.querySelector("[data-naming-input]"); const s = document.querySelector("[data-naming-submit]"); if (!i || !s) return false; i.value = "Alex"; i.dispatchEvent(new Event("input", { bubbles: true })); return !s.disabled; })()`);
   await tap("[data-naming-submit]");
@@ -81,6 +82,10 @@ try {
   await ev(`(() => { const p = document.querySelector("#landing-site .landing-site__pin"); if (p) p.click(); })()`);
   await sleep(800);
   console.log("   land: " + await tap("#landing-site [data-landing-land]") + " -> " + await where());
+  /* The landing film plays between the map and the outpost. Its own Skip
+     button is the way past it, and it is the path a player takes. */
+  await waitFor(`!!document.getElementById("landing-cinematic") && !document.getElementById("landing-cinematic").hidden`);
+  await tap("#landing-cinematic .landing-cinematic__skip");
   await sleep(1500);
   console.log("7 base: " + await where() + " | " + await ev(`document.querySelector("#base .gl__title")?.textContent ?? "no panel"`));
   console.log("ERRORS: " + (errors.length === 0 ? "none" : errors.slice(0, 4).join(" | ")));

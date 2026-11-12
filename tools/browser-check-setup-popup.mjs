@@ -166,14 +166,18 @@ const REGIONS = [
   { id: 'argyre', name: 'Argyre Basin' },
 ];
 
-/** The six supplies, and what each one costs. */
+/** The six supplies, and what each one costs in build points.
+ *
+ * The cost is the number. The sparkle in front of it is a drawn icon now
+ * (D-083), and an icon carries no text, so the card's text is the number on
+ * its own - which is what the check reads (ISS-100). */
 const SUPPLIES = [
-  { name: 'Solar Array', cost: '✦ 2' },
-  { name: 'Battery Bank', cost: '✦ 2' },
-  { name: 'Greenhouse', cost: '✦ 3' },
-  { name: 'Ice Miner', cost: '✦ 3' },
-  { name: 'Regolith Shield', cost: '✦ 2' },
-  { name: 'Nuclear Power Unit', cost: '✦ 4' },
+  { name: 'Solar Array', cost: 2 },
+  { name: 'Battery Bank', cost: 2 },
+  { name: 'Greenhouse', cost: 3 },
+  { name: 'Ice Miner', cost: 3 },
+  { name: 'Regolith Shield', cost: 2 },
+  { name: 'Nuclear Power Unit', cost: 4 },
 ];
 
 try {
@@ -237,6 +241,10 @@ try {
     await sleep(500);
 
     const landed = await clickIn('landing-site', 'Land here');
+    /* The landing film plays between the map and the outpost. Its own Skip
+       button is the way past it, and it is the path a player takes. */
+    await waitFor(`!!document.getElementById('landing-cinematic') && !document.getElementById('landing-cinematic').hidden`);
+    await clickIn('landing-cinematic', 'Skip');
     await waitFor(`!!document.getElementById('base') && !document.getElementById('base').hidden`);
     await sleep(700);
 
@@ -279,7 +287,7 @@ try {
     );
     note(
       `the costs at ${region.name} are the catalogue's`,
-      (popup?.cards ?? []).every((c, index) => c.cost === (SUPPLIES[index]?.cost ?? '')),
+      (popup?.cards ?? []).every((c, index) => c.cost.trim() === String(SUPPLIES[index]?.cost ?? '')),
       (popup?.cards ?? []).map((c) => c.cost).join(' '),
     );
     note(
