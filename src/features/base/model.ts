@@ -10,8 +10,10 @@
 import {
   BUILD_BUDGET,
   CORE_MODULES,
+  LOAD_KW,
   MODULE_CATALOGUE,
   NIGHT_HOURS,
+  SOLAR_KW_PER_ARRAY,
   SUN_HOURS,
   countOf,
   extraLimitOf,
@@ -48,6 +50,18 @@ export const RESTART_NOTE = 'This starts the outpost over at sol 1 and clears th
 
 /** Modules a player can add, in catalogue order: everything that is not a core module. */
 export const BUILDABLE: readonly ModuleSpec[] = MODULE_CATALOGUE.filter((spec) => spec.cost > 0);
+
+/** What a module is called when the screen is naming what draws the power. */
+const SHORT_MODULE_NAME: Readonly<Record<ModuleKind, string>> = {
+  habitat: 'the home',
+  'life-support': 'air',
+  'solar-array': 'the panels',
+  batteries: 'the batteries',
+  greenhouse: 'the greenhouse',
+  'ice-miner': 'the ice miner',
+  'regolith-shield': 'the shield',
+  'nuclear-unit': 'the reactor',
+};
 
 export interface Placement {
   readonly ok: boolean;
@@ -122,6 +136,13 @@ export interface BuildCard {
   readonly blocked: string;
   /** What it gives, in one short line. */
   readonly gives: string;
+  /**
+   * A note about this purchase, when there is one worth saying.
+   *
+   * Empty for everything but the solar array, and there it says what a second
+   * array would do with the sunlight it makes.
+   */
+  readonly note: string;
   /** What it asks of everything else, in one short line. */
   readonly needs: string;
 }
@@ -152,6 +173,9 @@ export function buildCards(extras: readonly ModuleKind[], regionId: string): rea
       blocked: placement.ok ? '' : placement.reason,
       gives: spec.gives,
       needs: spec.needs,
+      /* The solar array is the one card where a purchase can be pointless: the
+         sunlight has nowhere to go if the batteries are full. */
+      note: spec.kind === 'solar-array' ? arrayNote(extras, regionId) : '',
     };
   });
 }
@@ -394,6 +418,93 @@ export function previewFor(extras: readonly ModuleKind[], regionId: string): rea
   });
 
   return lines;
+}
+
+/**
+ * The three dials of the power economy, with one line each.
+ *
+ * Make, Store and Use. The build screen used to show a day-power number and
+ * a night-hours number and nothing else, so the question a child actually
+ * has — "why does my power keep running out?" — had no answer on it. Each
+ * dial is a thing the player can change: a solar array makes more, a battery
+ * bank stores more, and every module that draws power uses more.
+ */
+export function powerDials(extras: readonly ModuleKind[], regionId: string): readonly PreviewLine[] {
+  const modules = allModules(extras);
+  const systems = systemsFor(modules, regionId);
+  const upkeep = upkeepFor(extras, regionId);
+
+  /* What draws the power, named. The greenhouse and the ice miner are the
+     ones a player adds, so they are the ones worth naming. */
+  const draws: string[] = [];
+
+  for (const kind of modules) {
+    if (LOAD_KW[kind] > 0) draws.push(`${SHORT_MODULE_NAME[kind]} ${LOAD_KW[kind]} kW`);
+  }
+
+  if (systems.heatingKw > 0) draws.push(`heating ${systems.heatingKw} kW`);
+
+  const demand = Math.round(systems.loadKw * (SUN_HOURS + NIGHT_HOURS));
+  const solar = Math.round(systems.solarKw * systems.sunFactor * SUN_HOURS);
+  const reactor = Math.round(systems.nuclearKw * (SUN_HOURS + NIGHT_HOURS));
+  const spare = Math.round(solar + reactor - demand);
+
+  return [
+    {
+      label: 'Make',
+      text:
+        `The panels make ${solar} kWh a day${reactor > 0 ? ` and the reactor ${reactor}` : ''}. ` +
+        `The outpost needs ${demand}. That is ${Math.abs(spare)} kWh ${spare < 0 ? 'short' : 'spare'} every sol.`,
+      tone: spare < 0 ? 'bad' : 'ok',
+    },
+    {
+      label: 'Store',
+      text:
+        `The batteries hold ${upkeep.batteryKwh} kWh, which covers ${upkeep.nightHoursCovered} of the 12 night hours. ` +
+        (upkeep.nightHoursCovered < NIGHT_HOURS
+          ? 'Another bank would carry you further into the dark.'
+          : 'That is enough for a whole night.'),
+      tone: upkeep.nightHoursCovered < NIGHT_HOURS ? 'warn' : 'ok',
+    },
+    {
+      label: 'Use',
+      text: `The outpost draws ${upkeep.powerDraw} kW, day and night: ${draws.join(', ')}.`,
+      tone: 'ok',
+    },
+  ];
+}
+
+/**
+ * What a new solar array would do, in one line, for the build card.
+ *
+ * The player reported that a second array "did nothing", and the reason was
+ * that the sunlight had nowhere to go: the outpost was already making more
+ * power than it could use, and the batteries were full. Saying so turns a
+ * purchase that looks broken into a lesson about what power is for.
+ *
+ * Empty when another array would be used in full — there is nothing to warn
+ * about, and a warning on every card is a warning nobody reads.
+ */
+export function arrayNote(extras: readonly ModuleKind[], regionId: string): string {
+  const systems = systemsFor(allModules(extras), regionId);
+  const one = SOLAR_KW_PER_ARRAY * systems.sunFactor * SUN_HOURS;
+  const made = systems.solarKw * systems.sunFactor * SUN_HOURS;
+  const dayNeed = systems.loadKw * SUN_HOURS;
+  const nightNeed = Math.max(0, systems.loadKw - systems.nuclearKw) * NIGHT_HOURS;
+
+  /* What the outpost can put to work in a sol: the day's draw, and the night
+     the batteries have room to keep. */
+  const useful = dayNeed + Math.min(nightNeed, systems.batteryKwh);
+
+  if (made + one <= useful) return '';
+
+  const gain = Math.min(one, Math.max(0, useful - made));
+
+  if (gain > 0) {
+    return `Another array makes ${Math.round(one)} kWh. The outpost is ${Math.round(gain)} kWh short every sol.`;
+  }
+
+  return `Another array makes ${Math.round(one)} kWh, and the outpost can only use ${Math.round(useful)} kWh a day. The extra would spill.`;
 }
 
 /**

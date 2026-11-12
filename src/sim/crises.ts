@@ -12,6 +12,7 @@
 import { type ForecastEvent } from './forecast';
 import { LOAD_KW } from './modules';
 import { earthCanAnswerInTime } from './comms';
+import { CRISIS_CHOICE, CRISIS_DEFAULT, canAffordKwh } from './powerBudget';
 import type { RunState } from './run';
 import { projectSol } from './sol';
 
@@ -20,7 +21,25 @@ export interface CrisisOption {
   readonly label: string;
   /** What choosing it costs and what it buys, in plain words. */
   readonly detail: string;
+  /**
+   * What it takes out of the batteries, in kWh.
+   *
+   * The sim charges this when the choice is applied, and the screen greys the
+   * option out when the batteries cannot pay: one field, read by both, so the
+   * card can never promise a price the run does not charge.
+   */
+  readonly powerKwh?: number;
 }
+
+/**
+ * The digger's bill, in kWh, for piling soil on the roof during a flare.
+ *
+ * Lives here rather than in `sim/sol.ts` because it is a property of the
+ * choice. It used to be a constant in the sol maths with the option id
+ * hard-coded beside it, which meant the price on the card and the price
+ * charged could drift apart without either being wrong on its own terms.
+ */
+export const SHIELD_UP_POWER_KWH = 60;
 
 export interface Crisis {
   readonly id: string;
@@ -45,7 +64,7 @@ export const COUNTDOWN_SECONDS = 10;
 
 const FLARE_OPTIONS: readonly CrisisOption[] = [
   {
-    id: 'shelter',
+    id: CRISIS_CHOICE.shelter,
     label: 'Shelter in the storm room',
     detail: 'Cuts the radiation by more than half. But the greenhouse is left alone for a sol, so no food grows.',
   },
@@ -53,9 +72,10 @@ const FLARE_OPTIONS: readonly CrisisOption[] = [
     id: 'shield-up',
     label: 'Pile on extra soil',
     detail: 'Cuts the radiation by some. Costs 60 kWh of battery to run the digger.',
+    powerKwh: SHIELD_UP_POWER_KWH,
   },
   {
-    id: 'carry-on',
+    id: CRISIS_CHOICE.carryOn,
     label: 'Carry on working',
     detail: 'Costs nothing today. Your shielding takes the full hit.',
   },
@@ -63,17 +83,17 @@ const FLARE_OPTIONS: readonly CrisisOption[] = [
 
 const STORM_OPTIONS: readonly CrisisOption[] = [
   {
-    id: 'retract',
+    id: CRISIS_CHOICE.retract,
     label: 'Fold the panels away',
     detail: 'Panels stay clean but make no power for two sols.',
   },
   {
-    id: 'retract-save',
+    id: CRISIS_CHOICE.retractSave,
     label: 'Fold panels and pause the greenhouse',
     detail: `Saves ${LOAD_KW.greenhouse} kW of power while the panels are folded, but no food grows.`,
   },
   {
-    id: 'expose',
+    id: CRISIS_CHOICE.expose,
     label: 'Leave the panels out',
     detail: 'Some power keeps coming in, but dust settles on the panels for good.',
   },
@@ -112,7 +132,7 @@ export function crisisForEvent(event: ForecastEvent): Crisis {
       windowMinutes: 15,
       science: SCIENCE.flare,
       options: FLARE_OPTIONS,
-      defaultOptionId: 'carry-on',
+      defaultOptionId: CRISIS_DEFAULT.flare,
     };
   }
 
@@ -128,7 +148,7 @@ export function crisisForEvent(event: ForecastEvent): Crisis {
       windowMinutes: 10,
       science: SCIENCE.storm,
       options: STORM_OPTIONS,
-      defaultOptionId: 'expose',
+      defaultOptionId: CRISIS_DEFAULT.storm,
     };
   }
 
@@ -143,7 +163,7 @@ export function crisisForEvent(event: ForecastEvent): Crisis {
     windowMinutes: 24 * 60,
     science: SCIENCE.supply,
     options: SUPPLY_OPTIONS,
-    defaultOptionId: 'food',
+    defaultOptionId: CRISIS_DEFAULT['supply-pod'],
   };
 }
 
@@ -170,6 +190,51 @@ export function pendingCrisis(run: RunState): Crisis | null {
 /** An option by id, or null. */
 export function optionOf(crisis: Crisis, optionId: string): CrisisOption | null {
   return crisis.options.find((option) => option.id === optionId) ?? null;
+}
+
+/**
+ * True when the batteries can pay for this option.
+ *
+ * The same rule as every other price in the game: the option has to fit in
+ * what the outpost will have at the end of the day. The one exception is a
+ * free option, which is always allowed — every crisis keeps one, so a
+ * countdown can never run out with nothing to press.
+ */
+export function canAffordOption(run: RunState, option: CrisisOption): boolean {
+  return canAffordKwh(run, option.powerKwh ?? 0);
+}
+
+/**
+ * The options the player may actually choose right now.
+ *
+ * Every crisis keeps a free option — all three defaults cost nothing — so this
+ * can never come back empty. The guarantee it protects is narrow and important:
+ * a flare on a flat battery still offers shelter and carrying on. It never
+ * leaves a countdown with nothing to press.
+ */
+export function availableOptions(run: RunState, crisis: Crisis): readonly CrisisOption[] {
+  return crisis.options.filter((option) => canAffordOption(run, option));
+}
+
+/**
+ * What happens when the clock runs out.
+ *
+ * The crisis's default, unless the batteries cannot pay for it, in which case
+ * the first affordable option stands in. A countdown must never charge the
+ * crew for a choice it would not let them make.
+ */
+export function fallbackOption(run: RunState, crisis: Crisis): CrisisOption {
+  const preferred = optionOf(crisis, crisis.defaultOptionId);
+
+  if (preferred !== null && canAffordOption(run, preferred)) return preferred;
+
+  const affordable = crisis.options.find((option) => canAffordOption(run, option));
+
+  /* Unreachable by construction — every crisis offers a free option — so
+     throwing is the honest failure: it beats applying a cost nobody could pay. */
+  if (affordable === undefined) throw new Error(`Crisis ${crisis.id} has no affordable option`);
+
+  return affordable;
 }
 
 /** Can Earth's answer beat the clock? The comms-delay lesson in one boolean. */

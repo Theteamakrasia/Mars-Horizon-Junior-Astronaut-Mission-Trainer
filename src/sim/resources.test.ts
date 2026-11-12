@@ -5,8 +5,12 @@ import {
   createInitialStores,
   depletedStores,
   drainForSol,
+  floorStreak,
+  FLOOR_STRIKES,
   percentOf,
+  RESOURCE_FLOOR,
   RESOURCE_NAMES,
+  scrubbedStores,
   STORE_CAPACITY,
 } from './resources';
 
@@ -57,5 +61,37 @@ describe('resources', () => {
     expect(percentOf('power', stores, 200)).toBe(25);
     expect(percentOf('oxygen', stores, 200)).toBe(33);
     expect(percentOf('power', stores, 0)).toBe(100);
+  });
+});
+
+/** A log that only carries what the floor rule reads. */
+function logOf(...food: readonly number[]): readonly { readonly stores: ReturnType<typeof createInitialStores> }[] {
+  return food.map((value) => ({ stores: createInitialStores({ food: value, shielding: 60 }) }));
+}
+
+describe('the floor rule', () => {
+  it('counts consecutive sols under the line, and stops at the first one back above', () => {
+    expect(floorStreak(logOf(50, 25, 20), 'food')).toBe(2);
+    expect(floorStreak(logOf(50, 25, RESOURCE_FLOOR), 'food')).toBe(0);
+    expect(floorStreak(logOf(20, 50, 20), 'food')).toBe(1);
+  });
+
+  it('treats a store at the line as safe, and a store at zero as both strikes at once', () => {
+    expect(floorStreak(logOf(RESOURCE_FLOOR), 'food')).toBe(0);
+    expect(floorStreak(logOf(80, 0), 'food')).toBe(FLOOR_STRIKES);
+  });
+
+  it('watches the four life stores and lets power alone', () => {
+    expect(floorStreak(logOf(10, 10), 'power')).toBe(0);
+  });
+
+  it('names the stores that have been under the line for two sols, in canonical order', () => {
+    const records = [
+      { stores: createInitialStores({ oxygen: 25, water: 25, food: 60, shielding: 60 }) },
+      { stores: createInitialStores({ oxygen: 20, water: 20, food: 55, shielding: 60 }) },
+    ];
+
+    expect(scrubbedStores(records)).toEqual(['oxygen', 'water']);
+    expect(scrubbedStores(logOf(50, 25))).toEqual([]);
   });
 });

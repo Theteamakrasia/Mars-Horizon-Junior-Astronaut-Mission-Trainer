@@ -83,10 +83,14 @@ export const ICE_WATER_PER_WATER_POINT = 3;
 /**
  * The shielding the outpost starts with, before any regolith is piled on.
  *
- * Thirty, not twenty. The radiation goal asks for forty, so a bare outpost is
- * one shield short of safe and one regolith module is what closes the gap.
+ * Forty, not thirty. Thirty was the old number, chosen when the radiation goal
+ * asked for forty and a bare outpost being one shield short was the lesson. Now
+ * that thirty is the line a mission is scrubbed under, starting on it would
+ * mean every build without a regolith shield loses on sol two, before the
+ * player has done anything. Forty leaves ten points of margin, which a flare
+ * can still eat.
  */
-export const SHIELDING_BASE = 30;
+export const SHIELDING_BASE = 40;
 export const SHIELDING_PER_REGOLITH = 30;
 /**
  * How much shielding wears away every sol.

@@ -428,7 +428,7 @@ totals within 1 of 17/25, so there is no perfect landing spot.
 | The balance | **Checked** | `sim/modules.ts` | `npm run balance` — fails if a site cannot hold all five systems |
 | Live NASA daily pictures | Built | `data/nasaDaily.ts` | `features/act/view.ts`, `ui/nasaFeedCard.ts` |
 | Debrief verdicts | Built | `features/debrief/model.ts` | read only |
-| Save / resume | **Not built** | — | D-003: run is memory only |
+| Save / resume | Built | `sim/save.ts`, `ui/save.ts` | the menu greets the astronaut by name, CONTINUE returns to the screen they left, START OVER clears it; one device-local `localStorage` key (D-081) |
 | Login before `naming` | **Not built** | — | D-003, TASK-022 |
 | Planning phase | **Not built** | — | D-029: do not add unasked |
 | Procedural work orders | **Deliberately not built** | — | D-060: the orders are a curriculum, not a random draw |
@@ -556,9 +556,8 @@ sol makes the other one pointless — that is how `ice-store` was removed in fav
 | Thing | Why | Where it is recorded |
 | --- | --- | --- |
 | A planning phase | The loop is turn-based on purpose | D-029 |
-| Save / resume | No persistence; Supabase deferred | D-003 |
+| A real save: accounts, cross-device | The run is written to this browser only; Supabase deferred | D-003, D-081 |
 | Login before `naming` | Same deferral | D-003, TASK-022 |
-| Persisting the astronaut name | A deliberate decision, not a convenience | D-003 |
 | Procedural work orders | The orders are a curriculum; randomising them breaks the teaching | D-060 |
 | A score for the five goals | They are the learning outcomes, not a second win condition | D-061 |
 | Stars that give resources | The balance must not depend on how well a minigame was played | D-063 |

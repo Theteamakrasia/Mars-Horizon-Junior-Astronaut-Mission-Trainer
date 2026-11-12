@@ -8,6 +8,7 @@ import { LAYOUT_PROBLEMS } from './ui/baseLayout';
 import { allScreenMounts, resolveScreen, screenMount } from './ui/registry';
 import { startRouter } from './ui/router';
 import type { Route } from './ui/routes';
+import { clearSave, readSave, writeSave } from './ui/save';
 
 /**
  * Resolves an element by id, throwing a clear error if the markup and the
@@ -89,15 +90,41 @@ function layoutRequested(): boolean {
  * The current run, owned here.
  *
  * The shell holds it rather than any screen, which is what lets naming create the
- * run and briefing read the name from it without either importing the other. It
- * lives in memory only: a refresh loses it, because persistence is deferred
- * (D-003).
+ * run and briefing read the name from it without either importing the other.
+ *
+ * It is also written down as it changes (`ui/save.ts`), so closing the tab is no
+ * longer the end of it: the menu greets the astronaut by name and offers
+ * CONTINUE (D-081). That is a device-local save, not an account — Supabase is
+ * still deferred (D-003), and a different browser has a different run.
  */
 let run: RunState | null = null;
 
-/** Hand the run to the shell. Screens get this rather than a shared global. */
+/** The screen on show, so a save knows where the player was. */
+let currentRoute: Route | null = null;
+
+/**
+ * Hand the run to the shell, and write it down.
+ *
+ * Screens get this rather than a shared global. Saving here rather than in each
+ * screen means no screen has to remember to: every change to the run goes
+ * through this one function.
+ */
 function setRun(next: RunState | null): void {
   run = next;
+
+  /*
+   * A null run means the player has gone back to the menu with nothing to come
+   * back to: START OVER, or the form's own back button. The saved run goes with
+   * it, because a CONTINUE left behind would contradict the button they pressed.
+   */
+  if (next === null) {
+    clearSave();
+    return;
+  }
+
+  if (currentRoute !== null) {
+    writeSave(next, currentRoute);
+  }
 }
 
 /** Show the landing page, hiding any mounted screen's layer. */
@@ -213,6 +240,17 @@ function bootstrap(): void {
     );
   }
 
+  /**
+   * Continue from an earlier visit.
+   *
+   * Loaded before the router mounts anything, so a browser that restored a tab
+   * on `#/act` gets the desk with the run it belongs to instead of the desk's
+   * "no run" fallback. The menu reads the save itself for its CONTINUE button,
+   * and this is the other half of the same choice: the run has to be back in
+   * memory before any screen asks for it (D-081).
+   */
+  run = readSave()?.run ?? null;
+
   startScreenRouter();
 }
 
@@ -224,6 +262,10 @@ function bootstrap(): void {
  * back to it.
  */
 function mountScreen(route: Route): void {
+  // Where a save would send the player, and what a change made on this screen
+  // is written against (D-081).
+  currentRoute = route;
+
   const teardown = activeScreen;
   activeScreen = null;
 
@@ -267,6 +309,15 @@ function mountScreen(route: Route): void {
   hideLanding();
   root.hidden = false;
   activeScreen = factory(root, run, setRun);
+
+  /*
+   * Coming back to a screen is worth remembering too. The run has not changed,
+   * but the place to resume at has — so a player who closed the tab here comes
+   * back here (D-081).
+   */
+  if (run !== null) {
+    writeSave(run, route);
+  }
 
   /*
    * The placement editor, once its module has loaded.

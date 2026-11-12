@@ -39,17 +39,24 @@ export interface StandingOrder {
  *
  * Two a sol, and every sol's pair is about a different pair of systems, so no
  * two days ask the same question. The order of the goals across the run is
- * deliberate: dust and power first, because the player meets them at landing;
- * then water and food, the two things the crew drinks and eats; then
- * radiation, which only becomes frightening once a flare is on the way; and
- * the closing orders pull the whole set together.
+ * deliberate: the two survival rules first, because a player must never lose to
+ * something the board never said; then power and water, which the player meets
+ * at landing and drinks every sol; then food and radiation, which only become
+ * frightening once the stores thin and a flare is on the way; and the closing
+ * orders pull the whole set together.
  */
 export const STANDING_ORDERS: readonly StandingOrder[] = [
-  { id: 'dust-fold', sol: 1, goal: 'dust-storm', topic: 'dust', text: 'The arrays make nothing while the panels are folded.' },
+  /*
+   * Sol one opens with the two ways the run ends, not with a system: a child
+   * who is told the survival rules before the engineering rules can never lose
+   * to something nobody mentioned. The dust and food openers that used to sit
+   * here have moved out of the board — both goals still have three orders each.
+   */
+  { id: 'floor-thirty', sol: 1, goal: 'life-support', topic: 'missions', text: 'Every tank stays above 30%. Two sols below the line and the crew goes home.' },
   { id: 'power-night', sol: 1, goal: 'power', topic: 'power', text: 'A solar panel only works while the Sun is up. Every night needs batteries.' },
 
+  { id: 'power-first', sol: 2, goal: 'power', topic: 'power', text: 'Before a job starts, the batteries must already hold what it costs.' },
   { id: 'water-ice', sol: 2, goal: 'life-support', topic: 'water', text: 'Water ice lies under the ground at this site.' },
-  { id: 'food-launch', sol: 2, goal: 'food', topic: 'food', text: 'Every kilogram of food has to be launched from Earth.' },
 
   { id: 'rad-no-field', sol: 3, goal: 'radiation', topic: 'radiation', text: 'Mars has no global magnetic field. The crew needs shielding.' },
   { id: 'life-co2', sol: 3, goal: 'life-support', topic: 'missions', text: 'The air is 95% carbon dioxide. You have to make your own oxygen.' },

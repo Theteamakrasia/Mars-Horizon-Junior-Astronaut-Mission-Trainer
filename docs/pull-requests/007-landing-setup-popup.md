@@ -43,7 +43,7 @@ class, so the same rules draw them — not a second design, and not a copy to dr
   never on screen together.
 - `tools/browser-check-setup-popup.mjs` (new) — 141 checks over the five landing regions.
 - `tools/browser-check-build.mjs` — follows the cards into the window, and its scroll
-  check now watches the window's own scroller (ISS-095).
+  check now watches the window's own scroller (ISS-097).
 - `docs/` — D-081 with the rejected alternatives, ISS-095, TASK-104, the progress-log
   entry, the architecture tree and contract table, the `AGENTS.md` row, and the build
   screen's README.
@@ -94,6 +94,6 @@ act screen, which this PR does not touch. It is not fixed here.
 - [ ] Checked on the owner's own device.
 - [ ] The reference mock showed a **lock** on the window's button until all five site
       goals were ready. It is not built: the game deliberately lets a crew land with a
-      goal unmet, and a lock would have been a new mechanic (D-081). The footer reports
+      goal unmet, and a lock would have been a new mechanic (D-082). The footer reports
       "3 of 5 site goals are ready" and the button always works. If the owner wants the
       lock, it is one `disabled` and one line of copy.

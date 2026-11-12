@@ -31,6 +31,8 @@ const errors = [];
 const notes = [];
 /** True until the check has cleared the record for itself. */
 let fresh = true;
+/** Set by the page's load event, so a reload can be waited for properly. */
+let pageLoaded = false;
 
 function note(text, ok, detail = "") {
   notes.push({ text, ok, detail });
@@ -292,6 +294,7 @@ try {
 
     if (message.method === "Runtime.exceptionThrown") errors.push(message.params.exceptionDetails.exception?.description ?? message.params.exceptionDetails.text);
     if (message.method === "Runtime.consoleAPICalled" && message.params.type === "error") errors.push(message.params.args.map((a) => a.value ?? a.description).join(" "));
+    if (message.method === "Page.loadEventFired") pageLoaded = true;
   });
 
   await send("Runtime.enable");
@@ -391,14 +394,93 @@ try {
 
   console.log("8 a refresh keeps the training");
   const before = await trainingState();
+
+  /*
+   * The page is reloaded, not re-walked. `toAct()` starts a *new* mission, and
+   * naming clears the training day for one - a new mission is a new day - so
+   * the re-walk threw away the very thing this step is about to measure
+   * (ISS-096). A refresh is the thing under test.
+   *
+   * The wait is for the new document's load event: for a moment after a reload
+   * CDP still evaluates against the page being left, and that page has a desk
+   * on show too, so a poll would answer from the wrong document and the step
+   * would pass for the wrong reason.
+   */
+  pageLoaded = false;
   await send("Page.reload", {});
-  await sleep(2000);
-  await toAct();
+  for (let index = 0; index < 40 && !pageLoaded; index += 1) await sleep(250);
+  await waitFor(`!!document.getElementById("act") && !document.getElementById("act").hidden`);
+  await sleep(1200);
+
   const after = await trainingState();
   note("the day is still two games on", after.count.includes("2/2"), after.count);
   note("the tasks are still open", after.tasksLocked === "false", after.tasks);
   note("the points are still on the score", after.science !== "", after.science);
   note("the science score did not go back to nothing", after.science === before.science, `${before.science} then ${after.science}`);
+
+  console.log("9 the same game again, on the next sol");
+  /* The day's training starts again with the sol, so the replay is tested on
+     a clean day: the same game twice, and the board has to be a new one - the
+     crew is playing again, so the game deals again (ISS-085). */
+  await tap('#act .act-tile[data-tile="tasks"]');
+  await sleep(700);
+  await ev(`(() => { const card = [...document.querySelectorAll("#act .act-order")].find((c) => !c.disabled); if (card) card.click(); })()`);
+  await sleep(600);
+  /* The button is disabled while the space weather is loading, and a crisis
+     replaces the hub on the sol. */
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    const crisis = await ev(`!!document.querySelector("#act .gl__choices")`);
+
+    if (crisis) {
+      await ev(`(() => { const c = document.querySelector("#act .gl__choice"); if (c) c.click(); })()`);
+      await sleep(1400);
+      break;
+    }
+
+    const outcome = await ev(`(() => {
+      const screen = document.getElementById("act");
+      const el = [...screen.querySelectorAll("button")].find((n) => n.textContent.trim().includes("Run sol"));
+      if (!el) return "missing";
+      if (el.disabled) return "disabled";
+      el.click();
+      return "clicked";
+    })()`);
+
+    if (outcome === "clicked") {
+      await sleep(1600);
+      break;
+    }
+
+    await sleep(600);
+  }
+
+  await tap('#act .act-tile[data-tile="orders"]');
+  await sleep(700);
+  const nextSol = await trainingState();
+  note("the next sol starts the training again", nextSol.count.includes("0/2"), nextSol.count);
+
+  note("the cargo round opened", (await playCard("Cargo Sorting")) === true);
+  const firstBoard = await ev(`[...document.querySelectorAll("#act .trn__crate")].map((n) => n.getAttribute("aria-label")).join(",")`);
+  note("the cargo round was won", (await playCargo()) === true);
+  await tap("#act .trn__btn--primary");
+  await sleep(800);
+
+  await tap('#act .act-tile[data-tile="orders"]');
+  await sleep(700);
+  note("the same game opens again", (await playCard("Cargo Sorting")) === true);
+  const secondBoard = await ev(`[...document.querySelectorAll("#act .trn__crate")].map((n) => n.getAttribute("aria-label")).join(",")`);
+  note("and it deals a new board", firstBoard !== secondBoard, `${firstBoard} then ${secondBoard}`);
+  note("the second play was won too", (await playCargo()) === true);
+  const paidAgain = await ev(`document.querySelector("#act .trn__done-points")?.textContent ?? ""`);
+  note("and it paid again", /^\+\d+ POINTS$/.test(paidAgain), paidAgain);
+  await tap("#act .trn__btn--primary");
+  await sleep(900);
+
+  const replayed = await trainingState();
+  note("the day is two games on", replayed.count.includes("2/2"), replayed.count);
+  note("the tasks are open", replayed.tasksLocked === "false", replayed.tasks);
+  const card = await ev(`(() => { const c = [...document.querySelectorAll("#act .trn__card")].find((x) => x.querySelector(".trn__card-name")?.textContent === "Cargo Sorting"); return (c?.textContent ?? "").replace(/\\s+/g, " "); })()`);
+  note("the card says it was played twice", card.includes("2×"), card.trim());
 
   console.log("ERRORS: " + (errors.length === 0 ? "none" : errors.slice(0, 4).join(" | ")));
   const failed = notes.filter((n) => !n.ok);

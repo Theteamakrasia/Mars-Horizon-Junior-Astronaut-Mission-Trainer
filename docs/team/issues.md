@@ -11,7 +11,10 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
-| ISS-095 | The build check looked for the supply cards in the panel, and the cards moved to the setup window | low | agent | fixed | this branch |
+| ISS-097 | The build check looked for the supply cards in the panel, and the cards moved to the setup window | low | agent | fixed | this branch |
+| ISS-096 | The training browser check re-walked the journey to test a refresh, so it always failed | medium | agent | fixed | this branch |
+| ISS-095 | Closing the tab lost the whole run, and the menu asked for the name again | high | agent | fixed | this branch |
+
 | ISS-094 | The encyclopedia was one click away before the player had an outpost | medium | agent | fixed | this branch |
 | ISS-093 | The mini game merged with the desk sheet, and stayed there after it closed | medium | agent | fixed | this branch |
 | ISS-092 | The landing-site map left a blank band above and below the picture | low | agent | fixed | this branch |
@@ -106,10 +109,10 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-## ISS-095 - The build check looked for the supply cards in the panel, and the cards moved to the setup window
+## ISS-097 - The build check looked for the supply cards in the panel, and the cards moved to the setup window
 
 - **Reported by:** the agent, 2026-11-12, while moving the supply list into the landing
-  window (D-081).
+  window (D-082).
 - **Where:** `tools/browser-check-build.mjs` — the card steps read `#base .gl__card`, and the
   scroll step read the panel's `#base .gl__scroll`.
 - **Problem:** the check pinned *where* the supply list was drawn, not what it did. When the
@@ -124,6 +127,45 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
   window waits for it. The check still asserts all of the same behaviour, and it now asserts
   that the panel behind the window has no supply cards at all.
 - **Pre-existing:** no; it was caused by this change and found by running the check.
+## ISS-096 - The training browser check re-walked the journey to test a refresh, so it always failed
+
+- **Reported by:** the agent, 2026-11-12, while checking the save (D-081): `node
+  tools/browser-check-training.mjs` reported 37/40, and the three failures were all in step 8,
+  "a refresh keeps the training".
+- **Where:** `tools/browser-check-training.mjs` — step 8, and the `toAct()` helper it calls.
+- **Problem:** step 8 was meant to prove that a page refresh does not hand the player the same
+  two training games again. It reloaded the page and then called `toAct()`, which walks the
+  whole journey from the naming screen — and naming's submit handler clears the training day,
+  because a new mission is a new day. The check therefore destroyed the thing it was about to
+  measure: the desk came up with `0/2 GAMES COMPLETED`, the tasks locked again, and the science
+  score back at nothing. The three failures were the check's own fault, not the game's.
+- **Cause:** `toAct()` was written as "get to the desk by any means", and step 8 used it as "get
+  back to the desk after a refresh". Those are different questions, and only one of them should
+  start a new mission. The step had been failing since the naming screen began clearing the
+  training record on submit, and the README still claimed the check was green.
+- **Fix:** step 8 now reloads and reads the desk where it is, instead of walking the journey
+  again — and waits for the new document's load event, so the read is of the page that came back
+  and not of the one being left (the same trap `browser-check-save.mjs` hit).
+- **Pre-existing:** yes — it failed the same way on the unmodified tree, 37/40, before the save
+  existed. Found while adding `browser-check-save.mjs`.
+
+## ISS-095 - Closing the tab lost the whole run, and the menu asked for the name again
+
+- **Reported by:** the owner, 2026-11-12: *"if a player leaves/closes browser and comes
+  back later, he'll see the main menu where it'll greet him as the same he inputed in last
+  game, then show continue option and start over option."*
+- **Where:** `src/main.ts`, `src/features/naming/view.ts`, `index.html`.
+- **Problem:** the run lived in the shell's memory and nowhere else, so closing the tab
+  ended a twelve-sol mission without a word — and coming back to the menu asked a player
+  who had named their astronaut an hour earlier to name them again.
+- **Cause:** deliberate, once. D-003 deferred Supabase, and "no persistence at all" was the
+  simplest way to keep that deferral honest. The training day (D-075) had already made the
+  narrower exception, so the rule was being upheld in the docs rather than in the code.
+- **Fix:** the run is written to one versioned `localStorage` key as it changes and loaded
+  before the router starts; the menu shows the astronaut's name, the sol they stopped on,
+  and CONTINUE / START OVER in place of the name field (D-081). Supabase is still deferred.
+- **Pre-existing:** yes — since the first screen; found by the owner before the freeze.
+
 
 ## ISS-094 - The encyclopedia was one click away before the player had an outpost
 
@@ -1690,7 +1732,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-**Next free id: ISS-095.**
+**Next free id: ISS-098.**
 
 
 ---

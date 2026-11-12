@@ -257,7 +257,7 @@ try {
      Chrome restores the last session in a profile it has used before, and the
      restored page still holds the run of that session in memory, which the
      storage cannot reach. */
-  await evaluate(`(() => { try { localStorage.removeItem('marsHorizon.training.v1'); } catch (e) { /* no storage */ } })()`);
+  await evaluate(`(() => { try { localStorage.removeItem('mars-horizon.training.v1'); } catch (e) { /* no storage */ } })()`);
   await send('Page.reload', {});
   await waitFor(`!!document.getElementById('naming') && !document.getElementById('naming').hidden`);
 
@@ -321,7 +321,7 @@ try {
   note('and it can be closed', (await evaluate(`!document.querySelector('body .guide__bubble')`)) === true);
 
   /* The setup window opens when the guide is closed: the supplies are bought
-     in it, so it is the landing window (D-081). */
+     in it, so it is the landing window (D-082). */
   const windowOpened = await waitFor(`!!document.querySelector('body .setup__backdrop')`);
   note('the setup window opens once the guide is closed', windowOpened === true);
 
@@ -479,7 +479,7 @@ try {
   );
 
   // 7. The panel behind the window has no supply cards: the supplies are
-  //    bought in the window, so the two are never on screen at once (D-081).
+  //    bought in the window, so the two are never on screen at once (D-082).
   const panelCards = await evaluate(`document.querySelectorAll('#base .gl__card').length`);
   note('the panel behind the window has no supply cards', panelCards === 0, `${panelCards} cards`);
 
@@ -644,6 +644,16 @@ try {
   note('every work order carries two checks', desk?.checks === 6, `${desk?.checks} checks`);
 
   // 10. Pick one, then work it with the tool it carries.
+  /* The day cannot be skipped: the sol only runs once the crew has trained
+     and stamped an order. The button says so while it is shut. */
+  const beforeStamping = await evaluate(`(() => {
+    const el = [...document.querySelectorAll('#act button')].find((n) => (n.textContent ?? '').includes('Run sol'));
+    const note = [...document.querySelectorAll('#act .gl__note')].map((n) => (n.textContent ?? '').trim()).find((t) => t.includes('activity'));
+    return { disabled: el?.disabled === true, note: note ?? '' };
+  })()`);
+
+  note('the sol cannot be run before the day\'s work is stamped', beforeStamping.disabled === true, beforeStamping.note || 'no note');
+
   const picked = await evaluate(`(() => {
     const b = document.querySelector('#act .act-order:not([disabled])');
     if (!b) return 'missing';
@@ -652,6 +662,13 @@ try {
   })()`);
   note('an order can be stamped', picked === 'clicked', picked);
   await sleep(500);
+
+  const afterStamping = await evaluate(`(() => {
+    const el = [...document.querySelectorAll('#act button')].find((n) => (n.textContent ?? '').includes('Run sol'));
+    return el?.disabled === false;
+  })()`);
+
+  note('and the sol runs once it is stamped', afterStamping === true);
 
   const opened = await evaluate(`(() => {
     const b = document.querySelector('#act .insp__open:not([disabled])');
@@ -760,10 +777,13 @@ try {
   const crisis = await evaluate(`!!document.querySelector('#act .gl__choices')`);
   note('the sol ran', crisis || (await evaluate(`!!document.querySelector('#act .act-tile')`)));
 
-  // 13b. The power card reads the batteries, not the projection (ISS-078). A
-  //      bare outpost needs more than its battery holds to get through a
-  //      night, so after one sol the store - and the card - are at zero, and
-  //      the meter's percentage agrees. The old card was a constant 200 kWh.
+  // 13b. The power card reads the day, not the level in the batteries
+  //      (ISS-084). The batteries are drained overnight and refilled by the
+  //      Sun, so the level in the bank is at its lowest at dawn: a card that
+  //      showed it read "12%" every morning of the run, and the player was
+  //      right to say the electricity was always nearly gone. The card shows
+  //      what the Sun makes and what is spare over what the outpost needs,
+  //      and the bar says what share of the outpost's power the panels make.
   const powerCard = await evaluate(`(() => {
     const stat = [...document.querySelectorAll('#act .gl__stat')]
       .find((s) => (s.querySelector('.gl__stat-label')?.textContent ?? '').startsWith('Power'));
@@ -774,19 +794,20 @@ try {
     };
   })()`);
 
-  note('the act power card reads the stored kWh', /^\d+ kWh$/.test(powerCard?.value ?? ''), `${powerCard?.label || 'no card'} = ${powerCard?.value || 'nothing'}`);
-  /* The bar and the number have to agree with each other, whatever the
-     balance is: the card says how much is stored, and the bar says how much
-     of the capacity that is. (It used to say a bare outpost reads empty,
-     which stopped being true when the lander's battery was sized to carry a
-     night - ISS-083.) */
-  const stored = Number((powerCard?.value ?? '').replace(/[^\d]/g, ''));
-  const capacity = Number((powerCard?.label.match(/(\d+) kWh max/)?.[1] ?? '0'));
+  note(
+    'the act power card reads the day\'s power',
+    /kWh today/.test(powerCard?.label ?? '') && /kWh/.test(powerCard?.value ?? ''),
+    `${powerCard?.label || 'no card'} = ${powerCard?.value || 'nothing'}`,
+  );
+  /* The card says the same thing in kWh: what the Sun made, and what is
+     spare over what the outpost needs. */
+  const made = Number((powerCard?.label.match(/(\d+) kWh today/)?.[1] ?? '0'));
 
   note(
-    'and the bar agrees with the number on the card',
-    capacity > 0 && powerCard?.meter === String(Math.round((stored / capacity) * 100)),
-    `${stored} of ${capacity} kWh = ${powerCard?.meter ?? '?'}%`,
+    'and the card says what is spare, not just what is there',
+    made > 0 &&
+      ((powerCard?.value ?? '').includes('spare') !== (powerCard?.value ?? '').includes('short')),
+    `${made} kWh made · ${powerCard?.value ?? 'nothing'} · ${powerCard?.meter ?? '?'}% of the need`,
   );
 
   /* The forecast's timetable is rolled per page load (D-048), so a crisis
@@ -807,7 +828,9 @@ try {
       return notes.find((text) => text.includes('kWh')) ?? '';
     })()`);
 
-    note('the stats sheet explains the empty batteries', /ran flat|panels made/.test(powerLine), powerLine);
+    /* The receipt has to account for the sol: what was made, what the night
+       took, what spilled and where the bank ended. */
+    note('the stats sheet explains the empty batteries', /ran flat|spilled|Yesterday/.test(powerLine), powerLine);
     await closeSheet();
 
     const review = await evaluate(`(() => {

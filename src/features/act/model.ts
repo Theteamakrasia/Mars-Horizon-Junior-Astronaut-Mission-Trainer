@@ -7,8 +7,7 @@
  * say on the screen (D-051).
  */
 
-import { offerFor, planForSol, activityById, type ActivitySpec, type ActivityStoreName } from '../../sim/activities';
-import { stormOn, stormOpacity } from '../../sim/forecast';
+import { offerFor, planForSol, nightWarning, type ActivitySpec, type ActivityStoreName } from '../../sim/activities';
 import { DUST_SPOTLESS, LIFE_STORE_FLOOR, POWER_BLACKOUT_FLOOR, type ScienceGoal } from '../../sim/goals';
 import { oneWayMinutes } from '../../sim/comms';
 import { noteForSol } from '../../sim/deskNotes';
@@ -16,10 +15,10 @@ import type { FindAnswer, FindKind } from '../../sim/rover';
 import type { EngineKind } from '../../sim/minigames';
 import { ordersThrough, type StandingOrder } from '../../sim/standingOrders';
 import { TRAINING_DAILY_LIMIT, trainingUnlocked } from '../../sim/training';
-import { RESOURCE_NAMES, percentOf, type ResourceName, type ResourceStores } from '../../sim/resources';
+import { RESOURCE_FLOOR, RESOURCE_NAMES, floorStreak, percentOf, FLOORED_STORES, type ResourceName, type ResourceStores } from '../../sim/resources';
 import type { RunState, SolRecord } from '../../sim/run';
-import { NIGHT_HOURS, SUN_HOURS, systemsFor } from '../../sim/modules';
-import { siteScore } from '../../sim/regions';
+import { systemsFor } from '../../sim/modules';
+import { powerBudget } from '../../sim/powerBudget';
 import { rankProgress, type ScienceRank } from '../../sim/science';
 import { WIN_SOL } from '../../sim/sol';
 import type { ScienceTopic } from '../../sim/topics';
@@ -27,64 +26,58 @@ import type { ScienceTopic } from '../../sim/topics';
 /**
  * The power picture for the sol about to be played.
  *
- * Two numbers, because they answer two different questions.
+ * One set of numbers, and every screen reads the same set:
  *
- * `stored` is what is in the batteries now. It is what the HUD meter draws and
- * what a player means by "power". `available` is what the crew can still spend
- * today, after the panels have filled the batteries and after the chosen
- * activity's draw - the number the activity prices come out of.
+ *   `generated`  what the panels make today
+ *   `demand`     what the outpost needs over the whole sol
+ *   `spare`      the difference, and negative when the outpost runs down
+ *   `stored`     what is in the batteries now
+ *   `spendable`  what a job may cost today: the bank plus the sunlight the
+ *                outpost does not need
+ *   `nightNeed`  what the night will take
  *
- * Showing only the projection made the card a constant: it saturates at the
- * battery capacity, so it read 200 kWh while the batteries were empty
- * (ISS-078). Showing only the level at dawn was the earlier mistake in the
- * other direction (ISS-060). Both are true, so the screen says which is which.
+ * The night is in every one of them, because it is where the power goes. The
+ * screen used to show the level in the batteries at dawn (always near zero),
+ * and separately a projection that saturated at the battery's capacity (always
+ * the same number), and neither mentioned the night — so a player who spent
+ * 50 kWh out of a bank holding 150 could not work out why the bank was nearly
+ * empty at the next dawn (ISS-083).
  */
 export interface TodayPower {
-  /** kWh in the batteries right now. */
+  /** kWh the panels make today. */
+  readonly generated: number;
+  /** kWh the outpost needs over the whole sol, job aside. */
+  readonly demand: number;
+  /** kWh to spare over the whole sol. Negative when the outpost runs down. */
+  readonly spare: number;
+  /** kWh in the batteries now. */
   readonly stored: number;
-  /** kWh the crew can still spend today, after the chosen activity's draw. */
-  readonly available: number;
   /** The batteries' capacity, in kWh. */
   readonly capacity: number;
-  /** What the systems use over the whole sol, in kWh. */
-  readonly demand: number;
-  /** What the night alone needs, in kWh. */
+  /** kWh a job may cost today. */
+  readonly spendable: number;
+  /** kWh the night needs from the batteries. */
   readonly nightNeed: number;
+  /** kWh the bank would hold after the night, if nothing is spent today. */
+  readonly reserve: number;
   /** True when the batteries still cover the night. */
   readonly nightCovered: boolean;
 }
 
 /** The power picture for the sol about to be played. */
 export function powerToday(run: RunState): TodayPower {
-  const systems = systemsFor(run.modules, run.regionId);
-  const capacity = systems.batteryKwh;
-
-  /* The panels make nothing while they are folded, and a storm that has not
-     been answered yet is still a storm. */
-  const storm = stormOn(run.forecast, run.sol + 1);
-  const choice = storm === null ? null : run.decisions.find((entry) => entry.crisisId === storm.id)?.optionId;
-  const stormFactor =
-    storm === null ? 1 : choice === 'expose' ? 1 - stormOpacity(siteScore(run.regionId).dust) : 0;
-
-  const generated = systems.solarKw * systems.sunFactor * run.panelHealth * stormFactor * SUN_HOURS;
-  const nuclear = (systems.nuclearKw * (SUN_HOURS + NIGHT_HOURS)) / 2;
-  const dayDraw = systems.loadKw * SUN_HOURS;
-  const nightNeed = Math.max(0, systems.loadKw - systems.nuclearKw) * NIGHT_HOURS;
-  const level = capacity <= 0 ? 0 : Math.min(capacity, run.stores.power + generated + nuclear - dayDraw);
-
-  /* The activity already chosen for today draws its power whatever the panel
-     says it could spend, so the projection takes it off here too. The card and
-     the sol step have to price the same day (ISS-078). */
-  const chosen = run.chosenActivity === null ? null : activityById(run.chosenActivity);
-  const chosenDraw = chosen === null ? 0 : chosen.powerCostKwh;
+  const budget = powerBudget(run);
 
   return {
-    stored: Math.max(0, Math.round(Math.min(capacity, run.stores.power))),
-    available: Math.round(Math.max(0, level - chosenDraw)),
-    capacity: Math.round(capacity),
-    demand: Math.round(systems.loadKw * (SUN_HOURS + NIGHT_HOURS)),
-    nightNeed: Math.round(nightNeed),
-    nightCovered: level - chosenDraw >= nightNeed,
+    generated: Math.round(budget.generatedKwh),
+    demand: Math.round(budget.demandKwh),
+    spare: Math.round(budget.spareKwh),
+    stored: Math.round(Math.max(0, Math.min(budget.capacityKwh, run.stores.power))),
+    capacity: Math.round(budget.capacityKwh),
+    spendable: Math.round(budget.spendableKwh),
+    nightNeed: Math.round(budget.nightNeedKwh),
+    reserve: Math.round(budget.reserveKwh),
+    nightCovered: budget.nightCovered,
   };
 }
 
@@ -132,23 +125,83 @@ export const RESOURCE_LABELS: Readonly<Record<ResourceName, { readonly label: st
   shielding: { label: 'Shielding' },
 };
 
-/** How worried a meter should look. Below a quarter is low; below a tenth is critical. */
+/**
+ * How worried a meter should look.
+ *
+ * The lines are the game's own, not round numbers picked for the palette:
+ * below 30 is the floor a store can be scrubbed under, so that is critical;
+ * below 40 is where the science goals stop counting it, so that is a warning.
+ * A player who sees red is one sol from losing the mission, which is exactly
+ * what the card should say without needing a sentence.
+ */
 export function toneFor(percent: number): MeterTone {
-  if (percent < 10) return 'critical';
-  if (percent < 25) return 'low';
+  if (percent < RESOURCE_FLOOR) return 'critical';
+  if (percent < LIFE_STORE_FLOOR) return 'low';
 
   return 'ok';
 }
 
-/** One row per store, ready to draw. */
+/**
+ * One row per store, ready to draw.
+ *
+ * The power meter is the odd one out. The bank is nearly empty at dawn on
+ * every sol — the night took it — so a meter that judged power by its level
+ * would be red every morning of the run and teach the player that the game
+ * was broken. Power has no floor line: a low bank does not end the run, it
+ * stops the crew working. So the meter is worried about the day: red when
+ * nothing can be spent, amber when the night is not covered, calm otherwise.
+ */
 export function meterRows(run: RunState): readonly MeterRow[] {
   const capacity = systemsFor(run.modules, run.regionId).batteryKwh;
+  const power = powerToday(run);
 
   return RESOURCE_NAMES.map((name) => {
     const percent = percentOf(name, run.stores, capacity);
 
+    if (name === 'power') {
+      const tone: MeterTone = power.spendable <= 0 ? 'critical' : power.nightCovered ? 'ok' : 'low';
+
+      return { name, ...RESOURCE_LABELS[name], percent, tone };
+    }
+
     return { name, ...RESOURCE_LABELS[name], percent, tone: toneFor(percent) };
   });
+}
+
+/** A store that is one sol under the floor away from ending the run. */
+export interface FloorWarning {
+  readonly name: ResourceName;
+  readonly label: string;
+  readonly percent: number;
+  readonly text: string;
+}
+
+/**
+ * The store the crew is one sol away from losing to, or null.
+ *
+ * The floor rule is the one way a run ends with the tank still part full, so
+ * it cannot be left to the numbers alone: a player at 28% would otherwise see
+ * a slightly low bar and nothing else. This is the sentence the desk says, and
+ * it is a warning and never a scolding — one bad sol is survivable, which is
+ * the whole shape of the rule.
+ *
+ * Only the first store in the canonical order is named. Naming all four in a
+ * banner is a paragraph, and the meters already carry the rest.
+ */
+export function floorWarning(run: RunState): FloorWarning | null {
+  const capacity = systemsFor(run.modules, run.regionId).batteryKwh;
+  const name = FLOORED_STORES.find((store) => floorStreak(run.log, store) > 0);
+
+  if (name === undefined) return null;
+
+  const label = RESOURCE_LABELS[name].label;
+
+  return {
+    name,
+    label,
+    percent: percentOf(name, run.stores, capacity),
+    text: `${label} has been under ${RESOURCE_FLOOR}% for a whole sol. One more sol below the line and the crew is brought home.`,
+  };
 }
 
 /** One resource's day: what it made, what it used, and where it ended up. */
@@ -239,31 +292,44 @@ export function secondsLeft(totalSeconds: number, elapsedMs: number): number {
   return Math.max(0, Math.ceil(totalSeconds - elapsedMs / 1000));
 }
 
-/** Words for a night-power picture, so it can be read aloud as well as seen. */
-export function powerSentence(generatedKw: number, storedKwh: number, nightDrainKw: number): string {
-  return `${generatedKw} kW in the Sun · ${storedKwh} kWh stored · ${nightDrainKw} kW at night`;
-}
-
 /**
  * What the last sol did to the power, in one line.
  *
- * A bare outpost needs more than its batteries hold to get through a night, so
- * the level is zero at the start of every sol and the player is right to ask
- * why. The figures existed only in the review ledger. Saying them next to the
- * meters turns a number that looks stuck into a fact about the outpost
- * (ISS-082). Empty before the first sol, so the panel has nothing to explain
- * yet.
+ * Every number the player needs to add the sol up by eye: what was made, what
+ * the outpost used, what the night took, what the job cost, what spilled, and
+ * where the bank ended. It is the answer to "why did my power go down?", and
+ * it is on the screen every sol rather than only when something went wrong —
+ * a sol the player can add up is a sol they can plan around.
+ *
+ * The night is named because it is the spender nobody sees: most of a sol's
+ * power goes on the dark half of it, and the bank is empty at dawn because of
+ * that rather than because of the job (ISS-083).
  */
-export function lastPowerLine(run: RunState): string {
+export function powerReceipt(run: RunState): string {
   const record = run.log[run.log.length - 1];
 
   if (record === undefined) return '';
 
+  const made = Math.round(record.powerGenerated);
+  const outpost = Math.round(record.powerUsed - record.powerExtra);
+  const night = Math.round(record.powerNight);
+  const job = Math.round(record.powerExtra);
+  const spilled = Math.round(record.powerWasted);
+  const ended = Math.round(record.stores.power);
+
+  const parts = [`made ${made} kWh`, `outpost ${outpost} (night ${night})`];
+
+  if (job > 0) parts.push(`job ${job}`);
+  if (spilled > 0) parts.push(`${spilled} spilled`);
+  parts.push(`ended ${ended} kWh`);
+
+  const line = `Yesterday: ${parts.join(' · ')}.`;
+
   if (record.blackout > POWER_BLACKOUT_FLOOR) {
-    return `Last sol the batteries ran flat for ${Math.round(record.blackout * 100)}% of the day: ${Math.round(record.powerGenerated)} kWh made, ${Math.round(record.powerUsed)} kWh needed.`;
+    return `${line} The batteries ran flat for ${Math.round(record.blackout * 100)}% of the day.`;
   }
 
-  return `Last sol the panels made ${Math.round(record.powerGenerated)} kWh and the outpost needed ${Math.round(record.powerUsed)} kWh.`;
+  return line;
 }
 
 /* ------------------------------------------------------------- activities -- */
@@ -275,7 +341,7 @@ export function lastPowerLine(run: RunState): string {
  * them, so a cost can never disagree with the words describing it.
  */
 export interface ActivityCost {
-  /** What the activity takes, e.g. `−25 kWh`. Empty when it is free. */
+  /** What the activity takes, e.g. `−50 kWh`. Empty when it is free. */
   readonly costs: readonly string[];
   /** What the activity gives, e.g. `+4 science`. */
   readonly gains: readonly string[];
@@ -319,6 +385,14 @@ export interface ActivityRow {
   readonly available: boolean;
   /** Why it is locked, or null when it is available. */
   readonly lockedReason: string | null;
+  /**
+   * What this job would do to the night's reserve, or null when it leaves it
+   * alone.
+   *
+   * A warning and never a lock: the player may spend the reserve, but the card
+   * says what the reserve will be afterwards.
+   */
+  readonly nightWarning: string | null;
   /** True when the player has already picked this one. */
   readonly chosen: boolean;
   /** The system this order looks after, or null for a science-only order. */
@@ -395,16 +469,22 @@ export function orderChecks(run: RunState, row: ActivityRow): readonly OrderChec
   const power = powerToday(run);
   const cost = row.powerCost;
 
+  /* Every power number on the screen carries the day's spare and the night's
+     demand with it: the night is where most of the sol's power goes, and the
+     spare is what the day's work competes for (ISS-083, ISS-084). */
   const powerCheck: OrderCheck =
     cost === 0
-      ? { label: 'Power', value: 'free', ok: true, why: '' }
+      ? { label: 'Power', value: `free · tonight needs ${power.nightNeed} kWh`, ok: true, why: '' }
       : {
           label: 'Power',
-          value: `${cost} kWh of ${power.available} kWh for today`,
-          ok: cost <= power.available,
+          value:
+            power.spare > 0
+              ? `${cost} kWh of ${power.spare} kWh spare · tonight needs ${power.nightNeed} kWh`
+              : `${cost} kWh · today is ${Math.abs(power.spare)} kWh short · tonight needs ${power.nightNeed} kWh`,
+          ok: cost <= power.spendable,
           why:
-            cost > power.available
-              ? `Not enough power today: you have ${power.available} kWh and it needs ${cost}.`
+            cost > power.spendable
+              ? `Not enough power today: you can spend ${power.spendable} kWh and it needs ${cost}. Tonight needs ${power.nightNeed} kWh.`
               : '',
         };
 
@@ -455,6 +535,7 @@ export function activityRows(run: RunState, sol: number): readonly ActivityRow[]
       gains,
       available: offer.available,
       lockedReason: offer.lockedReason,
+      nightWarning: nightWarning(offer.spec, run),
       chosen: run.chosenActivity === offer.spec.id,
       system: offer.spec.system ?? null,
       engine: offer.spec.engine ?? null,

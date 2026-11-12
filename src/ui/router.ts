@@ -14,8 +14,11 @@ import {
  * `location.hash`, listens for `hashchange`, and calls back. That split is why
  * the routing logic has real coverage while the DOM layer has none.
  *
- * Hash routing rather than separate HTML pages: there is no persistence in this
- * project, so a navigation would lose the run state a multi-mission loop needs.
+ * Hash routing rather than separate HTML pages: a multi-page build would still
+ * lose the in-memory run between pages, and the save that could restore it
+ * (`ui/save.ts`, D-081) is written on one origin. A hash costs a URL bar and a
+ * listener; it keeps the landing page alive behind the game and lets every
+ * screen be deep-linked for the demo.
  */
 
 export interface RouterOptions {

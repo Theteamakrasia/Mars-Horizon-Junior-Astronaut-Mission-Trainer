@@ -40,6 +40,7 @@ import {
   extraSlots,
   goalPreview,
   pointsLeft,
+  powerDials,
   previewFor,
   previewSummary,
   upcomingWarnings,
@@ -304,6 +305,21 @@ export function mountBase(
       openSetup();
     });
 
+
+    // ---- Make, Store and Use: the three dials of the power economy.
+    const dials = h('div', { class: 'gl__dials' });
+
+    for (const dial of powerDials(extras, regionId)) {
+      dials.append(
+        h(
+          'div',
+          { class: 'gl__dial', 'data-tone': dial.tone },
+          h('span', { class: 'gl__dial-title', text: dial.label }),
+          h('span', { class: 'gl__dial-text', text: dial.text }),
+        ),
+      );
+    }
+
     // ---- What this build can do for the five goals.
     const goals = siteGoals(goalPreview(extras, regionId));
 
@@ -350,6 +366,8 @@ export function mountBase(
         budget,
         toastElement,
         openSetupButton,
+        gameSection('Your power', dials),
+
         gameSection('Your goals with this build', goals),
         h('p', { class: 'gl__note', text: `NASA fact · ${factFor(start.sol + regionId.length).text} (${factFor(start.sol + regionId.length).credit})` }),
       ],

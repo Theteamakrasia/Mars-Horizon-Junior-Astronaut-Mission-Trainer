@@ -71,7 +71,11 @@
          A header above it would only offer a way out of the one screen that has
          not started yet. The one navigation bar in the app lives in
          ui/gameLoop.ts (gameHeader) and is drawn by landing-site, base, act and
-         debrief - the screens a player reaches once they are under way. -->
+         debrief - the screens a player reaches once they are under way.
+
+         A player returning to a tab they closed is greeted by name here and
+         offered CONTINUE instead of the form, because the run is written down
+         as it changes (D-081, ui/save.ts). -->
     <section id="naming" class="naming" aria-labelledby="naming-title">
       <div class="naming__stage" aria-hidden="true">
         <img
@@ -105,6 +109,31 @@
               role="status"
               aria-live="polite"
             ></p>
+
+            <!-- The returning player's menu. Shown instead of the form when this
+                 device already has a run, so a child who closed the tab is
+                 greeted by name rather than asked to start again. Filled in by
+                 features/naming/view.ts and hidden by default, because a first
+                 visit must see the form. -->
+            <div class="naming__resume" data-naming-resume hidden>
+              <p class="naming__resume-note" data-naming-resume-note></p>
+              <div class="naming__actions">
+                <button
+                  class="naming__button naming__button--primary"
+                  type="button"
+                  data-naming-continue
+                >
+                  Continue
+                </button>
+                <button
+                  class="naming__button"
+                  type="button"
+                  data-naming-restart
+                >
+                  Start over
+                </button>
+              </div>
+            </div>
 
             <form class="naming__form" data-naming-form novalidate>
               <label class="naming__visually-hidden" for="naming-input"

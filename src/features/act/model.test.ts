@@ -10,12 +10,12 @@ import {
   changeRows,
   ledgerRows,
   deskNote,
+  floorWarning,
   hubTiles,
-  lastPowerLine,
   meterRows,
   missionHeadline,
   orderChecks,
-  powerSentence,
+  powerReceipt,
   powerToday,
   progressPercent,
   scienceSentence,
@@ -54,10 +54,32 @@ describe('act model', () => {
     expect(rows.find((row) => row.name === 'power')?.percent).toBe(100);
   });
 
-  it('looks worried below a quarter and alarmed below a tenth', () => {
+  it('looks worried under the goal line and alarmed under the floor line', () => {
     expect(toneFor(60)).toBe('ok');
-    expect(toneFor(24)).toBe('low');
-    expect(toneFor(9)).toBe('critical');
+    expect(toneFor(39)).toBe('low');
+    expect(toneFor(29)).toBe('critical');
+  });
+
+  it('warns that a store has one sol left before the crew is brought home', () => {
+    expect(floorWarning(run)).toBeNull();
+
+    const low = advanceSol(withState(run, { stores: { ...run.stores, water: 26 } }));
+    const warned = floorWarning(low);
+
+    expect(warned?.name).toBe('water');
+    expect(warned?.text).toContain('One more sol');
+  });
+
+  it('does not show a red power meter every morning', () => {
+    /* The bank is nearly empty at dawn on every sol, because the night took
+       it. A meter that judged power by its level would be red every morning
+       of the run and teach the player that the game was broken. Power is
+       worried about the day, not the level. */
+    const after = advanceSol(run);
+    const power = meterRows(after).find((row) => row.name === 'power');
+
+    expect(power?.percent).toBeLessThan(30);
+    expect(power?.tone).toBe('ok');
   });
 
   it('counts progress as a share of the run', () => {
@@ -68,10 +90,6 @@ describe('act model', () => {
     expect(secondsLeft(10, 0)).toBe(10);
     expect(secondsLeft(10, 3500)).toBe(7);
     expect(secondsLeft(10, 99999)).toBe(0);
-  });
-
-  it('writes the power picture as a sentence for screen readers', () => {
-    expect(powerSentence(45, 12, 30)).toBe('45 kW in the Sun · 12 kWh stored · 30 kW at night');
   });
 });
 
@@ -110,9 +128,9 @@ describe('the daily activity', () => {
     const rows = activityRows(run, 1);
     const survey = activityRows(run, 2).find((row) => row.id === 'survey');
 
-    expect(rows.find((row) => row.id === 'experiment')?.costs).toEqual(['−15 kWh']);
+    expect(rows.find((row) => row.id === 'experiment')?.costs).toEqual(['−30 kWh']);
     expect(rows.find((row) => row.id === 'experiment')?.gains).toEqual(['+6 science']);
-    expect(survey?.costs).toEqual(['−25 kWh']);
+    expect(survey?.costs).toEqual(['−50 kWh']);
   });
 
   it('shows a locked activity with the reason, rather than hiding it', () => {
@@ -203,15 +221,14 @@ describe('the daily activity', () => {
 });
 
 describe('the power the crew can spend', () => {
-  it('shows what is left after the panels fill the batteries, not the level at dawn', () => {
-    /* The batteries are drained through the night, so the level left at dawn
-       is near zero even for a healthy outpost. Showing that as "Power 0%"
-       while the player picks a 25 kWh activity reads as a broken game. */
+  it('says what the panels make, what the outpost needs, and what is left over', () => {
+    /* The three numbers a sol is made of. The spare is the one that says
+       whether the build is sound: negative means the outpost runs down. */
     const picture = powerToday(run);
 
-    expect(picture.available).toBeGreaterThan(0);
-    expect(picture.capacity).toBeGreaterThan(0);
-    expect(picture.nightNeed).toBeGreaterThan(0);
+    expect(picture.generated).toBeGreaterThan(0);
+    expect(picture.demand).toBeGreaterThan(0);
+    expect(picture.spare).toBe(picture.generated - picture.demand);
   });
 
   it('reports the level in the batteries separately from the day budget', () => {
@@ -223,15 +240,19 @@ describe('the power the crew can spend', () => {
 
     expect(picture.stored).toBe(Math.round(after.stores.power));
     expect(picture.stored).toBeLessThan(picture.capacity);
-    expect(picture.available).toBeGreaterThan(picture.stored);
+    expect(picture.spendable).toBeGreaterThan(picture.stored);
   });
 
-  it('takes the chosen activity out of the day budget, not out of the batteries', () => {
-    const before = powerToday(run);
-    const after = powerToday(withState(run, { chosenActivity: 'survey' }));
+  it('names the night on every order, because the night is where the power goes', () => {
+    const rows = activityRows(run, 1);
+    const row = rows[0];
 
-    expect(after.available).toBe(before.available - 25);
-    expect(after.stored).toBe(before.stored);
+    if (row === undefined) throw new Error('no order for sol 1');
+
+    const checks = orderChecks(run, row);
+
+    expect(checks[0]?.label).toBe('Power');
+    expect(checks[0]?.value).toContain('night needs');
   });
 
   it('says the night is not covered when the batteries cannot hold it', () => {
@@ -263,26 +284,31 @@ describe('the power the crew can spend', () => {
       ],
     });
 
-    expect(powerToday(storming).available).toBe(0);
+    expect(powerToday(storming).spendable).toBe(0);
   });
 
   it('says nothing about power before the first sol', () => {
-    expect(lastPowerLine(run)).toBe('');
+    expect(powerReceipt(run)).toBe('');
   });
 
-  it('says what the last sol made and needed, so a zero is explained', () => {
+  it('says what the last sol made, what the night took and where it ended', () => {
     const after = advanceSol(overloaded);
-    const line = lastPowerLine(after);
+    const line = powerReceipt(after);
+    const record = after.log[0];
+
+    if (record === undefined) throw new Error('no record for the sol');
 
     expect(line).toContain('kWh');
-    expect(line).toContain(`${Math.round(after.log[0].powerGenerated)} kWh made`);
+    expect(line).toContain(`made ${Math.round(record.powerGenerated)} kWh`);
+    expect(line).toContain(`night ${Math.round(record.powerNight)}`);
+    expect(line).toContain(`ended ${Math.round(record.stores.power)} kWh`);
   });
 
   it('names the blackout when the batteries ran flat', () => {
     const after = advanceSol(overloaded);
 
     expect(after.log[0].blackout).toBeGreaterThan(0);
-    expect(lastPowerLine(after)).toContain('ran flat');
+    expect(powerReceipt(after)).toContain('ran flat');
   });
 });
 
@@ -365,11 +391,13 @@ describe('the hub', () => {
   });
 
   it('names the lowest store on the stats button', () => {
-    const drained = withState(run, { stores: { ...run.stores, water: 12 } });
+    /* 35% is under the goal line but above the floor: the button is worth a
+       look, not an alarm. */
+    const drained = withState(run, { stores: { ...run.stores, water: 35 } });
     const stats = find(hubTiles(drained, context), 'stats');
 
     expect(stats?.status).toContain('Water');
-    expect(stats?.status).toContain('12%');
+    expect(stats?.status).toContain('35%');
     expect(stats?.attention).toBe(false);
   });
 

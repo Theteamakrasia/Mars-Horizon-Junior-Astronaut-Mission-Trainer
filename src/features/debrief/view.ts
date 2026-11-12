@@ -41,7 +41,7 @@ import iceMinerUrl from '../../../Assets/images/game-loop/ice-miner.png';
 import lifeSupportUrl from '../../../Assets/images/game-loop/life-support.png';
 import solarUrl from '../../../Assets/images/game-loop/solar.png';
 
-import { consumptionSummary, explainOutcome, goalOutcomes, lowestPoints, manualFor, patchReport, roverReport, nextSteps, reviewDecisions, scienceDetail, scienceHeadline, scienceReport, timeline, usedApproximateData, wentEmpty, type NextStep } from './model';
+import { consumptionSummary, explainOutcome, goalOutcomes, lowestPoints, manualFor, patchReport, roverReport, nextSteps, reviewDecisions, scienceDetail, scienceHeadline, scienceReport, timeline, usedApproximateData, endedStore, type NextStep } from './model';
 
 const VERDICT_TEXT = { solved: 'Solved early', caught: 'Caught you out', mixed: 'A trade-off' } as const;
 const VERDICT_ICON: Readonly<Record<keyof typeof VERDICT_TEXT, IconName>> = {
@@ -204,7 +204,7 @@ export function mountDebrief(
   }
 
   function worldFor(state: RunState): HTMLElement {
-    const empty = wentEmpty(state);
+    const empty = endedStore(state);
     const won = state.status === 'won';
 
     if (mode === 'journal') {
@@ -242,7 +242,7 @@ export function mountDebrief(
       h(
         'span',
         { class: 'gl__callout-icon', 'aria-hidden': 'true' },
-        won ? icon('star') : icon(RESOURCE_ICON[wentEmpty(state) ?? 'water']),
+        won ? icon('star') : icon(RESOURCE_ICON[endedStore(state) ?? 'water']),
       ),
       h(
         'div',
@@ -474,7 +474,7 @@ export function mountDebrief(
         h(
           'span',
           { class: 'gl__entry-icon', 'aria-hidden': 'true' },
-          won ? icon('star') : icon(RESOURCE_ICON[wentEmpty(state) ?? 'water']),
+          won ? icon('star') : icon(RESOURCE_ICON[endedStore(state) ?? 'water']),
         ),
         h(
           'div',
@@ -495,6 +495,7 @@ export function mountDebrief(
       [iceMinerUrl, 'Crew drank', `${totals.crewWater} water`],
       [greenhouseUrl, 'Crew ate', `${totals.crewFood} food`],
       [solarUrl, 'Power made', `${totals.powerGenerated} kWh`],
+      [batteryUrl, 'Power spent in the dark', `${totals.powerNight} kWh`],
       [batteryUrl, 'Power wasted', `${totals.powerWasted} kWh (batteries were full)`],
       [batteryUrl, 'Sols with a blackout', String(totals.blackoutSols)],
       [null, 'Thinnest margins', `air ${lows.oxygen}, water ${lows.water}, food ${lows.food}, shield ${lows.shielding}`],

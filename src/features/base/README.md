@@ -10,7 +10,7 @@ See `../README.md` for the layout rules.
 The player touches down and lays out the first modules. This is the outpost overview
 screen, and it is the home base for the rest of the run.
 
-**The supply list is in the landing window, not in the panel** (D-081). `setupPopup.ts`
+**The supply list is in the landing window, not in the panel** (D-082). `setupPopup.ts`
 draws a popup over this screen — the site, the five site goals, all six supplies and the
 points — and it opens by itself when the crew lands. The panel keeps the state of the
 build (the points bar, the goals, the NASA fact) and a **"Choose your extras"** button

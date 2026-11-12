@@ -62,8 +62,11 @@ describe('the patches', () => {
   });
 
   it('does not pay out for a patch the run did not earn', () => {
-    /* A run with no greenhouse cannot have kept the food up. */
-    const run = play(4, 'rest');
+    /* A run with no greenhouse cannot have kept the food up. It needs a shield
+       to get far enough for that to show: without one the floor rule brings the
+       crew home on sol 2, while the food is still above half and the patch has
+       nothing to notice. */
+    const run = play(6, 'rest', ['regolith-shield']);
     const food = patchesFor(run).find((patch) => patch.id === 'green-thumb');
 
     expect(food).toBeUndefined();

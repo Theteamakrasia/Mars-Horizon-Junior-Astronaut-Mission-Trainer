@@ -8,8 +8,8 @@
  *
  * Three things live here and nowhere else:
  *
- *  - the daily rule: two games a sol, each game once a sol, and what a
- *    finished game is worth;
+ *  - the daily rule: two games a sol, the same game twice if the crew wants to
+ *    practise it, and what a finished game is worth;
  *  - the six games' words: name, difficulty, how to play, and the line the
  *    completion screen says;
  *  - the shape of a finished day, so a screen never has to invent one.
@@ -20,6 +20,8 @@
  * that is allowed to know a browser exists.
  */
 
+import { systemsFor } from './modules';
+import { clampStores, type ResourceName, type ResourceStores } from './resources';
 import type { RunState } from './run';
 
 /** The six games, by id. The id is what a finished day is recorded against. */
@@ -118,6 +120,10 @@ export const TRAINING_GAMES: readonly TrainingGame[] = [
  * Two, because a sol is already a child's day: two games is a reward, not a
  * chore. It is also the number that makes the rule teachable — a third game
  * would be a bonus, and a bonus is a thing players ask for.
+ *
+ * The count is of games finished, not of different games: the same game can
+ * be played twice, and the second time is the day's other play and pays
+ * again. The crew did the work twice, so it is paid twice.
  */
 export const TRAINING_DAILY_LIMIT = 2;
 
@@ -133,6 +139,82 @@ export const TRAINING_REWARDS: Readonly<Record<TrainingPerformance, number>> = {
   good: 3,
   excellent: 4,
 };
+
+/**
+ * What a finished game puts in the stores.
+ *
+ * The science is the warm-up; this is the point. Each game is tied to the
+ * system it trains, so the crew's practice shows up in that store and nowhere
+ * else — which makes the daily "which two of the six games" a real choice
+ * rather than a formality: play the two the outpost needs today.
+ *
+ * Amounts are in each store's own unit, because the stores are: a percent of a
+ * hundred-point tank for the four life stores, and kWh for power, whose tank
+ * is as big as the batteries the crew built. Fifteen kWh is a tenth of a
+ * single battery bank, so a game is a top-up and never a refill.
+ *
+ * The bands were tuned against `npm run balance`, not chosen for looking
+ * round: two points a game of a life store is what keeps a competent player
+ * between thirty and sixty percent of builds winning, and one point more
+ * pushed every site past eighty. Two games a sol is the whole economy's lever,
+ * so it is a small one.
+ */
+export interface TrainingYield {
+  /** The store it fills. */
+  readonly store: ResourceName;
+  /** What it adds at each band, in that store's own unit. */
+  readonly basic: number;
+  readonly good: number;
+  readonly excellent: number;
+}
+
+/**
+ * The six games, and the store each one fills.
+ *
+ * Two games pay power, because the outpost has two jobs that teach it — and
+ * because power is the one store with no floor line of its own, so it needs
+ * the most ways to be topped up. The other four map one to one.
+ */
+export const TRAINING_YIELDS: Readonly<Record<TrainingGameId, TrainingYield>> = {
+  'solar-power-up': { store: 'power', basic: 10, good: 15, excellent: 20 },
+  'rover-parking': { store: 'power', basic: 10, good: 15, excellent: 20 },
+  'cargo-sorting': { store: 'food', basic: 1, good: 2, excellent: 3 },
+  'resource-merge': { store: 'water', basic: 1, good: 2, excellent: 3 },
+  'memory-match': { store: 'oxygen', basic: 1, good: 2, excellent: 3 },
+  'asteroid-defender': { store: 'shielding', basic: 1, good: 2, excellent: 3 },
+};
+
+/** What one finished game is worth, in the store it fills. */
+export function trainingYield(
+  gameId: TrainingGameId,
+  performance: TrainingPerformance,
+): { readonly store: ResourceName; readonly amount: number } {
+  const spec = TRAINING_YIELDS[gameId];
+
+  return { store: spec.store, amount: spec[trainingTier(performance)] };
+}
+
+/**
+ * The stores after a day's training has been paid for.
+ *
+ * Takes the day in the order the games were played, so a tank that fills
+ * part-way through a day keeps the overflow honest: the last game to hit a
+ * full tank is the one that finds nothing to top up.
+ */
+export function withTrainingYields(
+  stores: ResourceStores,
+  capacity: number,
+  completed: readonly TrainingCompletion[],
+): ResourceStores {
+  return completed.reduce((current, entry) => {
+    const payout = trainingYield(entry.gameId, entry.performance);
+
+    return clampStores(
+      { ...current, [payout.store]: current[payout.store] + payout.amount },
+      capacity,
+    );
+  }, stores);
+}
 
 /** One finished game. */
 export interface TrainingCompletion {
@@ -169,6 +251,15 @@ export interface TrainingGameRow {
   readonly status: TrainingGameStatus;
   /** The points it earned, or null when it has not been finished today. */
   readonly points: number | null;
+  /**
+   * How many times it has been finished today.
+   *
+   * More than one is normal: the same game can be played again for practice,
+   * and it counts as another of the day's two plays and pays again. The rule
+   * is about how many games are finished in a sol, not about how many
+   * different ones.
+   */
+  readonly plays: number;
 }
 
 /** The whole of today's training, in one object. */
@@ -210,12 +301,15 @@ export function trainingDay(run: RunState): TrainingDay {
   const finished = completedCount >= TRAINING_DAILY_LIMIT;
 
   const games = TRAINING_GAMES.map((game): TrainingGameRow => {
-    const done = current.completed.find((entry) => entry.gameId === game.id);
+    const plays = current.completed.filter((entry) => entry.gameId === game.id);
+    const points = plays.length === 0 ? null : plays.reduce((sum, entry) => sum + entry.points, 0);
 
-    if (done !== undefined) return { id: game.id, status: 'completed', points: done.points };
-    if (finished) return { id: game.id, status: 'locked', points: null };
+    /* A game that has been played can be played again while there is a slot
+       left, so it stays 'available' until the day is full. Once the day is
+       full it is 'completed' if it was played and 'locked' if it was not. */
+    if (finished) return { id: game.id, status: plays.length > 0 ? 'completed' : 'locked', points, plays: plays.length };
 
-    return { id: game.id, status: 'available', points: null };
+    return { id: game.id, status: 'available', points, plays: plays.length };
   });
 
   return {
@@ -244,7 +338,7 @@ export type TrainingStart =
   | { readonly ok: true }
   | {
       readonly ok: false;
-      readonly reason: 'unknown' | 'already' | 'limit';
+      readonly reason: 'unknown' | 'limit';
       /** The sentence the player reads. */
       readonly message: string;
     };
@@ -257,7 +351,9 @@ export type TrainingStart =
  * and a player who finds a way past the button must not be paid for it.
  *
  * A game that was already finished today can be played again — practice is
- * free — but finishing it pays nothing, which `completeTraining` sees to.
+ * free, and the second time counts as the day's other play and pays again.
+ * The only thing that stops it is the day's limit: two finishes a sol, of
+ * whichever games they like.
  */
 export function canStartTraining(run: RunState, gameId: string): TrainingStart {
   const game = TRAINING_GAMES.find((entry) => entry.id === gameId);
@@ -284,10 +380,22 @@ export function canStartTraining(run: RunState, gameId: string): TrainingStart {
 export type TrainingOutcome =
   | {
       readonly ok: true;
-      /** The run with the points on it. */
+      /** The run with the points and the stores on it. */
       readonly run: RunState;
       readonly points: number;
       readonly performance: TrainingPerformance;
+      /**
+       * What the game put in the stores.
+       *
+       * `stored` is what actually landed: the tank may have been nearly full,
+       * and a child who is told "the batteries are full" learns more than one
+       * whose reward silently evaporates.
+       */
+      readonly payout: {
+        readonly store: ResourceName;
+        readonly amount: number;
+        readonly stored: number;
+      };
       readonly completedCount: number;
       readonly dailyLimit: number;
       readonly tasksUnlocked: boolean;
@@ -296,7 +404,7 @@ export type TrainingOutcome =
   | {
       readonly ok: false;
       readonly run: RunState;
-      readonly reason: 'unknown' | 'already' | 'limit';
+      readonly reason: 'unknown' | 'limit';
       readonly message: string;
     };
 
@@ -305,8 +413,9 @@ export type TrainingOutcome =
  *
  * The points go onto the science score, which is the one balance the game
  * already has, so the header and the debrief count them without knowing that
- * training exists. A game can only be finished once a sol: the second call
- * for the same game is refused, so a double click cannot pay twice.
+ * training exists. A game can be finished twice in a sol — the second time is
+ * the day's other play — and it pays twice, because the crew did the work
+ * twice.
  */
 export function completeTraining(
   run: RunState,
@@ -320,17 +429,6 @@ export function completeTraining(
   const sol = trainingSol(run);
   const current = run.training.sol === sol ? run.training : emptyTraining(sol);
 
-  /* A game can be played again for practice, but it is only paid for once a
-     sol: this is where a second claim for the same game is turned away. */
-  if (current.completed.some((entry) => entry.gameId === gameId)) {
-    return {
-      ok: false,
-      run,
-      reason: 'already',
-      message: 'You already finished that training today, so there are no points this time.',
-    };
-  }
-
   const tier = trainingTier(performance);
   const points = TRAINING_REWARDS[tier];
 
@@ -340,7 +438,15 @@ export function completeTraining(
     pointsToday: current.pointsToday + points,
   };
 
-  const next: RunState = { ...run, science: run.science + points, training };
+  /* Practice pays twice: the science goes on the score, and the store the
+     game trains gets topped up. Both are clamped, so a full tank quietly keeps
+     the surplus and the payout reports what actually landed. */
+  const capacity = systemsFor(run.modules, run.regionId).batteryKwh;
+  const payout = trainingYield(gameId, tier);
+  const stores = withTrainingYields(run.stores, capacity, training.completed.slice(-1));
+  const stored = stores[payout.store] - run.stores[payout.store];
+
+  const next: RunState = { ...run, science: run.science + points, training, stores };
   const day = trainingDay(next);
 
   return {
@@ -348,6 +454,7 @@ export function completeTraining(
     run: next,
     points,
     performance: tier,
+    payout: { store: payout.store, amount: payout.amount, stored },
     completedCount: day.completedCount,
     dailyLimit: day.dailyLimit,
     tasksUnlocked: day.tasksUnlocked,
@@ -394,9 +501,9 @@ export function trainingSeed(sol: number, gameId: string): number {
 /**
  * A day's training, as it is written down.
  *
- * The record is kept outside the run so it survives a refresh: the run
- * itself is in memory only, and a training game the player finished should
- * not be offered again simply because the page was reloaded.
+ * The record is kept outside the run so it survives a refresh: a training game
+ * the player finished should not be offered again simply because the page was
+ * reloaded. The run itself is saved separately by `ui/save.ts` (D-081).
  */
 export interface TrainingDayRecord {
   readonly completed: readonly TrainingCompletion[];

@@ -348,6 +348,64 @@
   line-height: 1.25;
 }
 
+/*
+ * The night warning: a job the crew can pay for, but which would leave the
+ * batteries short of the dark. Amber rather than red, because the job is still
+ * allowed - the night is a warning and never a lock.
+ */
+.act-order__warn--night {
+  color: var(--gl-warn-ink, #8a5a12);
+  font-weight: 700;
+}
+
+/* -------------------------------------------------------------- the budget -- */
+
+/*
+ * The day's power, as rows the player can add up.
+ *
+ * The rows are the numbers the sol is made of: what the panels make, what the
+ * outpost needs, what is left over, what is in the bank, what a job may cost
+ * and what the night will take. A negative spare is the one that matters: it
+ * is the outpost running down, and it is what a second solar array fixes.
+ */
+.act-power {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(3px, 0.35vw, 7px);
+  padding: clamp(7px, 0.8vw, 13px);
+  border-radius: 12px;
+  background: var(--gl-card);
+  box-shadow: inset 0 0 0 1px var(--gl-line);
+}
+
+.act-power__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: clamp(6px, 0.65vw, 12px);
+  font-size: clamp(0.66rem, 0.82vw, 0.95rem);
+}
+
+.act-power__label {
+  color: var(--gl-muted);
+  font-weight: 700;
+}
+
+.act-power__value {
+  color: var(--gl-ink);
+  font-weight: 800;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.act-power__row[data-tone='warn'] .act-power__value {
+  color: var(--gl-warn-ink, #8a5a12);
+}
+
+.act-power__row[data-tone='bad'] .act-power__value {
+  color: var(--gl-orange-deep);
+}
+
 .act-order__mark {
   color: var(--gl-green);
   font-size: clamp(0.9rem, 1.2vw, 1.4rem);

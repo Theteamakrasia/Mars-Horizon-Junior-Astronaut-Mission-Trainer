@@ -366,6 +366,9 @@ export function createSetupPopup(options: SetupPopupOptions): SetupPopup {
       ),
       h('p', { class: 'gl__card-line', text: entry.gives }),
       h('p', { class: 'gl__card-tag', text: entry.needs }),
+      /* A note about this purchase, when there is one worth saying: what a
+         second solar array would do with the sunlight it makes. */
+      entry.note === '' ? null : h('p', { class: 'gl__card-note', text: entry.note }),
       h(
         'div',
         { class: 'gl__stepper' },
