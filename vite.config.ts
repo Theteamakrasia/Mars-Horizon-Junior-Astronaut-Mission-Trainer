@@ -14,5 +14,13 @@ export default defineConfig({
     target: 'es2020',
     outDir: 'dist',
     emptyOutDir: true,
+    rollupOptions: {
+      input: {
+        // The game.
+        main: 'index.html',
+        // The letterbox a phone plays it in: the same page in a scaled frame.
+        mobile: 'mobile.html',
+      },
+    },
   },
 });

@@ -2,8 +2,45 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      `maximum-scale=1` stops the browser zooming the page when a field is
+      focused, which on a phone means the layout jumps under the player's
+      thumb. The game is a fixed-size picture, so there is nothing to zoom into.
+    -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
     <meta name="color-scheme" content="dark" />
+    <script>
+      /*
+        THE PHONE REDIRECT.
+
+        The game is drawn at a fixed 1024x576 and scaled to fit the phone, so
+        it looks the same as it does on a computer. That needs the app to
+        believe it is 1024 pixels wide, which only a frame can do (inside a
+        frame `100vw` means the frame's width). So a phone is sent to
+        mobile.html, which is a letterbox around this very page in an iframe.
+
+        This runs before the game boots, so a phone never sees the desktop
+        layout for a frame first. `?frame=1` means "you are already inside the
+        frame" and stops the redirect from looping; `?mobile=1` sends a
+        computer to the shell as well, which is how the phone check drives it.
+      */
+      (function () {
+        var params = new URLSearchParams(window.location.search);
+        var framed = params.get('frame') === '1';
+
+        /* The class the stylesheet hangs the frame's rules off. */
+        document.documentElement.classList.toggle('is-frame', framed);
+
+        if (framed) return;
+
+        var forced = params.get('mobile') === '1';
+        var phone = window.matchMedia('(pointer: coarse)').matches && window.innerWidth < 900;
+
+        if (!forced && !phone) return;
+
+        window.location.replace('./mobile.html' + window.location.hash);
+      })();
+    </script>
     <meta
       name="description"
       content="Mars Horizon — Junior Astronaut Mission Trainer. Run a Mars outpost for 12 sols and keep power, air, water, food and radiation shielding in balance."
