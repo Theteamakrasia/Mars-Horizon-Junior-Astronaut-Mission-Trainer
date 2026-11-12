@@ -21,6 +21,7 @@ import { createForecast, type ForecastEvent } from '../../sim/forecast';
 import { newRun, startOutpost, withState, type RunState } from '../../sim/run';
 import { regionById, siteScore } from '../../sim/regions';
 import { gamePanel, gameScreen, gameSection, gameWorld, keepScroll, moduleArt, moduleFigures, type HudStat, type SignalCard } from '../../ui/gameLoop';
+import { dayModel } from '../../ui/dayTracker';
 import { readButton } from '../../ui/readButton';
 import { guideButton, guidePanel } from '../../ui/guide';
 import { nextStop } from '../../ui/registry';
@@ -346,6 +347,7 @@ export function mountBase(
       variant: 'gl--base',
       headerSub: 'BUILD YOUR OUTPOST',
       onLeave: () => navigate('naming'),
+      day: dayModel(start),
       help: guideButton(() => {
         guideOpen = true;
         render();

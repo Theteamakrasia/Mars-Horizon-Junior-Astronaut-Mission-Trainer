@@ -254,6 +254,7 @@ opening its folder — that is the whole point of the layout.
 | **The six training games, and the two-a-sol rule that locks today's tasks** | `src/sim/training.ts` — complete, 27 tests; one pure module per game beside it (`trainingMerge`, `trainingMemory`, `trainingRover`, `trainingSolar`, `trainingCargo`, `trainingAsteroid`) |
 | **The training section, the game dialog, and the day's record** | `src/ui/training.ts` — built; the six games are drawn in `src/ui/training*.ts` and the contract is `src/ui/trainingGame.ts` |
 | **The how-to-play guide** | `src/sim/guide.ts` — complete, 6 tests |
+| **The mission-day tracker** (the day in play, the total, twelve pips) | `src/ui/dayTracker.ts` — complete, 10 tests; the CSS in `src/ui/day-tracker.css` |
 | **The patches a run earns** | `src/sim/patches.ts` — complete, 7 tests |
 | **The notes that land on the desk** | `src/sim/deskNotes.ts` — complete, 8 tests |
 | **What a lesson is about** (power, dust, water, food, radiation, missions) | `src/sim/topics.ts` |

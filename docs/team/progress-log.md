@@ -6,6 +6,109 @@ Newest entry on top. Four bullets: **Did**, **Files**, **Problems**, **Next**.
 say so and say why - a clean change with an unexplained problem underneath is worse
 than a documented one.
 
+## 2026-11-12 — The day tracker, built to the reference strip
+
+**Did**
+
+- **Rebuilt the tracker to the reference.** The pips are now **filled** slate-blue
+  stations rather than hollow rings, and one rail runs behind all twelve so the track
+  reads as a path with stops on it. The path is lit in amber up to the day in play and
+  dark ahead of it, so twelve dots become progress the child can see without counting.
+- **Put the words on the number's baseline.** "DAY" and "OF 12 DAYS" were floating
+  against the middle of the big numeral; they now sit on its baseline, in white and
+  bold as the reference shows them. Measured in a real browser, the number's baseline
+  and MARS HORIZON's now agree to within half a pixel, so the tracker reads as part of
+  the brand rather than a thing floating in the middle of the bar.
+- **Made it survive a narrow window.** The pips shrink first and only disappear below
+  44rem, so the day number is on the bar at every width the game runs at.
+
+**Files**
+
+- `src/ui/day-tracker.css` — the reference treatment: filled pips, the lit path, the
+  baseline alignment, and the shrink-then-hide breakpoints.
+- `src/styles/game-loop.css` — `--gl-day-idle`, `--gl-day-idle-ring` and
+  `--gl-day-rail`, so the pips and the path are named rather than repeated.
+
+**Problems**
+
+- **The first version was built from the numbers, not the picture.** It had hollow
+  rings, segments that stopped short of the next ring, and pale grey words centred
+  against the number. Every measurement was correct and it still did not look like the
+  thing the player had been shown. The fix was to go back to the reference and take
+  its decisions literally — filled stations, one continuous path, a lit path up to
+  the day in play — rather than inventing a look of my own.
+- **Aligning the tracker took a measurement, not an eyeball.** "Align it with the brand"
+  is three different instructions. Centring the group in the header put DAY 2 level
+  with the gap between MARS HORIZON and its subtitle; aligning it to the brand's
+  middle was no better. A zero-height baseline strut in the live DOM settled it: the
+  number's baseline now matches MARS HORIZON's to 0.43px.
+
+**Next**
+
+- The tracker is now built to the reference, so it should be looked at once more in a
+  browser at 1920 and at a laptop width before the demo. The narrow case has been
+  measured at 1920, 1000, 760 and 640px, but nobody has watched it move yet.
+
+---
+---
+
+## 2026-11-12 — The mission day, in the header, for all five landing sites
+
+**Did**
+
+- **Put the day in the header.** The nav bar now carries the mission-day tracker: the
+  day in play as a big orange number, "of 12 days" beside it, and twelve pips on a
+  rail — one per mission day. A day already flown is a solid Mars-orange dot, the day
+  you are on is a solid gold dot with a ring and a slow breath around it, and the days
+  still to come are empty rings on a pale rail. The day in play is `sol + 1`, because
+  `run.sol` counts the sols already flown, so the build screen reads DAY 1 and the
+  desk reads DAY 2 once the first sol has been run.
+- **Made it work on all five landing sites.** The tracker lives in the shared chrome,
+  so Arcadia Planitia, Jezero Crater, Olympus Mons, Valles Marineris and Argyre Basin
+  all get it without a copy each — one implementation, five sites. A new headless
+  check lands at every one of the five and asserts the tracker is there, reads day 1,
+  and has twelve pips with the first one current.
+- **Made the day move.** When a sol is run, the pip for it flashes once and the tracker
+  moves to the next day. The day in play breathes the whole time, quietly, so a child
+  can see where they are without reading a word.
+- **Left the plain sol count alone.** The mission bar still says "Sol 1 of 12". It
+  counts the sols flown and the tracker counts the day you are on; they are two
+  different questions, and the player asked for both.
+
+**Files**
+
+- `src/ui/dayTracker.ts` (new) — `dayModel(run, advanced?)`, pure, reads the whole
+  tracker off a run; `dayTracker(model)`, draws it. `src/ui/day-tracker.css` (new) —
+  the pips, the rail, the two animations. `src/ui/dayTracker.test.ts` (new) — 10 tests
+  on the model. `src/ui/gameLoop.ts` — `gameHeader(sub?, onLeave?, day?)` and
+  `gameScreen`'s `day?: DayModel`. `src/features/base/view.ts`, `act/view.ts`,
+  `debrief/view.ts` — one line each. `src/styles/game-loop.css` — the `--gl-amber`
+  token the day in play uses. `tools/browser-check-day.mjs` (new) — the browser pass.
+
+**Problems**
+
+- **The act screen rebuilds its whole DOM on every render**, so a CSS animation on its
+  own replays every time the player picks an activity — the flash would have fired on
+  every click rather than on the day turning over. The act view now marks the sol it
+  has just run and holds the mark for 1500 ms, and only that one pip moves. This is
+  the same problem the base screen's "card that changed" flash already had to solve.
+- **The first version of the model had the last day wrong.** On the twelfth sol the
+  current pip came out as "done" instead of "current", because the day in play and
+  the day finished are the same number. The test caught it, which is what it was for.
+- **The pips could not tell the day in play from the days already flown by colour
+  alone.** They now differ in shape as well — solid, solid-with-a-ring, and empty —
+  so a child who cannot tell orange from gold can still count the days.
+
+**Next**
+
+- The header and the mission bar now both carry a number about time, close together.
+  Worth a look in a real browser before the demo: "DAY 2" in the nav bar and
+  "Sol 1 of 12" in the bar below read as two different facts, but a child may not
+  spot that.
+- `feat/five-mars-locations` also edits `ui/gameLoop.ts`. The tracker is in its own
+  file so that merge stays small, but the tracker has to be re-threaded there when
+  it lands — that branch has no mission bar and a different `gameScreen` shape.
+
 ---
 
 ## 2026-11-12 — Six training games on the standing orders sheet

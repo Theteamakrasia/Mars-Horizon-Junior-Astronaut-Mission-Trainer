@@ -524,6 +524,28 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         supply falls back to DEFAULT_POSES; an
     │   │                                         out-of-range number is clamped, not discarded.
     │   ├── baseLayout.test.ts          complete   55 tests. Every input literal.
+    │   ├── dayTracker.ts               complete   the mission-day tracker in the header (D-070).
+    │   │                                         Exports DayState, DayModel, dayModel,
+    │   │                                         dayTracker. `dayModel(run, advanced?)` is
+    │   │                                         pure and reads the day in play off the run
+    │   │                                         (`sol + 1`), so the tracker cannot disagree
+    │   │                                         with the simulation. `dayTracker(model)` draws
+    │   │                                         the day, the total and one pip per mission
+    │   │                                         day. Lives in `ui/` because base, act and
+    │   │                                         debrief all draw it and one feature may never
+    │   │                                         import another (R-5).
+    │   ├── dayTracker.test.ts          complete   10 tests. The model only: there is no jsdom
+    │   │                                         yet (ISS-013), so the DOM half is checked in
+    │   │                                         a real browser by tools/browser-check-day.mjs.
+    │   ├── day-tracker.css             complete   the tracker's own rules: the day in the
+    │   │                                         game's tokens, the twelve pips, the rail
+    │   │                                         between them, and the two animations (the
+    │   │                                         day in play breathes, the day just flown
+    │   │                                         flashes). The pips are filled stations on one
+                                         rail and the words sit on the number's baseline
+                                         (D-071). Imported by dayTracker.ts only, the
+    │   │                                         way nasa-card.css sits next to nasaCard.ts
+    │   │                                         (R-15).
     │   ├── baseLayoutEditor.ts         complete   the placement editor (D-065 to D-069). Exports
     │   │                                         startLayoutEditor(root) -> teardown. Dev-only:
     │   │                                         a developer drags the fifteen copies of the
@@ -1139,10 +1161,12 @@ returns to `landing`, which keeps running behind the mounted screen.
 | `features/landing-site/view` | `mountLandingSite` | `(root, run, setRun) -> teardown`; map + five pins + Site Analysis panel, LAND HERE calls `landAt` then navigates to `nextStop('landing-site')`. Selecting a pin also shows that region's real NASA photo and fact (`regionCard`). It also prepends the shared navigation bar (`gameHeader('LANDING SITE', …)`) and removes it on teardown, so this screen carries the same bar as `base`, `act` and `debrief` |
 | `ui/gameLoop` | `gameScreen`, `gameWorld`, `gamePanel`, `gameSection`, `gameHeader`, `gameHud`, `HeaderOptions`, `PanelOptions`, `ScreenOptions`, `HudStat`, `SignalCard`, `WorldOptions` | the shared frame from the Figma frames (D-038): one `.gl` root, the illustrated world panel, and the scrolling right-hand panel. Every word, number and variant arrives in an options object; no `sim/` rule is applied here. `HudStat.icon`, `SignalCard.icon` and `WorldOptions.weatherIcon` are `IconName`, never a glyph (D-070) |
 | | `moduleFigures`, `moduleArt`, `MODULE_ART`, `WORLD_BACKGROUND`, `ASTRONAUT_SPRITE` | the artwork the world panel draws, owned here so `base`, `act` and `debrief` do not copy the imports |
-| | `gameHeader`, `gameHud`, `gameDock` | `gameHeader(options: HeaderOptions)`; without `onLeave` the right-hand label is plain decorative text; with it, the right side becomes the book (encyclopedia), the screen's own `help` button and a Menu button opening an in-screen leave dialog with Keep playing / Leave mission (D-044). `showEncyclopedia: false` hides the book on the page the book leads to (ISS-072). `gameHud` draws the five resource cards (`HudStat`) and `gameDock` the three-tab dock. The pause/settings/BUILD pills and the dock are `aria-hidden` spans, not buttons (D-038) |
+| | `gameHeader`, `gameHud`, `gameDock` | `gameHeader(options: HeaderOptions)`; without `onLeave` the right-hand label is plain decorative text; with it, the right side becomes the book (encyclopedia), the screen's own `help` button and a Menu button opening an in-screen leave dialog with Keep playing / Leave mission (D-044). `showEncyclopedia: false` hides the book on the page the book leads to (ISS-072). `gameHud` draws the five resource cards (`HudStat`) and `gameDock` the three-tab dock. `day` puts the mission-day tracker in the bar, between the brand and the controls: a screen with a run in play passes one, and a screen without one leaves its bar unchanged (D-070). The pause/settings/BUILD pills and the dock are `aria-hidden` spans, not buttons (D-038) |
 | | `gameSection` | `(label, ...content) -> section`; an uppercase label and its body |
-| | `gameScreen` | `(options: ScreenOptions) -> section`; `help` carries the guide's `?` icon button in the header (D-060, D-070), and `panel.corner` puts the panel head's one right-hand fact in place (the science points, on `act`). There is no mission bar: it was removed in D-070, so the panel's own kicker names the day. The rover button is gone: the rover is part of the run now, not a widget on the wall (D-062) |
+| | `gameScreen` | `(options: ScreenOptions) -> section`; `help` carries the guide's `?` icon button in the header (D-060, D-070), and `panel.corner` puts the panel head's one right-hand fact in place (the science points, on `act`). There is no mission bar: it was removed in D-070, so the panel's own kicker names the day. `day?: DayModel` puts the mission-day tracker in the header (D-070). The rover button is gone: the rover is part of the run now, not a widget on the wall (D-062) |
 | | `moduleFigures`, `moduleArt`, `MODULE_ART`, `WORLD_BACKGROUND`, `ASTRONAUT_SPRITE` | artwork placement and the bundled asset URLs; the only import site for the figures base, act and debrief share |
+| `ui/dayTracker` | `dayModel`, `dayTracker` | `dayModel(run, advanced?) -> DayModel`: the mission-day tracker read off a run. Pure. The day in play is `sol + 1`, because `run.sol` counts the sols already flown; a finished run has no day in play. The total comes from `WIN_SOL`, never from a number typed here. `advanced` is the sol that has just been flown, which the act screen passes so one pip can flash (D-070) |
+| | `DayModel`, `DayState` | `DayModel` is `{day, done, total, states, advanced}` — the day in play, the days flown, the length of the mission, one state per day (`done`, `current` or `upcoming`) and the sol that just moved. `DayState` is that per-day state |
 | `features/base/model` | `BUILDABLE`, `canPlace`, `addModule`, `removeModule`, `pointsLeft` | build rules over the `sim/modules.ts` catalogue (D-032). `canPlace` asks `siteAllows`, so the card and the goals panel cannot disagree about a site (ISS-079) |
 | | `buildCards`, `BuildCard` | the catalogue as cards. `have`/`limit` drive the minus button; `total`/`maxCount` are the number on the card and its maximum, and `fromLander` marks the free copy the lander brought (ISS-089, ISS-054) |
 | | `goalPreview`, `GoalPreview` | whether the build holds each of the five goals, and a sentence naming the cause when it does not. The water sentence is computed from the build and the site, not a fixed string (ISS-079) |
