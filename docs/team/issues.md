@@ -151,7 +151,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 ## ISS-099 - The game drew its own pictograms and still carried emoji, with a drawn icon set supplied
 
 - **Reported by:** the owner, 2026-11-12: a set of 56 drawn SVG icons, supplied in
-  `Assets/icons/`, with `icons-list.md` mapping each one to the place it is used.
+  `Assets/icons/`, with `docs/icons-list.md` mapping each one to the place it is used.
 - **Where:** `src/ui/icons.ts` (35 hand-drawn 24×24 line drawings), `src/dom/svg.ts`
   (a shape that is a stroke or a fill and nothing else), `src/sim/modules.ts` (eight
   module emoji), `src/features/encyclopedia/model.ts` (`EncyclopediaEntry.emoji`), and
@@ -1612,7 +1612,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ## ISS-040 — `landing-site` commits the region but never sets region-dependent starting stores
 
-- **Reported by:** plan, 2026-11-08, from GAME_LOOP_PLAN.md §1
+- **Reported by:** plan, 2026-11-08, from docs/GAME_LOOP_PLAN.md §1
 - **Where:** `src/features/landing-site/view.ts` (`commitLanding`), `src/sim/run.ts` (`newRun`)
 - **Problem:** `commitLanding` calls `withState(run, { regionId })`, which sets `regionId` but leaves the stores at `createInitialStores()` defaults. Region-dependent starting stores (water, power, etc. from D-034) are never applied, so the landing choice has no mechanical effect.
 - **Cause:** `landAt` does not exist yet; `run.ts` is a stub.
