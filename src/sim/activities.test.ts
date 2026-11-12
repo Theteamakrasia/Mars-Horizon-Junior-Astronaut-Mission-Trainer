@@ -37,7 +37,6 @@ describe('activities', () => {
     for (const spec of ACTIVITY_CATALOGUE) {
       expect(spec.title.length).toBeGreaterThan(0);
       expect(spec.detail.length).toBeGreaterThan(0);
-      expect(spec.icon.length).toBeGreaterThan(0);
       expect(SCIENCE_TOPICS).toContain(spec.topic);
       expect(Number.isInteger(spec.science)).toBe(true);
       expect(spec.science).toBeGreaterThan(0);

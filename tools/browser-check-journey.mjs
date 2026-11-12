@@ -12,6 +12,10 @@
  * because a screen can be perfect on its own and unreachable from the one
  * before it, and the launch reel in particular takes its own time before it
  * will let the player on.
+ *
+ * The reel is cut short with its SKIP button rather than watched to the end:
+ * that is the path a player takes, the check finishes in seconds rather than
+ * half a minute, and the button gets exercised on the way through.
  */
 import { spawn } from "node:child_process";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -29,7 +33,10 @@ try {
   await new Promise((res, rej) => { socket.addEventListener("open", res); socket.addEventListener("error", rej); });
   socket.addEventListener("message", (e) => { const m = JSON.parse(e.data); if (m.id !== undefined && pending.has(m.id)) { const { resolve, reject } = pending.get(m.id); pending.delete(m.id); if (m.error) reject(new Error(m.error.message)); else resolve(m.result); } if (m.method === "Runtime.exceptionThrown") errors.push(m.params.exceptionDetails.exception?.description ?? m.params.exceptionDetails.text); if (m.method === "Runtime.consoleAPICalled" && m.params.type === "error") errors.push(m.params.args.map((a) => a.value ?? a.description).join(" ")); });
   await send("Runtime.enable"); await send("Page.enable");
-  await send("Page.navigate", { url: "http://127.0.0.1:5173/#naming" });
+  /* `localhost`, not `127.0.0.1`: Vite's dev server listens on the IPv6 loopback
+     by default, and a browser asked for the IPv4 address gets nothing at all.
+     Every step then reads "none" and the check looks like a game problem. */
+  await send("Page.navigate", { url: "http://localhost:5173/#naming" });
   await waitFor(`!!document.getElementById("naming") && !document.getElementById("naming").hidden`);
   await waitFor(`(() => { const i = document.querySelector("[data-naming-input]"); const s = document.querySelector("[data-naming-submit]"); if (!i || !s) return false; i.value = "Alex"; i.dispatchEvent(new Event("input", { bubbles: true })); return !s.disabled; })()`);
   await tap("[data-naming-submit]");
@@ -43,7 +50,25 @@ try {
   await tap("#supply [data-supply-next]");
   await tap("#supply [data-supply-continue]");
   console.log("3 supply -> " + await where() + " (choice " + choice + ")");
-  await sleep(22000);
+  // The launch screen is up. The title card is the one beat that always plays,
+  // so the SKIP button must not be there yet.
+  await waitFor(`(() => { const e = document.getElementById("launch"); return !!e && !e.hidden; })()`);
+  const launchAt = Date.now();
+  await sleep(400);
+  console.log("   skip during the title card: " + await ev(`(() => { const b = document.querySelector("#launch [data-launch-skip]"); if (!b) return "missing"; return b.hidden ? "hidden" : "VISIBLE (wrong)"; })()`));
+  // Then it appears - halfway through the departure - and pressing it cuts the
+  // reel and opens the parts tour. The button is the way past eight seconds of
+  // film, so it has to turn up long before that.
+  const skipShown = await waitFor(`(() => { const b = document.querySelector("#launch [data-launch-skip]"); return !!b && !b.hidden; })()`, 80);
+  const skipAfter = Date.now() - launchAt;
+  console.log("   skip appeared: " + skipShown + " after " + skipAfter + "ms");
+  // The number is approximate: the check sees the screen up to 250ms after it
+  // mounted, and polls for the button on the same 250ms tick. The threshold is
+  // set well above the true 2625ms, so a regression back to the old 5250ms
+  // fails loudly rather than passing by a hair.
+  if (skipAfter > 3500) errors.push("the skip button took " + skipAfter + "ms to appear - it must be up halfway through the departure, not with the films");
+  console.log("   launch skip: " + await tap("#launch [data-launch-skip]"));
+  console.log("   parts tour open: " + await waitFor(`(() => { const p = document.querySelector("#launch [data-launch-parts-panel]"); return !!p && !p.hidden; })()`, 20));
   console.log("   launch parts: " + await tap("#launch [data-launch-parts-continue]"));
   await sleep(2000);
   console.log("4 launch -> " + await where());
@@ -57,6 +82,6 @@ try {
   await sleep(800);
   console.log("   land: " + await tap("#landing-site [data-landing-land]") + " -> " + await where());
   await sleep(1500);
-  console.log("7 base: " + await where() + " | " + await ev(`document.querySelector("#base .gl__mission-job")?.textContent ?? "no bar"`));
+  console.log("7 base: " + await where() + " | " + await ev(`document.querySelector("#base .gl__title")?.textContent ?? "no panel"`));
   console.log("ERRORS: " + (errors.length === 0 ? "none" : errors.slice(0, 4).join(" | ")));
 } catch (e) { console.error("failed: " + e.message); } finally { socket?.close(); chrome.kill(); }

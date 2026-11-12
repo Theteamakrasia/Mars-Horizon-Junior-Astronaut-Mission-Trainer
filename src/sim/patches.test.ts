@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { CORE_MODULES } from './modules';
+import { CORE_MODULES, type ModuleKind } from './modules';
 import { PATCH_COUNT, patchesFor } from './patches';
 import { newRun, startOutpost, withState, type RunState } from './run';
 import { advanceSol } from './sol';
@@ -10,15 +10,15 @@ import { advanceSol } from './sol';
  * to be earned by something the log can show. A patch that comes free is a
  * sticker with no story behind it.
  */
-function outpost(): RunState {
+function outpost(extras: readonly ModuleKind[] = []): RunState {
   /* No forecast events, so no crisis sol interrupts: every sol had an order
      worked on it, which is what the no-skip patch is about. */
-  return startOutpost(withState(newRun('jezero', 'Tester'), { forecast: [] }), [...CORE_MODULES]);
+  return startOutpost(withState(newRun('jezero', 'Tester'), { forecast: [] }), [...CORE_MODULES, ...extras]);
 }
 
 /** Play some sols, choosing the given activity each time. */
-function play(sols: number, activity: string): RunState {
-  let run = outpost();
+function play(sols: number, activity: string, extras: readonly ModuleKind[] = []): RunState {
+  let run = outpost(extras);
 
   for (let sol = 0; sol < sols; sol += 1) {
     run = advanceSol(withState(run, { chosenActivity: activity }));
@@ -27,28 +27,31 @@ function play(sols: number, activity: string): RunState {
   return run;
 }
 
+/** More load than the lander's one battery carries through a night. */
+const OVERLOADED: readonly ModuleKind[] = ['greenhouse', 'ice-miner'];
+
 describe('the patches', () => {
   it('gives none for a run that never happened', () => {
     expect(patchesFor(outpost())).toEqual([]);
   });
 
   it('pays out for a clean run', () => {
-    const patches = patchesFor(play(3, 'rest'));
+    const patches = patchesFor(play(3, 'rest', OVERLOADED));
 
     expect(patches.length).toBeGreaterThan(0);
     /* Every sol had an order worked on it, so the no-skip patch is earned.
-       The night-watch patch is not: a bare outpost runs in the dark, which is
-       the thing the patch is meant to notice. */
+       The night-watch patch is not: an outpost with more load than its one
+       battery holds runs in the dark, which is the thing the patch is meant to
+       notice. */
     expect(patches.some((patch) => patch.id === 'no-skip')).toBe(true);
     expect(patches.some((patch) => patch.id === 'night-watch')).toBe(false);
   });
 
-  it('gives every patch an id, a name, a line and a picture', () => {
+  it('gives every patch an id, a name and a line', () => {
     for (const patch of patchesFor(play(3, 'rest'))) {
       expect(patch.id.length).toBeGreaterThan(2);
       expect(patch.title.length).toBeGreaterThan(2);
       expect(patch.detail.length).toBeGreaterThan(5);
-      expect(patch.icon.length).toBeGreaterThan(0);
     }
   });
 

@@ -42,7 +42,7 @@ flowchart TD
     Naming -->|"Start Mission"| Briefing
     Briefing -->|"YES, or auto after the last beat"| Supply
     Supply -->|"correct answer reveals CONTINUE"| Launch
-    Launch -->|"film ends"| Interior
+    Launch -->|"film ends, or SKIP"| Interior
     Interior -->|"every room visited"| Site
     Site -->|"select a pin + Land here"| Base
     Base -->|"Land &amp; start sol 1"| Act
@@ -115,7 +115,11 @@ The other sols are the player's: the desk offers three orders and the player app
 
 ```mermaid
 flowchart TD
-    A["Open the desk"] --> P["Three work orders;<br/>check the two readings on each"]
+    A["Open the desk<br/>(the hub of buttons)"] --> T{"two training games<br/>done today?"}
+    T -->|"no"| T2["Today's tasks is locked.<br/>Standing orders → ASTRONAUT TRAINING:<br/>play two of the six games"]
+    T2 --> T3["+science points"]
+    T3 --> T
+    T -->|"yes"| P["Today's tasks → three work orders;<br/>check the two readings on each"]
     P --> W{"a tool to work?"}
     W -->|"yes"| W2["Work it → stars"]
     W -->|"no"| Q
@@ -177,6 +181,24 @@ shows the same fact as the power goal.
 Every sol is a **desk** (D-060). On the eight calm sols `act` offers three work orders and
 the player approves one; on a crisis sol the crisis replaces the desk, so the crisis *is*
 that day's activity. The catalogue and the twelve sol plans live in `src/sim/activities.ts`.
+
+The desk itself is a **hub of buttons** (D-070): today's tasks, the desk, the standing
+orders, the colony stats, NASA's real data, and — once a sol has run — the review of the
+last sol. Each button carries one line of state, and each opens its section as a sheet
+over the desk, so the day is readable at a glance and the player opens only the part they
+came for.
+
+### 3a. The day's training
+Today's work orders are **locked until the crew has done two training games** (D-075).
+The six games — Resource Merge, Memory Match, Rover Parking, Solar Panel Power-Up,
+Cargo Sorting and Asteroid Defender — live at the top of the **Standing orders sheet**,
+because that is where a rule book lives and the training is now a rule the crew works
+to. The lock is on the tile, in a callout on the desk, and in the rules engine itself:
+`canStartTraining` refuses a third game and `completeTraining` refuses to pay for a
+game twice. Two games a sol, any two of them, and the points are science points on the
+one balance the game already has. The day's record is written to `localStorage`, so a
+refresh does not hand the player the same two games again; everything else in the run is
+still in memory, exactly as it was.
 
 | Step | What happens |
 | --- | --- |
@@ -391,6 +413,7 @@ totals within 1 of 17/25, so there is no perfect landing spot.
 | The two readings on an order | Built | `sim/activities.ts`, `ui/activityPlayer.ts` | view only |
 | The six tools and the stars | Built | `sim/minigames.ts` | `sim/run.ts` (`inspections`), `sim/sol.ts` (science × stars) |
 | The standing orders | Built | `sim/standingOrders.ts` | `sim/sol.ts` (two new rules a sol); view only |
+| The six training games | Built | `sim/training.ts` and six game modules | `sim/run.ts` (`training`), `ui/training.ts` (the section, the dialog, the record) |
 | Science score and rank | Built | `sim/science.ts` | `sim/run.ts` (`science`), `features/debrief/model.ts` |
 | The five learning goals | Built | `sim/goals.ts` | `sim/standingOrders.ts` (the rules); the debrief prints the record |
 | Flare crisis | Built | `sim/crises.ts` | `sim/sol.ts` (`FLARE_DRAIN`, factors) |
@@ -400,7 +423,8 @@ totals within 1 of 17/25, so there is no perfect landing spot.
 | The rover | Built | `sim/rover.ts` (rules **and** catalogue) | `sim/run.ts` (`rover`), `sim/sol.ts` (deploys it) |
 | The notes on the desk | Built | `sim/deskNotes.ts` | view only |
 | The patches a run earns | Built | `sim/patches.ts` | `features/debrief/view.ts` |
-| The how-to-play guide | Built | `sim/guide.ts` | `ui/guide.ts`, the mission bar's `?` button |
+| The how-to-play guide | Built | `sim/guide.ts` | `ui/guide.ts`, the header's `?` icon button |
+| The desk as a hub of buttons | Built | `features/act/model.ts` (`hubTiles`) | `features/act/view.ts`; each button opens a `ui/sheet.ts` section (D-070) |
 | The balance | **Checked** | `sim/modules.ts` | `npm run balance` — fails if a site cannot hold all five systems |
 | Live NASA daily pictures | Built | `data/nasaDaily.ts` | `features/act/view.ts`, `ui/nasaFeedCard.ts` |
 | Debrief verdicts | Built | `features/debrief/model.ts` | read only |
@@ -417,7 +441,9 @@ Three things in this game come from NASA, and they behave differently on purpose
 **Space weather.** The forecast's timetable is rolled per run (D-048) and the *size* of
 each flare comes from live data: NASA DONKI first, then NOAA SWPC, then the long-run
 record of real M and X flares when neither answers. `data/spaceweather.ts` is the only
-place allowed to make that request.
+place allowed to make that request. The act screen's **Real data** sheet shows NASA's own
+readings — the flare class and the day it peaked, strongest first, with the source they
+came from — and not only the game's timetable (D-071).
 
 **The daily picture.** Every sol also carries a real NASA picture and its written
 explanation, read live from the Astronomy Picture of the Day, filtered to Mars
@@ -444,6 +470,12 @@ Beside them, forty short NASA facts are filed under six topics — power, dust, 
 food, radiation and missions — and one topic per science goal. That is what lets the
 act screen put the fact about water next to the activity that touches water, and the
 fact about radiation next to the one that piles soil on the habitat.
+
+**Where the layer is shown.** The act screen's *Real data* sheet is where all of it lives
+(D-071): NASA's live daily picture, the saved card for the sol, the **landing region's own
+photograph**, NASA's own space-weather readings, and two facts to take away. The region's
+photograph used to appear once on the landing screen and never again; the flare readings
+used to be thrown away by the loader, leaving only the game's timetable.
 
 ---
 

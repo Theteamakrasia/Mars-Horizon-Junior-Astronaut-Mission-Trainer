@@ -72,6 +72,25 @@ async function clickIn(screenId, text) {
   return clicked;
 }
 
+/**
+ * Open one of the desk's hub buttons.
+ *
+ * The desk is a hub of six buttons since D-070, so everything that used to be
+ * on the panel — the orders, the find — is now one click away behind a tile.
+ */
+async function openTile(id) {
+  await evaluate(`(() => { const b = document.querySelector('#act .act-tile[data-tile="${id}"]'); if (b) b.click(); })()`);
+  await sleep(500);
+
+  return evaluate(`!!document.querySelector('#act .sheet__card')`);
+}
+
+/** Close whichever sheet is open over the desk. */
+async function closeSheet() {
+  await evaluate(`(() => { const b = document.querySelector('#act .sheet__done'); if (b) b.click(); })()`);
+  await sleep(400);
+}
+
 const results = [];
 function note(name, ok, detail = '') {
   results.push({ name, ok });
@@ -159,6 +178,8 @@ try {
       continue;
     }
 
+    await openTile('tasks');
+
     sent = await evaluate(`(() => {
       const order = [...document.querySelectorAll('#act .act-order')]
         .find((n) => (n.querySelector('.act-order__title')?.textContent ?? '').toLowerCase().includes('rover'));
@@ -171,6 +192,7 @@ try {
       /* Another order today: stamp something else and run the sol on. */
       await evaluate(`(() => { const b = document.querySelector('#act .act-order:not([disabled])'); if (b) b.click(); })()`);
       await sleep(350);
+      await closeSheet();
       await clickIn('act', 'Run sol');
       await sleep(1100);
     }
@@ -179,8 +201,10 @@ try {
   note('the exploring order can be stamped', sent === 'clicked', sent);
 
   if (sent === 'clicked') {
+    await closeSheet();
     await clickIn('act', 'Run sol');
     await sleep(1300);
+    await openTile('desk');
   }
 
   // 4. The find is on the desk.

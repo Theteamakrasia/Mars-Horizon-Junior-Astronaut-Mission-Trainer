@@ -111,6 +111,455 @@ than a documented one.
 
 ---
 
+## 2026-11-12 — Six training games on the standing orders sheet
+
+**Did**
+
+- **Put six mini-games in the Standing orders sheet.** The ASTRONAUT TRAINING section
+  sits at the top of the rule book, with the day's progress, the six cards and a
+  progress bar. Resource Merge, Memory Match, Rover Parking, Solar Panel Power-Up,
+  Cargo Sorting and Asteroid Defender are six real games, not six pictures of games
+  (D-075).
+- **Made the rule a rule, not a button.** Two games a sol, any two of them, and each
+  game paid for once a sol. The rules engine refuses a third game and says why, so a
+  player who finds a way past the button is not paid for it. Today's work orders are
+  locked until the second game is done — the tile is dimmed and wears a padlock, and
+  the desk carries a callout saying how to unlock it.
+- **Kept the game's own currency and its own art.** The points are science points, the
+  `★ N points` the panel already shows, scaled down to 2/3/4; the tiles use the game's
+  own 24×24 line drawings, not emoji; the section is the game's cream paper, navy ink
+  and one orange.
+- **Wrote the day's training down.** The project has no save, so the training record
+  is the one thing kept in `localStorage`: a refresh no longer hands the player the
+  same two games again, and the points they earned are still on the score.
+- **Put every rule where a test can reach it.** Each game is a pure module in `sim/`
+  and a drawing module in `ui/` behind one shared contract: 113 new tests, and a
+  headless-Chrome check that plays two of the games for real, refuses a third, and
+  refreshes the page (37 checks).
+- **Took the owner's play-test on board.** A matched pair in Memory Match is now
+  **taken off the table** instead of lying there face up, and the asteroid round was
+  given **fifty seconds** instead of thirty, with the rocks coming more slowly at the
+  start and staying up longer: the round was being lost on the clock rather than on
+  the aim. The instructions now say what happens to a pair.
+
+**Files**
+
+- `src/sim/training.ts` — the rules engine: the six games' words, the daily limit,
+  the reward table, `trainingDay`, `canStartTraining`, `completeTraining`, and the
+  generator the games are handed instead of `Math.random`.
+- `src/sim/trainingMerge.ts`, `trainingMemory.ts`, `trainingRover.ts`,
+  `trainingSolar.ts`, `trainingCargo.ts`, `trainingAsteroid.ts` — the rules of the
+  six games, one module each, with a test file beside each.
+- `src/sim/run.ts` — `RunState.training`: what the crew has done today.
+- `src/ui/training.ts` — the section, the game dialog, and the record in
+  `localStorage`. `src/ui/trainingGame.ts` — the contract. `src/ui/training*.ts` — the
+  six games on the screen. `src/ui/training.css` — their styling.
+- `src/features/act/model.ts`, `src/features/act/view.ts`, `src/features/act/act.css`
+  — the lock on the tasks tile, the callout, and the section in the Standing orders
+  sheet. `src/ui/icons.ts` — a padlock.
+- `tools/browser-check-training.mjs` — the check.
+
+**Problems**
+
+- **The crates in the cargo round could only be picked up with a mouse.** They were
+  selected on `pointerup`, so a keyboard — and the headless check — could not pick one
+  up at all. The browser check found it on the first run: the round never finished.
+  Selection now happens on `click`, which a keypress and a tap both fire, and the drag
+  is kept for the pointer path. It was caught before the commit, so there is no issue
+  to log.
+- **Two of the three rover maps could not be finished.** The maps were written by eye
+  and two of them had the outpost walled off. They are now proved by a breadth-first
+  search in the test, and the move budget is built from the shortest route, so a map
+  that cannot be finished cannot be shipped.
+- **The deck dealt the same number to two cards.** `deck.push({id: deck.length}, {id:
+  deck.length})` read the length before either push, so both cards of a pair shared a
+  number. The test caught it.
+- **The science rank ladder was not re-based.** A player who trains every sol earns
+  about ninety-six points over a run, and the ladder tops out at fifty, so the debrief's
+  rank now measures the training as well as the work. The reward values were scaled
+  down rather than the ladder changed, and the five numbers are the owner's to move
+  (D-075).
+- **The memory game nearly lost its own win condition.** The win was "every card is in
+  the matched set", and the pairs now leave the table and leave that set behind — so
+  the count is a counter of pairs found, not the size of a set. Caught by reading the
+  code back after the change, before it was played.
+- **The memory game compared the wrong two cards (ISS-089).** The cards were numbered
+  before the deck was shuffled, so a card's number was not its place, and the game
+  compared `deck[number]` — a card the player had never touched. Two identical cards
+  were therefore almost never a pair, and the browser check passed anyway because it
+  only asked whether *a* pair came off the table: with the wrong comparison one came
+  off roughly one time in six. The owner found it by playing. The deck is now shuffled
+  first and numbered after, the rule lives in `sim/trainingMemory.ts` where a test can
+  hold it, and the browser check reads the face of both cards the game takes away and
+  asserts they are the same face.
+
+**Next**
+
+- The owner to decide what the points are spent on: there is no shop in the game to
+  spend them in, and the build screen's budget is reached before sol one.
+- The owner's eyes on the training in the real game, on a laptop and on a tablet.
+
+---
+
+## 2026-11-12 — The five play-test bugs again, fixed at the cause
+
+**Did**
+
+- Rebalanced the lander's power so its one solar array and one battery carry a night
+  (battery 150 kWh, habitat 3 kW, life support 5 kW). Power now recovers each sol (ISS-083, ISS-084).
+- Ice miner buildable at every site; the greenhouse's water is recycled by life support; the
+  water goal blames flat batteries when that is the cause (ISS-085).
+- `keepScroll` keeps every scroll position across a redraw, so narrow and zoomed windows no longer jump to the top (ISS-086).
+- The act screen's power card leads with the stored kWh (ISS-087).
+
+**Files**
+
+`src/sim/modules.ts`, `src/ui/gameLoop.ts`, `src/features/base/{model,view}.ts`,
+`src/features/act/view.ts`, and the tests that pinned the old numbers.
+
+**Problems**
+
+19 tests pinned the old balance, including "a bare outpost cannot cover a night". They now use
+an overloaded outpost (greenhouse and ice miner on one battery) where they need a blackout.
+`npm run balance` passes at all five sites. The toast still shifts the panel by its own height
+when it goes away; that is layout, not a reset.
+
+**Next**
+
+Watch the balance numbers in a real play-through, and consider the ice miner's yield at
+Olympus Mons (2 water gives 6% a sol).
+
+---
+
+## 2026-11-11 — Five play-test bugs on the build screen and the desk
+
+**Did**
+
+- **Made the build card count what the outpost has.** The solar array read `0 / 3` while one
+  landed with the crew, because the card drew the extras the player added over the extras
+  they may add. It now draws `total / maxCount` (`1 / 4`), and a line says one came with the
+  lander. `have / limit` still drive the minus, so the lander's copy cannot be sold (ISS-077,
+  D-073).
+- **Told the truth about water.** The water goal said "No water source" the moment a
+  greenhouse went in, naming neither the module that drinks 3% a sol nor the ice miner that
+  would refill it — and at Olympus, where the ice miner cannot be built, nothing connected
+  the dead `+` to the failing goal. The sentence is computed from the build and the site now,
+  and the site rule is one shared function, `siteAllows`, so the card and the goal cannot
+  describe the same ground differently (ISS-079).
+- **Split the power card into the two numbers it was conflating.** The HUD reads stored kWh
+  against capacity, with the meter's percentage; the day's budget moved to the "For today"
+  mini card, and `powerToday` now subtracts the chosen activity's draw, which it ignored. The
+  level at zero is real, so the stats sheet carries the last sol's generated/used figures (or
+  its blackout) underneath the meters (ISS-078, ISS-082, D-074). The balance is untouched:
+  `npm run balance` still passes at 43.2% of builds.
+- **Stopped the panel jumping to the top.** Every redraw destroyed `.gl__scroll`, so each
+  `+` press, the four-second toast timer and the late-arriving forecast threw the player back
+  to the top. Both screens now record the offset and the focused control and restore both;
+  the toast removes its own node instead of redrawing. `#/base` reached after the landing no
+  longer offers a silent run wipe: the button reads "Land again from sol 1" and says what it
+  resets (ISS-080, ISS-081).
+
+**Files**
+
+- `src/sim/modules.ts` — `siteAllows`
+- `src/features/base/model.ts` — `siteAllows` in `canPlace`; `BuildCard.maxCount` and
+  `fromLander`; the computed water `why`; `RESTART_NOTE`
+- `src/features/base/view.ts` — the new card numbers, the lander line, the read-aloud text,
+  the restart wording, and the scroll/focus restore
+- `src/features/base/base.css` — `.gl__card-lander`
+- `src/features/act/model.ts` — `TodayPower.stored`, the chosen activity's draw, `lastPowerLine`
+- `src/features/act/view.ts` — `Power stored`, the budget mini card, the power line, and the
+  panel-scroll restore
+- `src/sim/modules.test.ts`, `src/features/base/model.test.ts`,
+  `src/features/act/model.test.ts` — nine new tests, 810 in total
+- `tools/browser-check-build.mjs` — the lander copy on the card, a press that keeps the
+  panel's scroll, and a bare outpost reading `0 / 100 kWh`
+- `docs/architecture.md`, `docs/team/decisions.md` (D-073, D-074), `docs/team/issues.md`,
+  `docs/team/progress-log.md`, `docs/team/tasks.md`, `AGENTS.md`, `README.md`
+
+**Problems**
+
+- **The zero was never a maths bug.** A bare outpost needs 180 kWh to get through a night and
+  stores 100, so it ends every sol at zero by design. Retuning the lander would have erased
+  the game's opening lesson, so the fix is reporting only — the card says which number is
+  which, and the stats sheet says what the last sol made and used. Recorded because the
+  obvious next report will be the same zero.
+- **The scroll fix is per screen, which is how it went stale the first time.** ISS-062 fixed
+  the sheet's scroll and left the panel's; the same class of bug had to be fixed twice. Both
+  `base` and `act` now restore the panel offset in their own `render`, and the browser check
+  measures it rather than trusting it.
+- **The act card is checked on a bare outpost only.** `browser-check-build.mjs` removes the
+  three solar arrays before landing so the battery really does reach zero; a built outpost
+  saturates and would not prove the reading moves.
+- **No DOM test for the scroll or the focus restore.** Vitest runs without a DOM (ISS-013),
+  so the behaviour is covered in the headless-Chrome check.
+
+**Next**
+
+- Nothing open from this pass. The debrief still reports the per-sol ledger, which is where
+  the same power figures appear for the whole run.
+
+---
+
+## 2026-11-11 — A SKIP button on the launch cinematic
+
+**Did**
+
+- **Gave the launch reel an exit.** The SKIP button appears halfway through the departure —
+  2.6 s in, while the press-conference still is on screen — and it cuts the reel straight
+  to the spacecraft parts tour. That is the screen the reel ends on anyway, so a player
+  who skips sees the same four parts and the same NASA facts, just sooner (D-072). The
+  title card is the one beat that always plays.
+- **Made the button appear whether or not the clip has buffered.** Tying it to the slot
+  rather than to the clip's readiness means a download that has not finished is exactly
+  when a player wants a way out, which is the case a skip exists for.
+- **Halved the wait for the button.** It used to turn up with the films, 5.25 s in; it
+  now turns up at 2.6 s, which is halfway through the departure. The films are eight
+  seconds and the departure is five, so an escape hatch that only opened in the second
+  half of the wait was not much of an escape hatch.
+- **Made the reel actually stop.** Pending timers cleared, `ended` listeners removed, both
+  clips paused, and a `skipped` flag — which is what a late `loadeddata` finds, so a clip
+  that finishes downloading after the skip cannot restart a film behind the tour. A clip
+  that was still downloading is unloaded, so a skipped reel does not pull a megabyte
+  nobody will watch.
+- **Moved the focus when the tour opens.** The skip button vanishes under the player's
+  finger, so the parts panel takes the focus (`tabindex="-1"`).
+- **Re-applied the whole thing on top of `origin/main`**, which had rewritten the launch
+  reel while this work was uncommitted: `main` gained the shared keyboard rules
+  (`dom/keys.ts`), the tour ending on the assembled craft, and a redrawn stage. The skip
+  was ported onto that reel rather than merged into it, and the decision was renumbered
+  **D-072** because main had taken D-070 and D-071 for the desk hub and the NASA layer.
+
+**Files**
+
+- `index.html` — the button, as a direct child of `#launch` and not inside the letterboxed
+  stage; `tabindex="-1"` on the parts panel
+- `src/features/launch/view.ts` — `revealSkip`, `stopReel`, the `skipped` flag, the focus
+  move, and the teardown reset
+- `src/features/launch/model.ts` — `SKIP_LABEL`, `SKIP_DESCRIPTION`, `FILMS_BEGIN_MS`,
+  `SKIP_APPEARS_MS`
+- `src/features/launch/launch.css` — `.launch__skip`; the dim rule now covers the title
+  card, which was the one cinematic layer it missed
+- `src/features/launch/model.test.ts` — six tests
+- `tools/browser-check-journey.mjs` — drives the skip instead of sleeping through the reel,
+  and measures how long the button takes to appear rather than assuming it
+- `docs/architecture.md`, `docs/game-flow.md`, `docs/team/decisions.md`,
+  `docs/team/progress-log.md`, `docs/team/tasks.md`, `README.md`
+
+**Problems**
+
+- **The button's behaviour is not unit-tested.** Vitest runs in node with no DOM (ISS-013),
+  and adding jsdom would be a new dependency (AGENTS.md §10). The model gets coverage for
+  the copy and for the timing; the behaviour is covered by the browser check instead.
+  Recorded here rather than left looking covered.
+- **The teardown has to reset the button and cancel its timer.** The section element
+  outlives the mount, so a remount that inherited a visible button would offer it over
+  the title card — the one beat that always plays — and a timer left running would
+  reveal it on a screen the player had already gone from. Caught by leaving the screen
+  and coming back in the browser check.
+- **The merge was not a merge.** Git conflicted on exactly the two files `main` had
+  rewritten — `launch/view.ts` and `launch.css` — and taking either side would have lost
+  something real: `main`'s side loses the skip, this side loses the rewritten stage, the
+  Enter handling and the reordered tour. The skip was re-applied to `main`'s version by
+  hand, which is why the diff is smaller than the first draft. The same was true of the
+  decision: both sides had claimed D-070, so the entry was renumbered rather than
+  merged, and `TASK-093` became `TASK-095` for the same reason.
+- **The earlier duplicate `launch.css` blocks are gone.** They were this branch's, and
+  `main`'s rewrite of the file removed them, so nothing needed doing — noted because the
+  first draft of this entry said they should be tidied separately.
+- **The journey check passes.** An older entry says it fails on this branch and on
+  `origin/main`; it does not. It runs the whole journey with no console errors on both.
+  The note was stale, not the check — worth knowing before anyone trusts that line again.
+
+**Next**
+
+- The skip is recorded nowhere. If the debrief should say that a player cut the launch
+  film, that is a run flag and a different change.
+
+---
+
+## 2026-11-11 — Merge main's navigation bar and launch tour, and keep both sides' issues
+
+**Did**
+
+- **Merged `origin/main`** into the branch. Main had nine commits since the last merge:
+  **one navigation bar** for the game screens (the `--gl-*` tokens moved from `.gl` to
+  `:root`, so `landing-site` can draw the same header as `base`, `act` and `debrief`),
+  the launch parts-tour fixes (Enter answers, the assembled-craft picture shown once and
+  last, the image that shook forever), the launch stage filling the screen, and the
+  keyboard rules two screens share, moved into `src/dom/keys.ts`.
+- **Every code file merged clean**, including `src/styles/game-loop.css`, where main
+  moved the palette to `:root` and this branch removed the mission bar — different parts
+  of the same file.
+- **Resolved the three documentation conflicts by keeping both sides.** `architecture.md`
+  keeps main's rows for `dom/keys.ts` and the navigation bar and this branch's rows for
+  the hub, the icons, the sheet and the NASA layer. `issues.md` keeps both sets of
+  entries. `progress-log.md` keeps both sides' entries, newest first.
+- **Renumbered this branch's five issues to ISS-072…ISS-076.** Main took ISS-067 to
+  ISS-070, and this branch had taken the same five numbers for different bugs. Main's
+  keep theirs, as in `5acbc40` when the same thing happened last time; every reference
+  moved with them, in the docs and in two code comments.
+
+**Files**
+
+- `src/features/landing-site/view.ts` — the one call site the clean merge hid
+- `docs/architecture.md`, `docs/team/issues.md`, `docs/team/progress-log.md` — the
+  three conflicts, resolved
+- `docs/team/decisions.md`, `docs/team/tasks.md`, `src/features/act/README.md`,
+  `src/features/encyclopedia/view.ts`, `src/ui/sheet.css` — the renumbering sweep
+- `AGENTS.md`, `README.md` — the test counts, 791 to 795
+
+**Problems**
+
+- **The merge was clean in git and broken in TypeScript.** Main's new `landing-site`
+  screen calls `gameHeader('LANDING SITE', …)`, and this branch had changed that
+  signature to one options object. The two files are different files, so git merged them
+  without a word — and `tsc` failed on one line. A clean merge is not a working tree.
+- **The issue ids collided silently.** Both sides had ISS-067 to ISS-070 for entirely
+  different bugs, and nothing in the merge said so. Only reading both issue files side by
+  side showed it.
+- **Main's issue entries arrived with the separator and the heading on one line**
+  (`---## ISS-069`), which no heading parser likes. They were split apart and their
+  headings set to `##`.
+- **The first pass at the conflicts corrupted `issues.md`**: a script that looked for the
+  conflict markers and found none still wrote the file, duplicating it. The merge was
+  aborted, restarted, and the script fixed to refuse to write when it finds no markers.
+
+**Next**
+
+- The header now carries the encyclopedia book, the guide's `?` and the Menu control —
+  and `landing-site` draws the same one. It is worth a look in a browser to be sure the
+  bar does not crowd the map on a short window.
+
+---
+
+## 2026-11-11 — The "Real data" section is the whole NASA layer, and the sheet stops squashing what is inside it
+
+**Did**
+
+- **Made the "Real data" section the whole NASA layer** (D-071, ISS-075). It holds NASA's
+  live daily picture, the saved NASA card for the sol, **the landing region's own
+  photograph** — which used to appear once on the landing screen and never again —
+  **NASA's own space-weather readings** (the flare class and the day it peaked, strongest
+  first, with the source they came from: DONKI, NOAA, or the game's long-run record),
+  and two NASA facts to take away. The tile's line of state counts what is behind it:
+  "3 pictures · 5 live flares".
+- **Carried the live readings out of the loader.** `dom/forecastLoader.ts` kept only the
+  game's timetable and threw NASA's own readings away; `LoadedForecast.flares` now holds
+  them, and `data/spaceweather.ts` gains `strongestFlares` to order them (A<B<C<M<X, then
+  the number) — DONKI can return thirty days of flares and a screen cannot show them all.
+- **The forecast stays on the main panel.** It is the game's schedule and it is what the
+  player acts on; a flare reading is NASA's, and the two are now kept apart.
+- **Fixed the sheet squashing its contents** (ISS-076). The body is a flex column that
+  scrolls, and its children were shrinking instead of overflowing, so a NASA picture with
+  a fixed aspect ratio poured over its own caption — the card measured 154 px tall with
+  522 px of content in it. The body's children now keep their own height.
+
+**Files**
+
+- `src/features/act/view.ts`, `src/features/act/model.ts`, `src/features/act/act.css`,
+  `src/features/act/model.test.ts` — the NASA layer and the tile's line of state
+- `src/data/spaceweather.ts`, `src/data/spaceweather.test.ts` — `strongestFlares`
+- `src/dom/forecastLoader.ts` — `LoadedForecast.flares`
+- `src/ui/sheet.css` — the body scrolls, its children do not shrink
+- `tools/browser-check-build.mjs` — six new assertions on the data sheet
+- `docs/architecture.md`, `docs/game-flow.md`, `docs/team/decisions.md`,
+  `docs/team/issues.md`, `docs/team/progress-log.md`, `docs/team/tasks.md`, `AGENTS.md`,
+  `src/features/act/README.md`
+
+**Problems**
+
+- **The saved card was for the sol just finished, not the sol being played.** On the
+  first day there is no finished sol, so `cardForSol(0)` was null and the section opened
+  with no sol picture at all. It now asks for the sol being played, which is also the one
+  a player wants to read.
+- **Two sheets of the same game, two different "not answered yet" sentences.** The live
+  daily picture and the live flare readings each have their own honest note, and the
+  first draft said the same thing twice in one section. The space-weather section now
+  says it once, with the source underneath.
+- **The region photograph is a remote NASA URL**, like the saved cards already were, so
+  with no network it is a broken picture. That was accepted rather than shipping local
+  copies — the images exist at NASA and nowhere else.
+- **The sheet bug was not visible in any test.** It only showed when a child-sized card
+  with a fixed-aspect picture was put in a sheet for the first time, and only a
+  measurement in a real browser caught it.
+
+**Next**
+
+- The data sheet is a long scroll: three pictures, each with its caption and its fact.
+  A child who wants the one fact about the region has to pass two photographs to get it.
+
+---
+
+## 2026-11-11 — The desk becomes a hub of buttons, and every picture is drawn by the game
+
+**Did**
+
+- **Turned the act screen's panel into a hub of buttons** (D-070). Five of them before
+  the first sol — Today's tasks, Check desk, Standing orders, Colony stats, View real
+  data — and a sixth, *Sol N in review*, once a sol has run. Each is a label and one line
+  of state, and each opens its section as a **sheet** over the desk: a dialog with its own
+  header, a scrolling body and one close. Nothing opens by itself — the panel's job is to
+  be readable at a glance, and a dialog that opens itself hides the glance.
+- **Removed the mission bar.** The sol count moved into the panel head's kicker (`Sol 1 of
+  12`, not `Sol 0 of 12` — ISS-073) and the science points into its top right corner. The
+  header gained two icon buttons beside Menu: a `?` for the guide and a book for the
+  encyclopedia. The encyclopedia's Back button now returns to the day mid-run instead of to
+  the build screen (ISS-072).
+- **Put the last sol's numbers on the tile itself.** The review button carries the sol's
+  net change as chips, so a change is never only behind a button (ISS-057).
+- **Drew every pictogram instead of borrowing one.** 34 stroked line drawings in
+  `ui/icons.ts`, built through `dom/svg.ts`, replacing the emoji on the act screen, the
+  HUD, the world signals and the debrief. `sim/activities.ts`, `sim/science.ts` and
+  `sim/patches.ts` no longer carry an `icon` field at all: a model may not import `ui/`,
+  so the mapping from an id to a picture lives in the view.
+
+**Files**
+
+- `src/ui/sheet.ts`, `src/ui/sheet.css`, `src/ui/icons.ts`, `src/ui/icons.css`,
+  `src/ui/icons.test.ts`, `src/dom/svg.ts` — new
+- `src/ui/gameLoop.ts`, `src/ui/guide.ts`, `src/styles/game-loop.css` — the mission bar
+  gone, the header's actions in
+- `src/features/act/model.ts`, `src/features/act/view.ts`, `src/features/act/act.css`,
+  `src/features/act/model.test.ts` — the hub
+- `src/features/base/view.ts`, `src/features/debrief/view.ts`,
+  `src/features/encyclopedia/view.ts`, `src/sim/activities.ts`, `src/sim/science.ts`,
+  `src/sim/patches.ts`, `src/sim/patches.test.ts`
+- `tools/browser-check-build.mjs`, `tools/browser-check-rover.mjs`,
+  `tools/browser-check-journey.mjs` — the build check opens tiles instead of reading the
+  scroll, the rover check opens the task sheet to stamp an order, and the journey check
+  was pointing at the wrong address (ISS-074)
+- `docs/architecture.md`, `docs/game-flow.md`, `docs/team/decisions.md`,
+  `docs/team/issues.md`, `docs/team/progress-log.md`, `docs/team/tasks.md`, `AGENTS.md`
+
+**Problems**
+
+- **`sim/` could not hold a picture.** The emoji lived in `sim/activities.ts`,
+  `sim/science.ts` and `sim/patches.ts` because the screens wanted them there, and a
+  model may not import `ui/`. The fix was to delete the field and map the id in the view
+  (`ORDER_ICON`, `PATCH_ICON`, `RANK_ICON`), which means a new activity or rank has no
+  picture until someone adds the mapping — the compiler cannot catch that, and the
+  fallback ('clipboard', 'star') is what covers it.
+- **The journey check was not broken — it was pointing at nothing.** It asked for
+  `127.0.0.1:5173` while Vite listens on the IPv6 loopback, so every step printed `none`
+  and the check ended with no errors: it could not fail and could not pass. It had been
+  reporting that way on `origin/main` for days and it had been read as a game problem
+  (ISS-074). With `localhost` the whole journey runs — naming → briefing → supply →
+  launch → interior → landing-site → base — with no console errors.
+- **The panel's kicker was off by one** because `RunState.sol` counts the sols *completed*.
+  It did not show until the number moved next to the button that names the day.
+- **An icon test threshold was too strict.** `icons.test.ts` demanded eight characters of
+  path data per shape, which failed on `M12 12v8`. It now demands four: long enough to be
+  a path, not so long that a short line cannot be drawn.
+
+**Next**
+
+- The hub has five sections and a crisis panel. The **standing orders** are the one that
+  grows every sol, and they are still a list inside a sheet — a child has to open the
+  sheet to learn that two new rules arrived.
+
+---
+
 ## 2026-11-11 — One navigation bar, a stable launch image, and a screen that scales
 
 **Did**

@@ -1,0 +1,123 @@
+/* SHEET — imported by ui/sheet.ts only (R-15).
+   A dialog over the screen: a backdrop, one card, a header bar with the
+   pictogram and the title, a scrolling body, and a closing button. */
+
+.sheet__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 105;
+  display: grid;
+  place-items: center;
+  padding: clamp(10px, 1.6vw, 28px);
+  background: rgba(10, 18, 30, 0.55);
+}
+
+.sheet__card {
+  display: flex;
+  flex-direction: column;
+  width: min(42rem, 94vw);
+  max-height: min(86vh, 46rem);
+  border-radius: clamp(12px, 1.1vw, 20px);
+  background: var(--gl-panel);
+  color: var(--gl-ink);
+  box-shadow: 0 24px 60px rgba(5, 12, 22, 0.45);
+  overflow: hidden;
+}
+
+.sheet__head {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: clamp(8px, 0.9vw, 16px);
+  padding: clamp(8px, 0.95vw, 18px) clamp(10px, 1.1vw, 20px);
+  background: var(--gl-navy);
+  color: var(--gl-panel);
+}
+
+.sheet__mark {
+  display: grid;
+  place-items: center;
+  width: clamp(26px, 2.5vw, 44px);
+  height: clamp(26px, 2.5vw, 44px);
+  border-radius: clamp(7px, 0.6vw, 12px);
+  background: var(--gl-orange);
+  color: #fff;
+  font-size: clamp(0.85rem, 1.15vw, 1.5rem);
+}
+
+.sheet__heading {
+  min-width: 0;
+}
+
+.sheet__kicker {
+  margin: 0;
+  color: rgba(236, 241, 248, 0.72);
+  font-family: var(--gl-body);
+  font-size: clamp(0.48rem, 0.6vw, 0.76rem);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.sheet__title {
+  margin: 0;
+  font-family: var(--gl-display);
+  font-size: clamp(0.95rem, 1.4vw, 1.6rem);
+  font-weight: 900;
+  line-height: 1.12;
+}
+
+.sheet__close {
+  display: grid;
+  place-items: center;
+  width: clamp(24px, 2.3vw, 38px);
+  height: clamp(24px, 2.3vw, 38px);
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--gl-panel);
+  font-size: clamp(0.7rem, 0.88vw, 1rem);
+  cursor: pointer;
+}
+
+.sheet__close:hover {
+  background: var(--gl-orange);
+  color: #fff;
+}
+
+.sheet__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 0.9vw, 18px);
+  padding: clamp(10px, 1.1vw, 20px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gl-card-strong) transparent;
+}
+
+/* The body scrolls, so its children must keep their own height.
+   Without this a child taller than the space left is squeezed instead of
+   overflowing, and a picture with a fixed aspect ratio pours over its own
+   caption (ISS-076). */
+.sheet__body > * {
+  flex: 0 0 auto;
+}
+
+.sheet__foot {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: clamp(6px, 0.7vw, 12px);
+  padding: clamp(8px, 0.9vw, 16px) clamp(10px, 1.1vw, 20px);
+  border-top: 1px solid var(--gl-line);
+}
+
+.sheet__done {
+  margin-left: auto;
+  min-width: 8rem;
+}

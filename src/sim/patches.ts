@@ -23,7 +23,6 @@ export interface Patch {
   readonly title: string;
   /** Why it was earned, in one line. */
   readonly detail: string;
-  readonly icon: string;
 }
 
 /**
@@ -44,7 +43,6 @@ export function patchesFor(run: RunState): readonly Patch[] {
       id: 'no-skip',
       title: 'No-Skip Astronaut',
       detail: `Worked every one of the ${log.length} sols.`,
-      icon: '🎖️',
     });
   }
 
@@ -56,7 +54,6 @@ export function patchesFor(run: RunState): readonly Patch[] {
       id: 'night-watch',
       title: 'Night Watch',
       detail: 'Never let the batteries run flat.',
-      icon: '🌙',
     });
   }
 
@@ -66,7 +63,6 @@ export function patchesFor(run: RunState): readonly Patch[] {
       id: 'ice-hunter',
       title: 'Explorer',
       detail: `The rover brought back ${run.rover.found.length} finds.`,
-      icon: '🔭',
     });
   }
 
@@ -76,7 +72,6 @@ export function patchesFor(run: RunState): readonly Patch[] {
       id: 'cartographer',
       title: 'Cartographer',
       detail: `Logged ${run.rover.visited.length} places from the past.`,
-      icon: '🗺️',
     });
   }
 
@@ -86,7 +81,6 @@ export function patchesFor(run: RunState): readonly Patch[] {
       id: 'leave-no-trace',
       title: 'Leave No Trace',
       detail: 'Left the rock where it was found.',
-      icon: '🌿',
     });
   }
 
@@ -98,7 +92,6 @@ export function patchesFor(run: RunState): readonly Patch[] {
       id: 'green-thumb',
       title: 'Green Thumb',
       detail: 'The food never fell below half a tank.',
-      icon: '🌱',
     });
   }
 
@@ -110,7 +103,6 @@ export function patchesFor(run: RunState): readonly Patch[] {
       id: 'iron-skin',
       title: 'Iron Skin',
       detail: 'The shielding never fell below 40.',
-      icon: '🛡️',
     });
   }
 
@@ -122,7 +114,6 @@ export function patchesFor(run: RunState): readonly Patch[] {
       id: 'full-tank',
       title: 'Full Tank',
       detail: 'The water never fell below half a tank.',
-      icon: '💧',
     });
   }
 
@@ -137,7 +128,6 @@ export function patchesFor(run: RunState): readonly Patch[] {
       id: 'flare-dodger',
       title: 'Flare Dodger',
       detail: `Sheltered from ${flares} solar ${flares === 1 ? 'flare' : 'flares'}.`,
-      icon: '☀️',
     });
   }
 
@@ -147,7 +137,6 @@ export function patchesFor(run: RunState): readonly Patch[] {
       id: 'full-crew',
       title: 'Full Crew',
       detail: `Kept all ${CREW_SIZE} of them alive to the last sol.`,
-      icon: '👩‍🚀',
     });
   }
 

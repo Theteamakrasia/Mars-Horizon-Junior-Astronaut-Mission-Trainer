@@ -22,10 +22,18 @@
  */
 
 import { spawn } from 'node:child_process';
+import { rmSync } from 'node:fs';
 import { setTimeout as sleep } from 'node:timers/promises';
+
+import { doTheTraining } from './training-driver.mjs';
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:4173';
 const CHROME = process.env.CHROME_PATH ?? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+
+/* A clean profile, so the check always starts from a clean day: Chrome
+   restores the last session in a profile it has used before, and that
+   restored page still holds the run of the last session in memory. */
+rmSync(process.env.TEMP + '\\day-chrome-profile', { recursive: true, force: true });
 
 const chrome = spawn(CHROME, [
   '--headless=new',
@@ -202,8 +210,25 @@ try {
   const before = await trackerIn('act');
   note('the tracker on the desk reads day 1', before?.number === '1', before?.number ?? '');
 
-  /* Run a sol. A crisis can replace the desk, so the check plays whichever it
-     is given and then presses the button either way. */
+  /* Today's work orders are locked until the crew has done two training games
+     (D-075), so the check trains first - and the training is played for real,
+     in the one place that knows how. */
+  const training = await doTheTraining(evaluate, sleep, async (name) => {
+    await evaluate(`(() => { const b = document.querySelector('#act .act-tile[data-tile="orders"]'); if (b) b.click(); })()`);
+    await sleep(500);
+    await evaluate(`(() => { const b = [...document.querySelectorAll('#act .trn__card')].find((c) => c.querySelector('.trn__card-name')?.textContent === ${JSON.stringify(name)}); if (b) b.querySelector('.trn__play').click(); })()`);
+    await sleep(700);
+
+    return evaluate(`!!document.querySelector('#act .trn__backdrop')`);
+  });
+
+  note('the crew trains, so the work orders open', training?.cargo === true && training?.asteroid === true, `${training?.cargo}, ${training?.asteroid}`);
+
+  /* Run a sol. The orders live in the sheet behind their button, and a crisis
+     can replace the desk, so the check opens the orders, picks one, and then
+     presses the button either way. */
+  await evaluate(`(() => { const b = document.querySelector('#act .act-tile[data-tile="tasks"]'); if (b) b.click(); })()`);
+  await sleep(600);
   await evaluate(`(() => {
     const order = document.querySelector('#act .act-order:not([disabled])');
     if (order) { order.click(); return; }
@@ -211,6 +236,8 @@ try {
     if (choice) choice.click();
   })()`);
   await sleep(600);
+  await evaluate(`(() => { const b = document.querySelector('#act .sheet__done'); if (b) b.click(); })()`);
+  await sleep(400);
   await clickIn('act', 'Run sol');
   await sleep(1500);
 
@@ -223,12 +250,13 @@ try {
   );
   note('the tracker says one day is complete', after?.spoken === '1 day complete.', after?.spoken ?? '');
 
-  // 4. The plain "Sol N of 12" text is still in the mission bar.
-  const mission = await evaluate(`(() => {
-    const bar = document.querySelector('#act .gl__mission-progress');
-    return bar?.textContent ?? '';
+  // 4. The sol count is still on the screen - in the panel's own kicker now,
+  //    because the mission bar it used to live in was removed in D-070.
+  const kicker = await evaluate(`(() => {
+    const panel = document.querySelector('#act .gl__panel .gl__kicker');
+    return panel?.textContent ?? '';
   })()`);
-  note('the plain sol count is still in the mission bar', mission.includes('Sol 1 of 12'), mission);
+  note('the plain sol count is still on the desk', kicker.includes('Sol 2 of 12'), kicker);
 
   // 5. The screens with no run in play keep their header as it was.
   const onMap = await evaluate(`(() => {

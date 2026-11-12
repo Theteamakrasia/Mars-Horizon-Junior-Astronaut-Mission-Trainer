@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DOCKING_DESCRIPTION,
   DOCKING_DURATION_MS,
+  FILMS_BEGIN_MS,
   FLASH_FALL_PCT,
   FLASH_RISE_PCT,
   FLASH_TIMES,
@@ -13,6 +14,9 @@ import {
   resolveBeatStart,
   tourActionFor,
   SHOTS,
+  SKIP_APPEARS_MS,
+  SKIP_DESCRIPTION,
+  SKIP_LABEL,
   TITLE,
   TITLE_DURATION_MS,
   TITLE_FADE_MS,
@@ -152,7 +156,8 @@ describe('TOTAL_DURATION_MS', () => {
   });
 
   it('stays under half a minute, which is the promise to the player', () => {
-    // There is no skip, and two films plus the stills is already a long sit.
+    // Even a player who never presses SKIP sits through this, and two films
+    // plus the stills is already a long sit.
     expect(TOTAL_DURATION_MS).toBeGreaterThan(5000);
     expect(TOTAL_DURATION_MS).toBeLessThan(30000);
   });
@@ -211,6 +216,48 @@ describe('PARTS', () => {
     expect(names.some((name) => name.includes('habitat'))).toBe(true);
     expect(names.some((name) => name.includes('logistics'))).toBe(true);
     expect(names.some((name) => name.includes('orion'))).toBe(true);
+  });
+});
+
+describe('the skip button', () => {
+  it('is labelled with one word, because it is a control and not a sentence', () => {
+    expect(SKIP_LABEL.trim().length).toBeGreaterThan(0);
+    expect(SKIP_LABEL.trim().length).toBeLessThanOrEqual(12);
+  });
+
+  it('says what it skips, for anyone who cannot see the label', () => {
+    // "Skip" on its own does not say skip *what*, and this screen has a reel
+    // and a tour between them.
+    expect(SKIP_DESCRIPTION).toContain('launch');
+    expect(SKIP_DESCRIPTION).toContain('tour');
+  });
+
+  it('is up before the films begin, so the films can be cut', () => {
+    // The button is the way past eight seconds of film. If it waited for the
+    // films it would be no use at all.
+    expect(SKIP_APPEARS_MS).toBeLessThan(FILMS_BEGIN_MS);
+  });
+
+  it('is up after the title card has gone, because the title card always plays', () => {
+    // The one beat of this screen nobody can skip. The departure opens the
+    // mission, and it is over before the button is on screen.
+    expect(SKIP_APPEARS_MS).toBeGreaterThan(TITLE_DURATION_MS);
+  });
+
+  it('halves the wait, which is the whole of it', () => {
+    // The button used to appear with the films, which meant waiting out the
+    // whole departure to be able to cut the films. It now appears halfway
+    // through, so the wait is half what it was.
+    expect(SKIP_APPEARS_MS).toBe(Math.round(FILMS_BEGIN_MS / 2));
+  });
+
+  it('does not shorten the reel, because a skip is an exit and not a shorter film', () => {
+    // The films stay in the reel. The skip offers a way past them; it does not
+    // take them out, so a player who does not press it still sees all of it.
+    expect(FILMS_BEGIN_MS + VIDEO_DURATION_MS).toBeLessThan(TOTAL_DURATION_MS);
+    expect(TOTAL_DURATION_MS).toBe(
+      FILMS_BEGIN_MS + VIDEO_DURATION_MS + DOCKING_DURATION_MS,
+    );
   });
 });
 

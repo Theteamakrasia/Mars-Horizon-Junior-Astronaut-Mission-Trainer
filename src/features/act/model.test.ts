@@ -2,13 +2,16 @@ import { describe, expect, it } from 'vitest';
 
 import { newRun, startOutpost, withState } from '../../sim/run';
 import { CORE_MODULES } from '../../sim/modules';
-import { WIN_SOL } from '../../sim/sol';
+import { WIN_SOL, advanceSol } from '../../sim/sol';
 import {
   activityCosts,
   activityRows,
   boardRows,
   changeRows,
+  ledgerRows,
   deskNote,
+  hubTiles,
+  lastPowerLine,
   meterRows,
   missionHeadline,
   orderChecks,
@@ -19,9 +22,14 @@ import {
   scienceSummary,
   secondsLeft,
   toneFor,
+  type HubSection,
+  type HubTile,
 } from './model';
 
 const run = startOutpost(newRun('jezero', 'Test'), CORE_MODULES);
+
+/** More load than the lander's one battery carries through a night. */
+const overloaded = startOutpost(newRun('jezero', 'Test'), [...CORE_MODULES, 'greenhouse', 'ice-miner']);
 
 describe('act model', () => {
   it('starts on the first mission and ends on the last', () => {
@@ -127,7 +135,6 @@ describe('the daily activity', () => {
       id: 'test',
       title: 'Test',
       detail: 'Test',
-      icon: '🧪',
       topic: 'missions',
       science: 2,
       powerCostKwh: 8,
@@ -207,10 +214,29 @@ describe('the power the crew can spend', () => {
     expect(picture.nightNeed).toBeGreaterThan(0);
   });
 
-  it('says the night is not covered when the batteries cannot hold it', () => {
-    const bare = powerToday(run);
+  it('reports the level in the batteries separately from the day budget', () => {
+    /* ISS-078: the projection saturates at the battery capacity, so a card
+       drawn from it read the same number every sol. The level has to be its
+       own reading - and after a bare sol it is the one that reaches zero. */
+    const after = advanceSol(run);
+    const picture = powerToday(after);
 
-    expect(bare.nightCovered).toBe(false);
+    expect(picture.stored).toBe(Math.round(after.stores.power));
+    expect(picture.stored).toBeLessThan(picture.capacity);
+    expect(picture.available).toBeGreaterThan(picture.stored);
+  });
+
+  it('takes the chosen activity out of the day budget, not out of the batteries', () => {
+    const before = powerToday(run);
+    const after = powerToday(withState(run, { chosenActivity: 'survey' }));
+
+    expect(after.available).toBe(before.available - 25);
+    expect(after.stored).toBe(before.stored);
+  });
+
+  it('says the night is not covered when the batteries cannot hold it', () => {
+    expect(powerToday(overloaded).nightCovered).toBe(false);
+    expect(powerToday(run).nightCovered).toBe(true);
   });
 
   it('says the night is covered when there are enough batteries and panels', () => {
@@ -222,7 +248,7 @@ describe('the power the crew can spend', () => {
   });
 
   it('drops to nothing while the panels are folded against a storm', () => {
-    const storming = withState(run, {
+    const storming = withState(overloaded, {
       sol: 1,
       forecast: [
         {
@@ -238,6 +264,25 @@ describe('the power the crew can spend', () => {
     });
 
     expect(powerToday(storming).available).toBe(0);
+  });
+
+  it('says nothing about power before the first sol', () => {
+    expect(lastPowerLine(run)).toBe('');
+  });
+
+  it('says what the last sol made and needed, so a zero is explained', () => {
+    const after = advanceSol(overloaded);
+    const line = lastPowerLine(after);
+
+    expect(line).toContain('kWh');
+    expect(line).toContain(`${Math.round(after.log[0].powerGenerated)} kWh made`);
+  });
+
+  it('names the blackout when the batteries ran flat', () => {
+    const after = advanceSol(overloaded);
+
+    expect(after.log[0].blackout).toBeGreaterThan(0);
+    expect(lastPowerLine(after)).toContain('ran flat');
   });
 });
 
@@ -266,5 +311,112 @@ describe('the science score', () => {
 
     expect(scienceSentence(summary)).toBe('10 science points. Your rank is Explorer. 4 more points to reach Field Scientist.');
     expect(scienceSentence(scienceSummary({ ...run, science: 52 }))).toContain('That is the top rank.');
+  });
+});
+
+describe('the hub', () => {
+  const context = { nasaToday: false, pictures: 2, liveFlares: 0 };
+  const find = (tiles: readonly HubTile[], id: HubSection): HubTile | undefined =>
+    tiles.find((tile) => tile.id === id);
+
+  it('is five buttons before a sol has run, because the review has nothing to review', () => {
+    const tiles = hubTiles(run, context);
+
+    expect(tiles.map((tile) => tile.id)).toEqual(['tasks', 'desk', 'orders', 'stats', 'data']);
+    expect(find(tiles, 'review')).toBeUndefined();
+  });
+
+  it('gives every button a label and one line of state', () => {
+    for (const tile of hubTiles(run, context)) {
+      expect(tile.label.length, tile.id).toBeGreaterThan(2);
+      expect(tile.status.length, tile.id).toBeGreaterThan(0);
+    }
+  });
+
+  it('asks for attention before an order is stamped, and stops once one is', () => {
+    /* The orders are behind the training, so the tile is only alive once the
+       crew has trained. */
+    const trained = withState(run, {
+      training: {
+        sol: 1,
+        completed: [
+          { gameId: 'resource-merge', points: 3, performance: 'good' },
+          { gameId: 'memory-match', points: 3, performance: 'good' },
+        ],
+        pointsToday: 6,
+      },
+    });
+
+    expect(find(hubTiles(trained, context), 'tasks')?.attention).toBe(true);
+    expect(find(hubTiles(trained, context), 'tasks')?.status).toContain('choose one');
+
+    const picked = hubTiles(withState(trained, { chosenActivity: 'rest' }), context);
+
+    expect(find(picked, 'tasks')?.attention).toBe(false);
+    expect(find(picked, 'tasks')?.status).toContain('one stamped');
+  });
+
+  it('locks the orders until the crew has trained', () => {
+    const tile = find(hubTiles(run, context), 'tasks');
+
+    expect(tile?.locked).toBe(true);
+    expect(tile?.status).toContain('Locked');
+    expect(tile?.attention).toBe(false);
+  });
+
+  it('names the lowest store on the stats button', () => {
+    const drained = withState(run, { stores: { ...run.stores, water: 12 } });
+    const stats = find(hubTiles(drained, context), 'stats');
+
+    expect(stats?.status).toContain('Water');
+    expect(stats?.status).toContain('12%');
+    expect(stats?.attention).toBe(false);
+  });
+
+  it('says what is behind the data button: how many pictures, and whether they are live', () => {
+    expect(find(hubTiles(run, { nasaToday: true, pictures: 3, liveFlares: 5 }), 'data')?.status).toBe('3 pictures · 5 live flares');
+    expect(find(hubTiles(run, { nasaToday: true, pictures: 2, liveFlares: 0 }), 'data')?.status).toBe('2 pictures · live today');
+    expect(find(hubTiles(run, { nasaToday: false, pictures: 2, liveFlares: 0 }), 'data')?.status).toBe('2 pictures · saved');
+  });
+
+  it('adds the review once a sol has run, and prints its net change on the button', () => {
+    const after = hubTiles(advanceSol(run), context);
+    const review = find(after, 'review');
+
+    /* Six buttons, and the review's label names the sol it is about rather
+       than saying "Review" and making the player open it to find out. */
+    expect(after).toHaveLength(6);
+    expect(review?.label).toContain('in review');
+    expect(review?.status.length).toBeGreaterThan(0);
+    expect(review?.attention).toBe(false);
+  });
+
+  it('keeps flat changes off the review button, because a chip that says 0 is noise', () => {
+    const review = find(hubTiles(advanceSol(run), context), 'review');
+
+    expect(review?.chips.every((chip) => chip.tone !== 'flat')).toBe(true);
+  });
+});
+
+describe('the ledger of a sol', () => {
+  it('shows what each store made, used and changed by', () => {
+    const record = advanceSol(run).log[0];
+    const rows = ledgerRows(record);
+
+    expect(rows.map((row) => row.name)).toEqual(['power', 'oxygen', 'water', 'food', 'shielding']);
+
+    const oxygen = rows.find((row) => row.name === 'oxygen');
+
+    expect(oxygen?.made).toBe(`${Math.round(record.produced.oxygen)}%`);
+    expect(oxygen?.used).toBe(`${Math.round(record.consumed.oxygen)}%`);
+    expect(rows.find((row) => row.name === 'power')?.made).toContain('kWh');
+  });
+
+  it('shows a dash rather than a zero, and names wasted sunlight', () => {
+    const rows = ledgerRows(advanceSol(run).log[0]);
+
+    /* No greenhouse, so no food is made. */
+    expect(rows.find((row) => row.name === 'food')?.made).toBe('–');
+    expect(rows.find((row) => row.name === 'power')?.note).toContain('wasted');
   });
 });

@@ -19,6 +19,7 @@ import {
   extraSlots,
   extrasOf,
   pointsSpent,
+  siteAllows,
   specOf,
   systemsFor,
   type ModuleKind,
@@ -28,13 +29,22 @@ import { LIFE_STORE_FLOOR, POWER_BLACKOUT_FLOOR, SHIELDING_FLOOR, type ScienceGo
 import { visibleForecast, type ForecastEvent } from '../../sim/forecast';
 import { newRun, startOutpost } from '../../sim/run';
 import { projectSol, WIN_SOL } from '../../sim/sol';
-import { siteScore } from '../../sim/regions';
 
 export { BUILD_BUDGET, CORE_MODULES, MODULE_CATALOGUE, extraLimitOf, extraSlots, pointsSpent, specOf };
 export type { ModuleKind, ModuleSpec };
 
 /** Reminder shown beside the launch button: building nothing extra is allowed, and teaches something. */
 export const BUDGET_NONE = 'You can land with nothing extra. It is allowed, and you will see why it is hard.';
+
+/**
+ * What the button does when the outpost has already landed.
+ *
+ * `#/base` can be reached again mid-run, and the button under the cards resets
+ * the sol, the stores, the science and the log. It used to keep saying "Land &
+ * start sol 1", so a player who went back to look at the build wiped the run
+ * without being told (ISS-081).
+ */
+export const RESTART_NOTE = 'This starts the outpost over at sol 1 and clears the sols you have played.';
 
 /** Modules a player can add, in catalogue order: everything that is not a core module. */
 export const BUILDABLE: readonly ModuleSpec[] = MODULE_CATALOGUE.filter((spec) => spec.cost > 0);
@@ -64,10 +74,9 @@ export function pointsLeft(extras: readonly ModuleKind[]): number {
  */
 export function canPlace(kind: ModuleKind, extras: readonly ModuleKind[], regionId: string): Placement {
   const spec = specOf(kind);
-  const score = siteScore(regionId);
   const modules = allModules(extras);
 
-  if (spec.requires !== undefined && score[spec.requires.axis] < spec.requires.min) {
+  if (!siteAllows(kind, regionId) && spec.requires !== undefined) {
     return { ok: false, reason: spec.requires.why };
   }
 
@@ -97,12 +106,16 @@ export interface BuildCard {
   readonly kind: ModuleKind;
   readonly name: string;
   readonly cost: number;
-  /** How many the player has added. */
+  /** How many the player has added. Drives the minus button, never the card's number. */
   readonly have: number;
-  /** How many the player can add in total. */
+  /** How many more of this module the player can add. */
   readonly limit: number;
-  /** How many the outpost has, including the copy the lander brought. */
+  /** How many the outpost has, including the copy the lander brought. This is the number on the card. */
   readonly total: number;
+  /** The catalogue maximum, and the denominator on the card. */
+  readonly maxCount: number;
+  /** 1 for the modules the lander brings, 0 otherwise. */
+  readonly fromLander: number;
   /** True when no more can be added. */
   readonly atLimit: boolean;
   /** Why the "+" is dead, in one short line. Empty when it is not dead. */
@@ -133,6 +146,8 @@ export function buildCards(extras: readonly ModuleKind[], regionId: string): rea
       have,
       limit,
       total: have + fromLander,
+      maxCount: spec.maxCount,
+      fromLander,
       atLimit: have >= limit,
       blocked: placement.ok ? '' : placement.reason,
       gives: spec.gives,
@@ -160,15 +175,45 @@ export interface GoalPreview {
 
 /** Whether a build can hold each of the five goals, and what is missing. */
 export function goalPreview(extras: readonly ModuleKind[], regionId: string): readonly GoalPreview[] {
-  const run = startOutpost(newRun(regionId, ''), allModules(extras));
+  const modules = allModules(extras);
+  const run = startOutpost(newRun(regionId, ''), modules);
   const calm = projectSol(run);
-  const systems = systemsFor(allModules(extras), regionId);
+  const systems = systemsFor(modules, regionId);
   const upkeep = upkeepFor(extras, regionId);
 
   /* Where the stores end up if nothing changes for the whole run. */
   const waterAtEnd = run.stores.water + calm.net.water * WIN_SOL;
   const shieldAtEnd = run.stores.shielding + calm.net.shielding * WIN_SOL;
   const powerOk = calm.blackout <= POWER_BLACKOUT_FLOOR && upkeep.nightHoursCovered >= NIGHT_HOURS;
+
+  /*
+   * Why the water goal failed, in the words of the thing that caused it.
+   *
+   * A greenhouse drinks a fixed share of the tank every sol and only the ice
+   * miner refills it, so a greenhouse without one drains the tank. The old
+   * sentence was the fixed string "No water source": true, and useless. It
+   * appeared the moment a greenhouse was built, and it named neither the
+   * module that caused it nor the one that would fix it (ISS-079).
+   */
+  const waterDays = daysUntilEmpty(run.stores.water, calm.net.water);
+  const hasMiner = countOf(modules, 'ice-miner') > 0;
+
+  const waterWhy = ((): string => {
+    /* Flat batteries slow life support, and life support is what recycles the
+       water. Blame the power, not the greenhouse: a greenhouse on a lander that
+       cannot carry it through the night is a power problem first. */
+    if (calm.blackout > POWER_BLACKOUT_FLOOR) {
+      return 'The batteries run flat, so life support stops recycling water. Add a battery bank.';
+    }
+
+    if (systems.hasGreenhouse && !hasMiner) {
+      return `A greenhouse still loses some water each sol. An ice miner would refill the tank.`;
+    }
+
+    if (Number.isFinite(waterDays)) return `Water runs out in about ${waterDays} sols.`;
+
+    return `The tank is below ${LIFE_STORE_FLOOR}% and nothing fills it.`;
+  })();
 
   return [
     {
@@ -181,7 +226,7 @@ export function goalPreview(extras: readonly ModuleKind[], regionId: string): re
       id: 'life-support',
       title: 'Life Support',
       ok: waterAtEnd >= LIFE_STORE_FLOOR,
-      why: 'No water source',
+      why: waterWhy,
     },
     {
       id: 'radiation',

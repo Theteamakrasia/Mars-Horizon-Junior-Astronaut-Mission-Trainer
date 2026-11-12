@@ -10,6 +10,7 @@ import {
   fetchSpaceWeather,
   lastDetail,
   lastSource,
+  type SpaceWeatherEvent,
   type SpaceWeatherSource,
 } from '../data/spaceweather';
 import { createForecast, type ForecastEvent } from '../sim/forecast';
@@ -21,6 +22,15 @@ export interface LoadedForecast {
   readonly source: SpaceWeatherSource;
   /** One sentence about how the numbers were found. */
   readonly detail: string;
+  /**
+   * The readings themselves, as they came.
+   *
+   * The forecast is the game's reading of them — a timetable, with a sol for
+   * each — but a screen that shows the player NASA's real space weather needs
+   * the flare classes and the dates NASA actually published. Empty when the
+   * fallback was used, because there is then nothing real to show.
+   */
+  readonly flares: readonly SpaceWeatherEvent[];
 }
 
 /**
@@ -47,5 +57,5 @@ export async function loadForecast(
     dustScore,
   );
 
-  return { forecast, source: lastSource(), detail: lastDetail() };
+  return { forecast, source: lastSource(), detail: lastDetail(), flares };
 }

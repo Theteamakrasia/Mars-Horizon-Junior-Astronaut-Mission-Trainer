@@ -1,7 +1,8 @@
 /* ==========================================================================
    LAUNCH — the launch cinematic
 
-   Two stills, three films, and a title card, twenty-five seconds, no skip.
+   Two stills, two films, and a title card, a reel of thirteen seconds, and one
+   exit: a SKIP button that cuts it to the parts tour.
 
    Durations and delays arrive as custom properties written by launch/view.ts from
    launch/model.ts. Anything that cannot be a custom property is written here as a
@@ -265,6 +266,52 @@
   text-align: center;
 }
 
+/* ---------- THE SKIP BUTTON ----------
+
+   Shown halfway through the departure, by launch/view.ts. It cuts the reel and
+   opens the parts tour, which is where the reel ends anyway.
+
+   A direct child of .launch, so it is placed against the viewport rather than
+   against the letterboxed stage: on a wide window it sits in the black bar
+   above the picture, and on a 16:9 one it sits over the top-right of the
+   frame. Inside the stage it would be clipped on a narrow window — the same
+   trap as ISS-041.
+
+   z-index 5: above the stage and the title card (4), and below the parts
+   panel (6), which is the layer that takes over when the reel ends.
+
+   44px tall, because it is pressed with a thumb on a tablet. */
+.launch__skip {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 5;
+  appearance: none;
+  min-height: 44px;
+  padding: 0.55rem 1.1rem;
+  border: 1px solid rgba(234, 243, 255, 0.45);
+  border-radius: 8px;
+  background: rgba(5, 7, 13, 0.62);
+  color: var(--l-text);
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-indent: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.launch__skip:hover {
+  border-color: #FA6200;
+  color: #FA6200;
+}
+
+.launch__skip:focus-visible {
+  outline: 2px solid #FA6200;
+  outline-offset: 2px;
+}
+
 /* ---------- REDUCED MOTION ----------
    Not a skip and not a shorter runtime. The same title, the same pictures and the
    same films, held still for as long as they would have moved, so nothing is lost
@@ -363,11 +410,13 @@
 
 /* When the parts tour is open, the cinematic behind the panel must be hidden so
    nothing leaks through at the edges. Covers stills, the launch film, the docking
-   clip, and the flash overlays. */
+   clip, the flash overlays, and the title card - which was the one layer it
+   missed, and the one that is still up when the skip is pressed. */
 .launch__cinematic-dimmed .launch__shot,
 .launch__cinematic-dimmed .launch__video,
 .launch__cinematic-dimmed .launch__clip,
-.launch__cinematic-dimmed .launch__flash {
+.launch__cinematic-dimmed .launch__flash,
+.launch__cinematic-dimmed .launch__title-card {
   opacity: 0;
   visibility: hidden;
 }
