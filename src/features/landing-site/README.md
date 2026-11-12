@@ -49,7 +49,8 @@ for an ages 8-16 audience.
 ## What it does NOT contain
 
 - No resource drain. That is `src/sim/sol.ts`, which does not exist yet.
-- No persistence. There is none in this project (see D-003).
+- No persistence of its own. The run is saved by `src/ui/save.ts` (D-081); this
+  screen keeps no state.
 - No `fetch`. Site data is authored, not fetched.
 
 ## Handoff
