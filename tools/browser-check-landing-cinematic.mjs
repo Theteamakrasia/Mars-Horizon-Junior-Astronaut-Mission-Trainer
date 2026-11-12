@@ -15,6 +15,9 @@
  *     beat, then 03, 04, 05 and 06 - with no cut in the wrong direction;
  *   - the stage is exactly the size of the screen it is mounted in, at five
  *     window shapes, with no bars and no scrollbars;
+ *   - the Skip button is in the top right corner at every one of those
+ *     shapes, the corner the launch reel's Skip is in, and clear of the
+ *     caption panel;
  *   - the Skip button, Escape and Enter all cut the film and land on the
  *     outpost, and the outpost is the one that was waiting;
  *   - the how-to-play guide still opens by itself the first time the outpost
@@ -354,14 +357,21 @@ try {
       const b = stage.getBoundingClientRect();
       const image = screen.querySelector('.landing-cinematic__image');
       const c = image?.getBoundingClientRect();
+      const skip = screen.querySelector('.landing-cinematic__skip');
+      const s = skip?.getBoundingClientRect();
+      const caption = screen.querySelector('.landing-cinematic__caption');
+      const k = caption?.getBoundingClientRect();
       return {
         screen: [a.width, a.height],
+        origin: [a.left, a.top],
         stage: [b.width, b.height],
         image: c ? [c.width, c.height] : null,
         fits: image ? getComputedStyle(image).objectFit : '',
         scrollX: document.documentElement.scrollWidth <= window.innerWidth,
         scrollY: document.documentElement.scrollHeight <= window.innerHeight,
         overflow: getComputedStyle(screen).overflow,
+        skip: s ? { top: s.top, right: s.right, left: s.left, bottom: s.bottom } : null,
+        caption: k ? { top: k.top, right: k.right, left: k.left, bottom: k.bottom } : null,
       };
     })()`);
 
@@ -382,6 +392,39 @@ try {
         box.image[0] >= box.stage[0] &&
         box.image[1] >= box.stage[1],
       box === null ? '' : `${box.fits}, ${box.image?.join('x') ?? 'no image'}`,
+    );
+
+    /* The Skip button is in the top right, which is where the launch reel's
+       Skip is: the game has two films and the one control that ends a film
+       does not move between them. The quarters are generous on purpose - the
+       rule is which corner the button is in, not how many pixels it is from
+       the edge. The old bottom-right placement fails this, which is the
+       point of the check. */
+    const skipBox = box?.skip ?? null;
+
+    note(
+      `the Skip button is in the top right at ${width}x${height}`,
+      skipBox !== null &&
+        box !== null &&
+        skipBox.top - box.origin[1] <= box.screen[1] * 0.2 &&
+        box.origin[0] + box.screen[0] - skipBox.right <= box.screen[0] * 0.2,
+      skipBox === null
+        ? 'no skip button'
+        : `top ${Math.round(skipBox.top - (box?.origin[1] ?? 0))}, right inset ${Math.round((box?.origin[0] ?? 0) + (box?.screen[0] ?? 0) - skipBox.right)}`,
+    );
+
+    /* And it must not land on the words. The caption panel is bottom left on
+       purpose, so this is a guard rather than a hope. */
+    const captionBox = box?.caption ?? null;
+
+    note(
+      `the Skip button is clear of the caption at ${width}x${height}`,
+      skipBox !== null &&
+        captionBox !== null &&
+        (skipBox.right < captionBox.left ||
+          skipBox.left > captionBox.right ||
+          skipBox.bottom < captionBox.top ||
+          skipBox.top > captionBox.bottom),
     );
 
     await evaluate(`(() => {

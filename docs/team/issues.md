@@ -11,6 +11,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
+| ISS-102 | The landing film's Skip button was in the bottom right, where the launch reel's is in the top right | low | agent | fixed | 3e2d07c |
 | ISS-101 | The training check ran a sol and never answered the crisis on it, so the sol never happened | medium | agent | fixed | this branch |
 | ISS-100 | The setup window check expected a sparkle that is now a drawn icon, and read the cost as the wrong thing | low | agent | fixed | this branch |
  and still carried emoji, with a drawn icon set supplied | medium | agent | fixed | this branch |
@@ -112,6 +113,28 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | ISS-014 | `base.css` calls the page non-interactive while draggable | low | agent | fixed | this branch |
 
 ---
+
+## ISS-102 - The landing film's Skip button was in the bottom right, where the launch reel's is in the top right
+
+- **Reported by:** the owner, 2026-11-13: the Skip button on the landing cinematic
+  should be in the top right, as it is on the takeoff scene.
+- **Where:** `src/features/landing-cinematic/landing-cinematic.css`, the
+  `.landing-cinematic__skip` rule.
+- **Problem:** the game has two films and they put their exit control in two
+  different corners. The launch reel's Skip is in the top right
+  (`src/features/launch/launch.css`, `.launch__skip`), and the landing film's
+  was in the bottom right. A player who cut the launch reel had learned to look
+  up; on the landing film there was nothing up there to find. The bottom right
+  is also the busiest corner of that screen - the caption panel runs along the
+  bottom edge, and the lower middle of the frame is where the parachute and the
+  capsule are.
+- **Fix:** the landing film's Skip moves to the top right, at the same offsets
+  as the launch reel's, and the browser check reads the button's box at the five
+  window shapes it already visits and says where it is. Nothing else moved: the
+  label, the `aria-label`, the focus and the three ways out of the film are
+  exactly as they were. D-086 records the rule.
+- **Logged before the fix,** because the rule is that a bug gets an id before it
+  is fixed (R-19).
 
 ## ISS-101 - The training check ran a sol and never answered the crisis on it, so the sol never happened
 
