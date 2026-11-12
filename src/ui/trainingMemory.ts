@@ -8,11 +8,19 @@
 
 import { h } from '../dom/h';
 import { icon, type IconName } from './icons';
-import { MEMORY_FACES, MEMORY_PAIRS, dealMemoryDeck, memoryPerformance } from '../sim/trainingMemory';
+import { MEMORY_FACES, MEMORY_PAIRS, dealMemoryDeck, memoryMatch, memoryPerformance } from '../sim/trainingMemory';
 import type { TrainingGameMount } from './trainingGame';
 
 /** How long a pair that does not match stays face up. */
 const FLIP_BACK_MS = 800;
+
+/**
+ * How long a pair that matches is shown before it is taken off the table.
+ *
+ * Long enough for the player to see that it matched — the two cards light up
+ * and the line under the table says so — and then they go.
+ */
+const TAKE_AWAY_MS = 450;
 
 /**
  * The table.
@@ -24,7 +32,9 @@ const FLIP_BACK_MS = 800;
 export const mountMemory: TrainingGameMount = (root, context) => {
   const deck = dealMemoryDeck(context.random);
   const open = new Set<number>();
-  /** The pairs that have been found and taken off the table. */
+  /** The pair that has just been found, still on the table. */
+  const matched = new Set<number>();
+  /** The pairs that have been taken off the table. */
   const gone = new Set<number>();
 
   let first: number | null = null;
@@ -68,13 +78,13 @@ export const mountMemory: TrainingGameMount = (root, context) => {
       ...deck
         .filter((card) => !gone.has(card.id))
         .map((card) => {
-          const showing = open.has(card.id);
+          const showing = open.has(card.id) || matched.has(card.id);
           const face = MEMORY_FACES.indexOf(card.face);
           const name = (face >= 0 ? (['helmet', 'rocket', 'rover', 'sun', 'oxygen', 'droplet'] as readonly IconName[])[face] : 'box') ?? 'box';
           const node = h(
             'button',
             {
-              class: `trn__face${showing ? ' trn__face--open' : ''}`,
+              class: `trn__face${showing ? ' trn__face--open' : ''}${matched.has(card.id) ? ' trn__face--matched' : ''}`,
               type: 'button',
               'aria-label': showing ? card.face : 'A card face down',
             },
@@ -91,7 +101,7 @@ export const mountMemory: TrainingGameMount = (root, context) => {
   }
 
   function turn(id: number): void {
-    if (busy || finished || gone.has(id) || open.has(id)) return;
+    if (busy || finished || gone.has(id) || open.has(id) || matched.has(id)) return;
 
     open.add(id);
 
@@ -108,21 +118,29 @@ export const mountMemory: TrainingGameMount = (root, context) => {
 
     first = null;
 
-    if (deck[other]?.face === deck[id]?.face) {
-      /* A pair. It goes off the table at once: the player is told in the
-         line under the table, so the cards do not have to lie there. */
+    if (memoryMatch(deck, other, id)) {
+      /* A pair. The two cards light up so the player sees that they matched,
+         and then they are taken off the table. */
       found += 1;
-      gone.add(other);
-      gone.add(id);
+      matched.add(other);
+      matched.add(id);
       open.delete(other);
       open.delete(id);
       hint.textContent = found === MEMORY_PAIRS ? 'Every pair found!' : `That is a pair! ${found} of ${MEMORY_PAIRS} found.`;
       paint();
 
+      later(() => {
+        gone.add(other);
+        gone.add(id);
+        matched.delete(other);
+        matched.delete(id);
+        paint();
+      }, TAKE_AWAY_MS);
+
       if (found === MEMORY_PAIRS) {
         finished = true;
 
-        later(() => context.onComplete(memoryPerformance(tries)), 400);
+        later(() => context.onComplete(memoryPerformance(tries)), 600);
       }
 
       return;

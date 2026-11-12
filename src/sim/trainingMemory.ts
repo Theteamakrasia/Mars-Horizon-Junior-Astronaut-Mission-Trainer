@@ -36,24 +36,42 @@ export interface MemoryCard {
  *
  * Every face appears exactly twice, and the order comes from the generator
  * the caller passes in.
+ *
+ * The numbers are handed out **after** the shuffle, so a card's number is
+ * the place it sits in the deck. That is the whole point of numbering them:
+ * the screen turns a card over by its number and has to be able to find it
+ * again, and a number that is not its place is a number that finds the wrong
+ * card.
  */
 export function dealMemoryDeck(random: () => number): readonly MemoryCard[] {
-  const deck: MemoryCard[] = [];
+  const faces: string[] = [];
 
-  MEMORY_FACES.forEach((face) => {
-    deck.push({ id: deck.length, face });
-    deck.push({ id: deck.length, face });
-  });
+  for (const face of MEMORY_FACES) faces.push(face, face);
 
-  for (let index = deck.length - 1; index > 0; index -= 1) {
+  for (let index = faces.length - 1; index > 0; index -= 1) {
     const swap = Math.floor(random() * (index + 1));
-    const held = deck[index] as MemoryCard;
+    const held = faces[index] as string;
 
-    deck[index] = deck[swap] as MemoryCard;
-    deck[swap] = held;
+    faces[index] = faces[swap] as string;
+    faces[swap] = held;
   }
 
-  return deck;
+  return faces.map((face, id) => ({ id, face }));
+}
+
+/**
+ * Do these two cards match?
+ *
+ * The rule the game is made of, and it lives here so it can be tested on its
+ * own: two cards match when they carry the same face.
+ */
+export function memoryMatch(deck: readonly MemoryCard[], first: number, second: number): boolean {
+  const one = deck[first];
+  const other = deck[second];
+
+  if (one === undefined || other === undefined) return false;
+
+  return one.face === other.face;
 }
 
 /**

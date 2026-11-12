@@ -499,6 +499,20 @@
   color: var(--gl-ink);
 }
 
+/* The pair that has just been found: it lights up for a moment, and then it
+   is taken off the table. */
+.trn__face--matched {
+  background: var(--gl-green-soft);
+  color: var(--gl-green);
+  animation: trn-found 0.45s ease;
+}
+
+@keyframes trn-found {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
 /* ---------------------------------------------------------- rover parking -- */
 
 .trn__rover {
