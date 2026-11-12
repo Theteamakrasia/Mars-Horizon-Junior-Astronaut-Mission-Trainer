@@ -291,13 +291,34 @@ describe('the hub', () => {
   });
 
   it('asks for attention before an order is stamped, and stops once one is', () => {
-    expect(find(hubTiles(run, context), 'tasks')?.attention).toBe(true);
-    expect(find(hubTiles(run, context), 'tasks')?.status).toContain('choose one');
+    /* The orders are behind the training, so the tile is only alive once the
+       crew has trained. */
+    const trained = withState(run, {
+      training: {
+        sol: 1,
+        completed: [
+          { gameId: 'resource-merge', points: 3, performance: 'good' },
+          { gameId: 'memory-match', points: 3, performance: 'good' },
+        ],
+        pointsToday: 6,
+      },
+    });
 
-    const picked = hubTiles(withState(run, { chosenActivity: 'rest' }), context);
+    expect(find(hubTiles(trained, context), 'tasks')?.attention).toBe(true);
+    expect(find(hubTiles(trained, context), 'tasks')?.status).toContain('choose one');
+
+    const picked = hubTiles(withState(trained, { chosenActivity: 'rest' }), context);
 
     expect(find(picked, 'tasks')?.attention).toBe(false);
     expect(find(picked, 'tasks')?.status).toContain('one stamped');
+  });
+
+  it('locks the orders until the crew has trained', () => {
+    const tile = find(hubTiles(run, context), 'tasks');
+
+    expect(tile?.locked).toBe(true);
+    expect(tile?.status).toContain('Locked');
+    expect(tile?.attention).toBe(false);
   });
 
   it('names the lowest store on the stats button', () => {

@@ -42,6 +42,8 @@ import { stopReading } from '../../ui/readAloud';
 import { nextStop } from '../../ui/registry';
 import { navigate } from '../../ui/router';
 import { sheet, sheetCloseButton } from '../../ui/sheet';
+import { applyTrainingRecord, openTrainingGame, trainingSection, type TrainingGameScreen } from '../../ui/training';
+import { TRAINING_DAILY_LIMIT, canStartTraining, trainingUnlocked, type TrainingGameId } from '../../sim/training';
 
 import { activityRows, boardRows, changeRows, deskNote, hubTiles, meterRows, missionHeadline, orderChecks, powerSentence, powerToday, roverDocument, scienceSummary, secondsLeft, type HubSection, type HubTile } from './model';
 
@@ -128,6 +130,10 @@ export function mountAct(
   let focusTile: HubSection | null = null;
   /** Whether the how-to-play guide is open. */
   let guideOpen = false;
+  /** The training game that is open over the desk, if any. */
+  let trainingGame: TrainingGameScreen | null = null;
+  /** What the training section says when a game cannot be played. */
+  let trainingNotice = '';
   let clockNodes: { readonly bar: HTMLElement; readonly text: HTMLElement } | null = null;
   let pendingFocus: HTMLElement | null = null;
   /* NASA's live daily pictures. Empty when NASA did not answer, and the screen
@@ -138,6 +144,18 @@ export function mountAct(
      it, but the data sheet shows NASA's own readings (D-071). */
   let loaded: LoadedForecast | null = null;
   const controller = new AbortController();
+
+  /* The training record is written down, so a refresh does not hand the
+     player the same two games again. It goes onto the run before the first
+     draw, so the desk shows what has really been done today. */
+  if (run !== null) {
+    const recorded = applyTrainingRecord(run);
+
+    if (recorded !== run) {
+      run = recorded;
+      setRun(run);
+    }
+  }
 
   function stopTimer(): void {
     if (timer !== null) window.clearInterval(timer);
@@ -150,7 +168,10 @@ export function mountAct(
     /* The day is being committed, so whatever was open is about to be about
        the wrong sol. */
     openSheet = null;
-    run = advanceSol(run);
+    /* A new sol is a new day of training: the record for it is put back on
+       the run, so the two games are available again and the points of the
+       day before are left alone. */
+    run = applyTrainingRecord(advanceSol(run));
     setRun(run);
 
     if (run.status !== 'active') {
@@ -219,7 +240,62 @@ export function mountAct(
     render();
   }
 
+  /**
+   * Play a training game.
+   *
+   * The game is opened over the desk, and the rule engine decides whether it
+   * can be played at all: two games a sol, and a game that cannot be paid for
+   * says so rather than opening.
+   */
+  function playTraining(gameId: TrainingGameId): void {
+    if (run === null) return;
+
+    const start = canStartTraining(run, gameId);
+
+    if (!start.ok) {
+      trainingNotice = start.message;
+      render();
+
+      return;
+    }
+
+    trainingNotice = '';
+
+    const screen = openTrainingGame(gameId, {
+      run,
+      onFinished: (next) => {
+        run = next;
+        setRun(run);
+      },
+      onClose: () => {
+        trainingGame = null;
+        render();
+      },
+    });
+
+    if (screen === null) {
+      trainingNotice = 'That training is not available today.';
+      render();
+
+      return;
+    }
+
+    trainingGame = screen;
+    mount.append(screen.element);
+    screen.focus();
+  }
+
   function openSection(section: HubSection): void {
+    /* Today's tasks are locked until the crew has trained. The tile is locked
+       too, but a sheet that opens and does nothing is worse than a sheet
+       that does not open. */
+    if (section === 'tasks' && run !== null && !trainingUnlocked(run)) {
+      trainingNotice = `Complete ${TRAINING_DAILY_LIMIT} training games to unlock today's colony tasks.`;
+      render();
+
+      return;
+    }
+
     openSheet = section;
     guideOpen = false;
     focusSheet = true;
@@ -607,6 +683,10 @@ export function mountAct(
    * The rule book, growing two rules a sol. This is where the science is
    * taught: every order is a real operating rule, and the player works to the
    * whole set rather than to the two that are newest.
+   *
+   * The training is at the top of it, because the training is part of the
+   * rule book now: two games a sol, and the day's work orders open when they
+   * are done.
    */
   function ordersBody(state: RunState): readonly (Node | false)[] {
     const rows = boardRows(state);
@@ -631,6 +711,7 @@ export function mountAct(
     const fresh = rows.filter((row) => row.isNew).length;
 
     return [
+      trainingSection(state, { notice: trainingNotice, onPlay: playTraining }),
       list,
       h('p', { class: 'gl__note', text: `${rows.length} orders so far, ${fresh} new today. These are the rules you work to.` }),
     ];
@@ -892,6 +973,8 @@ export function mountAct(
 
   /** One button on the hub: a pictogram, a label, and one line of state. */
   function tileButton(tile: HubTile): HTMLButtonElement {
+    const locked = tile.locked === true;
+
     const button = h(
       'button',
       {
@@ -899,9 +982,11 @@ export function mountAct(
         type: 'button',
         'data-tile': tile.id,
         'data-attention': String(tile.attention),
+        'data-locked': String(locked),
         'aria-haspopup': 'dialog',
+        'aria-disabled': locked ? 'true' : 'false',
       },
-      h('span', { class: 'act-tile__icon', 'aria-hidden': 'true' }, icon(TILE_ICON[tile.id])),
+      h('span', { class: 'act-tile__icon', 'aria-hidden': 'true' }, icon(locked ? 'lock' : TILE_ICON[tile.id])),
       h(
         'span',
         { class: 'act-tile__body' },
@@ -922,10 +1007,21 @@ export function mountAct(
               ),
             ),
       ),
-      h('span', { class: 'act-tile__chevron', 'aria-hidden': 'true' }, icon('chevron')),
+      h('span', { class: 'act-tile__chevron', 'aria-hidden': 'true' }, icon(locked ? 'lock' : 'chevron')),
     );
 
-    button.addEventListener('click', () => openSection(tile.id));
+    button.addEventListener('click', () => {
+      if (locked) {
+        /* The orders are behind the training, and the tile says why rather
+           than opening a sheet the player cannot use. */
+        trainingNotice = `Complete ${TRAINING_DAILY_LIMIT} training games to unlock today's colony tasks.`;
+        render();
+
+        return;
+      }
+
+      openSection(tile.id);
+    });
 
     return button;
   }
@@ -938,6 +1034,26 @@ export function mountAct(
     const mustChoose = orders.length > 0 && !orders.some((row) => row.chosen);
 
     const grid = h('div', { class: 'act-hub' }, ...tiles.map(tileButton));
+
+    /* The lock, said out loud on the desk itself: the orders are behind the
+       training, and a player who cannot find out why is stuck. */
+    const lock =
+      trainingUnlocked(state)
+        ? false
+        : h(
+            'div',
+            { class: 'gl__callout', 'data-tone': 'warn' },
+            h('span', { class: 'gl__callout-icon', 'aria-hidden': 'true' }, icon('lock')),
+            h(
+              'div',
+              null,
+              h('p', { class: 'gl__callout-title', text: "Today's tasks are locked" }),
+              h('p', {
+                class: 'gl__callout-detail',
+                text: `Do ${TRAINING_DAILY_LIMIT} training games in the standing orders to open today's work orders.`,
+              }),
+            ),
+          );
 
     const go = h(
       'button',
@@ -954,6 +1070,7 @@ export function mountAct(
       sub: mission.subtitle,
       corner: pointsCorner(state),
       body: [
+        lock,
         gameSection('Today for the outpost', grid),
         forecastSection(state),
       ],
@@ -1196,6 +1313,11 @@ export function mountAct(
     if (open !== null) screen.append(open);
 
     mount.replaceChildren(screen);
+
+    /* A training game is open over the desk, so it has to survive the
+       redraw: a redraw replaces the screen, and the game would go with it
+       while its clock kept running. */
+    if (trainingGame !== null) mount.append(trainingGame.element);
 
     if (open !== null) {
       const body = open.querySelector<HTMLElement>('.sheet__body');
