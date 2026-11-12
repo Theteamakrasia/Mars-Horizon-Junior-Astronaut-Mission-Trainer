@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { checkName, displayName, MAX_NAME_LENGTH, normaliseName } from './model';
+import { checkName, displayName, MAX_NAME_LENGTH, normaliseName, returningMenu } from './model';
 
 /**
  * Every input here is a literal string. Nothing reaches for Math.random or the
@@ -115,5 +115,54 @@ describe('displayName', () => {
 
   it('keeps emoji intact', () => {
     expect(displayName(`Riley ${ROCKET}`)).toBe(`Riley ${ROCKET}`);
+  });
+});
+
+describe('returningMenu', () => {
+  it('greets the astronaut by the name they gave last time', () => {
+    const menu = returningMenu({ name: 'Riley', sol: 4, landed: true, finished: false });
+
+    expect(menu.greeting).toBe('Welcome back, Riley.');
+    expect(menu.note).toBe('You stopped on sol 4.');
+  });
+
+  it('has something to say for a run that never landed', () => {
+    const menu = returningMenu({ name: 'Riley', sol: 0, landed: false, finished: false });
+
+    expect(menu.note).toBe('Your spacecraft is still on the launch pad.');
+  });
+
+  it('has something to say for a run that landed but never ran a sol', () => {
+    const menu = returningMenu({ name: 'Riley', sol: 0, landed: true, finished: false });
+
+    expect(menu.note).toBe('Your outpost is built and waiting for its first sol.');
+  });
+
+  it('says the mission is over when it is', () => {
+    const menu = returningMenu({ name: 'Riley', sol: 12, landed: true, finished: true });
+
+    expect(menu.note).toBe('Your mission is over — the report is waiting.');
+  });
+
+  it('says the mission is over in preference to where it stopped', () => {
+    /* A finished run has nothing to resume, so the note points at the report
+       rather than at the sol the crew happened to reach. */
+    const menu = returningMenu({ name: 'Riley', sol: 12, landed: true, finished: true });
+
+    expect(menu.note).not.toContain('stopped');
+  });
+
+  it('falls back to the word "astronaut" when there is no usable name', () => {
+    expect(returningMenu({ name: '   ', sol: 1, landed: true, finished: false }).greeting).toBe(
+      'Welcome back, astronaut.',
+    );
+  });
+
+  it('cleans the name the same way every other greeting does', () => {
+    // This string goes into the panel, so it passes through the same strip and
+    // cap as the name on the form.
+    const menu = returningMenu({ name: '  Riley\u0007  ', sol: 1, landed: true, finished: false });
+
+    expect(menu.greeting).toBe('Welcome back, Riley.');
   });
 });

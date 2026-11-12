@@ -394,9 +394,9 @@ export function trainingSeed(sol: number, gameId: string): number {
 /**
  * A day's training, as it is written down.
  *
- * The record is kept outside the run so it survives a refresh: the run
- * itself is in memory only, and a training game the player finished should
- * not be offered again simply because the page was reloaded.
+ * The record is kept outside the run so it survives a refresh: a training game
+ * the player finished should not be offered again simply because the page was
+ * reloaded. The run itself is saved separately by `ui/save.ts` (D-081).
  */
 export interface TrainingDayRecord {
   readonly completed: readonly TrainingCompletion[];

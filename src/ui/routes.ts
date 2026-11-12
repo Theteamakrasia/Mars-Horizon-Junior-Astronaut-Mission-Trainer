@@ -5,9 +5,10 @@
  * unit tested the way `sim/` is. `router.ts` is then only the thin browser glue â€”
  * read `location.hash`, listen for `hashchange`, call back.
  *
- * Hash routing is used rather than separate HTML pages because there is no
- * persistence in this project (no storage, no backend). A multi-page build would
- * lose run state on every navigation, which breaks a multi-mission loop.
+ * Hash routing is used rather than separate HTML pages because a multi-page build
+ * would still lose the in-memory run between pages, and the save that could restore
+ * it (`ui/save.ts`, D-081) is written on one origin. It also keeps the landing page
+ * alive behind the game, and lets every screen be deep-linked for the demo.
  */
 
 /** Every screen the player can reach. */

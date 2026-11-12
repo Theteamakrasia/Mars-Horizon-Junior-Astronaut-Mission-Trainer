@@ -60,10 +60,12 @@ What is still a **stub**: nothing in the journey. `data/spaceweather.ts` is impl
 live: it reads solar flares from NASA DONKI, falls through to NOAA SWPC when DONKI is
 unreachable or throttled, and finally to an empty list, from which `sim/forecast.ts`
 draws typical flares marked `approximate`. `data/nasaDaily.ts` is live too: it reads
-NASA's Astronomy Picture of the Day and falls back to the saved gallery. There is **no
-save** — the run lives in memory only — and the forecast's *timing* is rolled per run
-from a seed (`sim/forecast.ts`, D-048), so only the flare *size* comes from the network
-(D-033, D-037, D-053).
+NASA's Astronomy Picture of the Day and falls back to the saved gallery. **One device-local
+save** exists (D-081): the run is written to this browser as it changes and read back before
+the router starts, so the menu greets the astronaut by name and offers CONTINUE — Supabase is
+still deferred (D-003), and a different browser is a different run. The forecast's *timing* is
+rolled per run from a seed (`sim/forecast.ts`, D-048), so only the flare *size* comes from the
+network (D-033, D-037, D-053).
 
 **A stub is not an implementation.** If a file says STUB, calling it throws. That is
 deliberate: it fails loudly instead of silently returning `undefined`.
@@ -145,9 +147,14 @@ arrives, and a popup that lived in the screen was rebuilt on every redraw, which
 threw a child reading page three back to page one (ISS-077). Outside the screen, a
 redraw behind it changes nothing.
 
-**No save, and two live network paths.** The whole run — name, region, stores, modules,
-the science score, the rover's finds and the per-sol ledger — lives in `main.ts` memory
-only and is lost on refresh.
+**One device-local save, and two live network paths.** The whole run — name, region,
+stores, modules, the science score, the rover's finds and the per-sol ledger — lives in
+`main.ts` memory, and is **written to this browser as it changes** (`ui/save.ts`, key
+`mars-horizon.save.v1`). It is read back before the router starts, so a closed tab is
+resumed: the menu greets the astronaut by name and offers CONTINUE, which returns to the
+screen they left, and START OVER, which forgets the run (D-081). This is one machine's
+`localStorage`, not an account — Supabase stays deferred (D-003), and no other browser can
+see it.
 
 The two requests outside the landing page are both in `data/`:
 
@@ -175,12 +182,16 @@ The two requests outside the landing page are both in `data/`:
 10. `startFloatingAstronaut()` starts the loop; teardown handle stored.
 11. The motion `change` listener attaches **only** without a URL override.
 12. First `requestAnimationFrame` scheduled.
-13. `startScreenRouter()` resolves the hash — **defaulting to `naming`** — mounts that
-    screen, and hides the landing layers behind it.
-14. In a dev build with `?editlayout=1`, `main.ts` loads `ui/baseLayoutEditor` with a
+13. The saved run is read (`readSave` in `ui/save.ts`) and put back into `run` **before**
+    anything mounts, so a browser that restored a tab on `#/act` gets the desk with its run
+    rather than the desk's "no run" fallback (D-081).
+14. `startScreenRouter()` resolves the hash — **defaulting to `naming`** — mounts that
+    screen, and hides the landing layers behind it. Mounting a journey screen writes the
+    save again, so the resume point follows the player (D-081).
+15. In a dev build with `?editlayout=1`, `main.ts` loads `ui/baseLayoutEditor` with a
     dynamic import. The editor is attached to whichever screen is mounted, and to
     nothing in a production build (D-065).
-15. In a dev build, a layout file with problems in it is listed in the console
+16. In a dev build, a layout file with problems in it is listed in the console
     (D-068). The game still starts: it falls back to what it can.
 
 `BACK TO MAIN MENU` returns to `landing`, which keeps running behind the menu.
@@ -272,8 +283,10 @@ opening its folder — that is the whole point of the layout.
 | Hash routing, route table | `src/ui/router.ts`, `src/ui/routes.ts` |
 | Route → screen mapping | `src/ui/registry.ts` — **the only file that imports a feature's view** |
 | **The player's name, and the entry screen** | `src/features/naming/` — **built** |
-| Name length, trimming, emoji, validation | `src/features/naming/model.ts` — pure, 21 tests |
+| Name length, trimming, emoji, validation | `src/features/naming/model.ts` — pure, 28 tests |
 | The rotating Mars-behind-astronaut stage | `src/features/naming/naming.css` |
+| **The save: writing the run down, and reading it back** | `src/ui/save.ts` — the key, the reads, `resumeScreen`; the only file that touches `localStorage`. The format itself is `src/sim/save.ts` — pure, versioned, 19 tests (D-081) |
+| **The returning player's two lines** ("Welcome back, …") | `returningMenu` in `src/features/naming/model.ts`; CONTINUE and START OVER are wired in `src/features/naming/view.ts` (D-081) |
 | **Choosing where to land on Mars** | `src/features/landing-site/` — **built** (TASK-028 done) |
 | **Building the outpost between sols** | `src/features/base/` — **built**, 23 tests |
 | **Advancing a sol, and picking the day's activity** | `src/features/act/` — **built**, 38 tests |
@@ -292,9 +305,10 @@ opening its folder — that is the whole point of the layout.
 | **Is the game still winnable?** | `npm run balance` — `tools/balance-check.mts`; fails if a site cannot hold all five systems |
 | **Checking the build screen and the desk in a real browser** | `tools/browser-check-build.mjs` — the limits, the reasons, the tools, the guide |
 | **Checking the whole journey in a real browser** | `tools/browser-check-journey.mjs` — naming to the outpost, with no console errors |
+| **Checking the save in a real browser** | `tools/browser-check-save.mjs` — the run is written, a reload greets by name, CONTINUE returns to the screen they left, START OVER forgets it (D-081) |
 | **Shrinking the rover's animation** | `tools/compress-rover-assets.py` — the PNG to WebP, and a check that the animation still has its frames |
 | **Checking the rover in a real browser** | `tools/browser-check-rover.mjs` — headless Chrome; stamps the order, waits for the document, answers it, watches the science go up |
-| Where START MISSION goes | `onSubmit` in `src/features/naming/view.ts` — flows to `briefing` |
+| Where START MISSION goes | `onSubmit` in `src/features/naming/view.ts` — flows to `briefing`; with a save on the device the same screen shows CONTINUE and START OVER instead of the form (D-081) |
 | Boot, element lookup, `?motion=`, mounting screens | `src/main.ts` |
 | Page structure, element ids, font link | `index.html` |
 | Landing-page colours and tokens | `src/styles/base.css` |
@@ -337,15 +351,17 @@ the game was unwinnable for a long time before it existed.
 Do not build any of these. Stop, ask, and get a decision recorded in
 `docs/team/decisions.md`.
 
-- **Supabase auth or save state.** Deferred (D-003). No owner, no schedule.
+- **Supabase auth or cloud save state.** Deferred (D-003). The device-local save in
+  `ui/save.ts` is the one exception, and it is not an account (D-081).
 - **Any API key handling.** Until ISS-006 is fixed. One line in `.gitignore`.
 - **Live DONKI fetching** until ISS-008 is answered in a real browser.
 - **A plan phase.** Act is built without one — confirmed by the owner. Do not add
   `features/plan/` unasked.
 - **A login page in front of `naming`.** Intended, not built — Supabase is deferred and
   unowned (D-003, TASK-022).
-- **Persisting the player's name.** In memory only. Adding storage without Supabase is
-  a decision to make deliberately, not a convenience.
+- **A save that follows the player between machines or browsers.** `ui/save.ts` writes one
+  `localStorage` key on one device (D-081). Anything wider needs a backend, which is
+  Supabase and still deferred (D-003).
 - Moving the landing page out of `src/` root — it is live code until the game is 30%
   built (D-008).
 - Multiplayer, leaderboards, analytics, telemetry. No backend.
