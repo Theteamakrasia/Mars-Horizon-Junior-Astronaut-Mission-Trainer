@@ -11,8 +11,12 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
-| ISS-097 | The game drew its own pictograms and still carried emoji, with a drawn icon set supplied | medium | agent | fixed | this branch |
-| ISS-095 | The training check asserted a refresh keeping the training, which the newest code had removed | medium | agent | fixed | this branch |
+| ISS-099 | The game drew its own pictograms and still carried emoji, with a drawn icon set supplied | medium | agent | fixed | this branch |
+| ISS-098 | The training check asserted the wrong thing about a refresh, and the game grew a save under it | medium | agent | fixed | this branch |
+| ISS-097 | The build check looked for the supply cards in the panel, and the cards moved to the setup window | low | agent | fixed | this branch |
+| ISS-096 | The training browser check re-walked the journey to test a refresh, so it always failed | medium | agent | fixed | this branch |
+| ISS-095 | Closing the tab lost the whole run, and the menu asked for the name again | high | agent | fixed | this branch |
+
 | ISS-094 | The encyclopedia was one click away before the player had an outpost | medium | agent | fixed | this branch |
 | ISS-093 | The mini game merged with the desk sheet, and stayed there after it closed | medium | agent | fixed | this branch |
 | ISS-092 | The landing-site map left a blank band above and below the picture | low | agent | fixed | this branch |
@@ -107,7 +111,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-## ISS-097 - The game drew its own pictograms and still carried emoji, with a drawn icon set supplied
+## ISS-099 - The game drew its own pictograms and still carried emoji, with a drawn icon set supplied
 
 - **Reported by:** the owner, 2026-11-12: a set of 56 drawn SVG icons, supplied in
   `Assets/icons/`, with `icons-list.md` mapping each one to the place it is used.
@@ -133,10 +137,10 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
   screen, on the desk and in the debrief, and the training games' shelves wear the
   game's own stores. `scripts/check-imports.mjs` resolves relative asset imports and
   fails a drawing in `Assets/icons/` that the game does not draw, so the set and the
-  game cannot drift apart. D-082 records the choice.
+  game cannot drift apart. D-083 records the choice.
 - **Pre-existing:** yes, since D-070.
 
-## ISS-095 - The training check asserted a refresh keeping the training, which the newest code had removed
+## ISS-098 - The training check asserted the wrong thing about a refresh, and the game grew a save under it
 
 - **Reported by:** agent, 2026-11-12, while verifying the merge of PR #35: three checks
   failed on an otherwise green tree — "the day is still two games on" (0/2), "the tasks are
@@ -145,17 +149,78 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 - **Where:** `tools/browser-check-training.mjs`, step 8; `src/ui/training.ts`,
   `clearTrainingRecord()`; its callers in `features/naming/view.ts` and
   `features/debrief/view.ts`.
-- **Problem:** the check asserted D-076's contract — the day's training is written down and
-  survives a refresh — while the code now clears the record whenever a run begins, and a
-  refresh is a new run because there is no save.
+- **Problem:** step 8 was meant to prove what a refresh does to the day's training, and it
+  asserted the wrong thing twice over. It first asserted D-076's contract — the day's
+  training is written down and survives a refresh — while the code cleared the record
+  whenever a run began. And it measured a refresh by **walking the journey again**, which
+  starts a *new mission*, and a new mission is a new training day. So the step destroyed
+  the thing it was about to measure, whichever contract it believed in.
 - **Cause:** `70eb857` added the clear to stop a new run inheriting a previous run's games
-  and points, and did not update the check or the decision it contradicted. Both were left
-  in the tree asserting opposite things, and only the check could notice.
-- **Fix:** the behaviour is the newer decision, so the check follows it: a refresh is a new
-  run with 0/2 games, the orders locked, the six games playable again and no training
-  points carried over. D-081 records the rule and supersedes D-076's persistence sentence;
-  the architecture rows and the README stop claiming the day survives a refresh.
+  and points, and did not update the check or the decision it contradicted. The step had
+  been failing since the naming screen began clearing the training record on submit.
+- **Fix:** step 8 now reloads the page and reads the desk where it is, instead of walking
+  the journey again, and waits for the new document's load event (ISS-096). With the save
+  (D-081) a refresh **resumes** the run rather than beginning one, so the day and its
+  points survive it — which is the contract the step asserts. D-084 records the rule that
+  a *new run* starts a new training day.
 - **Pre-existing:** yes, on `main` since `70eb857`; found by this merge, not caused by it.
+
+## ISS-097 - The build check looked for the supply cards in the panel, and the cards moved to the setup window
+
+- **Reported by:** the agent, 2026-11-12, while moving the supply list into the landing
+  window (D-082).
+- **Where:** `tools/browser-check-build.mjs` — the card steps read `#base .gl__card`, and the
+  scroll step read the panel's `#base .gl__scroll`.
+- **Problem:** the check pinned *where* the supply list was drawn, not what it did. When the
+  list moved into the setup window, the check would have gone on reading a panel that no
+  longer had cards in it — and it would have reported "every card shows a count and a limit"
+  against an empty list rather than failing loudly.
+- **Cause:** the check asked for the cards by their old home. The card behaviour it was
+  really pinning — the count against the limit, the lander's copy, the dead "+" and its
+  reason, the panel keeping its place on a press — is about the cards, not about the panel.
+- **Fix:** the card steps now read `body .setup__backdrop .gl__card`, the scroll step watches
+  the window's own scroller (`setup__body`), and the guide is checked first, because the
+  window waits for it. The check still asserts all of the same behaviour, and it now asserts
+  that the panel behind the window has no supply cards at all.
+- **Pre-existing:** no; it was caused by this change and found by running the check.
+## ISS-096 - The training browser check re-walked the journey to test a refresh, so it always failed
+
+- **Reported by:** the agent, 2026-11-12, while checking the save (D-081): `node
+  tools/browser-check-training.mjs` reported 37/40, and the three failures were all in step 8,
+  "a refresh keeps the training".
+- **Where:** `tools/browser-check-training.mjs` — step 8, and the `toAct()` helper it calls.
+- **Problem:** step 8 was meant to prove that a page refresh does not hand the player the same
+  two training games again. It reloaded the page and then called `toAct()`, which walks the
+  whole journey from the naming screen — and naming's submit handler clears the training day,
+  because a new mission is a new day. The check therefore destroyed the thing it was about to
+  measure: the desk came up with `0/2 GAMES COMPLETED`, the tasks locked again, and the science
+  score back at nothing. The three failures were the check's own fault, not the game's.
+- **Cause:** `toAct()` was written as "get to the desk by any means", and step 8 used it as "get
+  back to the desk after a refresh". Those are different questions, and only one of them should
+  start a new mission. The step had been failing since the naming screen began clearing the
+  training record on submit, and the README still claimed the check was green.
+- **Fix:** step 8 now reloads and reads the desk where it is, instead of walking the journey
+  again — and waits for the new document's load event, so the read is of the page that came back
+  and not of the one being left (the same trap `browser-check-save.mjs` hit).
+- **Pre-existing:** yes — it failed the same way on the unmodified tree, 37/40, before the save
+  existed. Found while adding `browser-check-save.mjs`.
+
+## ISS-095 - Closing the tab lost the whole run, and the menu asked for the name again
+
+- **Reported by:** the owner, 2026-11-12: *"if a player leaves/closes browser and comes
+  back later, he'll see the main menu where it'll greet him as the same he inputed in last
+  game, then show continue option and start over option."*
+- **Where:** `src/main.ts`, `src/features/naming/view.ts`, `index.html`.
+- **Problem:** the run lived in the shell's memory and nowhere else, so closing the tab
+  ended a twelve-sol mission without a word — and coming back to the menu asked a player
+  who had named their astronaut an hour earlier to name them again.
+- **Cause:** deliberate, once. D-003 deferred Supabase, and "no persistence at all" was the
+  simplest way to keep that deferral honest. The training day (D-075) had already made the
+  narrower exception, so the rule was being upheld in the docs rather than in the code.
+- **Fix:** the run is written to one versioned `localStorage` key as it changes and loaded
+  before the router starts; the menu shows the astronaut's name, the sol they stopped on,
+  and CONTINUE / START OVER in place of the name field (D-081). Supabase is still deferred.
+- **Pre-existing:** yes — since the first screen; found by the owner before the freeze.
 
 ## ISS-094 - The encyclopedia was one click away before the player had an outpost
 
@@ -1722,7 +1787,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-**Next free id: ISS-096.**
+**Next free id: ISS-100.**
 
 
 ---

@@ -17,6 +17,7 @@
 import type { ScienceGoal } from './goals';
 import type { EngineKind } from './minigames';
 import type { ModuleKind } from './modules';
+import { canAffordKwh, nightCoverAfterJob, powerBudget } from './powerBudget';
 import type { ResourceStores } from './resources';
 import type { RunState } from './run';
 import type { ScienceTopic } from './topics';
@@ -81,7 +82,19 @@ export interface ActivitySpec {
   };
   /** Science points earned for doing this. */
   readonly science: number;
-  /** Extra power the activity draws from the batteries, in kWh. */
+  /**
+   * Extra power the activity draws, in kWh.
+   *
+   * The scale is the day's power, not a round number: a good outpost has
+   * roughly a hundred kWh spare over a sol, so an order that costs 20 to 50
+   * kWh is a real share of what the Sun made that day, and an order that costs
+   * more than the sol's spare comes out of the batteries and shortens the
+   * night (ISS-084).
+   *
+   * The old prices were 8 to 25 kWh against a surplus of three hundred, so no
+   * order could ever cost anything: the player could not see what the power
+   * was for.
+   */
   readonly powerCostKwh: number;
   /**
    * The tool this order is inspected with, and the stars it can win.
@@ -155,7 +168,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     detail: 'The rover drives out and maps the ground around the outpost.',
     topic: 'missions',
     science: 4,
-    powerCostKwh: 25,
+    powerCostKwh: 50,
     sendsRover: true,
     storeDelta: {},
   },
@@ -166,7 +179,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     detail: 'A real experiment, run by real people, on real Mars.',
     topic: 'missions',
     science: 6,
-    powerCostKwh: 15,
+    powerCostKwh: 30,
     storeDelta: {},
   },
   {
@@ -176,7 +189,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     detail: 'You chart the ground so nothing gets lost out there.',
     topic: 'missions',
     science: 4,
-    powerCostKwh: 14,
+    powerCostKwh: 28,
     storeDelta: {},
   },
   {
@@ -188,7 +201,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     goal: 'dust-storm',
     system: { goal: 'dust-storm', label: 'Panels', store: 'panels' },
     science: 2,
-    powerCostKwh: 10,
+    powerCostKwh: 20,
     storeDelta: {},
     panelRepair: 0.25,
     requires: { kind: 'dirty-panels', why: 'The panels are already clean. There is nothing to sweep.' },
@@ -202,7 +215,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     goal: 'food',
     system: { goal: 'food', label: 'Food', store: 'food' },
     science: 2,
-    powerCostKwh: 8,
+    powerCostKwh: 16,
     storeDelta: { food: 6, water: -5 },
     requires: { kind: 'module', module: 'greenhouse', why: 'You have no greenhouse, so there is nothing to grow.' },
   },
@@ -213,7 +226,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     detail: 'You pick up a rock and study it. Mars rocks are full of surprises.',
     topic: 'missions',
     science: 4,
-    powerCostKwh: 10,
+    powerCostKwh: 20,
     storeDelta: {},
   },
   {
@@ -225,7 +238,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     goal: 'life-support',
     system: { goal: 'life-support', label: 'Water', store: 'water' },
     science: 3,
-    powerCostKwh: 20,
+    powerCostKwh: 40,
     storeDelta: { water: 6 },
     requires: { kind: 'module', module: 'ice-miner', why: 'You have no ice miner, so there is no ice to dig.' },
   },
@@ -238,7 +251,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     goal: 'life-support',
     system: { goal: 'life-support', label: 'Water', store: 'water' },
     science: 2,
-    powerCostKwh: 10,
+    powerCostKwh: 20,
     storeDelta: { water: 3 },
   },
   {
@@ -250,7 +263,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     goal: 'radiation',
     system: { goal: 'radiation', label: 'Shielding', store: 'shielding' },
     science: 3,
-    powerCostKwh: 18,
+    powerCostKwh: 36,
     storeDelta: { shielding: 8 },
   },
   {
@@ -262,7 +275,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     goal: 'radiation',
     system: { goal: 'radiation', label: 'Shielding', store: 'shielding' },
     science: 2,
-    powerCostKwh: 8,
+    powerCostKwh: 16,
     storeDelta: { shielding: 6 },
   },
   {
@@ -274,7 +287,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     goal: 'life-support',
     system: { goal: 'life-support', label: 'Air', store: 'oxygen' },
     science: 2,
-    powerCostKwh: 12,
+    powerCostKwh: 24,
     storeDelta: { oxygen: 8 },
   },
 ];
@@ -382,23 +395,97 @@ export function planForSol(sol: number): SolPlan | null {
 }
 
 /**
+ * True when the batteries can pay for this job right now.
+ *
+ * The job is paid for out of the energy the sol has in hand: the bank at
+ * dawn, plus what the panels make, less what the outpost draws all day. The
+ * night's reserve is a warning and never a lock — the card says what the
+ * night would be afterwards.
+ *
+ * It is the same rule as a crisis option and the same number the desk shows.
+ */
+export function canAfford(spec: ActivitySpec, run: RunState): boolean {
+  return canAffordKwh(run, spec.powerCostKwh);
+}
+
+/**
  * Why an activity cannot be chosen, or null when it can.
  *
- * Only the outpost itself can lock an activity: a module the player has not
- * built, or panels that are already clean. Nothing here depends on the
- * weather or on the stores, so what the player is told never changes under
- * them while they are reading it.
+ * The outpost itself can lock an activity — a module the player has not built,
+ * or panels that are already clean — and so can a flat battery. The module and
+ * panel reasons are checked first because they are about the outpost's shape
+ * and will not change while the player reads the card; the power reason is
+ * about this sol's store and changes the moment a sol is advanced.
  */
 export function lockedReason(spec: ActivitySpec, run: RunState): string | null {
   const requires = spec.requires;
 
-  if (requires === undefined) return null;
-
-  if (requires.kind === 'module') {
-    return run.modules.includes(requires.module) ? null : requires.why;
+  if (requires !== undefined) {
+    if (requires.kind === 'module' && !run.modules.includes(requires.module)) return requires.why;
+    if (requires.kind === 'dirty-panels' && run.panelHealth >= 1) return requires.why;
   }
 
-  return run.panelHealth < 1 ? null : requires.why;
+  /*
+   * Power is the one resource with no floor line: it does not end the run by
+   * sitting low, it stops the crew working. A job the batteries cannot pay for
+   * cannot be started, and the card says exactly what is short — the price,
+   * what there is to spend and what the night will need — so the player can
+   * see how far off they are.
+   *
+   * At a site that cannot pay for itself, the useful sentence is not about
+   * today's price. It is that the outpost is short every sol, and what would
+   * fix it.
+   *
+   * `rest` costs nothing, so this can never leave the day with no choice.
+   */
+  if (!canAfford(spec, run)) {
+    const budget = powerBudget(run);
+
+    if (budget.siteSpareKwh < 0) {
+      return (
+        `The outpost is ${Math.abs(Math.round(budget.siteSpareKwh))} kWh short every sol, so there is nothing to spend. ` +
+        'Another solar array would fix it.'
+      );
+    }
+
+    return (
+      `This job needs ${spec.powerCostKwh} kWh. You can spend ${Math.round(budget.spendableKwh)} kWh today, ` +
+      `and tonight needs ${Math.round(budget.nightNeedKwh)} kWh.`
+    );
+  }
+
+  return null;
+}
+
+/**
+ * The warning a job carries when paying for it would eat into the night's
+ * reserve, or null when it would not.
+ *
+ * A job the daylight can cover on its own leaves the reserve alone, and so
+ * does one that costs less than the sol's spare. One that comes out of the
+ * reserve gets a warning: the night is a warning and never a lock, but the
+ * card says what the reserve would be afterwards.
+ */
+export function nightWarning(spec: ActivitySpec, run: RunState): string | null {
+  if (spec.powerCostKwh === 0) return null;
+
+  const budget = powerBudget(run);
+  const after = nightCoverAfterJob(budget, spec.powerCostKwh);
+
+  if (budget.nightShortKwh > 0) {
+    /* The night is already short. The job makes it shorter, and the player
+       is told how much shorter. */
+    if (after >= -budget.nightShortKwh) return null;
+
+    return `This job makes the night worse: it would be ${Math.round(-after)} kWh short instead of ${Math.round(budget.nightShortKwh)}.`;
+  }
+
+  if (after >= budget.reserveKwh) return null;
+
+  return (
+    `This job comes out of the night's reserve: the bank would hold ${Math.round(after)} kWh after the night ` +
+    `instead of ${Math.round(budget.reserveKwh)}.`
+  );
 }
 
 /** An activity and whether the player may pick it right now. */

@@ -2,7 +2,7 @@
 
 This file lists every pictogram in the game and the drawing in `Assets/icons/`
 that stands for it. The set was supplied as 56 SVG files; they are read at
-build time and drawn by `src/ui/icons.ts` (D-082).
+build time and drawn by `src/ui/icons.ts` (D-083).
 
 One picture per thing: a store looks the same on every screen, so `RESOURCE_ICON`,
 `RANK_ICON` and `MODULE_ICON` in `src/ui/icons.ts` are the only maps from a

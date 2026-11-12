@@ -1,4 +1,4 @@
-/*
+﻿/*
  * A headless pass over the rover: drive the real game in Chrome, walk to the
  * outpost, send the rover out on a work order, and check that it comes back
  * with a document on the desk.
@@ -10,8 +10,8 @@
  * test: `npm test` stays free of a browser.
  *
  * The rover used to be a floating button with its own clock: you clicked it,
- * waited fifteen seconds, and read a fact. It is now part of the run — sent
- * out by a work order like any other, moving on sol time — so what this
+ * waited fifteen seconds, and read a fact. It is now part of the run â€” sent
+ * out by a work order like any other, moving on sol time â€” so what this
  * checks is that the find arrives as a document and that answering it works.
  */
 
@@ -78,7 +78,7 @@ async function clickIn(screenId, text) {
  * Open one of the desk's hub buttons.
  *
  * The desk is a hub of six buttons since D-070, so everything that used to be
- * on the panel — the orders, the find — is now one click away behind a tile.
+ * on the panel â€” the orders, the find â€” is now one click away behind a tile.
  */
 async function openTile(id) {
   await evaluate(`(() => { const b = document.querySelector('#act .act-tile[data-tile="${id}"]'); if (b) b.click(); })()`);
@@ -93,10 +93,104 @@ async function closeSheet() {
   await sleep(400);
 }
 
+/**
+ * Open one of the training games from the standing orders sheet.
+ *
+ * Today's work orders are locked until the crew has trained twice (D-075),
+ * and every new sol starts the count again, so the check trains whenever the
+ * orders are shut — played for real, in the one place that knows how.
+ */
+async function openTrainingGame(name) {
+  await evaluate(`(() => { const b = document.querySelector('#act .act-tile[data-tile="orders"]'); if (b) b.click(); })()`);
+  await sleep(500);
+  await evaluate(`(() => { const b = [...document.querySelectorAll('#act .trn__card')].find((c) => c.querySelector('.trn__card-name')?.textContent === ${JSON.stringify(name)}); if (b) b.querySelector('.trn__play').click(); })()`);
+  await sleep(700);
+
+  return evaluate(`!!document.querySelector('#act .trn__backdrop')`);
+}
+
+/** True when today's work orders are still shut. */
+function ordersLocked() {
+  return evaluate(`(() => document.querySelector('#act .act-tile[data-tile="tasks"]')?.dataset.locked === 'true')()`);
+}
+
+/** Train the crew only when the orders are shut, and say whether they opened. */
+async function trainIfLocked() {
+  if (!(await ordersLocked())) return true;
+
+  const trained = await doTheTraining(evaluate, sleep, openTrainingGame);
+  await closeSheet();
+
+  return trained?.cargo === true && trained?.asteroid === true;
+}
+
+/**
+ * Press the button that runs the sol, and wait for it to be ready.
+ *
+ * The button is disabled while the space weather is loading, so a check that
+ * clicks it straight away can miss it and the sol never runs.
+ */
+async function runTheSol() {
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    const outcome = await evaluate(`(() => {
+      const screen = document.getElementById('act');
+      const el = [...screen.querySelectorAll('button')].find((n) => n.textContent.trim().includes('Run sol'));
+      if (!el) return 'missing';
+      if (el.disabled) return 'disabled';
+      el.click();
+      return 'clicked';
+    })()`);
+
+    if (outcome === 'clicked') {
+      await sleep(1400);
+
+      return true;
+    }
+
+    await sleep(600);
+  }
+
+  return false;
+}
+
+/**
+ * Answer a crisis if one is waiting.
+ *
+ * A crisis replaces the hub on the desk, so the tiles are not there until it
+ * is answered â€” and answering it runs the sol.
+ */
+async function answerCrisisIfAny() {
+  const crisis = await evaluate(`!!document.querySelector('#act .gl__choices')`);
+
+  if (!crisis) return false;
+
+  await evaluate(`(() => { const c = document.querySelector('#act .gl__choice'); if (c) c.click(); })()`);
+  await sleep(1300);
+
+  return true;
+}
+
+/**
+ * Play one sol on.
+ *
+ * A crisis sol is the day's work, so the choice runs the sol by itself. On a
+ * calm sol the crew train, stamp an order and run the day.
+ */
+async function playSol() {
+  if (await answerCrisisIfAny()) return;
+
+  await trainIfLocked();
+  await openTile('tasks');
+  await evaluate(`(() => { const b = document.querySelector('#act .act-order:not([disabled])'); if (b) b.click(); })()`);
+  await sleep(350);
+  await closeSheet();
+  await runTheSol();
+}
+
 const results = [];
 function note(name, ok, detail = '') {
   results.push({ name, ok });
-  console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? ' — ' + detail : ''}`);
+  console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? ' â€” ' + detail : ''}`);
 }
 
 try {
@@ -173,30 +267,8 @@ try {
   await waitFor(`!!document.getElementById('act') && !document.getElementById('act').hidden`);
   await sleep(900);
 
-  /* Today's work orders are locked until the crew has trained twice (D-075),
-     and every new sol starts the count again, so the check trains whenever the
-     orders are shut - played for real, in the one place that knows how. */
-  const openTrainingGame = async (name) => {
-    await evaluate(`(() => { const b = document.querySelector('#act .act-tile[data-tile="orders"]'); if (b) b.click(); })()`);
-    await sleep(500);
-    await evaluate(`(() => { const b = [...document.querySelectorAll('#act .trn__card')].find((c) => c.querySelector('.trn__card-name')?.textContent === ${JSON.stringify(name)}); if (b) b.querySelector('.trn__play').click(); })()`);
-    await sleep(700);
-
-    return evaluate(`!!document.querySelector('#act .trn__backdrop')`);
-  };
-
-  const ordersLocked = () =>
-    evaluate(`(() => document.querySelector('#act .act-tile[data-tile="tasks"]')?.dataset.locked === 'true')()`);
-
-  const trainIfLocked = async () => {
-    if (!(await ordersLocked())) return true;
-
-    const trained = await doTheTraining(evaluate, sleep, openTrainingGame);
-    await closeSheet();
-
-    return trained?.cargo === true && trained?.asteroid === true;
-  };
-
+  // 2b. The work orders are locked until the crew has trained twice (D-075),
+  //     and every new sol starts the count again, so the check trains first.
   const trained = await trainIfLocked();
 
   note('the crew trains, so the work orders open', trained === true, trained ? 'two games played' : 'the training did not finish');
@@ -210,9 +282,7 @@ try {
 
     if (crisis) {
       await evaluate(`(() => { const c = document.querySelector('#act .gl__choice'); if (c) c.click(); })()`);
-      await sleep(900);
-      await clickIn('act', 'Run sol');
-      await sleep(1100);
+      await sleep(1300);
       continue;
     }
 
@@ -233,8 +303,7 @@ try {
       await evaluate(`(() => { const b = document.querySelector('#act .act-order:not([disabled])'); if (b) b.click(); })()`);
       await sleep(350);
       await closeSheet();
-      await clickIn('act', 'Run sol');
-      await sleep(1100);
+      await runTheSol();
     }
   }
 
@@ -242,12 +311,30 @@ try {
 
   if (sent === 'clicked') {
     await closeSheet();
-    await clickIn('act', 'Run sol');
-    await sleep(1300);
+    await runTheSol();
+
+    /* The rover moves on sol time: the find is on the desk from the next
+       sol, and the next sol's orders are locked until the crew has trained
+       again. */
+    await playSol();
+    await answerCrisisIfAny();
     await openTile('desk');
   }
 
   // 4. The find is on the desk.
+  /* The picture is a file the browser still has to fetch, so the check waits
+     for it before asking whether it is there. */
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const loaded = await evaluate(`(() => {
+      const image = document.querySelector('#act .act-find__image');
+      return !!image && image.complete && image.naturalWidth > 0;
+    })()`);
+
+    if (loaded) break;
+
+    await sleep(300);
+  }
+
   const find = await evaluate(`(() => {
     const card = document.querySelector('#act .act-find');
     if (!card) return null;

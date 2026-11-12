@@ -4,6 +4,7 @@ import { activityById, offerFor, SOL_PLANS } from './activities';
 import { createForecast } from './forecast';
 import { CORE_MODULES, type ModuleKind } from './modules';
 import { REGIONS } from './regions';
+import { RESOURCE_FLOOR } from './resources';
 import { newRun, startOutpost, withState, type RunState } from './run';
 import { advanceSol, decide, WIN_SOL } from './sol';
 import { pendingCrisis } from './crises';
@@ -116,10 +117,10 @@ describe('a whole run', () => {
   });
 
   it('is losable when the player takes no cover from a flare', () => {
-    /* A real X-class flare, the kind DONKI actually reports: the only flare
-       big enough to take the shielding from the lander's own 30 down to
-       nothing. A typical flare no longer does it, and pretending otherwise
-       would pin the balance back where it was. */
+    /* A real X-class flare, the kind DONKI actually reports: big enough to take
+       the shielding from the lander's own forty down through the danger line.
+       A typical flare no longer does it, and pretending otherwise would pin the
+       balance back where it was. */
     const run = play('jezero', NO_SHIELD_BUILD, CARELESS, 'first-available', [
       { classType: 'X9.3', approximate: true, when: 'in 2017' },
     ]);
@@ -130,7 +131,11 @@ describe('a whole run', () => {
   it('leaves almost no shielding when the player takes no cover', () => {
     const run = play('jezero', NO_SHIELD_BUILD, CARELESS);
 
-    expect(run.stores.shielding).toBeLessThan(20);
+    /* No cover takes the shield through the danger line, and two sols down
+       there is where the run ends: the floor rule stops it before the tank
+       empties, which is the point of the line. */
+    expect(run.status).toBe('lost');
+    expect(run.stores.shielding).toBeLessThan(RESOURCE_FLOOR);
   });
 
   it('can be played on more than one region', () => {

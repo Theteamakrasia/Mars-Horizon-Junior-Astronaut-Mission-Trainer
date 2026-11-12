@@ -5,10 +5,12 @@ import { createForecast } from '../../sim/forecast';
 import {
   addModule,
   allModules,
+  arrayNote,
   buildCards,
   canPlace,
   goalPreview,
   pointsLeft,
+  powerDials,
   previewFor,
   previewSummary,
   removeModule,
@@ -107,6 +109,44 @@ describe('base model', () => {
     const upkeep = upkeepFor(['nuclear-unit', 'nuclear-unit' as ModuleKind], 'jezero');
 
     expect(upkeep.nightHoursCovered).toBeGreaterThan(upkeepFor(['greenhouse', 'ice-miner'], 'jezero').nightHoursCovered);
+  });
+
+  it('shows the three dials of the power economy, each with a verdict', () => {
+    const dials = powerDials([], 'jezero');
+
+    expect(dials.map((dial) => dial.label)).toEqual(['Make', 'Store', 'Use']);
+    expect(dials.every((dial) => dial.text.length > 0)).toBe(true);
+
+    /* A dim site cannot pay for itself on the lander's one array, and the
+       "Make" dial says so rather than leaving the player to work it out. */
+    expect(powerDials([], 'arcadia').find((dial) => dial.label === 'Make')?.tone).toBe('bad');
+    expect(powerDials([], 'olympus').find((dial) => dial.label === 'Make')?.tone).toBe('ok');
+  });
+
+  it('names what draws the power', () => {
+    const dial = powerDials(['greenhouse'], 'jezero').find((entry) => entry.label === 'Use');
+
+    expect(dial?.text).toContain('greenhouse');
+    expect(dial?.text).toContain('kW');
+  });
+
+  it('warns that a second array has nowhere to put its sunlight', () => {
+    /* The player reported that a second array "did not generate". It does:
+       the outpost was already making more power than it could use, and the
+       batteries had no room for the rest. */
+    const wasted = arrayNote([], 'jezero');
+
+    expect(wasted).toContain('spill');
+    expect(wasted).toContain('Another array');
+  });
+
+  it('says a second array is the answer where the outpost is short', () => {
+    /* Arcadia cannot pay for itself on the lander's one array, so another
+       array is exactly what is missing. */
+    const short = arrayNote([], 'arcadia');
+
+    expect(short).toContain('short');
+    expect(short).not.toContain('spill');
   });
 
   it('warns about food on a bare outpost, and about power on an overloaded one', () => {

@@ -6,6 +6,7 @@ Newest entry on top. Four bullets: **Did**, **Files**, **Problems**, **Next**.
 say so and say why - a clean change with an unexplained problem underneath is worse
 than a documented one.
 
+
 ## 2026-11-12 — Drew every pictogram from the supplied icon set
 
 **Did**
@@ -26,7 +27,7 @@ than a documented one.
   drawings; the speaker, the stop square and the door became plain words, because the
   supplied set has no counterpart for them. The `☰` on the Menu button stays a character:
   it is a dingbat, not an emoji, and it is drawn the same way on every machine.
-- **Verified the tree**: `npm run check`, 967 tests, build, `npm run balance`, and all
+- **Verified the tree**: `npm run check`, 1051 tests, build, `npm run balance`, and all
   five browser checks — plus screenshots of every screen, looked at.
 
 **Files**
@@ -37,7 +38,7 @@ than a documented one.
 - `src/features/{base,act,debrief,encyclopedia,landing-site}/view.ts` — one picture per store; the arrows are chevrons
 - `src/ui/{gameLoop,training,trainingCargo,trainingMerge,readButton,nasaCard,nasaFeedCard}.ts` — the last emoji
 - `scripts/check-imports.mjs` — relative asset imports resolve, and a drawing nobody draws fails the check
-- `docs/team/{decisions,issues,tasks,progress-log}.md` — D-082, ISS-097, TASK-105
+- `docs/team/{decisions,issues,tasks,progress-log}.md` — D-083, ISS-099, TASK-106
 - `docs/architecture.md`, `AGENTS.md`, `icons-list.md` — the icon set is described as it is
 
 **Problems**
@@ -65,7 +66,145 @@ than a documented one.
 
 - The eight module drawings are in the set and mapped, but nothing on screen uses them
   yet — the module artwork on the outpost panel and in the encyclopedia is still the PNG.
-  Placing them is a separate decision (D-082, Rejected (g)).
+  Placing them is a separate decision (D-083, Rejected (g)).
+
+---
+
+## 2026-11-12 — The supplies are bought in the landing window
+
+**Did**
+
+- **Built the landing window.** It opens by itself when the crew lands, over the build
+  screen, and it holds the whole decision: the site and its picture, the five site goals
+  with what is still missing, **all six supplies** with their art, cost, count and both
+  steppers, the points and the extras, and the six numbers of the outpost. The build
+  panel keeps the state of the build — the points bar, the goals, the NASA fact — and a
+  **"Choose your extras"** button that opens the window (D-082).
+- **Moved the supply list out of the panel, not a copy of it.** The cards in the window
+  are the game's own cards: the window carries the `gl--base` class, so the same rules
+  draw them. There is one list of modules, one `extras`, and the window calls the same
+  `addModule`, `removeModule` and `canPlace` the panel used to call.
+- **One way to land.** The window's "Land & start sol 1" and the panel's call the same
+  `land()`, so starting the twelve sols behaves exactly as it did.
+- **Changed no rule.** No price, no budget, no goal, no survival condition. The window's
+  footer says how many goals are ready and never says the run is locked, because the game
+  still lets a crew land with a goal unmet on purpose.
+
+**Files**
+
+- `src/features/base/setupPopup.ts` — the window, and `siteGoals()`, the five goal rows
+  the panel and the window share
+- `src/features/base/setupPopup.css` — the window, in the game's own tokens
+- `src/features/base/view.ts` — the card loop is gone; `land()`, `openSetup()`,
+  `closeSetup()` and the panel's button are new
+- `src/styles/game-loop.css` — one rung in the stacking ladder: 130, the window
+- `tools/browser-check-setup-popup.mjs` — 141 checks over the five landing regions
+- `tools/browser-check-build.mjs` — follows the cards into the window
+- `docs/team/{decisions,issues,tasks,progress-log}.md`, `docs/architecture.md`, `AGENTS.md`,
+  `src/features/base/README.md`
+
+**Problems**
+
+- **The reference image wanted a lock, and the game has no lock.** The mock showed
+  "12-SOL SURVIVAL IS LOCKED" and a dead button until all five goals were ready. The game
+  says the opposite on purpose — "You can land with nothing extra. It is allowed, and you
+  will see why it is hard." — so the lock was a new mechanic and was left out; the footer
+  reports the goal count instead and the button always works (D-082).
+- **A circle crop of the site's own picture showed nothing.** The landing site's
+  illustration is a wide one — sky above, landing pads below — so a round thumbnail of it
+  was an empty circle of sky. It is now the same 16:9 frame the map uses, which shows the
+  place the player chose.
+- **The build check pinned where the cards were, not what they did** (ISS-097). It now
+  reads them in the window, and it asserts the panel behind it has no cards at all.
+
+**Next**
+
+- The freeze is Nov 8. Nothing here is owed to another screen: the supplies are bought in
+  one place, and the five regions share the window.
+## 2026-11-12 — A run survives the tab it was played in
+
+**Did**
+
+- **Wrote the run down as it changes.** One versioned `localStorage` key
+  (`mars-horizon.save.v1`), written on every `setRun` and after every mount, so the last
+  screen the player saw is the one they come back to. D-081 reverses the persistence half
+  of D-003 for this device only; Supabase is still deferred and there is still no backend.
+- **Greeted the returning player by name.** The menu — which is `naming` (D-021) — now
+  shows "Welcome back, Riley.", the sol they stopped on, and CONTINUE / START OVER in
+  place of the name field. START OVER clears the save and goes back to asking for a name.
+- **Sent CONTINUE to the screen they left**, because the screen is written beside the run.
+  A child who closed the tab with the day's work orders open gets the work orders back,
+  not a restarted day; the three screens that are not journey stops are never a resume
+  point.
+- **Loaded the save before the router starts**, so a browser that restored a tab on
+  `#/act` gets the desk with its run rather than the desk's "no run" fallback.
+- Asserted the whole story in `tools/browser-check-save.mjs`: first visit, start, leave,
+  come back, CONTINUE, a reload on the hash, and START OVER.
+
+**Files**
+
+- `src/sim/save.ts` — `SAVE_VERSION`, `encodeRun`, `decodeRun`; pure, 19 tests
+- `src/sim/save.test.ts`
+- `src/ui/save.ts` — `readSave`, `writeSave`, `clearSave`, `isSaveableScreen`,
+  `resumeScreen`; 8 tests over the pure half
+- `src/ui/save.test.ts`
+- `src/main.ts` — save on change and on mount, clear on a null run, load before routing
+- `src/features/naming/{model,view}.ts` — `returningMenu`, the returning block and its
+  handlers; `src/features/naming/naming.css`
+- `index.html` — the returning block, and the section comment
+- `src/sim/run.ts` — the comments that said the run is lost on refresh
+- `src/ui/router.ts`, `src/ui/routes.ts`, `src/sim/training.ts`,
+  `src/features/landing-site/README.md` — the comments that said there is no persistence
+- `tools/browser-check-save.mjs`
+- `tools/browser-check-training.mjs` — step 8 now reloads instead of re-walking the
+  journey, and waits for the new document (ISS-096)
+- `docs/team/{decisions,issues,tasks,progress-log}.md`, `docs/architecture.md`,
+  `docs/game-flow.md`, `README.md`, `AGENTS.md`
+
+**Problems**
+
+- **The first draft had a `live` flag** — "your mission is still running in this tab" — to
+  tell the in-game MENU apart from a player who had come back. It stopped being answerable
+  the moment the save is loaded at boot: a restored run and a live one are the same object
+  in the same variable. Dropped rather than faked. The note is a sentence about the run
+  ("You stopped on sol 4"), which is true in both cases.
+- **A restored tab was the case that nearly shipped broken.** The save is written and the
+  menu reads it, but nothing put the run back into `main.ts` before the router ran, so a
+  reload on `#/briefing` would have mounted the briefing with no run at all — a screen
+  saying "no run" with a perfectly good save on disk. The load now happens before
+  `startScreenRouter`.
+- **Decoding is forgiving except the spine.** The first version refused any save with a
+  field out of range, which would have thrown away a whole run over one bad rover find.
+  Now the spine (sol, stores, status, region, name, modules, panel health, science) is
+  required and everything past it is repaired from a fresh run.
+- **A broken training record would have started sol 1 again**, because that is what
+  `newRun` holds. The two-a-sol rule reads its day from the record, so a stale day would
+  have *unlocked* the work orders it exists to lock. It now starts the current day
+  (`emptyTraining(sol + 1)`), and a test pins it.
+- **The browser check read the page it was trying to leave.** For a moment after a
+  reload, CDP still evaluates against the old document, and the old document has a
+  visible naming screen too — so "wait until the naming screen is visible" answered
+  from the page being left, and the check reported a save that was never broken. The
+  check now waits for the new document's load event, which cannot be faked. Worth
+  remembering for every browser check in this repo, not just this one.
+- **The training browser check was already broken, and it was not the game's fault.**
+  It reported 37/40 — the same on the unmodified tree, before the save existed. Step 8
+  was meant to prove that a refresh does not hand the player the same two training
+  games again, and it did that by re-walking the journey from the naming screen — where
+  starting a new mission clears the training day, because a new mission is a new day. The
+  check destroyed the thing it was about to measure. Logged as ISS-096; it now reloads
+  and reads the desk where it is, and waits for the load event like the save check does.
+- **`npm run check` and all 996 tests pass**; the save was driven end to end in headless
+  Chrome before this entry was written — 15 checks, all green, against the dev server and
+  against the production build. The training check is 40/40 again, and the balance still
+  holds at every landing site.
+
+**Next**
+
+- There is still no cross-device save and no account: a different browser is a different
+  run. Supabase is deferred and unowned (D-003, TASK-022), and nothing here schedules it.
+- No migration path between `SAVE_VERSION`s yet — the first bump that needs one will have
+  to add it, and until then an old save is ignored rather than migrated.
 
 ---
 

@@ -5,6 +5,7 @@ import {
   TRAINING_DAILY_LIMIT,
   TRAINING_GAMES,
   TRAINING_REWARDS,
+  TRAINING_YIELDS,
   canStartTraining,
   completeTraining,
   emptyTraining,
@@ -15,6 +16,7 @@ import {
   trainingSeed,
   trainingTier,
   trainingUnlocked,
+  trainingYield,
   withTrainingDay,
   EMPTY_TRAINING_RECORD,
 } from './training';
@@ -89,14 +91,58 @@ describe('finishing a game', () => {
   it('marks the game it finished and no other', () => {
     const day = trainingDay(finish(aRun(), 'resource-merge'));
 
-    expect(day.games.find((game) => game.id === 'resource-merge')?.status).toBe('completed');
+    /* The game stays playable: it can be played again for practice, and the
+       second time is the day's other play. */
+    expect(day.games.find((game) => game.id === 'resource-merge')?.status).toBe('available');
+    expect(day.games.find((game) => game.id === 'resource-merge')?.plays).toBe(1);
     expect(day.games.find((game) => game.id === 'memory-match')?.status).toBe('available');
+    expect(day.games.find((game) => game.id === 'memory-match')?.plays).toBe(0);
   });
 
   it('counts the points of the day', () => {
     const day = trainingDay(finish(finish(aRun(), 'resource-merge', 'good'), 'memory-match', 'excellent'));
 
     expect(day.pointsToday).toBe(TRAINING_REWARDS.good + TRAINING_REWARDS.excellent);
+  });
+});
+
+describe('what a game pays', () => {
+  it('fills exactly one store, and it is the store that game trains', () => {
+    for (const game of TRAINING_GAMES) {
+      expect(TRAINING_YIELDS[game.id].store).toMatch(/^(power|oxygen|water|food|shielding)$/);
+    }
+
+    expect(trainingYield('resource-merge', 'good')).toEqual({ store: 'water', amount: 2 });
+    expect(trainingYield('asteroid-defender', 'excellent')).toEqual({ store: 'shielding', amount: 3 });
+  });
+
+  it('puts the yield in that store and reports what landed', () => {
+    const run = aRun();
+    const outcome = completeTraining(run, 'cargo-sorting', 'good');
+
+    if (!outcome.ok) throw new Error('the first game of the day was refused');
+
+    expect(outcome.payout).toEqual({ store: 'food', amount: 2, stored: 2 });
+    expect(outcome.run.stores.food).toBe(run.stores.food + 2);
+  });
+
+  it('never overfills a tank, and says how much had nowhere to go', () => {
+    const nearlyFull = withState(aRun(), { stores: { ...aRun().stores, water: 99 } });
+    const outcome = completeTraining(nearlyFull, 'resource-merge', 'good');
+
+    if (!outcome.ok) throw new Error('the first game of the day was refused');
+
+    expect(outcome.payout.stored).toBe(1);
+    expect(outcome.payout.amount).toBe(2);
+    expect(outcome.run.stores.water).toBe(100);
+  });
+
+  it('pays no store at all when the day is full', () => {
+    const run = finish(finish(aRun(), 'resource-merge'), 'memory-match');
+    const outcome = completeTraining(run, 'rover-parking', 'excellent');
+
+    expect(outcome.ok).toBe(false);
+    expect(outcome.run.stores).toEqual(run.stores);
   });
 });
 
@@ -134,14 +180,34 @@ describe('playing the same game twice', () => {
     expect(canStartTraining(run, 'resource-merge').ok).toBe(true);
   });
 
-  it('pays nothing the second time', () => {
+  it('pays the second time as well, because the crew did the work twice', () => {
     const run = finish(aRun(), 'resource-merge', 'excellent');
     const outcome = completeTraining(run, 'resource-merge', 'excellent');
 
+    expect(outcome.ok).toBe(true);
+    expect(outcome.run.science).toBe(run.science + TRAINING_REWARDS.excellent);
+    expect(outcome.run.stores.water).toBe(run.stores.water + TRAINING_YIELDS['resource-merge'].excellent);
+  });
+
+  it('counts as the day’s other play, and only two finishes a sol', () => {
+    const run = finish(finish(aRun(), 'resource-merge'), 'resource-merge');
+    const day = trainingDay(run);
+
+    expect(day.completedCount).toBe(2);
+    expect(day.tasksUnlocked).toBe(true);
+    expect(day.games.find((game) => game.id === 'resource-merge')?.plays).toBe(2);
+    expect(day.games.find((game) => game.id === 'resource-merge')?.points).toBe(
+      TRAINING_REWARDS.good + TRAINING_REWARDS.good,
+    );
+  });
+
+  it('refuses a third finish, whatever it is', () => {
+    const run = finish(finish(aRun(), 'resource-merge'), 'resource-merge');
+    const outcome = completeTraining(run, 'memory-match', 'good');
+
     expect(outcome.ok).toBe(false);
-    expect(outcome.ok === false && outcome.reason).toBe('already');
+    expect(outcome.ok === false && outcome.reason).toBe('limit');
     expect(outcome.run.science).toBe(run.science);
-    expect(trainingDay(outcome.run).completedCount).toBe(1);
   });
 });
 

@@ -289,7 +289,7 @@ export const RANK_ICON: Readonly<Record<string, IconName>> = {
  *
  * The eight drawings of the outpost's own equipment, in the same hand as the
  * module artwork on the panel. A model may not import `ui/`, so the mapping
- * lives here rather than in `sim/modules.ts` (D-082).
+ * lives here rather than in `sim/modules.ts` (D-083).
  */
 export const MODULE_ICON: Readonly<Record<ModuleKind, IconName>> = {
   habitat: 'habitat-module',

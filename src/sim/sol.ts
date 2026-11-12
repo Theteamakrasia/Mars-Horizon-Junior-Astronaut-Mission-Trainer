@@ -9,7 +9,7 @@
  * Pure. Takes state, returns new state. No DOM, no network, no Math.random.
  */
 
-import { activityById, type ActivitySpec } from './activities';
+import { activityById, canAfford, type ActivitySpec } from './activities';
 import { stormOn, eventsStartingOn, stormOpacity } from './forecast';
 import {
   CREW_SIZE,
@@ -24,14 +24,18 @@ import {
   clampStores,
   depletedStores,
   drainForSol,
+  floorStreak,
+  FLOORED_STORES,
   LIFE_STORES,
+  scrubbedStores,
   type ResourceName,
   type ResourceStores,
 } from './resources';
 import { inspectionStars, type DecisionRecord, type RunState, type SolActivity, type SolEvent, type SolRecord } from './run';
 import { deployRover, discover, pickForSol, remainingFinds, ROVER_FINDS } from './rover';
 import { siteScore } from './regions';
-import { crisisForEvent, optionOf } from './crises';
+import { crisisForEvent, canAffordOption, fallbackOption, optionOf } from './crises';
+import { powerBudget } from './powerBudget';
 import { SOL_LOG_POINTS } from './science';
 
 export type { SolEvent } from './run';
@@ -43,7 +47,6 @@ export const WIN_SOL = 12;
 export const FLARE_DRAIN: Readonly<Record<number, number>> = { 1: 6, 2: 12, 3: 20 };
 export const SHELTER_FACTOR = 0.4;
 export const SHIELD_UP_FACTOR = 0.6;
-export const SHIELD_UP_POWER_KWH = 60;
 export const EXPOSED_PANEL_DAMAGE = 0.25;
 export const MIN_PANEL_HEALTH = 0.25;
 export const SUPPLY_AMOUNT = 30;
@@ -74,9 +77,19 @@ export function decide(
   if (event === undefined) throw new RangeError(`No such crisis: ${crisisId}`);
 
   const crisis = crisisForEvent(event);
+  const option = optionOf(crisis, optionId);
 
-  if (optionOf(crisis, optionId) === null) {
+  if (option === null) {
     throw new RangeError(`Crisis ${crisisId} has no option ${optionId}`);
+  }
+
+  /* The desk greys out an option the day cannot pay for, and this is where
+     that becomes a rule: a stale screen cannot spend power the run does not
+     have. */
+  if (!canAffordOption(run, option)) {
+    throw new RangeError(
+      `Crisis ${crisisId} option ${optionId} costs ${option.powerKwh ?? 0} kWh and you can spend ${Math.round(powerBudget(run).spendableKwh)} kWh today`,
+    );
   }
 
   const record: DecisionRecord = { sol: event.sol, crisisId, optionId, timedOut };
@@ -87,7 +100,13 @@ export function decide(
   };
 }
 
-/** The option chosen for a crisis, or its default when none was recorded. */
+/**
+ * The option chosen for a crisis, or the fallback when none was recorded.
+ *
+ * The fallback is the crisis's default (what a countdown uses) unless the
+ * batteries cannot pay for it, in which case the first affordable option
+ * stands in — so a timeout can never charge for a choice it forbade.
+ */
 function chosen(run: RunState, crisisId: string): string {
   const recorded = run.decisions.find((entry) => entry.crisisId === crisisId);
 
@@ -95,7 +114,7 @@ function chosen(run: RunState, crisisId: string): string {
 
   const event = run.forecast.find((entry) => entry.id === crisisId);
 
-  return event === undefined ? '' : crisisForEvent(event).defaultOptionId;
+  return event === undefined ? '' : fallbackOption(run, crisisForEvent(event)).id;
 }
 
 /**
@@ -120,6 +139,18 @@ function chosenActivity(run: RunState): ActivitySpec | null {
 /** True when the run cannot continue. Ends on depleted resources, never on death (R-20). */
 export function isRunOver(stores: ResourceStores): boolean {
   return lostStores(stores).length > 0;
+}
+
+/**
+ * The stores that have sat below the floor for two sols in a row.
+ *
+ * This is the second way a run ends, and the one the player is warned about:
+ * a store can be emptied on a single sol (`isRunOver`), or it can be left
+ * under thirty percent for two sols, at which point the outpost is no longer
+ * worth resupplying and Mission Control brings the crew home.
+ */
+export function scrubbedBy(run: RunState): readonly ResourceName[] {
+  return scrubbedStores(run.log);
 }
 
 /**
@@ -193,7 +224,9 @@ export function advanceSol(run: RunState, roverRoll?: number): RunState {
       shieldingChange -= base * factor;
       shieldingLoss += base * factor;
       if (choice === 'shelter') greenhousePaused = true;
-      if (choice === 'shield-up') extraPowerCost += SHIELD_UP_POWER_KWH;
+      /* The digger's cost is the option's, not a number repeated here: the card
+         that offers it and the sim that charges for it read the same field. */
+      extraPowerCost += optionOf(crisisForEvent(event), choice)?.powerKwh ?? 0;
       notes.push(
         `The flare hit the shielding for ${Math.round(base * factor)} points` +
           (choice === 'carry-on' ? ' because nobody took cover.' : '.'),
@@ -220,15 +253,32 @@ export function advanceSol(run: RunState, roverRoll?: number): RunState {
   //
   // Its power draw joins the same `extraPowerCost` the flare's shielding
   // digger uses, so an activity competes with life support for the same kWh:
-  // spend 25 kWh on a rover survey with a flat battery and the sol runs in a
+  // spend 50 kWh on a rover survey with a flat battery and the sol runs in a
   // blackout. That is the trade-off the whole game is built around, and it
   // comes free from the model that was already here.
   //
   // A sol with a forecast event has no activity: the crisis is the day's work
   // (D-040), and running an experiment while sheltering from a flare would
   // be a story nobody could follow.
-  const activity = starting.length > 0 ? null : chosenActivity(run);
+  const picked = starting.length > 0 ? null : chosenActivity(run);
+  /*
+   * A job the batteries cannot pay for cannot be started. The desk already
+   * greys the card for the same reason; checking it again here is what makes
+   * it a rule rather than a disabled button. `rest` costs nothing, so there is
+   * always something the crew can do with the day.
+   *
+   * The price is checked against the same budget the card shows — what the
+   * batteries will hold at the end of the day — so a job that the desk offers
+   * is a job the sol can run (ISS-083).
+   */
+  const activity = picked !== null && !canAfford(picked, run) ? null : picked;
   let scienceEarned = SOL_LOG_POINTS;
+
+  if (picked !== null && activity === null) {
+    notes.push(
+      `There was not enough power for ${picked.title} today, so that job was not done.`,
+    );
+  }
 
   if (activity !== null) {
     extraPowerCost += activity.powerCostKwh;
@@ -261,17 +311,26 @@ export function advanceSol(run: RunState, roverRoll?: number): RunState {
 
   let unmet = 0;
 
-  let level = run.stores.power + generatedDay + (generatedNuclear / 2) - dayDraw;
+  /*
+   * The Sun comes up, the outpost draws all day, and the day's work is paid
+   * for out of what is left — before the batteries fill.
+   *
+   * The order matters, and it was wrong (ISS-084). The job used to be charged
+   * *after* the batteries had filled, so the surplus had already spilled and
+   * every kWh the crew spent came straight out of the night's reserve: the
+   * bank fell a little further every sol and ended up at zero, with a small
+   * blackout every sol after that. The player was right - the electricity was
+   * going nowhere.
+   *
+   * The job runs while the Sun is up, so it is paid for by the daylight. What
+   * the batteries keep is the night's reserve, and the surplus that does not
+   * fit is what spills.
+   */
+  let level = run.stores.power + generatedDay + (generatedNuclear / 2) - dayDraw - extraPowerCost;
   let wasted = Math.max(0, level - capacity);
 
   level = Math.min(capacity, level);
 
-  if (level < 0) {
-    unmet += -level;
-    level = 0;
-  }
-
-  level -= extraPowerCost;
   if (level < 0) {
     unmet += -level;
     level = 0;
@@ -362,6 +421,8 @@ export function advanceSol(run: RunState, roverRoll?: number): RunState {
     powerGenerated: generatedDay + generatedNuclear,
     powerUsed: demand,
     powerWasted: wasted,
+    powerNight: nightDraw,
+    powerExtra: extraPowerCost,
     blackout,
     panelHealth,
     greenhousePaused,
@@ -372,7 +433,8 @@ export function advanceSol(run: RunState, roverRoll?: number): RunState {
   };
 
   const depleted = isRunOver(after);
-  const status = depleted ? 'lost' : sol >= WIN_SOL ? 'won' : 'active';
+  const scrubbed = scrubbedStores([...run.log, record]);
+  const status = depleted || scrubbed.length > 0 ? 'lost' : sol >= WIN_SOL ? 'won' : 'active';
 
   /* The rover. It goes out on a work order like any other, and it comes back
      with a document on the desk the next sol — so the find is found at the
@@ -446,9 +508,38 @@ export function isSelfSustaining(run: RunState): boolean {
   return powerBalanced && net.oxygen >= -slack && net.water >= -slack && net.food >= -slack;
 }
 
-/** Which stores ended the run, in the canonical order. Empty while it is still going. */
+/**
+ * Which stores ended the run, in the canonical order. Empty while it is still going.
+ *
+ * Two ways to end, so two answers: a store that ran dry is named first, because
+ * "the tank emptied" is the sharper lesson. Failing that, the stores that sat
+ * below the floor for two sols are named — the run that was warned and did not
+ * come back.
+ */
 export function endedBy(run: RunState): readonly ResourceName[] {
-  return run.status === 'lost' ? lostStores(run.stores) : [];
+  if (run.status !== 'lost') return [];
+
+  const empty = lostStores(run.stores);
+
+  if (empty.length > 0) return empty;
+
+  return scrubbedStores(run.log);
+}
+
+/** True when the run ended by the floor rule rather than by a store emptying. */
+export function wasScrubbed(run: RunState): boolean {
+  return run.status === 'lost' && lostStores(run.stores).length === 0 && scrubbedBy(run).length > 0;
+}
+
+/** The sol a store first fell below the floor in its final run of low sols, or null. */
+export function floorSince(run: RunState, name: ResourceName): number | null {
+  if (!FLOORED_STORES.includes(name)) return null;
+
+  const streak = floorStreak(run.log, name);
+
+  if (streak <= 0) return null;
+
+  return run.log[Math.max(0, run.log.length - streak)]?.sol ?? null;
 }
 
 export { ZERO as ZERO_STORES };

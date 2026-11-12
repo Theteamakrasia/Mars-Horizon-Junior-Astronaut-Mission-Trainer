@@ -92,6 +92,62 @@
   margin-top: 0.15em;
 }
 
+/* A note about the purchase itself, when there is one: what a second solar
+   array would do with the sunlight it makes. */
+.gl--base .gl__card-note {
+  margin: 0.15em 0 0;
+  color: var(--gl-warn-ink);
+  font-size: clamp(0.5rem, 0.62vw, 0.76rem);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+/* --------------------------------------------------------------- the dials -- */
+
+/*
+ * Make, Store and Use: the three numbers the power economy is made of.
+ *
+ * The build screen used to show a day-power number and a night-hours number
+ * and leave the player to work out the rest. Each dial here is a thing the
+ * player can change, so each one answers "what should I build next?".
+ */
+.gl--base .gl__dials {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(3px, 0.35vw, 7px);
+}
+
+.gl--base .gl__dial {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: 0.5em;
+  padding: clamp(2px, 0.25vw, 5px) 0;
+  line-height: 1.35;
+}
+
+.gl--base .gl__dial-title {
+  color: var(--gl-ink);
+  font-weight: 900;
+  font-size: clamp(0.56rem, 0.7vw, 0.86rem);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.gl--base .gl__dial-text {
+  color: var(--gl-muted);
+  font-size: clamp(0.58rem, 0.74vw, 0.9rem);
+  font-weight: 700;
+}
+
+.gl--base .gl__dial[data-tone='warn'] .gl__dial-text {
+  color: var(--gl-warn-ink);
+}
+
+.gl--base .gl__dial[data-tone='bad'] .gl__dial-text {
+  color: var(--gl-orange-deep);
+}
+
 /* The free copy the lander brought, so the card's number explains itself. */
 .gl--base .gl__card-lander {
   margin: 0;

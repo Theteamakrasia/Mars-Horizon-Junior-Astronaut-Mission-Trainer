@@ -391,6 +391,26 @@
   text-align: center;
 }
 
+/* What the game put in the stores. Sits under the science, in the store's own
+   colour rather than the orange, so the two payouts read as two things. */
+.trn__done-yield {
+  margin: 0;
+  padding: clamp(4px, 0.5vw, 8px) clamp(8px, 0.9vw, 14px);
+  border-radius: 999px;
+  background: var(--gl-card-strong);
+  color: var(--gl-ink);
+  font-size: clamp(0.58rem, 0.78vw, 0.92rem);
+  font-weight: 800;
+  text-align: center;
+  align-self: center;
+}
+
+/* The card tag that says which store a game fills: the reason to pick it. */
+.trn__tag--yield {
+  background: color-mix(in srgb, var(--gl-orange) 18%, var(--gl-card-strong));
+  color: var(--gl-ink);
+}
+
 .trn__done-unlocked {
   margin: 0;
   padding: clamp(5px, 0.6vw, 9px) clamp(8px, 0.9vw, 14px);

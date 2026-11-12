@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- The phone's own viewport. The game inside is 16:9 whatever this is. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover"
+    />
+    <meta name="color-scheme" content="dark" />
+    <title>Mars Horizon</title>
+    <!--
+      THE MOBILE SHELL.
+
+      The game is drawn at a fixed 1024x576 - a normal computer window - and this
+      page scales that window to fit the phone and centres it, so the game is
+      letterboxed in 16:9 and looks exactly as it does on a computer. The game
+      itself is in an iframe, and that is the whole trick: inside a frame the
+      app believes it is 1024 pixels wide, so every `vw` and `vh` in the
+      stylesheet resolves to what it would resolve to on a computer. Scaling
+      the app in place could not do that, because `100vw` would still mean the
+      phone's width.
+
+      The frame is the game (index.html), unchanged. This page is only the
+      letterbox around it.
+    -->
+    <style>
+      :root {
+        /* The size the game is drawn at. 16:9, and a real computer window. */
+        --frame-w: 1024px;
+        --frame-h: 576px;
+        /* How much of the phone the frame fills. Set by the script below. */
+        --scale: 0.3;
+      }
+
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #04060f;
+        overflow: hidden;
+        /* A phone should not select the game's words with a long press. */
+        -webkit-touch-callout: none;
+      }
+
+      body {
+        /* The stage is placed by hand: a grid will not centre a box that is
+           wider than the screen, and the stage is 1024 pixels wide before it
+           is scaled down. */
+        position: relative;
+      }
+
+      #stage {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: var(--frame-w);
+        height: var(--frame-h);
+        transform: translate(-50%, -50%) scale(var(--scale));
+        transform-origin: center center;
+      }
+
+      #frame {
+        width: var(--frame-w);
+        height: var(--frame-h);
+        border: 0;
+        display: block;
+        background: #04060f;
+      }
+
+      /*
+        Turn your phone sideways.
+
+        A phone held upright is tall and narrow, so a 16:9 window in it is a
+        short band with black above and below it, and the game is a long way
+        from the eyes. Sideways, the window fills the screen. The bar is a
+        strip at the top rather than a full-screen message, so the game stays
+        visible underneath it.
+      */
+      #turn {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 2;
+        padding: 10px 16px;
+        background: rgba(4, 6, 15, 0.72);
+        color: #f2f7ff;
+        font: 600 13px/1.4 system-ui, -apple-system, 'Segoe UI', sans-serif;
+        text-align: center;
+      }
+
+      @media (orientation: landscape) {
+        #turn {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="stage">
+      <iframe id="frame" title="Mars Horizon" src="./index.html?frame=1"></iframe>
+    </div>
+    <p id="turn">Turn your phone sideways — Mars Horizon runs in a 16:9 window, like a computer.</p>
+    <script>
+      /*
+        Fit the frame to the phone.
+
+        The scale is the smaller of the two ratios, so the 16:9 window always
+        fits whole and is centred with black bars on the short side. That is
+        the whole of the "responsive" work: one number, recomputed when the
+        phone is turned.
+      */
+      const FRAME_W = 1024;
+      const FRAME_H = 576;
+
+      function fit() {
+        const scale = Math.min(window.innerWidth / FRAME_W, window.innerHeight / FRAME_H);
+        document.documentElement.style.setProperty('--scale', String(scale));
+      }
+
+      /*
+        Fit it again when the phone is turned.
+
+        A resize event can arrive before the browser has told the page its new
+        size, so the scale worked out from it can be worked out from the old
+        one - and the frame then hangs off the edge of the screen. The
+        observer fires after the layout has settled, so it is the one that
+        counts; the events are there for browsers without it.
+      */
+      function schedule() {
+        fit();
+        requestAnimationFrame(fit);
+      }
+
+      fit();
+      window.addEventListener('resize', schedule);
+      window.addEventListener('orientationchange', schedule);
+
+      if (typeof ResizeObserver !== 'undefined') {
+        new ResizeObserver(schedule).observe(document.documentElement);
+      }
+
+      /*
+        Carry the route into the frame.
+
+        The player arrived here from a link with a screen in it - #act, #base -
+        and the game inside the frame has to open on that screen and not on the
+        menu.
+      */
+      const frame = document.getElementById('frame');
+
+      if (window.location.hash) frame.src = './index.html?frame=1' + window.location.hash;
+    </script>
+  </body>
+</html>
