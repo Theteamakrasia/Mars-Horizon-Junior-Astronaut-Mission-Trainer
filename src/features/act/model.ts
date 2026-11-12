@@ -323,7 +323,14 @@ export function powerReceipt(run: RunState): string {
   if (spilled > 0) parts.push(`${spilled} spilled`);
   parts.push(`ended ${ended} kWh`);
 
-  const line = `Yesterday: ${parts.join(' · ')}.`;
+  let line = `Yesterday: ${parts.join(' · ')}.`;
+
+  if (job > 0 && record.blackout <= POWER_BLACKOUT_FLOOR) {
+    line +=
+      spilled > 0
+        ? " The job used today's sunlight instead of the battery, so less power was wasted and the battery can end the same."
+        : " The job used today's power; if the battery ended lower, it came out of the reserve.";
+  }
 
   if (record.blackout > POWER_BLACKOUT_FLOOR) {
     return `${line} The batteries ran flat for ${Math.round(record.blackout * 100)}% of the day.`;
