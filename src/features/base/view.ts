@@ -36,6 +36,7 @@ import {
   extraSlots,
   goalPreview,
   pointsLeft,
+  powerDials,
   previewFor,
   previewSummary,
   removeModule,
@@ -257,6 +258,7 @@ export function mountBase(
           ),
           h('p', { class: 'gl__card-line', text: card.gives }),
           h('p', { class: 'gl__card-tag', text: card.needs }),
+          card.note === '' ? null : h('p', { class: 'gl__card-note', text: card.note }),
           h(
             'div',
             { class: 'gl__stepper' },
@@ -279,6 +281,20 @@ export function mountBase(
              time. The old code hid it the moment the player owned one, which
              is exactly when the limit started to matter. */
           card.blocked !== '' ? h('p', { class: 'gl__card-why', text: card.blocked }) : null,
+        ),
+      );
+    }
+
+    // ---- Make, Store and Use: the three dials of the power economy.
+    const dials = h('div', { class: 'gl__dials' });
+
+    for (const dial of powerDials(extras, regionId)) {
+      dials.append(
+        h(
+          'div',
+          { class: 'gl__dial', 'data-tone': dial.tone },
+          h('span', { class: 'gl__dial-title', text: dial.label }),
+          h('span', { class: 'gl__dial-text', text: dial.text }),
         ),
       );
     }
@@ -347,6 +363,7 @@ export function mountBase(
       body: [
         budget,
         toastElement,
+        gameSection('Your power', dials),
         gameSection('Your goals with this build', goals),
         cards,
         h('p', { class: 'gl__note', text: `NASA fact · ${factFor(start.sol + regionId.length).text} (${factFor(start.sol + regionId.length).credit})` }),

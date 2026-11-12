@@ -24,7 +24,7 @@ import { describeWhen, strongestFlares } from '../../data/spaceweather';
 import { loadDailyFacts } from '../../dom/dailyFactLoader';
 import { loadForecast, type LoadedForecast } from '../../dom/forecastLoader';
 import { h } from '../../dom/h';
-import { earthAdvice, earthIsInTime, optionOf, pendingCrisis, type Crisis } from '../../sim/crises';
+import { canAffordOption, earthAdvice, earthIsInTime, fallbackOption, optionOf, pendingCrisis, type Crisis } from '../../sim/crises';
 import { oneWayMinutes, roundTripMinutes } from '../../sim/comms';
 import { answerRoverFind, recordInspection, withState, type RunState } from '../../sim/run';
 import { makeInspection, type Inspection } from '../../ui/activityPlayer';
@@ -46,7 +46,7 @@ import { sheet, sheetCloseButton } from '../../ui/sheet';
 import { applyTrainingRecord, openTrainingGame, trainingSection, type TrainingGameScreen } from '../../ui/training';
 import { TRAINING_DAILY_LIMIT, canStartTraining, trainingUnlocked, type TrainingGameId } from '../../sim/training';
 
-import { activityRows, boardRows, changeRows, ledgerRows, deskNote, hubTiles, lastPowerLine, meterRows, missionHeadline, orderChecks, powerSentence, powerToday, roverDocument, scienceSummary, secondsLeft, type HubSection, type HubTile } from './model';
+import { activityRows, boardRows, changeRows, deskNote, floorWarning, hubTiles, ledgerRows, meterRows, missionHeadline, orderChecks, powerReceipt, powerToday, roverDocument, scienceSummary, secondsLeft, type HubSection, type HubTile } from './model';
 
 import '../../styles/game-loop.css';
 import './act.css';
@@ -242,14 +242,14 @@ export function mountAct(
     const began = performance.now();
 
     timer = window.setInterval(() => {
-      if (clockNodes === null) return;
+      if (clockNodes === null || run === null) return;
 
       const elapsed = performance.now() - began;
 
       clockNodes.bar.style.width = `${Math.max(0, 100 - (elapsed / (total * 1000)) * 100)}%`;
       clockNodes.text.textContent = `${secondsLeft(total, elapsed)} seconds left. If the clock runs out, nothing is done.`;
 
-      if (elapsed >= total * 1000) choose(crisis, crisis.defaultOptionId, true);
+      if (elapsed >= total * 1000) choose(crisis, fallbackOption(run, crisis).id, true);
     }, 100);
   }
 
@@ -512,6 +512,9 @@ export function mountAct(
             ),
           ),
           failing === undefined ? null : h('span', { class: 'act-order__warn', text: failing.why }),
+          row.nightWarning === null
+            ? null
+            : h('span', { class: 'act-order__warn act-order__warn--night', text: row.nightWarning }),
         ),
         h('span', { class: 'act-order__mark', 'aria-hidden': 'true' }, row.chosen ? icon('check') : null),
       );
@@ -768,6 +771,48 @@ export function mountAct(
     ];
   }
 
+  /**
+   * The day's power budget, as rows the player can add up.
+   *
+   * Five numbers and a night: what the panels make, what the outpost needs,
+   * what is left over every sol, what is in the bank, what a job may cost
+   * today, and what the night will take. The night is on every one of them,
+   * because it is where the power goes and it was the number nobody was shown
+   * (ISS-083).
+   */
+  function powerBudgetBlock(state: RunState): HTMLElement {
+    const power = powerToday(state);
+
+    const row = (label: string, value: string, tone: 'ok' | 'warn' | 'bad' = 'ok'): HTMLElement =>
+      h(
+        'div',
+        { class: 'act-power__row', 'data-tone': tone },
+        h('span', { class: 'act-power__label', text: label }),
+        h('span', { class: 'act-power__value', text: value }),
+      );
+
+    return h(
+      'div',
+      { class: 'act-power' },
+      row('Panels make', `${power.generated} kWh`),
+      row('Outpost needs', `${power.demand} kWh`),
+      row(
+        'Spare each sol',
+        `${power.spare > 0 ? '+' : ''}${power.spare} kWh`,
+        power.spare < 0 ? 'bad' : 'ok',
+      ),
+      row('In the bank', `${power.stored} of ${power.capacity} kWh`),
+      row('You can spend', `${power.spendable} kWh today`),
+      row(
+        'Night tonight',
+        power.nightCovered
+          ? `${power.nightNeed} kWh · the bank covers it`
+          : `${power.nightNeed} kWh · the bank is short`,
+        power.nightCovered ? 'ok' : 'warn',
+      ),
+    );
+  }
+
   /** The day's power, in three small cards, as the build screen draws it. */
   function dayNightStrip(state: RunState): HTMLElement {
     const power = powerPicture(state);
@@ -787,14 +832,14 @@ export function mountAct(
         'div',
         { class: 'gl__mini' },
         h('span', { class: 'gl__mini-label' }, icon('bolt'), 'For today'),
-        h('span', { class: 'gl__mini-value', text: `${today.available} kWh` }),
-        h('span', { class: 'gl__mini-detail', text: `after today's sun` }),
+        h('span', { class: 'gl__mini-value', text: `${today.spendable} kWh` }),
+        h('span', { class: 'gl__mini-detail', text: 'what a job may cost' }),
       ),
       h(
         'div',
         { class: 'gl__mini' },
         h('span', { class: 'gl__mini-label' }, icon('moon'), 'Night use'),
-        h('span', { class: 'gl__mini-value', text: `−${power.nightDrainKw} kW` }),
+        h('span', { class: 'gl__mini-value', text: `−${today.nightNeed} kWh` }),
         h('span', { class: 'gl__mini-detail', text: today.nightCovered ? 'the batteries cover it' : 'the batteries will not cover it' }),
       ),
     );
@@ -804,7 +849,6 @@ export function mountAct(
   function statsBody(state: RunState): readonly (Node | false)[] {
     const meters = meterRows(state);
     const summary = scienceSummary(state);
-    const power = powerPicture(state);
 
     const rows = h(
       'div',
@@ -846,11 +890,11 @@ export function mountAct(
     );
 
     return [
+      powerBudgetBlock(state),
       dayNightStrip(state),
-      lastPowerLine(state) === '' ? false : h('p', { class: 'gl__note', text: lastPowerLine(state) }),
+      powerReceipt(state) === '' ? false : h('p', { class: 'gl__note', text: powerReceipt(state) }),
       rows,
       science,
-      h('p', { class: 'gl__note', text: powerSentence(power.generatedKw, power.storedKwh, power.nightDrainKw) }),
     ];
   }
 
@@ -1139,6 +1183,25 @@ export function mountAct(
             ),
           );
 
+    /* The other callout the desk can carry: a store already under the floor.
+       One sol there is survivable, two is the end of the run, and the sign has
+       to say which of the two the crew is on. */
+    const warned = floorWarning(state);
+    const floor =
+      warned === null
+        ? false
+        : h(
+            'div',
+            { class: 'gl__callout', 'data-tone': 'bad' },
+            h('span', { class: 'gl__callout-icon', 'aria-hidden': 'true' }, icon(RESOURCE_ICON[warned.name])),
+            h(
+              'div',
+              null,
+              h('p', { class: 'gl__callout-title', text: `${warned.label} is at ${warned.percent}%` }),
+              h('p', { class: 'gl__callout-detail', text: warned.text }),
+            ),
+          );
+
     const go = h(
       'button',
       { class: 'gl__btn gl__btn--primary gl__btn--start', type: 'button', disabled: loading || mustChoose },
@@ -1155,6 +1218,7 @@ export function mountAct(
       corner: pointsCorner(state),
       body: [
         lock,
+        floor,
         gameSection('Today for the outpost', grid),
         forecastSection(state),
       ],
@@ -1208,17 +1272,34 @@ export function mountAct(
           ? h('span', { class: 'gl__choice-icon', 'aria-hidden': 'true' }, icon(art.icon ?? 'chevron'))
           : h('span', { class: 'gl__choice-icon' }, h('img', { class: 'gl__choice-img', src: art.src, alt: '' }));
 
+      /*
+       * An option the batteries cannot pay for is shown, greyed and priced:
+       * hiding it would leave the player wondering why the digger was never
+       * offered, and offering it would spend power the run does not have. The
+       * price is the option's own `powerKwh`, so the card and the charge agree.
+       */
+      const affordable = canAffordOption(state, option);
+      const budget = powerToday(state);
+      const detail = affordable
+        ? option.detail
+        : `${option.detail} You can spend ${budget.spendable} kWh today, and tonight needs ${budget.nightNeed} kWh.`;
+
       const button = h(
         'button',
-        { class: 'gl__choice', type: 'button', 'data-choice': option.id },
+        {
+          class: affordable ? 'gl__choice' : 'gl__choice gl__choice--locked',
+          type: 'button',
+          'data-choice': option.id,
+          disabled: !affordable,
+        },
         picture,
-        h('span', null, h('span', { class: 'gl__choice-title', text: option.label }), h('span', { class: 'gl__choice-detail', text: option.detail })),
+        h('span', null, h('span', { class: 'gl__choice-title', text: option.label }), h('span', { class: 'gl__choice-detail', text: detail })),
         h('span', { class: 'gl__choice-arrow', 'aria-hidden': 'true' }, icon('chevron')),
       );
 
-      button.addEventListener('click', () => choose(crisis, option.id, false));
+      if (affordable) button.addEventListener('click', () => choose(crisis, option.id, false));
       choices.append(button);
-      firstChoice ??= button;
+      firstChoice ??= affordable ? button : firstChoice;
     }
 
     const ask = h(

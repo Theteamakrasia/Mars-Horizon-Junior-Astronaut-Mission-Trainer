@@ -15,10 +15,10 @@ import { goalById, goalProgress, SCIENCE_GOALS, type ScienceGoal } from '../../s
 import { PATCH_COUNT, patchesFor, type Patch } from '../../sim/patches';
 import { ordersThrough } from '../../sim/standingOrders';
 import { systemsFor, countOf, NIGHT_HOURS, type ModuleKind } from '../../sim/modules';
-import { RESOURCE_NAMES, type ResourceName } from '../../sim/resources';
+import { RESOURCE_FLOOR, RESOURCE_NAMES, type ResourceName } from '../../sim/resources';
 import type { RunState, SolRecord } from '../../sim/run';
 import { rankProgress, type ScienceRank } from '../../sim/science';
-import { endedBy, isSelfSustaining, WIN_SOL } from '../../sim/sol';
+import { endedBy, floorSince, isSelfSustaining, wasScrubbed, WIN_SOL } from '../../sim/sol';
 
 /** What the player is told, and how sure we are. */
 export interface Explanation {
@@ -111,14 +111,49 @@ export function explainOutcome(run: RunState): Explanation {
     };
   }
 
-  const sol = failureSol(run, first);
+  /*
+   * A run ends one of two ways: a store empties, or a store sits below the
+   * floor for two sols and the crew is brought home. The reasoning is the same
+   * — what was falling, and why — so the store's explanation is worked out once
+   * and only the framing changes. Writing the sentences twice is how two
+   * versions of the same story drift apart.
+   */
+  const scrubbed = wasScrubbed(run);
+  const sol = scrubbed ? (floorSince(run, first) ?? run.sol) : failureSol(run, first);
+
+  const title = (what: string): string =>
+    scrubbed
+      ? `Mission scrubbed: the ${what} fell below ${RESOURCE_FLOOR}% on sol ${sol}.`
+      : `The ${what} ran out on sol ${sol}.`;
+
+  const reason = explainStore(run, first, title);
+
+  return scrubbed ? { ...reason, detail: `${reason.detail}${FLOOR_SENTENCE}` } : reason;
+}
+
+/**
+ * What the floor rule is, in the sentence every scrubbed run ends with.
+ *
+ * It says nobody is hurt on purpose: this is a game where losing costs the
+ * mission and never a life (R-20), so a child told the outpost failed should
+ * not be left wondering about the crew.
+ */
+const FLOOR_SENTENCE =
+  ` A store has to stay above ${RESOURCE_FLOOR}%, and two sols in a row below that line is the point where the outpost cannot be relied on, so the crew is brought home. Nobody is hurt: the warning comes before the failure.`;
+
+/** The store's own explanation, framed by the caller's `title`. */
+function explainStore(
+  run: RunState,
+  first: ResourceName,
+  title: (what: string) => string,
+): Explanation {
   const modules = run.modules;
   const blackouts = blackoutSols(run);
 
   if (first === 'food') {
     if (countOf(modules, 'greenhouse') === 0) {
       return {
-        headline: `The food ran out on sol ${sol}.`,
+        headline: title('food'),
         detail: 'The crew eats every sol, and with no greenhouse nothing was growing to replace it. Food you do not grow is food you have to launch from Earth, and nothing was coming.',
         confident: true,
       };
@@ -126,7 +161,7 @@ export function explainOutcome(run: RunState): Explanation {
 
     if (blackouts.length > 0) {
       return {
-        headline: `The food ran out on sol ${sol}.`,
+        headline: title('food'),
         detail: `You did build a greenhouse, but the power failed on sol ${blackouts.join(', ')} and the plants stopped growing.${powerCause(run)}`,
         confident: true,
       };
@@ -138,7 +173,7 @@ export function explainOutcome(run: RunState): Explanation {
 
     if (calm !== undefined && calm < 0 && countOf(modules, 'ice-miner') === 0) {
       return {
-        headline: `The water ran out on sol ${sol}.`,
+        headline: title('water'),
         detail: `Water was falling by about ${Math.abs(Math.round(calm))} every sol, and nothing was making new water. Recycling saves 90%, but the greenhouse and the oxygen maker both use some. An ice miner, or choosing water from the supply pod, would have topped it up.`,
         confident: true,
       };
@@ -146,7 +181,7 @@ export function explainOutcome(run: RunState): Explanation {
 
     if (blackouts.length > 0) {
       return {
-        headline: `The water ran out on sol ${sol}.`,
+        headline: title('water'),
         detail: `When the power failed on sol ${blackouts.join(', ')}, the water recycler slowed down, so far more water was lost than usual.${powerCause(run)}`,
         confident: true,
       };
@@ -155,7 +190,7 @@ export function explainOutcome(run: RunState): Explanation {
 
   if (first === 'oxygen' && blackouts.length > 0) {
     return {
-      headline: `The air ran out on sol ${sol}.`,
+      headline: title('air'),
       detail: `Oxygen is made by splitting water, and that takes power. When the batteries ran flat on sol ${blackouts.join(', ')}, the oxygen maker slowed down while the crew kept breathing.${powerCause(run)}`,
       confident: true,
     };
@@ -173,7 +208,7 @@ export function explainOutcome(run: RunState): Explanation {
       const before = Math.round(earlier?.stores.shielding ?? systemsFor(modules, run.regionId).shieldingStart);
 
       return {
-        headline: `The radiation shielding ran out on sol ${sol}.`,
+        headline: title('radiation shielding'),
         detail:
           `The solar flare on sol ${flare.sol} hit a shield that was at ${before} out of 100. You chose to ${label}${decision.timedOut ? ' (the clock ran out, so that was chosen for you)' : ''}, and you had built ${built === 0 ? 'no regolith shield' : `${built} regolith shield${built === 1 ? '' : 's'}`}. ` +
           'With no magnetic field to turn the particles aside, shielding is all the crew has.',
@@ -183,7 +218,7 @@ export function explainOutcome(run: RunState): Explanation {
   }
 
   return {
-    headline: `The ${STORE_NAME[first]} ran out on sol ${sol}.`,
+    headline: title(STORE_NAME[first]),
     detail: 'The game cannot say for sure why. Look at the timeline and find the sol where it started to fall.',
     confident: false,
   };
@@ -197,6 +232,15 @@ export interface ConsumptionSummary {
   readonly crewFood: number;
   readonly powerGenerated: number;
   readonly powerWasted: number;
+  /**
+   * kWh the nights took.
+   *
+   * Half of every sol is dark, and the dark is where most of the power goes.
+   * The debrief said how much was made and how much was wasted, and never how
+   * much the nights used, so "why was my bank empty?" had no answer at the
+   * end of a run either (ISS-083).
+   */
+  readonly powerNight: number;
   readonly blackoutSols: number;
 }
 
@@ -211,6 +255,7 @@ export function consumptionSummary(run: RunState): ConsumptionSummary {
     crewFood: Math.round(sum((record) => record.used.food)),
     powerGenerated: Math.round(sum((record) => record.powerGenerated)),
     powerWasted: Math.round(sum((record) => record.powerWasted)),
+    powerNight: Math.round(sum((record) => record.powerNight)),
     blackoutSols: blackoutSols(run).length,
   };
 }
@@ -305,8 +350,14 @@ export function usedApproximateData(run: RunState): boolean {
   return run.forecast.some((event) => event.approximate);
 }
 
-/** The store that ended the run, or null when the crew got through. */
-export function wentEmpty(run: RunState): ResourceName | null {
+/**
+ * The store that ended the run, or null when the crew got through.
+ *
+ * Named for what it does now rather than what it used to: a run can also end
+ * with the store still part-full but below the floor for two sols, so "empty"
+ * would be wrong for exactly the runs the floor rule creates.
+ */
+export function endedStore(run: RunState): ResourceName | null {
   return run.status === 'lost' ? (endedBy(run)[0] ?? null) : null;
 }
 

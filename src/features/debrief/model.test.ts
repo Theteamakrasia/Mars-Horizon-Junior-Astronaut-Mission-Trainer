@@ -6,7 +6,7 @@ import { flareIntensity, type ForecastEvent } from '../../sim/forecast';
 import { CORE_MODULES, type ModuleKind } from '../../sim/modules';
 import { newRun, startOutpost, withState, type RunState } from '../../sim/run';
 import { advanceSol, decide } from '../../sim/sol';
-import { blackoutSols, consumptionSummary, explainOutcome, goalOutcomes, lowestPoints, nextSteps, reviewDecisions, scienceDetail, scienceHeadline, scienceReport, scienceSentence, timeline, usedApproximateData, wentEmpty } from './model';
+import { blackoutSols, consumptionSummary, explainOutcome, goalOutcomes, lowestPoints, nextSteps, reviewDecisions, scienceDetail, scienceHeadline, scienceReport, scienceSentence, timeline, usedApproximateData, endedStore } from './model';
 
 const FLARES = [
   { classType: 'X5.8', approximate: true, when: 'in a test' },
@@ -101,18 +101,36 @@ describe('explainOutcome', () => {
   });
 
   it('blames carrying on during a flare for a shielding loss, and says what was built', () => {
-    const run = playOut(['solar-array', 'batteries', 'greenhouse'], { ...SMART, flare: 'carry-on' });
+    /* A regolith shield is what lets the run reach the flare on sol 10: without
+       one the floor rule ends it on sol 2, before anything interesting happens. */
+    const run = playOut(SOLAR, { ...SMART, flare: 'carry-on' });
     const explanation = explainOutcome(run);
 
     expect(explanation.headline).toContain('shielding');
     expect(explanation.detail).toContain('carry on working');
-    expect(explanation.detail).toContain('no regolith shield');
+    expect(explanation.detail).toContain('1 regolith shield');
     expect(explanation.detail).toMatch(/shield that was at \d+ out of 100/);
     expect(explanation.confident).toBe(true);
   });
 
+  it('says the mission was scrubbed when the floor rule ended it, never that a tank emptied', () => {
+    /* No shield module: the shielding walks down through the 30% line and the
+       crew is brought home while the tank is still part full. */
+    const run = playOut(['solar-array', 'batteries'], SMART);
+    const explanation = explainOutcome(run);
+
+    expect(run.status).toBe('lost');
+    expect(explanation.headline).toContain('Mission scrubbed');
+    expect(explanation.headline).toContain('30%');
+    expect(explanation.detail).not.toContain('ran out');
+    expect(explanation.detail).toContain('Nobody is hurt');
+  });
+
   it('says when the clock ran out and the choice was made for the player', () => {
-    let run = startOutpost(withState(newRun('jezero', 'T'), { forecast: fixedForecast() }), [...CORE_MODULES, 'greenhouse']);
+    let run = startOutpost(withState(newRun('jezero', 'T'), { forecast: fixedForecast() }), [
+      ...CORE_MODULES,
+      ...SOLAR,
+    ]);
 
     while (run.status === 'active') {
       const crisis = pendingCrisis(run);
@@ -159,8 +177,18 @@ describe('the rest of the debrief', () => {
     expect(summary.powerGenerated).toBeGreaterThan(0);
   });
 
+  it('says how much the nights took, because that is where the power went', () => {
+    const run = playOut(SOLAR, SMART);
+    const summary = consumptionSummary(run);
+
+    expect(summary.powerNight).toBeGreaterThan(0);
+    expect(summary.powerNight).toBeLessThan(summary.powerGenerated);
+  });
+
   it('lists the sols with a blackout', () => {
-    expect(blackoutSols(playOut([], SMART)).length).toBeGreaterThan(0);
+    /* The storm on sols 7 and 8 folds the panels away, and with no nuclear unit
+       that is a blackout — provided the outpost is still running by then. */
+    expect(blackoutSols(playOut(['greenhouse', 'regolith-shield'], SMART)).length).toBeGreaterThan(0);
   });
 
   it('reviews each decision, calling carrying on through a flare a catch and sheltering a solve', () => {
@@ -201,8 +229,8 @@ describe('the rest of the debrief', () => {
   it('names the store that ended the run, and nothing at all after a win', () => {
     const lost = withState(playOut(SOLAR, SMART), { status: 'lost', stores: { power: 40, oxygen: 40, water: 0, food: 40, shielding: 40 } });
 
-    expect(wentEmpty(lost)).toBe('water');
-    expect(wentEmpty(playOut(SOLAR, SMART))).toBeNull();
+    expect(endedStore(lost)).toBe('water');
+    expect(endedStore(playOut(SOLAR, SMART))).toBeNull();
   });
 });
 
@@ -256,8 +284,12 @@ describe('nextSteps', () => {
   });
 
   it('tells a food loss with no greenhouse to add one', () => {
-    const run = playOut(['solar-array', 'batteries'], SMART);
-    const steps = nextSteps(withState(run, { status: 'lost', stores: { ...run.stores, food: 0 } }));
+    /* A shielded outpost with no greenhouse: the shield keeps the run alive
+       long enough for the food to be the thing that fails, so the log really
+       says what the advice is about. Forcing the stores alone would leave a
+       log that never saw the food dip, and `missed()` reads the log. */
+    const run = playOut(['solar-array', 'solar-array', 'batteries', 'batteries', 'regolith-shield'], SMART);
+    const steps = nextSteps(run);
 
     expect(steps[0].title).toBe('Add a greenhouse');
     expect(steps[0].art).toBe('greenhouse');
@@ -381,7 +413,9 @@ describe('the five science goals at the end', () => {
   });
 
   it('says the power took damage when the batteries ran flat', () => {
-    const power = goalOutcomes(playOut([], SMART)).find((outcome) => outcome.id === 'power');
+    const power = goalOutcomes(playOut(['greenhouse', 'regolith-shield'], SMART)).find(
+      (outcome) => outcome.id === 'power',
+    );
 
     expect(power?.verdict).toBe('hurt');
     expect(power?.detail).toContain('ran flat');

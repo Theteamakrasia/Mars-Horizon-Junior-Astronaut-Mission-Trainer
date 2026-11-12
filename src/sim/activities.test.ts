@@ -3,16 +3,20 @@ import { describe, expect, it } from 'vitest';
 import {
   ACTIVITY_CATALOGUE,
   activityById,
+  canAfford,
+  nightWarning,
   offerFor,
+  offerForSpec,
   planForSol,
   SOL_PLANS,
   type ActivityOffer,
 } from './activities';
 import { CORE_MODULES } from './modules';
-import { newRun, type RunState } from './run';
+import { newRun, startOutpost, withState, type RunState } from './run';
 import { SCIENCE_TOPICS } from './topics';
 
-const run = newRun('jezero', 'Tester');
+/** A run with the lander's outpost built and the batteries full. */
+const run = startOutpost(newRun('jezero', 'Tester'), CORE_MODULES);
 
 /** A run with the modules an activity might be locked behind. */
 function withModules(...modules: readonly string[]): ReturnType<typeof newRun> {
@@ -171,5 +175,61 @@ describe('offering activities', () => {
     for (const spec of free) {
       expect(everyOffer(run).find((offer) => offer.spec.id === spec.id)?.available).toBe(true);
     }
+  });
+});
+
+describe('the power gate', () => {
+  /* A run with nothing on the surface: no panels to make power and no
+     batteries to hold it, so there is none to spend today. */
+  const dark: RunState = {
+    ...run,
+    modules: [],
+    stores: { ...run.stores, power: 0 },
+  };
+
+  it('locks a job the day cannot pay for, and says the price and the charge', () => {
+    const survey = everyOffer(dark).find((offer) => offer.spec.id === 'survey');
+
+    expect(survey?.available).toBe(false);
+    expect(survey?.lockedReason).toContain('25 kWh');
+    expect(survey?.lockedReason).toContain('You can spend 0 kWh today');
+  });
+
+  it('unlocks the same job the moment there is power for it', () => {
+    const charged = offerForSpec(activityById('survey')!, { ...run, stores: { ...run.stores, power: 25 } });
+
+    expect(charged.available).toBe(true);
+    expect(charged.lockedReason).toBeNull();
+  });
+
+  it('never locks resting, however empty the batteries are', () => {
+    const rest = offerForSpec(activityById('rest')!, dark);
+
+    expect(rest.available).toBe(true);
+    expect(rest.lockedReason).toBeNull();
+  });
+
+  it('counts the panels as well as the bank, so an empty bank is not a no', () => {
+    /* The rule the player reported: the bank is empty at dawn because the
+       night took it, and the job was refused even though the Sun was about to
+       make 258 kWh. The job is paid for out of the day, not out of the dark. */
+    const survey = activityById('survey')!;
+    const empty = withState(run, { stores: { ...run.stores, power: 0 } });
+
+    expect(canAfford(survey, empty)).toBe(true);
+    expect(canAfford(survey, dark)).toBe(false);
+  });
+
+  it('warns when paying for a job would leave the night short, but still allows it', () => {
+    /* The night is a warning and never a lock: the player may spend the
+       reserve, but the card says what the reserve will be afterwards. Arcadia
+       is the poor site: its panels make less than the outpost needs, so the
+       night is already tight. */
+    const dusty = startOutpost(newRun('arcadia', 'Tester'), CORE_MODULES);
+    const survey = activityById('survey')!;
+
+    expect(canAfford(survey, dusty)).toBe(true);
+    expect(nightWarning(survey, dusty)).toContain('tonight needs');
+    expect(nightWarning(activityById('rest')!, dusty)).toBeNull();
   });
 });

@@ -30,6 +30,26 @@ export const RESOURCE_NAMES: readonly ResourceName[] = [
 /** Full tank for every store except power. */
 export const STORE_CAPACITY = 100;
 
+/**
+ * The line a store has to stay above.
+ *
+ * Thirty percent. Below it the store is in the danger zone, and two sols in a
+ * row down there is what ends a mission. It is a warning line rather than a
+ * cliff: one bad sol is a lesson the crew can come back from, two in a row is
+ * the point where the stores can no longer be relied on.
+ */
+export const RESOURCE_FLOOR = 30;
+
+/**
+ * How many sols in a row below the floor ends the run.
+ *
+ * Two, and two *in a row*: a store that comes back above the line has been
+ * dealt with, and the count starts again. That is the kinder rule for a child,
+ * and the easier one to say out loud — "two days in a row is the limit" is a
+ * sentence a nine-year-old can repeat.
+ */
+export const FLOOR_STRIKES = 2;
+
 export interface ResourceStores {
   readonly power: number;
   readonly oxygen: number;
@@ -94,6 +114,61 @@ export function drainForSol(
 
 /** The stores that keep people alive. Power is not one: an empty battery causes a blackout, and the blackout is what hurts. */
 export const LIFE_STORES: readonly ResourceName[] = ['oxygen', 'water', 'food', 'shielding'];
+
+/**
+ * The stores the floor rule watches.
+ *
+ * The same four as `LIFE_STORES`, and deliberately so: they are the stores a
+ * crew cannot do without, so they are both the ones that end a run at zero and
+ * the ones that carry a warning line. Aliased rather than written out twice,
+ * because two lists that must agree eventually stop agreeing.
+ *
+ * Power is absent for a different reason. An empty battery is not the end by
+ * itself — it switches life support off, and *that* is what runs these four
+ * down. Power is kept honest by the gate in `sim/activities.ts` instead: a job
+ * the batteries cannot pay for cannot be started.
+ */
+export const FLOORED_STORES: readonly ResourceName[] = LIFE_STORES;
+
+/**
+ * How many sols in a row this store has ended below the floor.
+ *
+ * Read off the end of the log, so it needs no state of its own and cannot
+ * drift from the numbers the player was shown. A store at zero counts as
+ * `FLOOR_STRIKES` at once: the tank is empty, and there is nothing left to
+ * save, which is why an empty store still ends a run on the sol it empties.
+ */
+export function floorStreak(
+  log: readonly { readonly stores: ResourceStores }[],
+  name: ResourceName,
+): number {
+  if (!FLOORED_STORES.includes(name)) return 0;
+
+  let streak = 0;
+
+  for (let index = log.length - 1; index >= 0; index -= 1) {
+    const stores = log[index]?.stores;
+
+    if (stores === undefined) break;
+    /* Empty is the whole warning spent: the crew had nothing left. */
+    if (stores[name] <= 0) return FLOOR_STRIKES;
+    if (stores[name] >= RESOURCE_FLOOR) break;
+
+    streak += 1;
+  }
+
+  return streak;
+}
+
+/**
+ * The stores that have been below the floor too long.
+ *
+ * In the canonical order, so a debrief always names the same store first when
+ * two of them went at once.
+ */
+export function scrubbedStores(log: readonly { readonly stores: ResourceStores }[]): readonly ResourceName[] {
+  return FLOORED_STORES.filter((name) => floorStreak(log, name) >= FLOOR_STRIKES);
+}
 
 /** Which stores are at or below zero, i.e. how a run can end. */
 export function depletedStores(stores: ResourceStores): readonly ResourceName[] {

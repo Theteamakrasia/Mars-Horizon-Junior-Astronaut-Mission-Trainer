@@ -62,6 +62,18 @@ export const GUIDE_STEPS: readonly GuideStep[] = [
     where: 'desk',
   },
   {
+    id: 'power',
+    title: 'The power budget',
+    body: 'Each sol the panels make power and the outpost needs it. What is left is what a job may cost. A red number means you are running down.',
+    where: 'desk',
+  },
+  {
+    id: 'night',
+    title: 'The night',
+    body: 'Half of every sol is dark, and the night takes its power from the batteries. Every price on the screen tells you what the night will need.',
+    where: 'desk',
+  },
+  {
     id: 'tool',
     title: 'Working an order',
     body: 'Some orders have a tool. Work it and you win stars, and stars make the order worth more science.',
@@ -71,6 +83,12 @@ export const GUIDE_STEPS: readonly GuideStep[] = [
     id: 'board',
     title: 'The standing orders',
     body: 'The rules you work to. Two more arrive every sol, and by the end there are twenty-four of them.',
+    where: 'board',
+  },
+  {
+    id: 'training',
+    title: 'Training',
+    body: 'Two games a sol open the day orders. The same game twice counts as both and pays both times, so practise the one you need.',
     where: 'board',
   },
   {

@@ -725,7 +725,9 @@ try {
       return notes.find((text) => text.includes('kWh')) ?? '';
     })()`);
 
-    note('the stats sheet explains the empty batteries', /ran flat|panels made/.test(powerLine), powerLine);
+    /* The receipt has to account for the sol: what was made, what the night
+       took, what spilled and where the bank ended. */
+    note('the stats sheet explains the empty batteries', /ran flat|spilled|Yesterday/.test(powerLine), powerLine);
     await closeSheet();
 
     const review = await evaluate(`(() => {

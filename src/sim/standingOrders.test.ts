@@ -57,7 +57,16 @@ describe('the standing orders', () => {
   });
 
   it('is found by id', () => {
-    expect(orderById('dust-fold')?.goal).toBe('dust-storm');
+    expect(orderById('floor-thirty')?.goal).toBe('life-support');
     expect(orderById('nothing-like-this')).toBeNull();
+  });
+
+  it('opens the board with the two rules a run can be lost to', () => {
+    /* A player must never lose to a rule the board has not posted yet, and the
+       floor rule is the one that ends more runs than any other. */
+    const first = ordersForSol(1).map((order) => order.id);
+
+    expect(first).toContain('floor-thirty');
+    expect(ordersForSol(2).map((order) => order.id)).toContain('power-first');
   });
 });

@@ -18,6 +18,7 @@ import { icon, type IconName } from './icons';
 import {
   TRAINING_GAMES,
   TRAINING_REWARDS,
+  TRAINING_YIELDS,
   canStartTraining,
   completeTraining,
   emptyTraining,
@@ -28,6 +29,7 @@ import {
   trainingSeed,
   trainingSol,
   withTrainingDay,
+  withTrainingYields,
   EMPTY_TRAINING_RECORD,
   type TrainingDayRecord,
   type TrainingGame,
@@ -36,6 +38,8 @@ import {
   type TrainingRecord,
   type TrainingState,
 } from '../sim/training';
+import { systemsFor } from '../sim/modules';
+import type { ResourceName } from '../sim/resources';
 import type { RunState } from '../sim/run';
 
 import { mountAsteroid } from './trainingAsteroid';
@@ -74,6 +78,37 @@ const PERFORMANCE_LABEL: Readonly<Record<TrainingPerformance, string>> = {
   good: 'Good work! ⭐⭐',
   basic: 'Done ⭐',
 };
+
+/** A store's name as the rest of the game says it. */
+const YIELD_LABEL: Readonly<Record<ResourceName, string>> = {
+  power: 'power',
+  oxygen: 'air',
+  water: 'water',
+  food: 'food',
+  shielding: 'shielding',
+};
+
+/** What a game is worth, as the tag on its card: the floor of its range. */
+function yieldTag(gameId: TrainingGameId): string {
+  const spec = TRAINING_YIELDS[gameId];
+  const unit = spec.store === 'power' ? ' kWh' : '';
+
+  return `+${spec.basic}${unit} ${YIELD_LABEL[spec.store]} a game`;
+}
+
+/** What a game put in the stores, in a sentence that can be read aloud. */
+function payoutText(payout: { readonly store: ResourceName; readonly amount: number; readonly stored: number }): string {
+  const unit = payout.store === 'power' ? ' kWh' : '';
+  const name = YIELD_LABEL[payout.store];
+
+  if (payout.stored >= payout.amount) return `+${payout.stored}${unit} ${name}`;
+
+  /* The reward is clamped by the tank, not lost by the game, and a child who
+     is told why learns something a silent no-op would hide. */
+  return payout.stored > 0
+    ? `+${payout.stored}${unit} ${name} — the tank was nearly full, so the rest had nowhere to go`
+    : `The ${name} was already full, so there was nothing to top up`;
+}
 
 /** Where the record of the day's training is written. */
 const STORAGE_KEY = 'mars-horizon.training.v1';
@@ -168,6 +203,14 @@ export function applyTrainingRecord(run: RunState): RunState {
   return {
     ...run,
     science: run.science + day.pointsToday,
+    /* The games paid a store as well as points, so rebuilding the day has to
+       rebuild that too. Both come from the record, so a refresh restores the
+       same numbers the player saw rather than a second helping of them. */
+    stores: withTrainingYields(
+      run.stores,
+      systemsFor(run.modules, run.regionId).batteryKwh,
+      day.completed,
+    ),
     training: { sol, completed: day.completed, pointsToday: day.pointsToday },
   };
 }
@@ -175,9 +218,11 @@ export function applyTrainingRecord(run: RunState): RunState {
 /* ------------------------------------------------------------------ section -- */
 
 /** What the Play button on a card says. */
-function buttonText(status: 'available' | 'completed' | 'locked'): string {
-  if (status === 'completed') return 'Play again';
+function buttonText(status: 'available' | 'completed' | 'locked', plays: number): string {
   if (status === 'locked') return 'Locked';
+  /* A game that has been played today can be played again: it is the day's
+     other play, and it pays again. */
+  if (plays > 0) return 'Play again';
 
   return 'Play';
 }
@@ -221,7 +266,9 @@ export function trainingSection(
     ...TRAINING_GAMES.map((game: TrainingGame) => {
       const row = day.games.find((entry) => entry.id === game.id);
       const status = row?.status ?? 'available';
-      const button = h('button', { class: 'trn__play', type: 'button', text: buttonText(status) });
+      const plays = row?.plays ?? 0;
+      const points = row?.points ?? 0;
+      const button = h('button', { class: 'trn__play', type: 'button', text: buttonText(status, plays) });
 
       button.addEventListener('click', () => options.onPlay(game.id));
 
@@ -238,11 +285,15 @@ export function trainingSection(
           h('span', { class: 'trn__tag', text: game.difficulty }),
           h('span', {
             class: 'trn__tag',
-            text: status === 'completed' ? `+${row?.points ?? 0} points` : `${TRAINING_REWARDS.basic}–${TRAINING_REWARDS.excellent} points`,
+            text: plays > 0 ? `+${points} points` : `${TRAINING_REWARDS.basic}–${TRAINING_REWARDS.excellent} points`,
           }),
+          h('span', { class: 'trn__tag trn__tag--yield', text: yieldTag(game.id) }),
         ),
-        status === 'completed'
-          ? h('p', { class: 'trn__card-done', text: `Completed ✓ · ${row?.points ?? 0} points earned` })
+        plays > 0
+          ? h('p', {
+              class: 'trn__card-done',
+              text: plays > 1 ? `Played ${plays}× ✓ · ${points} points earned` : `Played ✓ · ${points} points earned`,
+            })
           : status === 'locked'
             ? h('p', { class: 'trn__card-locked', text: '🔒 Locked — two games are done today' })
             : null,
@@ -257,7 +308,7 @@ export function trainingSection(
     h('h2', { class: 'trn__title', text: 'ASTRONAUT TRAINING' }),
     h('p', {
       class: 'trn__sub',
-      text: "Complete two training activities to prepare your colony for today's mission.",
+      text: "Complete two training activities to prepare your colony for today's mission. The same game twice counts as both, and pays both times.",
     }),
     progress,
     options.notice === '' ? null : h('p', { class: 'trn__notice', role: 'status', text: options.notice }),
@@ -309,6 +360,10 @@ export function openTrainingGame(
   const winMessage = meta.winMessage;
   const instructions = meta.instructions;
 
+  /* The run the game is played on. It moves on as the crew finishes games,
+     so a replay in the same dialog is paid on top of the first play rather
+     than on top of the run the dialog opened with. */
+  let current = options.run;
   let handle: TrainingGameHandle | null = null;
   let finished = false;
   let round = 0;
@@ -339,7 +394,7 @@ export function openTrainingGame(
     handle?.destroy();
     area.replaceChildren();
 
-    const random = makeRandom(trainingSeed(trainingSol(options.run), gameId) + round);
+    const random = makeRandom(trainingSeed(trainingSol(current), gameId) + round);
 
     handle = GAME_MOUNT[gameId](area, {
       setStatus: (text) => {
@@ -351,14 +406,19 @@ export function openTrainingGame(
 
         finished = true;
 
-        const outcome = completeTraining(options.run, gameId, performance);
+        const outcome = completeTraining(current, gameId, performance);
 
         if (!outcome.ok) {
-          /* It was finished earlier today, so there is nothing to pay for. */
+          /* The day's two games are already done, so there is nothing to pay
+             for. The reason says so. */
           showDone(null, outcome.message);
 
           return;
         }
+
+        /* The run moves on, so the next round in this dialog is paid on top
+           of what this one paid. */
+        current = outcome.run;
 
         writeTrainingDay(trainingSol(outcome.run), outcome.run.training);
         options.onFinished(outcome.run);
@@ -369,7 +429,14 @@ export function openTrainingGame(
 
   /** The screen the player sees when the game is over. */
   function showDone(
-    outcome: { points: number; performance: TrainingPerformance; completedCount: number; dailyLimit: number; tasksUnlocked: boolean } | null,
+    outcome: {
+      points: number;
+      performance: TrainingPerformance;
+      payout: { readonly store: ResourceName; readonly amount: number; readonly stored: number };
+      completedCount: number;
+      dailyLimit: number;
+      tasksUnlocked: boolean;
+    } | null,
     refusal: string | null,
   ): void {
     const again = h('button', { class: 'trn__btn trn__btn--primary', type: 'button', text: 'Continue' });
@@ -392,6 +459,7 @@ export function openTrainingGame(
       h('p', { class: 'trn__done-text', text: winMessage }),
       h('p', { class: 'trn__done-perf', text: PERFORMANCE_LABEL[outcome.performance] }),
       h('p', { class: 'trn__done-points', text: `+${outcome.points} POINTS` }),
+      h('p', { class: 'trn__done-yield', text: payoutText(outcome.payout) }),
       h('p', { class: 'trn__done-progress', text: `Daily progress: ${outcome.completedCount}/${outcome.dailyLimit} games completed` }),
     ];
 

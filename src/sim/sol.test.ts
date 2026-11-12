@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { earthCanAnswerInTime, oneWayMinutes, roundTripMinutes } from './comms';
-import { crisisForEvent, earthAdvice, earthIsInTime, pendingCrisis } from './crises';
+import { availableOptions, canAffordOption, fallbackOption, crisisForEvent, earthAdvice, earthIsInTime, pendingCrisis } from './crises';
 import {
   createForecast,
   DEFAULT_SEED,
@@ -30,6 +30,7 @@ import {
   lostStores,
   powerPicture,
   projectSol,
+  wasScrubbed,
   WIN_SOL,
 } from './sol';
 
@@ -408,14 +409,46 @@ describe('the main activity', () => {
     expect(tuned).toBeGreaterThan(plain);
   });
 
-  it('spends the activity power, so a flat battery runs that sol in a blackout', () => {
+  it('does not start a job the day cannot pay for', () => {
+    /* No panels and no batteries: there is no power at all today, so the
+       crew's day goes unspent. */
     const bare = outpost('jezero', []);
-    const flat = withState(bare, { stores: { ...bare.stores, power: 0 } });
+    const dark = withState(bare, { modules: [], stores: { ...bare.stores, power: 0 } });
 
-    const quiet = advanceSol(flat).log[0].blackout;
-    const busy = advanceSol(withState(flat, { chosenActivity: 'survey' })).log[0].blackout;
+    const busy = advanceSol(withState(dark, { chosenActivity: 'survey' }));
 
-    expect(busy).toBeGreaterThan(quiet);
+    /* The job is refused rather than run at a loss: a survey needs 25 kWh and
+       there are none, so the crew's day goes unspent. */
+    expect(busy.log[0]?.activity).toBeNull();
+    expect(busy.log[0]?.notes.join(' ')).toContain('not enough power');
+  });
+
+  it('starts a job the panels will pay for, even with an empty bank', () => {
+    /* The complaint the player brought: the bank is empty at dawn because the
+       night took it, and the job was refused even though the Sun was about to
+       make 258 kWh. The job is paid for out of the day, not out of the dark
+       (ISS-083). */
+    const bare = outpost('jezero', []);
+    const empty = withState(bare, { stores: { ...bare.stores, power: 0 } });
+
+    const busy = advanceSol(withState(empty, { chosenActivity: 'survey' }));
+
+    expect(busy.log[0]?.activity?.id).toBe('survey');
+    /* The bank was empty at dawn, so the night was a little short - but the
+       job ran, which is the whole point. */
+    expect(busy.log[0]?.blackout ?? 1).toBeLessThan(0.05);
+  });
+
+  it('spends the activity power when the batteries can afford it', () => {
+    const charged = withState(outpost('jezero', []), {
+      stores: { ...outpost('jezero', []).stores, power: 25 },
+    });
+
+    const quiet = advanceSol(charged).log[0];
+    const busy = advanceSol(withState(charged, { chosenActivity: 'survey' })).log[0];
+
+    expect(busy?.activity?.id).toBe('survey');
+    expect(busy?.powerUsed ?? 0).toBeGreaterThan(quiet?.powerUsed ?? 0);
   });
 
   it('restores the panels when the crew sweeps them, and never past full', () => {
@@ -491,6 +524,32 @@ describe('crisis decisions', () => {
 
     expect(() => decide(run, 'flare-999', 'shelter')).toThrow(RangeError);
     expect(() => decide(run, eventOfKind(run.forecast, 'flare').id, 'teleport')).toThrow(RangeError);
+  });
+
+  it('refuses an option the day cannot pay for, rather than spending power it does not have', () => {
+    const base = outpost('jezero', SOLAR_FIRST);
+    const flare = eventOfKind(base.forecast, 'flare');
+    /* Nothing on the surface: no power to be had today. */
+    const dark = withState(base, { modules: [], stores: { ...base.stores, power: 0 } });
+
+    /* Piling soil on the roof runs the digger, and the digger is 60 kWh. */
+    expect(() => decide(dark, flare.id, 'shield-up')).toThrow(/60 kWh/);
+    /* The free options are still there, so a flat battery is never a dead end. */
+    expect(() => decide(dark, flare.id, 'carry-on')).not.toThrow();
+  });
+
+  it('offers only what the day can pay for, and always at least one thing', () => {
+    const base = outpost('jezero', SOLAR_FIRST);
+    const crisis = crisisForEvent(eventOfKind(base.forecast, 'flare'));
+    const dark = withState(base, { modules: [], stores: { ...base.stores, power: 0 } });
+    const rich = withState(base, { stores: { ...base.stores, power: 100 } });
+
+    expect(availableOptions(dark, crisis).some((option) => option.id === 'shield-up')).toBe(false);
+    expect(availableOptions(rich, crisis).some((option) => option.id === 'shield-up')).toBe(true);
+    expect(availableOptions(dark, crisis).length).toBeGreaterThan(0);
+
+    /* A countdown must never charge for an option it would not have offered. */
+    expect(canAffordOption(dark, fallbackOption(dark, crisis))).toBe(true);
   });
 
   it('makes sheltering cost less shielding than carrying on, but pause the greenhouse', () => {
@@ -599,6 +658,33 @@ describe('ending a run', () => {
   it('does not end a run just because the battery is empty', () => {
     expect(isRunOver({ power: 0, oxygen: 50, water: 50, food: 50, shielding: 50 })).toBe(false);
     expect(lostStores({ power: 0, oxygen: 0, water: 5, food: 5, shielding: 5 })).toEqual(['oxygen']);
+  });
+
+  it('ends the run on the second sol in a row under the floor, and names the store', () => {
+    const base = outpost('jezero', []);
+    const low = withState(base, { stores: { ...base.stores, water: 20 } });
+    const one = advanceSol(low);
+
+    expect(one.status).toBe('active');
+    expect(wasScrubbed(one)).toBe(false);
+
+    const two = advanceSol(one);
+
+    expect(two.status).toBe('lost');
+    expect(wasScrubbed(two)).toBe(true);
+    expect(endedBy(two)).toEqual(['water']);
+    expect(two.stores.water).toBeGreaterThan(0);
+  });
+
+  it('starts the count again when a store comes back above the floor', () => {
+    const base = outpost('jezero', []);
+    const low = withState(base, { stores: { ...base.stores, water: 20 } });
+    const first = advanceSol(low);
+    const recovered = advanceSol(withState(first, { stores: { ...first.stores, water: 60 } }));
+    const dipped = advanceSol(withState(recovered, { stores: { ...recovered.stores, water: 25 } }));
+
+    expect(dipped.status).toBe('active');
+    expect(wasScrubbed(dipped)).toBe(false);
   });
 
   it('can tell a self-sustaining outpost from one living on its reserves', () => {

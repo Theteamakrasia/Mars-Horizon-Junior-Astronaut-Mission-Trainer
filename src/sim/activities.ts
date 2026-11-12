@@ -17,6 +17,7 @@
 import type { ScienceGoal } from './goals';
 import type { EngineKind } from './minigames';
 import type { ModuleKind } from './modules';
+import { canAffordKwh, powerBudget } from './powerBudget';
 import type { ResourceStores } from './resources';
 import type { RunState } from './run';
 import type { ScienceTopic } from './topics';
@@ -382,23 +383,76 @@ export function planForSol(sol: number): SolPlan | null {
 }
 
 /**
+ * True when the batteries can pay for this job right now.
+ *
+ * The job is paid for out of what the batteries will hold at the end of the
+ * day, not out of the sunlight that arrives during it — but that sunlight is
+ * in the number, because the panels fill the batteries while the outpost
+ * draws from them. So a job is affordable when the day's panels and the
+ * batteries in store can pay for it.
+ *
+ * It is the same rule as a crisis option and the same number the desk shows.
+ */
+export function canAfford(spec: ActivitySpec, run: RunState): boolean {
+  return canAffordKwh(run, spec.powerCostKwh);
+}
+
+/**
  * Why an activity cannot be chosen, or null when it can.
  *
- * Only the outpost itself can lock an activity: a module the player has not
- * built, or panels that are already clean. Nothing here depends on the
- * weather or on the stores, so what the player is told never changes under
- * them while they are reading it.
+ * The outpost itself can lock an activity — a module the player has not built,
+ * or panels that are already clean — and so can a flat battery. The module and
+ * panel reasons are checked first because they are about the outpost's shape
+ * and will not change while the player reads the card; the power reason is
+ * about this sol's store and changes the moment a sol is advanced.
  */
 export function lockedReason(spec: ActivitySpec, run: RunState): string | null {
   const requires = spec.requires;
 
-  if (requires === undefined) return null;
-
-  if (requires.kind === 'module') {
-    return run.modules.includes(requires.module) ? null : requires.why;
+  if (requires !== undefined) {
+    if (requires.kind === 'module' && !run.modules.includes(requires.module)) return requires.why;
+    if (requires.kind === 'dirty-panels' && run.panelHealth >= 1) return requires.why;
   }
 
-  return run.panelHealth < 1 ? null : requires.why;
+  /*
+   * Power is the one resource with no floor line: it does not end the run by
+   * sitting low, it stops the crew working. A job the batteries cannot pay for
+   * cannot be started, and the card says exactly what is short — the price,
+   * what there is to spend and what the night will need — so the player can
+   * see how far off they are.
+   *
+   * `rest` costs nothing, so this can never leave the day with no choice.
+   */
+  if (!canAfford(spec, run)) {
+    const budget = powerBudget(run);
+
+    return (
+      `This job needs ${spec.powerCostKwh} kWh. You can spend ${Math.round(budget.spendableKwh)} kWh today, ` +
+      `and tonight needs ${Math.round(budget.nightNeedKwh)} kWh.`
+    );
+  }
+
+  return null;
+}
+
+/**
+ * The warning a job carries when paying for it would break the night's
+ * reserve, or null when it would not.
+ *
+ * The night is a warning and never a lock. The player may spend the reserve —
+ * sometimes that is the right call — but the card says what the reserve will
+ * be afterwards, because a bank that is 24 kWh short at midnight is how a run
+ * ends.
+ */
+export function nightWarning(spec: ActivitySpec, run: RunState): string | null {
+  if (spec.powerCostKwh === 0) return null;
+
+  const budget = powerBudget(run);
+  const left = Math.max(0, budget.spendableKwh - spec.powerCostKwh);
+
+  if (left >= budget.nightNeedKwh) return null;
+
+  return `Paying for this leaves ${Math.round(left)} kWh, and tonight needs ${Math.round(budget.nightNeedKwh)} kWh.`;
 }
 
 /** An activity and whether the player may pick it right now. */

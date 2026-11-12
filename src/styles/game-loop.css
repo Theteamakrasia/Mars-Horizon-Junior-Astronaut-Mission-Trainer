@@ -821,6 +821,17 @@
   background: var(--gl-warn-bg);
 }
 
+/* A store already under the floor: hotter than the training lock, because it
+   is the last sol before the crew is brought home. */
+.gl__callout[data-tone='bad'] {
+  background: var(--gl-peach);
+  box-shadow: inset 0 0 0 1px var(--gl-orange);
+}
+
+.gl__callout[data-tone='bad'] .gl__callout-title {
+  color: var(--gl-orange);
+}
+
 /* The good result: everything held. */
 .gl__callout[data-tone='good'] {
   background: var(--gl-green-soft);
@@ -1030,6 +1041,15 @@
 
 .gl__choice:hover {
   background: var(--gl-card-strong);
+}
+
+/* An option the batteries cannot pay for: still readable, plainly not a
+   button. Kept visible rather than hidden, so the price is the lesson. */
+.gl__choice--locked,
+.gl__choice--locked:hover {
+  background: var(--gl-card);
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .gl__choice-icon {

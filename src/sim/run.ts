@@ -64,6 +64,22 @@ export interface SolRecord {
   readonly powerUsed: number;
   /** Power the panels made that had nowhere to go because the batteries were full. */
   readonly powerWasted: number;
+  /**
+   * kWh the night alone took from the batteries.
+   *
+   * The night is the silent spender: it is most of what a sol uses, and it was
+   * never on the screen, so a player who spent 15 kWh out of a bank holding
+   * 150 could not work out why the bank was nearly empty at the next dawn
+   * (ISS-083). The receipt says it in numbers.
+   */
+  readonly powerNight: number;
+  /**
+   * kWh the day's work cost: the job, and any crisis option that had a price.
+   *
+   * What the crew spent on doing something, as against what the outpost used
+   * to keep running.
+   */
+  readonly powerExtra: number;
   /** 0-1: the share of the sol's power demand that could not be met. */
   readonly blackout: number;
   /** 0-1: how clean the panels were at the end of the sol. Dust only ever goes down. */
