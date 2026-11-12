@@ -340,7 +340,8 @@ you worked under.
 Resource Merge, Memory Match, Rover Parking, Solar Panel Power-Up, Cargo Sorting and
 Asteroid Defender - and the day's work orders stay locked until the crew has finished any
 two of them. Each game is worth a few science points, and the day's record is written
-down, so a refresh cannot hand you the same two games twice.
+down — for that run only: naming yourself again, or playing again from the debrief, starts
+the training over (D-081).
 
 Also on the desk: a **note from home** or the crew, and — if you sent the rover out — the
 **document the rover brings back**, a real NASA picture of a place from the past or a rare

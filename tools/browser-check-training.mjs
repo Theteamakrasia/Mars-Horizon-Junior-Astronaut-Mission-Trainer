@@ -389,16 +389,21 @@ try {
   note("the third game does not open", opened === false);
   note("and the player is told why", notice.includes("next sol"), notice);
 
-  console.log("8 a refresh keeps the training");
+  /* A refresh is a new run - there is no save, so the player names themselves
+     again - and a new run starts with nothing trained (D-081). What this step
+     proves is that the written-down record cannot follow the run into the new
+     one: the six games are playable again, and the points earned in the old run
+     are not waiting on the score. */
+  console.log("8 a refresh starts a new run, so the training starts again");
   const before = await trainingState();
   await send("Page.reload", {});
   await sleep(2000);
   await toAct();
   const after = await trainingState();
-  note("the day is still two games on", after.count.includes("2/2"), after.count);
-  note("the tasks are still open", after.tasksLocked === "false", after.tasks);
-  note("the points are still on the score", after.science !== "", after.science);
-  note("the science score did not go back to nothing", after.science === before.science, `${before.science} then ${after.science}`);
+  note("a new run starts with no games played today", after.count.includes("0/2"), after.count);
+  note("so today's orders are locked again", after.tasksLocked === "true", after.tasks);
+  note("the six games can be played again", after.cards === 6, `${after.cards} games`);
+  note("and the training points did not follow the run", after.science !== before.science, `${before.science} then ${after.science}`);
 
   console.log("ERRORS: " + (errors.length === 0 ? "none" : errors.slice(0, 4).join(" | ")));
   const failed = notes.filter((n) => !n.ok);

@@ -159,8 +159,8 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   ├── browser-check-training.mjs  complete  Node only. Drives the real game in headless Chrome: the
     │   │                                         training section on the standing orders, all six games opening
     │   │                                         and drawing themselves, two games won for points, the day's
-    │   │                                         two-game limit refusing a third, and the record surviving a
-    │   │                                         refresh. 37 checks.
+    │   │                                         two-game limit refusing a third, and a new run starting
+    │   │                                         with the training cleared. 40 checks.
     │   └── browser-check-rover.mjs         complete   ~230 lines. Node only. Drives the real game in
 │                                                 headless Chrome over the DevTools Protocol: names the
 │                                                 astronaut, walks to the outpost, deploys the rover
@@ -498,7 +498,7 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         ASTRONAUT TRAINING section at the top of the Standing orders
     │   │                                         sheet, the dialog a game is played in, and the one thing the
     │   │                                         browser is good at: the record of the day's training, which
-    │   │                                         survives a refresh (D-075).
+    │   │                                         is cleared when a new run begins (D-081).
     │   ├── trainingGame.ts             complete  TrainingGameContext, TrainingGameHandle, TrainingGameMount.
     │   │                                         The contract every training game keeps: a status line, a
     │   │                                         completion callback, a generator, and a destroy that stops
@@ -1130,7 +1130,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 | `sim/trainingSolar` | `generateSolarPuzzle`, `solarFlow`, `rotateSolarTile`, `solarTapsNeeded`, `solarPerformance` | the power board, generated rather than written down: a route is carved and every tile on it is turned away from its answer, so the game is always winnable and never starts solved (D-075) |
 | `sim/trainingCargo` | `CARGO_BOXES`, `CARGO_ITEMS`, `dealCargoRound`, `cargoPerformance` | the supplies that land and the stores they belong in. Every store gets at least one crate (D-075) |
 | `sim/trainingAsteroid` | `ASTEROID_GOAL`, `ASTEROID_SECONDS`, `asteroidDelay`, `asteroidLife`, `asteroidIsDecoy`, `asteroidAccuracy`, `asteroidPerformance` | the round outside the outpost: what drifts past, how fast, and what a friendly satellite costs the player (D-075) |
-| `ui/training` | `trainingSection`, `openTrainingGame`, `readTrainingRecord`, `writeTrainingDay`, `applyTrainingRecord` | the ASTRONAUT TRAINING section at the top of the Standing orders sheet, the dialog a game is played in, and the record of the day's training. The record is written to `localStorage` under one key, so a refresh does not hand the player the same two games again; everything else in the run is still in memory (D-075) |
+| `ui/training` | `trainingSection`, `openTrainingGame`, `readTrainingRecord`, `writeTrainingDay`, `applyTrainingRecord`, `clearTrainingRecord` | the ASTRONAUT TRAINING section at the top of the Standing orders sheet, the dialog a game is played in, and the record of the day's training. The record is written to `localStorage` under one key and is cleared whenever a new run begins, so a refreshed or replayed run starts with nothing trained rather than inheriting the last run's games and points; everything else in the run is still in memory (D-081) |
 | | `applyTrainingRecord` | `(run) => RunState`; puts the written-down training back onto a run that has not trained yet today. A run that has already trained keeps what it did — the session is the truer record, and a browser that refused to write must not take points away (D-075) |
 | `ui/trainingGame` | `TrainingGameContext`, `TrainingGameHandle`, `TrainingGameMount` | the contract every training game keeps: a status line, a completion callback, a generator, and a `destroy` that stops every timer the game started (D-075) |
 | `sim/patches` | `Patch`, `patchesFor`, `PATCH_COUNT` | the ten badges a run earns, worked out from the run itself; the debrief prints the ones that were earned (D-060). No `icon`: `features/debrief/view.ts` maps a patch id to an `IconName` (D-070) |

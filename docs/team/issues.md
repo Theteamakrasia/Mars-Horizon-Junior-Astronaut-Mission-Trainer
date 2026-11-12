@@ -11,6 +11,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
+| ISS-095 | The training check asserted a refresh keeping the training, which the newest code had removed | medium | agent | fixed | this branch |
 | ISS-094 | The encyclopedia was one click away before the player had an outpost | medium | agent | fixed | this branch |
 | ISS-093 | The mini game merged with the desk sheet, and stayed there after it closed | medium | agent | fixed | this branch |
 | ISS-092 | The landing-site map left a blank band above and below the picture | low | agent | fixed | this branch |
@@ -104,6 +105,27 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | ISS-014 | `base.css` calls the page non-interactive while draggable | low | agent | fixed | this branch |
 
 ---
+
+## ISS-095 - The training check asserted a refresh keeping the training, which the newest code had removed
+
+- **Reported by:** agent, 2026-11-12, while verifying the merge of PR #35: three checks
+  failed on an otherwise green tree — "the day is still two games on" (0/2), "the tasks are
+  still open" (Locked · 2 training games first), and "the science score did not go back to
+  nothing" (8 points then 0 points).
+- **Where:** `tools/browser-check-training.mjs`, step 8; `src/ui/training.ts`,
+  `clearTrainingRecord()`; its callers in `features/naming/view.ts` and
+  `features/debrief/view.ts`.
+- **Problem:** the check asserted D-076's contract — the day's training is written down and
+  survives a refresh — while the code now clears the record whenever a run begins, and a
+  refresh is a new run because there is no save.
+- **Cause:** `70eb857` added the clear to stop a new run inheriting a previous run's games
+  and points, and did not update the check or the decision it contradicted. Both were left
+  in the tree asserting opposite things, and only the check could notice.
+- **Fix:** the behaviour is the newer decision, so the check follows it: a refresh is a new
+  run with 0/2 games, the orders locked, the six games playable again and no training
+  points carried over. D-081 records the rule and supersedes D-076's persistence sentence;
+  the architecture rows and the README stop claiming the day survives a refresh.
+- **Pre-existing:** yes, on `main` since `70eb857`; found by this merge, not caused by it.
 
 ## ISS-094 - The encyclopedia was one click away before the player had an outpost
 
@@ -1670,7 +1692,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-**Next free id: ISS-095.**
+**Next free id: ISS-096.**
 
 
 ---
