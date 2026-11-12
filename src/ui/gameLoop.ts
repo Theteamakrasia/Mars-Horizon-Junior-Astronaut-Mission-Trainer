@@ -165,6 +165,10 @@ export interface WorldOptions {
   readonly showBackground?: boolean;
   /** Show the crewmate sprite in the world panel. Default true; set false where it should not appear. */
   readonly showAstronaut?: boolean;
+  /** The crewmate image. Defaults to the sprite sheet used by the game loop. */
+  readonly astronautSrc?: string;
+  /** How to frame the crewmate image. Defaults to 'sprite'. */
+  readonly astronautVariant?: 'sprite' | 'image';
 }
 
 /** Everything the right-hand panel needs. */
@@ -458,7 +462,13 @@ export function gameWorld(options: WorldOptions): HTMLElement {
 
   if (options.hint !== undefined) world.append(h('p', { class: 'gl__hint', text: options.hint }));
   if (options.showAstronaut !== false) {
-    world.append(h('span', { class: 'gl__astronaut', 'aria-hidden': 'true', style: `background-image:url(${ASTRONAUT_SPRITE})` }));
+    const astronautSrc = options.astronautSrc ?? ASTRONAUT_SPRITE;
+    const astronautStyle =
+      options.astronautVariant === 'image'
+        ? `background-image:url(${astronautSrc});background-size:contain;background-position:center bottom`
+        : `background-image:url(${astronautSrc})`;
+
+    world.append(h('span', { class: 'gl__astronaut', 'aria-hidden': 'true', style: astronautStyle }));
   }
 
   return world;

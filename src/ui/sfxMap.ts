@@ -143,7 +143,7 @@ export const SFX = {
   'docking-clunk': { src: sfxDockingClamp, gain: 1, voices: 1 },
   'skip-whoosh': { src: uiPlushSwitch, gain: 0.8, rate: 1.25, voices: 1 },
   'tour-turn': { src: uiClickPaperSoft, gain: 0.83, voices: 1 },
-  'footstep-metal': { src: sfxFootstepsMetal, gain: 0.30, loop: true, voices: 1, duck: false },
+  'footstep-metal': { src: sfxFootstepsMetal, gain: 1, loop: true, voices: 1, duck: false },
   'airlock-phase': { src: sfxAirlockCycle, gain: 0.41, voices: 1 },
   'tour-complete': { src: uiAchievementV01, gain: 1, rate: 0.96, voices: 1 },
 

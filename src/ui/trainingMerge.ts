@@ -149,6 +149,14 @@ export const mountMerge: TrainingGameMount = (root, context) => {
     if (direction === undefined) return;
 
     event.preventDefault();
+
+    /* Keyboard users need button-press feedback even when a move is blocked.
+       On successful moves, merge-slide/combine already provide feedback. */
+    if (event.isTrusted && !event.repeat && !finished && !stuck) {
+      const moved = moveMerge(grid, direction);
+      if (!moved.moved) playSfx('ui-click');
+    }
+
     slide(direction);
   };
 
