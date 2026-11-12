@@ -7,6 +7,57 @@ say so and say why - a clean change with an unexplained problem underneath is wo
 than a documented one.
 
 
+## 2026-11-13 - The landing film's Skip button is in the top right, like the takeoff scene's
+
+**Did**
+
+- **Moved the landing film's Skip button to the top right.** The game has two films, and
+  the one control that ends a film was in a different corner on each of them: the launch
+  reel's Skip is in the top right (`top: 1rem; right: 1rem`), the landing film's was in
+  the bottom right. It is now in the same corner as the launch reel's, at the same
+  offsets, and the comment above the rule says why. The button itself did not change -
+  same label, same `aria-label`, same focus, and the same three ways out of the film
+  (the button, `Escape` and `Enter`).
+- **Made the browser check hold the corner.** `tools/browser-check-landing-cinematic.mjs`
+  already walked five window shapes to measure the stage; it now reads the Skip button's
+  box and the caption panel's box there as well, and asserts that the button is in the
+  top-right quarter of the screen and clear of the caption. 40 checks become 50.
+- **Logged it before fixing it.** ISS-102 in `docs/team/issues.md` was opened before the
+  CSS changed and flipped to fixed with the commit that fixed it (R-19). D-086 records
+  the rule, so the corner is not relitigated later.
+- **Verified it:** `npm run check`, 1051 tests, the build, and the landing cinematic's
+  browser check in headless Chrome - 50/50, no console errors - plus a screenshot of each
+  film, looked at.
+
+**Files**
+
+- `src/features/landing-cinematic/landing-cinematic.css` - the Skip button's corner
+- `src/features/landing-cinematic/README.md` - where the button is, and why
+- `tools/browser-check-landing-cinematic.mjs` - ten new checks
+- `docs/team/{decisions,issues,tasks,progress-log}.md` - D-086, ISS-102, TASK-109
+
+**Problems**
+
+- **The launch reel's Skip is not inside its stage, and this one is.** The launch button
+  is a direct child of the screen, because that stage used to be letterboxed and a
+  button inside it would have been clipped (ISS-041). The landing cinematic's stage is
+  the viewport - `inset: 0` inside a fixed screen - so the button inside it is measured
+  against the window and not against a picture, and it fades with the stage when the
+  film ends, which is what a button that is being pressed out of existence should do. It
+  was left where it was.
+- **A corner cannot be asserted by `npm test`.** The placement is CSS and the tests are
+  pure, so the rule is held by the browser check instead. That is the same trade every
+  other layout rule in the game makes.
+- **Three other preview servers were already running** (4173, 4174 and 4175), so this
+  build was served on 4176 and the check was pointed at it with `BASE_URL`. Nothing that
+  was not mine was stopped.
+
+**Next**
+
+- Nothing is left over from this change. The landing film's Skip now sits where the
+  launch reel's does, and the check says so at every window shape.
+
+
 ## 2026-11-12 — Drew every pictogram from the supplied icon set
 
 **Did**
