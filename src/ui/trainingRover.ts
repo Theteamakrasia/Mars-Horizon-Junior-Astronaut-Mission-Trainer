@@ -77,14 +77,15 @@ export const mountRover: TrainingGameMount = (root, context) => {
         const ground = map[line]?.[place] ?? '.';
         const isRover = line === row && place === column;
         const isOutpost = line === goal[0] && place === goal[1];
-        const isSample = sample !== null && line === sample[0] && place === sample[1];
+        /* The sample is only on the ground while it is on the ground. Once the
+           rover has it, the cell is empty - and the cell keeps to one picture,
+           because a grid column is as wide as the widest thing in it and a
+           second picture made the whole board grow (ISS-086). */
+        const isSample = sample !== null && !carrying && line === sample[0] && place === sample[1];
         const cell = h('div', { class: `trn__ground${ground === '#' ? ' trn__ground--rock' : ''}${isRover && bumped ? ' trn__ground--bump' : ''}` });
 
-        if (isRover) {
-          cell.append(icon('rover', 'The rover'));
-
-          if (carrying) cell.append(icon('box', 'The sample the rover is carrying'));
-        } else if (ground === '#') cell.append(icon('rock', 'A rock'));
+        if (isRover) cell.append(icon('rover', 'The rover'));
+        else if (ground === '#') cell.append(icon('rock', 'A rock'));
         else if (isSample) cell.append(icon('box', 'A sample to bring home'));
         else if (isOutpost) cell.append(icon('home', 'The outpost'));
 
