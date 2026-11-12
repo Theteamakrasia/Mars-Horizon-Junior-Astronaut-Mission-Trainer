@@ -522,14 +522,14 @@
   position: absolute;
   top: clamp(10px, 1vw, 16px);
   right: clamp(10px, 1vw, 16px);
+  display: grid;
+  place-items: center;
   width: clamp(28px, 3vw, 36px);
   height: clamp(28px, 3vw, 36px);
   border: none;
   border-radius: 50%;
   background: #121a24;
   color: #fff;
-  font-size: clamp(1rem, 1.4vw, 1.6rem);
-  line-height: 1;
   cursor: pointer;
   z-index: 10;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);

@@ -166,14 +166,19 @@ const REGIONS = [
   { id: 'argyre', name: 'Argyre Basin' },
 ];
 
-/** The six supplies, and what each one costs. */
+/**
+ * The six supplies, and what each one costs.
+ *
+ * The cost is a number with the build-point picture beside it, and the picture
+ * is an icon rather than a character, so only the number is compared.
+ */
 const SUPPLIES = [
-  { name: 'Solar Array', cost: '✦ 2' },
-  { name: 'Battery Bank', cost: '✦ 2' },
-  { name: 'Greenhouse', cost: '✦ 3' },
-  { name: 'Ice Miner', cost: '✦ 3' },
-  { name: 'Regolith Shield', cost: '✦ 2' },
-  { name: 'Nuclear Power Unit', cost: '✦ 4' },
+  { name: 'Solar Array', cost: '2' },
+  { name: 'Battery Bank', cost: '2' },
+  { name: 'Greenhouse', cost: '3' },
+  { name: 'Ice Miner', cost: '3' },
+  { name: 'Regolith Shield', cost: '2' },
+  { name: 'Nuclear Power Unit', cost: '4' },
 ];
 
 try {
@@ -279,7 +284,7 @@ try {
     );
     note(
       `the costs at ${region.name} are the catalogue's`,
-      (popup?.cards ?? []).every((c, index) => c.cost === (SUPPLIES[index]?.cost ?? '')),
+      (popup?.cards ?? []).every((c, index) => c.cost.trim() === (SUPPLIES[index]?.cost ?? '')),
       (popup?.cards ?? []).map((c) => c.cost).join(' '),
     );
     note(

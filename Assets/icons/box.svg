@@ -1,0 +1,9 @@
+<svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="box">
+<g id="box artwork">
+<path id="Vector" d="M48 19.875L73.5 33.375V61.875L48 76.125L22.5 61.875V33.375L48 19.875Z" fill="#FFF4DB" stroke-width="2.25" stroke-linejoin="round" stroke="#293A49"/>
+<path id="Vector_2" d="M22.5 33.375L48 46.875M48 46.875L73.5 33.375M48 46.875V76.125" stroke-width="2.25" stroke-linejoin="round" stroke="#293A49"/>
+<path id="Vector_3" d="M22.5 33.375L30 37.125V46.125L22.5 42.375V33.375ZM66 37.125L73.5 33.375V42.375L66 46.125V37.125ZM40.5 63.375L48 67.875L55.5 63.375V71.625L48 76.125L40.5 71.625V63.375Z" fill="#78B6AE" stroke-width="2.25" stroke-linejoin="round" stroke="#293A49"/>
+</g>
+</g>
+</svg>

@@ -11,12 +11,29 @@
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
-/** One shape in a 24×24 drawing. `fill` is for a dot; everything else strokes. */
+/**
+ * One shape in a drawing.
+ *
+ * The colour belongs to the shape, not to the icon: the drawn set is filled and
+ * coloured, and each path says what it is filled with and what it is stroked
+ * with. `currentColor` is a legal colour, which is how the one drawing the
+ * supplied set has no counterpart for still follows the button it sits in.
+ */
 export interface Shape {
   /** The SVG path data. */
   readonly d: string;
-  /** Fill the shape instead of stroking its outline. */
-  readonly fill?: boolean;
+  /** Fill colour. 'none' — the default — leaves the shape unfilled. */
+  readonly fill?: string;
+  /** Stroke colour. 'none' — the default — leaves the shape unstroked. */
+  readonly stroke?: string;
+  /** Stroke width, in the drawing's own units. */
+  readonly strokeWidth?: number;
+  /** How a stroke ends. */
+  readonly linecap?: 'butt' | 'round' | 'square';
+  /** How a stroke turns a corner. */
+  readonly linejoin?: 'miter' | 'round' | 'bevel';
+  /** How a filled shape decides what is inside it. */
+  readonly fillRule?: 'nonzero' | 'evenodd';
 }
 
 type Attrs = Record<string, string>;
@@ -26,25 +43,28 @@ type Attrs = Record<string, string>;
  *
  * The caller sets `class` and `aria-hidden`, because an icon's meaning depends
  * on where it is used: a decorative pictogram is hidden, a lone icon is not.
+ * The `viewBox` may be given in the attributes; without one the drawing is
+ * assumed to be in a 24-unit box.
  */
 export function svg(shapes: readonly Shape[], attrs: Attrs = {}): SVGSVGElement {
   const element = document.createElementNS(SVG_NS, 'svg');
 
   for (const [key, value] of Object.entries(attrs)) element.setAttribute(key, value);
 
-  element.setAttribute('viewBox', '0 0 24 24');
+  if (!element.hasAttribute('viewBox')) element.setAttribute('viewBox', '0 0 24 24');
   element.setAttribute('focusable', 'false');
 
   for (const shape of shapes) {
     const path = document.createElementNS(SVG_NS, 'path');
 
     path.setAttribute('d', shape.d);
+    path.setAttribute('fill', shape.fill ?? 'none');
+    path.setAttribute('stroke', shape.stroke ?? 'none');
 
-    if (shape.fill === true) path.setAttribute('fill', 'currentColor');
-    else {
-      path.setAttribute('fill', 'none');
-      path.setAttribute('stroke', 'currentColor');
-    }
+    if (shape.strokeWidth !== undefined) path.setAttribute('stroke-width', String(shape.strokeWidth));
+    if (shape.linecap !== undefined) path.setAttribute('stroke-linecap', shape.linecap);
+    if (shape.linejoin !== undefined) path.setAttribute('stroke-linejoin', shape.linejoin);
+    if (shape.fillRule !== undefined) path.setAttribute('fill-rule', shape.fillRule);
 
     element.append(path);
   }

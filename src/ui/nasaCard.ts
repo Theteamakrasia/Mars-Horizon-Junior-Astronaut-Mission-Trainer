@@ -57,8 +57,8 @@ export function nasaCard(card: NasaFigure, kicker?: string): HTMLElement {
   const actions = h('div', { class: 'nasa-card__actions' });
   const read = readButton(() => `${card.title}. ${card.caption} ${card.fact}`, {
     className: 'nasa-card__read',
-    idleLabel: '🔊 Read to me',
-    stopLabel: '⏹ Stop reading',
+    idleLabel: 'Read to me',
+    stopLabel: 'Stop reading',
     ariaLabel: 'Read this card aloud',
   });
 

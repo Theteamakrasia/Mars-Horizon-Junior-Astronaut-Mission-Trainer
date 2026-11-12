@@ -136,8 +136,8 @@
     copyBtn.addEventListener('click', () => {
       const text = exportContent.textContent;
       navigator.clipboard.writeText(text).then(() => {
-        copyBtn.textContent = '✅ Copied!';
-        setTimeout(() => { copyBtn.textContent = '📋 Copy to clipboard'; }, 2000);
+        copyBtn.textContent = 'Copied!';
+        setTimeout(() => { copyBtn.textContent = 'Copy to clipboard'; }, 2000);
       });
     });
 
@@ -245,11 +245,11 @@
 </head>
 <body>
   <header>
-    <h1>⚙️ Encyclopedia Card Sprite Picker</h1>
+    <h1>Encyclopedia Card Sprite Picker</h1>
     <span class="legend">
-      <span>🖱️ Drag any sprite to position it on the card</span>
-      <span>📋 Click a sprite to select it</span>
-      <span>📥 Export positions below</span>
+      <span>Drag any sprite to position it on the card</span>
+      <span>Click a sprite to select it</span>
+      <span>Export positions below</span>
     </span>
   </header>
 
@@ -260,9 +260,9 @@
   <div class="position-panel" id="positionPanel"></div>
 
   <div class="export-panel" id="exportPanel">
-    <strong>📋 Ready-to-copy positions</strong>
+    <strong>Ready-to-copy positions</strong>
     <div id="exportContent"><code>Select an equipment to export its position.</code></div>
-    <button id="copyBtn">📋 Copy to clipboard</button>
+    <button id="copyBtn">Copy to clipboard</button>
   </div>
 
   <footer>Build your outpost with 8 equipment kinds. Drag &amp; drop each sprite to find the perfect spot.</footer>

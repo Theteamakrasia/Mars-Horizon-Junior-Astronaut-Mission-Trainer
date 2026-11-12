@@ -8,7 +8,7 @@
  */
 
 import { h } from '../dom/h';
-import { icon, type IconName } from './icons';
+import { icon, RESOURCE_ICON, type IconName } from './icons';
 import { cargoDifficulty, cargoPerformance, dealCargoRound } from '../sim/trainingCargo';
 import type { TrainingGameMount } from './trainingGame';
 
@@ -28,12 +28,12 @@ const ITEM_ICON: Readonly<Record<string, IconName>> = {
   wrench: 'pick',
 };
 
-/** The picture on each store. */
+/** The picture on each store. The five stores are the game's stores, so they wear the game's pictures. */
 const BOX_ICON: Readonly<Record<string, IconName>> = {
-  food: 'leaf',
-  water: 'droplet',
-  oxygen: 'oxygen',
-  energy: 'bolt',
+  food: RESOURCE_ICON.food,
+  water: RESOURCE_ICON.water,
+  oxygen: RESOURCE_ICON.oxygen,
+  energy: RESOURCE_ICON.power,
   medical: 'star',
   building: 'pick',
 };
@@ -148,7 +148,7 @@ export const mountCargo: TrainingGameMount = (root, context) => {
     placed += 1;
     selected = null;
     stores.get(boxId)?.append(h('span', { class: 'trn__stored', 'aria-hidden': 'true' }, icon(ITEM_ICON[item.id] ?? 'box')));
-    hint.textContent = 'That is the right store. ✅';
+    hint.replaceChildren(icon('check'), ' That is the right store.');
     status();
 
     if (placed >= round.items.length) {

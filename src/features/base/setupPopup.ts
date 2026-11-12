@@ -120,7 +120,7 @@ export function siteGoals(goals: readonly GoalPreview[], options: { readonly sta
     const row = h(
       'div',
       { class: 'gl__goal', 'data-ok': String(goal.ok) },
-      h('span', { class: 'gl__goal-mark', 'aria-hidden': 'true', text: goal.ok ? '✓' : '✗' }),
+      h('span', { class: 'gl__goal-mark', 'aria-hidden': 'true' }, icon(goal.ok ? 'check' : 'alert')),
       h('span', { class: 'gl__goal-title', text: goal.title }),
       h('span', { class: 'gl__goal-why', text: goal.ok ? '' : goal.why }),
     );
@@ -261,7 +261,7 @@ export function createSetupPopup(options: SetupPopupOptions): SetupPopup {
     'button',
     { class: 'gl__btn gl__btn--primary setup__launch', type: 'button' },
     options.launchLabel,
-    h('span', { class: 'gl__btn-arrow', 'aria-hidden': 'true', text: '→' }),
+    h('span', { class: 'gl__btn-arrow', 'aria-hidden': 'true' }, icon('chevron')),
   );
 
   const footer = h(
@@ -361,7 +361,7 @@ export function createSetupPopup(options: SetupPopupOptions): SetupPopup {
         { class: 'gl__card-head' },
         h('img', { class: 'gl__card-img', src: moduleArt(entry.kind), alt: '' }),
         h('p', { class: 'gl__card-name', text: entry.name }),
-        h('span', { class: 'gl__cost', text: `✦ ${entry.cost}` }),
+        h('span', { class: 'gl__cost' }, icon('sparkle'), ` ${entry.cost}`),
         entry.atLimit ? h('span', { class: 'gl__card-max', text: 'MAX' }) : null,
       ),
       h('p', { class: 'gl__card-line', text: entry.gives }),

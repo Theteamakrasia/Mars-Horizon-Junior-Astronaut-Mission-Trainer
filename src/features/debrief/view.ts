@@ -71,8 +71,8 @@ const STORE_ASK = {
 
 /** The pictogram on a patch, by patch id. */
 const PATCH_ICON: Readonly<Record<string, IconName>> = {
-  'no-skip': 'star',
-  'night-watch': 'moon',
+  'no-skip': 'no-skip',
+  'night-watch': 'night-watch',
   'ice-hunter': 'rover',
   cartographer: 'map',
   'leave-no-trace': 'rock',
@@ -139,7 +139,7 @@ export function mountDebrief(
 
     return [
       {
-        icon: 'bolt',
+        icon: RESOURCE_ICON.power,
         label: 'Power',
         value: blackouts === 0 ? 'No blackouts' : `${blackouts} blackout${blackouts === 1 ? '' : 's'}`,
         tone: blackouts === 0 ? 'ok' : 'bad',
@@ -152,7 +152,7 @@ export function mountDebrief(
   }
 
   function renderEmpty(): void {
-    const button = h('button', { class: 'gl__btn gl__btn--primary gl__btn--start', type: 'button' }, 'Start a mission', h('span', { class: 'gl__btn-arrow', 'aria-hidden': 'true', text: '→' }));
+    const button = h('button', { class: 'gl__btn gl__btn--primary gl__btn--start', type: 'button' }, 'Start a mission', h('span', { class: 'gl__btn-arrow', 'aria-hidden': 'true' }, icon('chevron')));
 
     button.addEventListener('click', again);
 
@@ -406,9 +406,9 @@ export function mountDebrief(
       'button',
       { class: 'gl__btn gl__btn--primary gl__btn--start', type: 'button' },
       'Try a new outpost',
-      h('span', { class: 'gl__btn-arrow', 'aria-hidden': 'true', text: '→' }),
+      h('span', { class: 'gl__btn-arrow', 'aria-hidden': 'true' }, icon('chevron')),
     );
-    const journalLink = h('button', { class: 'gl__link', type: 'button', 'data-focus': 'journal-link' }, 'View my Mars story', h('span', { 'aria-hidden': 'true', text: '›' }));
+    const journalLink = h('button', { class: 'gl__link', type: 'button', 'data-focus': 'journal-link' }, 'View my Mars story', h('span', { class: 'gl__link-arrow', 'aria-hidden': 'true' }, icon('chevron')));
     const menuLink = h('button', { class: 'gl__link', type: 'button' }, 'Main menu');
 
     replay.addEventListener('click', again);
@@ -542,9 +542,9 @@ export function mountDebrief(
       'button',
       { class: 'gl__btn gl__btn--primary gl__btn--start', type: 'button' },
       'Try a different outpost',
-      h('span', { class: 'gl__btn-arrow', 'aria-hidden': 'true', text: '→' }),
+      h('span', { class: 'gl__btn-arrow', 'aria-hidden': 'true' }, icon('chevron')),
     );
-    const back = h('button', { class: 'gl__link', type: 'button', 'data-focus': 'back-link' }, h('span', { 'aria-hidden': 'true', text: '‹' }), 'Back to the debrief');
+    const back = h('button', { class: 'gl__link', type: 'button', 'data-focus': 'back-link' }, h('span', { class: 'gl__link-arrow gl__link-arrow--back', 'aria-hidden': 'true' }, icon('chevron')), 'Back to the debrief');
 
     replay.addEventListener('click', again);
     back.addEventListener('click', showDebrief);

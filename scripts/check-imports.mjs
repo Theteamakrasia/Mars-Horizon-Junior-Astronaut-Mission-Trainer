@@ -29,11 +29,20 @@
  */
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { dirname, extname, join, relative, resolve, sep } from 'node:path';
+import { basename, dirname, extname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = join(ROOT, 'src');
+
+/**
+ * The supplied icon set.
+ *
+ * Every drawing in this folder is meant to be drawn by the game, so the
+ * checker compares the folder with the code: a drawing nobody draws is a
+ * drawing that was sent and forgotten.
+ */
+const ICON_DIR = join(ROOT, 'Assets', 'icons');
 
 /** Every zone, for documentation and validation. */
 const ZONES = ['sim', 'data', 'dom', 'ui', 'feature-model', 'feature-view', 'entry'];
@@ -229,7 +238,35 @@ function isLocalCode(fromFile, specifier) {
   return { target: candidate, isFile: existsSync(candidate) };
 }
 
+/**
+ * Resolve a relative import of an asset — CSS, PNG, SVG — to a file.
+ *
+ * The bundler owns these, so the layer rules do not apply to them, but a
+ * mistyped path is still a mistyped path: without this it fails at build time
+ * with a message nobody reads. The query is stripped first, because `?raw` and
+ * `?url` are part of the request and not part of the name.
+ *
+ * An import of a file in the supplied icon set is also noted, so the set on
+ * disk and the set the game draws can be compared at the end.
+ */
+function isLocalAsset(fromFile, specifier) {
+  if (!specifier.startsWith('.')) return null; // bare specifier: external package
+
+  const [path] = specifier.split('?');
+  const ext = extname(path);
+
+  if (ext === '' || CODE_EXT.has(ext)) return null;
+
+  const target = resolve(dirname(fromFile), path);
+  const icon = target.startsWith(ICON_DIR + sep) ? basename(target) : null;
+
+  return { target, isFile: existsSync(target), icon };
+}
+
 const violations = [];
+
+/** The drawings in the supplied set that the code actually draws. */
+const drawnIcons = new Set();
 
 function report(file, line, ruleId, message) {
   violations.push({ where: `${rel(file)}:${line}`, ruleId, message });
@@ -262,6 +299,23 @@ for (const file of files) {
     report(file, 1, 'unknown-layer', `zone "${zone}" has no entry in ALLOWED`);
   } else {
     for (const { specifier, index } of findImports(code)) {
+      const asset = isLocalAsset(file, specifier);
+
+      if (asset !== null) {
+        if (!asset.isFile) {
+          report(
+            file,
+            lineAt(code, index),
+            'unresolved-asset',
+            `"${specifier}" does not resolve to a file`,
+          );
+        }
+
+        if (asset.icon !== null) drawnIcons.add(asset.icon);
+
+        continue;
+      }
+
       const local = isLocalCode(file, specifier);
 
       if (local === null) continue;
@@ -380,6 +434,25 @@ for (const name of readdirSync(ROOT)) {
   for (const match of markup.matchAll(/<[a-zA-Z][^>]*?\son[a-zA-Z]+\s*=\s*["'][^"']*["']/g)) {
     const at = markup.slice(0, match.index).match(/\n/g);
     report(join(ROOT, name), (at ? at.length : 0) + 1, 'no-inline-handler', match[0].trim());
+  }
+}
+
+// --- The supplied icon set -------------------------------------------------
+// Every drawing that was sent is drawn by the game. One that is not is a
+// drawing that was sent and forgotten, and it would sit in the folder looking
+// like part of the set.
+if (existsSync(ICON_DIR)) {
+  for (const name of readdirSync(ICON_DIR)) {
+    if (!name.endsWith('.svg')) continue;
+
+    if (!drawnIcons.has(name)) {
+      report(
+        join(ICON_DIR, name),
+        1,
+        'undrawn-asset',
+        `"Assets/icons/${name}" is not drawn by the game — draw it in src/ui/icons.ts or take it out of the folder`,
+      );
+    }
   }
 }
 

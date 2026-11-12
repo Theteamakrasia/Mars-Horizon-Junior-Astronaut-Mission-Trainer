@@ -344,7 +344,8 @@ you worked under.
 Resource Merge, Memory Match, Rover Parking, Solar Panel Power-Up, Cargo Sorting and
 Asteroid Defender - and the day's work orders stay locked until the crew has finished any
 two of them. Each game is worth a few science points, and the day's record is written
-down, so a refresh cannot hand you the same two games twice.
+down — for that run only: naming yourself again, or playing again from the debrief, starts
+the training over (D-081).
 
 Also on the desk: a **note from home** or the crew, and — if you sent the rover out — the
 **document the rover brings back**, a real NASA picture of a place from the past or a rare
@@ -620,7 +621,7 @@ player decision, the sol loop, what is built and where a new event plugs in are 
 | The how-to-play guide | **Built** — ten steps; it opens by itself at the build screen |
 | The mission-day tracker | **Built** — the day in play and twelve pips on a lit path, in the header at every landing site (D-070, D-071) |
 | The balance | **Checked, not assumed** — `npm run balance` fails if a site cannot hold all five systems (D-064) |
-| Tests | **996 tests in 48 files** (`npm test`, 2026-11-12) |
+| Tests | **1051 tests in 49 files** (`npm test`, 2026-11-12) |
 | Checks | **Clean** — import layers, banned APIs, markup, strict typecheck |
 | Browser checks | **Green** - build 58/58, the training 40/40, the day tracker 29/29, the save 15/15, the rover 10/10, the whole journey with no console errors |
 | Save / resume | **Built** — the run is written to this browser as it changes; the menu greets the astronaut by name and offers CONTINUE (the screen they left) and START OVER (D-081) |
@@ -640,7 +641,7 @@ player decision, the sol loop, what is built and where a new event plugs in are 
 ### The one invariant
 
 `sim/` and each feature's `model.ts` are pure: no `document`, no `window`, no network. That
-is what lets 962 tests run in a few seconds with no browser, no mocks, and no jsdom. It is enforced by
+is what lets 1051 tests run in a few seconds with no browser, no mocks, and no jsdom. It is enforced by
 `npm run check` (`scripts/check-imports.mjs`), not left to good intentions.
 
 ---
@@ -652,7 +653,7 @@ is what lets 962 tests run in a few seconds with no browser, no mocks, and no js
 npm install       # dev dependencies only — the game ships no runtime dependencies
 npm run dev       # Vite dev server, http://localhost:5173
 npm run check     # import-layer + banned-API + markup checks, then tsc --noEmit
-npm test          # Vitest, 962 tests in 46 files
+npm test          # Vitest, 1051 tests in 49 files
 npm run balance   # is the game still winnable? run this after touching sim/
 npm run build     # production bundle in dist/
 npm run preview   # serve the built bundle locally

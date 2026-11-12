@@ -6,7 +6,7 @@
 ## What the screen does
 
 The encyclopedia lists every piece of equipment the outpost can build, each
-with an emoji, its cost, and one short line of what it does. Tap an item to
+with its picture, its cost, and one short line of what it does. Tap an item to
 expand it: the full `gives` / `needs`, plus a real NASA fact and credit about
 the system it serves (dust and solar panels, frozen water and the ice miner,
 radiation shielding and the habitat, and so on).
