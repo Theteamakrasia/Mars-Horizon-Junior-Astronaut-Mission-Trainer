@@ -11,9 +11,9 @@ import { icon, type IconName } from './icons';
 import {
   MERGE_LEVEL_NAMES,
   MERGE_SIZE,
-  MERGE_TARGET,
   canMerge,
   mergeBest,
+  mergeDifficulty,
   mergePerformance,
   moveMerge,
   spawnMerge,
@@ -22,7 +22,7 @@ import {
 import type { TrainingGameMount } from './trainingGame';
 
 /** The picture on each level of supply. */
-const LEVEL_ICON: readonly IconName[] = ['box', 'droplet', 'leaf', 'bolt', 'oxygen', 'home'];
+const LEVEL_ICON: readonly IconName[] = ['box', 'droplet', 'leaf', 'bolt', 'oxygen', 'home', 'flask', 'sun'];
 
 /** How far a finger has to travel before it counts as a swipe. */
 const SWIPE_DISTANCE = 24;
@@ -35,6 +35,11 @@ const SWIPE_DISTANCE = 24;
  * colony pod, which is the top of the ladder.
  */
 export const mountMerge: TrainingGameMount = (root, context) => {
+  /* How hard this round is: the supply the player has to build, and - once the
+     goal has grown as far as it can - the moves the round allows. */
+  const difficulty = mergeDifficulty(context.level);
+  const target = difficulty.target;
+
   let grid: number[] = Array(MERGE_SIZE * MERGE_SIZE).fill(0);
   let moves = 0;
   let finished = false;
@@ -82,11 +87,23 @@ export const mountMerge: TrainingGameMount = (root, context) => {
     moves += 1;
     paint();
 
-    if (mergeBest(grid) >= MERGE_TARGET) {
+    if (mergeBest(grid) >= target) {
       finished = true;
-      hint.textContent = 'The colony pod is built!';
+      hint.textContent = `${MERGE_LEVEL_NAMES[target] ?? 'The colony pod'} is built!`;
 
-      window.setTimeout(() => context.onComplete(mergePerformance(moves)), 400);
+      window.setTimeout(() => context.onComplete(mergePerformance(moves, difficulty)), 400);
+
+      return;
+    }
+
+    /* The round has a limit on it from the fourth level on: the build has to
+       be finished in so many moves. Running out is not a punishment - the
+       round still counts as a finished game, and the player is paid for it. */
+    if (difficulty.moveLimit !== null && moves >= difficulty.moveLimit) {
+      finished = true;
+      hint.textContent = `Out of moves. The ${MERGE_LEVEL_NAMES[target]?.toLowerCase() ?? 'colony pod'} is not built.`;
+
+      window.setTimeout(() => context.onComplete(mergePerformance(moves, difficulty)), 400);
 
       return;
     }
@@ -140,7 +157,10 @@ export const mountMerge: TrainingGameMount = (root, context) => {
 
   grid = spawnMerge(grid, context.random);
   grid = spawnMerge(grid, context.random);
-  hint.textContent = `Goal: make the ${MERGE_LEVEL_NAMES[MERGE_TARGET]?.toLowerCase() ?? 'colony pod'}.`;
+  hint.textContent =
+    difficulty.moveLimit === null
+      ? `Goal: make the ${MERGE_LEVEL_NAMES[target]?.toLowerCase() ?? 'colony pod'}.`
+      : `Goal: make the ${MERGE_LEVEL_NAMES[target]?.toLowerCase() ?? 'colony pod'} in ${difficulty.moveLimit} moves.`;
   paint();
 
   return {

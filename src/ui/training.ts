@@ -27,14 +27,17 @@ import {
   trainingDay,
   trainingDayFor,
   trainingDayRecord,
+  trainingLevel,
   trainingSol,
   trainingSeed,
+  withRaisedLevel,
   withTrainingDay,
   withTrainingYields,
   EMPTY_TRAINING_RECORD,
   type TrainingDayRecord,
   type TrainingGame,
   type TrainingGameId,
+  type TrainingLevels,
   type TrainingPerformance,
   type TrainingRecord,
   type TrainingState,
@@ -145,6 +148,26 @@ function readDay(value: unknown): TrainingDayRecord | null {
   return { completed, pointsToday: Math.max(0, day.pointsToday) };
 }
 
+/**
+ * The levels in a written record, if they are ones we wrote.
+ *
+ * A record written before the levels existed has none, and that is not a
+ * reason to refuse it: the games are all level 1 until they are finished.
+ */
+function readLevels(value: unknown): TrainingLevels {
+  if (typeof value !== 'object' || value === null) return {};
+
+  const levels: Record<string, number> = {};
+
+  for (const [gameId, level] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof level !== 'number' || !Number.isFinite(level)) continue;
+
+    levels[gameId] = Math.max(1, Math.floor(level));
+  }
+
+  return levels;
+}
+
 /** Everything that has been trained, as it was written down. */
 export function readTrainingRecord(): TrainingRecord {
   try {
@@ -152,7 +175,7 @@ export function readTrainingRecord(): TrainingRecord {
 
     if (raw === null || raw === undefined) return EMPTY_TRAINING_RECORD;
 
-    const parsed = JSON.parse(raw) as { days?: unknown };
+    const parsed = JSON.parse(raw) as { days?: unknown; levels?: unknown };
 
     if (typeof parsed !== 'object' || parsed === null || typeof parsed.days !== 'object' || parsed.days === null) {
       return EMPTY_TRAINING_RECORD;
@@ -166,7 +189,7 @@ export function readTrainingRecord(): TrainingRecord {
       if (day !== null) days[sol] = day;
     }
 
-    return { days };
+    return { days, levels: readLevels(parsed.levels) };
   } catch {
     return EMPTY_TRAINING_RECORD;
   }
@@ -184,15 +207,37 @@ export function writeTrainingDay(sol: number, state: TrainingState): void {
 }
 
 /**
+ * Write down that a game has been finished, so the next one is harder.
+ *
+ * The levels are the games' own, not a day's: they belong to the game, they
+ * are kept beside the days in the same record, and they are not shown to the
+ * player.
+ */
+export function writeTrainingLevel(gameId: TrainingGameId): void {
+  try {
+    const record = withRaisedLevel(readTrainingRecord(), gameId);
+
+    store()?.setItem(STORAGE_KEY, JSON.stringify(record));
+  } catch {
+    /* A browser that will not let us write is a browser that loses the record. */
+  }
+}
+
+/**
  * Forget every written-down training day.
  *
  * The record is keyed by sol, not by run, so without this a new run on sol 1
  * would inherit the games a previous run finished (and their points). It is
  * called whenever a new run begins.
+ *
+ * The levels are kept: they are the games' own, and a game that has been
+ * played before is still that much harder in the next mission.
  */
 export function clearTrainingRecord(): void {
   try {
-    store()?.removeItem(STORAGE_KEY);
+    const record = readTrainingRecord();
+
+    store()?.setItem(STORAGE_KEY, JSON.stringify({ days: {}, levels: record.levels }));
   } catch {
     /* Nothing to clear if the browser will not let us near it. */
   }
@@ -427,15 +472,22 @@ export function openTrainingGame(
     handle?.destroy();
     area.replaceChildren();
 
-    /* The seed is the sol, the game and which play of the day this is, so a
-       replay deals a new board and a refresh deals the same one again. */
-    const random = makeRandom(trainingSeed(trainingSol(current), gameId) + round);
+    /* How hard this game is at the moment. It goes up by one every time the
+       game is finished, so the next play of it asks for a bigger job. The
+       player is never told the number. */
+    const level = trainingLevel(readTrainingRecord().levels, gameId);
+
+    /* The seed is the sol, the game, which play of the day this is and how
+       hard the game is, so a replay deals a new board, a refresh deals the
+       same one again, and a harder round deals a different one. */
+    const random = makeRandom(trainingSeed(trainingSol(current), gameId) + round + level * 4096);
 
     handle = GAME_MOUNT[gameId](area, {
       setStatus: (text) => {
         status.textContent = text;
       },
       random,
+      level,
       onComplete: (performance) => {
         if (finished) return;
 
@@ -456,6 +508,11 @@ export function openTrainingGame(
         current = outcome.run;
 
         writeTrainingDay(trainingSol(outcome.run), outcome.run.training);
+
+        /* And the game is now a little harder, for the next time it is
+           played - in this dialog or in another one. */
+        writeTrainingLevel(gameId);
+
         options.onFinished(outcome.run);
         showDone(outcome, null);
       },

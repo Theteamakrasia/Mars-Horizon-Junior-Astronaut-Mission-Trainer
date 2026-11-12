@@ -264,12 +264,62 @@ export const SOLAR_EXCELLENT_EXTRA = 2;
 /** Solving it within this many extra turns is a good run. */
 export const SOLAR_GOOD_EXTRA = 6;
 
+/**
+ * How the solar round goes at a level.
+ *
+ * The goal grows for the first three levels - fewer spare turns over the
+ * answer - and then the allowance keeps shrinking all the way down.
+ *
+ * The bands widen as the round gets harder, so the player is paid the same
+ * for the same quality of work whatever the level is.
+ */
+export interface SolarDifficulty {
+  /** The turns the player gets over the answer. */
+  readonly spare: number;
+  /** The extra turns an excellent round allows. */
+  readonly excellent: number;
+  /** The extra turns a good round allows. */
+  readonly good: number;
+}
+
+/** One row per level. The first is the game as it always was. */
+const SOLAR_DIFFICULTY: readonly SolarDifficulty[] = [
+  { spare: 12, excellent: 2, good: 6 },
+  { spare: 10, excellent: 3, good: 7 },
+  { spare: 8, excellent: 3, good: 8 },
+  { spare: 7, excellent: 4, good: 9 },
+  { spare: 6, excellent: 4, good: 10 },
+  { spare: 5, excellent: 5, good: 11 },
+  { spare: 5, excellent: 5, good: 12 },
+  { spare: 4, excellent: 6, good: 13 },
+  { spare: 4, excellent: 6, good: 14 },
+  { spare: 3, excellent: 7, good: 15 },
+  { spare: 3, excellent: 7, good: 16 },
+  { spare: 2, excellent: 8, good: 17 },
+];
+
+/**
+ * The round at a level.
+ *
+ * Level 1 is the game as it always was. A level past the last one stays at
+ * the last one: the counter stops, and so does the game.
+ */
+export function solarDifficulty(level: number): SolarDifficulty {
+  const step = Math.min(SOLAR_DIFFICULTY.length, Math.max(1, Math.floor(level)));
+
+  return SOLAR_DIFFICULTY[step - 1] as SolarDifficulty;
+}
+
 /** The band a finished game falls into, from the turns it took over the answer. */
-export function solarPerformance(used: number, needed: number): TrainingPerformance {
+export function solarPerformance(
+  used: number,
+  needed: number,
+  difficulty: SolarDifficulty = solarDifficulty(1),
+): TrainingPerformance {
   const extra = used - needed;
 
-  if (extra <= SOLAR_EXCELLENT_EXTRA) return 'excellent';
-  if (extra <= SOLAR_GOOD_EXTRA) return 'good';
+  if (extra <= difficulty.excellent) return 'excellent';
+  if (extra <= difficulty.good) return 'good';
 
   return 'basic';
 }

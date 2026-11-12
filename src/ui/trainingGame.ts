@@ -27,6 +27,15 @@ export interface TrainingGameContext {
   readonly onComplete: (performance: TrainingPerformance) => void;
   /** The game's own generator, seeded from the sol. */
   readonly random: () => number;
+  /**
+   * How hard this game is at the moment.
+   *
+   * It goes up by one every time the game is finished, so the next play of it
+   * asks for a bigger job. The player is never told the number: the game says
+   * what it wants in its own words - more crates, a sample to bring home, a
+   * tighter limit.
+   */
+  readonly level: number;
 }
 
 /** What a training game gives back. */

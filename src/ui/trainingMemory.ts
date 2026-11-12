@@ -8,7 +8,7 @@
 
 import { h } from '../dom/h';
 import { icon, type IconName } from './icons';
-import { MEMORY_FACES, MEMORY_PAIRS, dealMemoryDeck, memoryMatch, memoryPerformance } from '../sim/trainingMemory';
+import { dealMemoryDeck, memoryDifficulty, memoryMatch, memoryPerformance } from '../sim/trainingMemory';
 import type { TrainingGameMount } from './trainingGame';
 
 /** How long a pair that does not match stays face up. */
@@ -30,7 +30,12 @@ const TAKE_AWAY_MS = 450;
  * clock runs beside the tries.
  */
 export const mountMemory: TrainingGameMount = (root, context) => {
-  const deck = dealMemoryDeck(context.random);
+  /* How hard this round is: more pairs on the table, and - once the goal has
+     grown as far as it can - fewer tries to find them in. */
+  const difficulty = memoryDifficulty(context.level);
+  const pairs = difficulty.pairs;
+
+  const deck = dealMemoryDeck(context.random, pairs);
   const open = new Set<number>();
   /** The pair that has just been found, still on the table. */
   const matched = new Set<number>();
@@ -64,7 +69,7 @@ export const mountMemory: TrainingGameMount = (root, context) => {
   function status(): void {
     const seconds = Math.floor((Date.now() - startedAt) / 1000);
 
-    context.setStatus(`Pairs: ${found}/${MEMORY_PAIRS} · Tries: ${tries} · Time: ${seconds}s`);
+    context.setStatus(`Pairs: ${found}/${pairs} · Tries: ${tries} · Time: ${seconds}s`);
   }
 
   /**
@@ -79,8 +84,9 @@ export const mountMemory: TrainingGameMount = (root, context) => {
         .filter((card) => !gone.has(card.id))
         .map((card) => {
           const showing = open.has(card.id) || matched.has(card.id);
-          const face = MEMORY_FACES.indexOf(card.face);
-          const name = (face >= 0 ? (['helmet', 'rocket', 'rover', 'sun', 'oxygen', 'droplet'] as readonly IconName[])[face] : 'box') ?? 'box';
+          /* The face is the picture's name, so a face that is added to the
+             list later brings its own picture with it. */
+          const name = (card.face as IconName) ?? 'box';
           const node = h(
             'button',
             {
@@ -126,7 +132,7 @@ export const mountMemory: TrainingGameMount = (root, context) => {
       matched.add(id);
       open.delete(other);
       open.delete(id);
-      hint.textContent = found === MEMORY_PAIRS ? 'Every pair found!' : `That is a pair! ${found} of ${MEMORY_PAIRS} found.`;
+      hint.textContent = found === pairs ? 'Every pair found!' : `That is a pair! ${found} of ${pairs} found.`;
       paint();
 
       later(() => {
@@ -137,11 +143,23 @@ export const mountMemory: TrainingGameMount = (root, context) => {
         paint();
       }, TAKE_AWAY_MS);
 
-      if (found === MEMORY_PAIRS) {
+      if (found === pairs) {
         finished = true;
 
-        later(() => context.onComplete(memoryPerformance(tries)), 600);
+        later(() => context.onComplete(memoryPerformance(tries, difficulty)), 600);
       }
+
+      return;
+    }
+
+    /* The round has a limit on it from the fourth level on: the pairs have to
+       be found in so many tries. Running out is not a punishment - the round
+       still counts as a finished game. */
+    if (Number.isFinite(difficulty.tries) && tries >= difficulty.tries) {
+      finished = true;
+      hint.textContent = 'Out of tries. Press Restart to try again.';
+
+      later(() => context.onComplete(memoryPerformance(tries, difficulty)), 600);
 
       return;
     }

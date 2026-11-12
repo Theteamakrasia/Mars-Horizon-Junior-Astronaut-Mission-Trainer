@@ -7,6 +7,7 @@ import {
   ROVER_MAPS,
   ROVER_SIZE,
   roverCell,
+  roverDeliveryRoute,
   roverMovesAllowed,
   roverOpen,
   roverPerformance,
@@ -34,6 +35,16 @@ describe('the maps', () => {
     for (const map of ROVER_MAPS) {
       expect(roverCell(map, 'R')).not.toBeNull();
       expect(roverCell(map, 'P')).not.toBeNull();
+    }
+  });
+
+  it('all have a sample, and a way to bring it home', () => {
+    /* From the second level on, the rover has to pick the sample up and take
+       it to the outpost, so every map has to have one and a route that covers
+       both. */
+    for (const map of ROVER_MAPS) {
+      expect(roverCell(map, 'S')).not.toBeNull();
+      expect(roverDeliveryRoute(map)).toBeGreaterThan(0);
     }
   });
 

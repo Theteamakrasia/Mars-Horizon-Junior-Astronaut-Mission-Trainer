@@ -61,6 +61,56 @@ export const CARGO_EXCELLENT_MISTAKES = 0;
 /** Two wrong stores is still a good round. */
 export const CARGO_GOOD_MISTAKES = 2;
 
+/**
+ * How the cargo round goes at a level.
+ *
+ * The goal grows for the first three levels - more supplies to store - and
+ * then the allowance shrinks: from the fourth level on, a wrong store is
+ * allowed only so many times before the round is over.
+ *
+ * The bands widen as the round gets harder, so a player is paid the same for
+ * the same quality of work whatever the level is. The level is never shown:
+ * the game simply asks for more crates, and then for tidier work.
+ */
+export interface CargoDifficulty {
+  /** How many crates land. */
+  readonly crates: number;
+  /** How many wrong stores the round allows before it is over. */
+  readonly mistakes: number;
+  /** How many wrong stores still count as an excellent round. */
+  readonly excellent: number;
+  /** How many wrong stores still count as a good round. */
+  readonly good: number;
+}
+
+/** One row per level. The first is the game as it always was. */
+const CARGO_DIFFICULTY: readonly CargoDifficulty[] = [
+  { crates: 8, mistakes: Infinity, excellent: 0, good: 2 },
+  { crates: 9, mistakes: Infinity, excellent: 1, good: 3 },
+  { crates: 10, mistakes: Infinity, excellent: 1, good: 3 },
+  { crates: 10, mistakes: 3, excellent: 1, good: 2 },
+  { crates: 10, mistakes: 3, excellent: 1, good: 2 },
+  { crates: 10, mistakes: 2, excellent: 2, good: 3 },
+  { crates: 10, mistakes: 2, excellent: 2, good: 3 },
+  { crates: 10, mistakes: 1, excellent: 2, good: 3 },
+  { crates: 10, mistakes: 1, excellent: 3, good: 4 },
+  { crates: 10, mistakes: 1, excellent: 3, good: 4 },
+  { crates: 10, mistakes: 1, excellent: 3, good: 4 },
+  { crates: 10, mistakes: 1, excellent: 3, good: 4 },
+];
+
+/**
+ * The round at a level.
+ *
+ * Level 1 is the game as it always was. A level past the last one stays at
+ * the last one: the counter stops, and so does the game.
+ */
+export function cargoDifficulty(level: number): CargoDifficulty {
+  const step = Math.min(CARGO_DIFFICULTY.length, Math.max(1, Math.floor(level)));
+
+  return CARGO_DIFFICULTY[step - 1] as CargoDifficulty;
+}
+
 /** One round of supplies, dealt. */
 export interface CargoRound {
   readonly items: readonly CargoItem[];
@@ -73,7 +123,7 @@ export interface CargoRound {
  * Every store gets at least one crate, so the player has to use all six, and
  * the rest are dealt from what is left.
  */
-export function dealCargoRound(random: () => number): CargoRound {
+export function dealCargoRound(random: () => number, crates: number = CARGO_ROUND): CargoRound {
   const pool = [...CARGO_ITEMS];
   const items: CargoItem[] = [];
 
@@ -87,7 +137,7 @@ export function dealCargoRound(random: () => number): CargoRound {
     pool.splice(index, 1);
   }
 
-  while (items.length < CARGO_ROUND && pool.length > 0) {
+  while (items.length < crates && pool.length > 0) {
     const index = Math.floor(random() * pool.length);
 
     items.push(pool[index] as CargoItem);
@@ -107,9 +157,9 @@ export function dealCargoRound(random: () => number): CargoRound {
 }
 
 /** The band a finished round falls into, from the number of wrong stores. */
-export function cargoPerformance(mistakes: number): TrainingPerformance {
-  if (mistakes <= CARGO_EXCELLENT_MISTAKES) return 'excellent';
-  if (mistakes <= CARGO_GOOD_MISTAKES) return 'good';
+export function cargoPerformance(mistakes: number, difficulty: CargoDifficulty = cargoDifficulty(1)): TrainingPerformance {
+  if (mistakes <= difficulty.excellent) return 'excellent';
+  if (mistakes <= difficulty.good) return 'good';
 
   return 'basic';
 }

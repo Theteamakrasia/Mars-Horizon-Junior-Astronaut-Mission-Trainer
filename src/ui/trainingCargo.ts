@@ -9,7 +9,7 @@
 
 import { h } from '../dom/h';
 import { icon, type IconName } from './icons';
-import { CARGO_ROUND, cargoPerformance, dealCargoRound } from '../sim/trainingCargo';
+import { cargoDifficulty, cargoPerformance, dealCargoRound } from '../sim/trainingCargo';
 import type { TrainingGameMount } from './trainingGame';
 
 /** The picture on each crate. */
@@ -49,7 +49,10 @@ const DRAG_DISTANCE = 8;
  * and lets the player try again.
  */
 export const mountCargo: TrainingGameMount = (root, context) => {
-  const round = dealCargoRound(context.random);
+  /* How hard this round is: more supplies to store, and - once the goal has
+     grown as far as it can - fewer wrong stores to get away with. */
+  const difficulty = cargoDifficulty(context.level);
+  const round = dealCargoRound(context.random, difficulty.crates);
 
   /** Where each crate is drawn, so it can be moved or taken away. */
   const crates = new Map<string, HTMLElement>();
@@ -62,7 +65,12 @@ export const mountCargo: TrainingGameMount = (root, context) => {
 
   const tray = h('div', { class: 'trn__tray' });
   const shelf = h('div', { class: 'trn__stores' });
-  const hint = h('p', { class: 'trn__hint', text: 'Put each crate in the store it belongs to.' });
+  const hint = h('p', {
+    class: 'trn__hint',
+    text: Number.isFinite(difficulty.mistakes)
+      ? `Put every crate in the store it belongs to. ${difficulty.mistakes} wrong ${difficulty.mistakes === 1 ? 'store' : 'stores'} and the round is over.`
+      : 'Put each crate in the store it belongs to.',
+  });
 
   for (const box of round.boxes) {
     const content = h('div', { class: 'trn__store-items' });
@@ -86,7 +94,7 @@ export const mountCargo: TrainingGameMount = (root, context) => {
   root.append(hint, tray, shelf);
 
   function status(): void {
-    context.setStatus(`Sorted: ${placed}/${CARGO_ROUND} · Mistakes: ${mistakes}`);
+    context.setStatus(`Sorted: ${placed}/${round.items.length} · Mistakes: ${mistakes}`);
   }
 
   function paint(): void {
@@ -108,12 +116,28 @@ export const mountCargo: TrainingGameMount = (root, context) => {
 
     if (item.box !== boxId) {
       mistakes += 1;
-      hint.textContent = 'Not that store. Try another one!';
 
       /* Read the layout again so the shake starts from the beginning. */
       node.classList.remove('trn__crate--wrong');
       void node.offsetWidth;
       node.classList.add('trn__crate--wrong');
+
+      /* Too many wrong stores and the round is over. It still counts as a
+         finished game - the player is paid for the attempt, not punished for
+         it. */
+      if (mistakes > difficulty.mistakes) {
+        finished = true;
+        hint.textContent = 'Too many wrong stores. That is the round.';
+
+        window.setTimeout(() => context.onComplete(cargoPerformance(mistakes, difficulty)), 500);
+
+        return;
+      }
+
+      hint.textContent = Number.isFinite(difficulty.mistakes)
+        ? `Not that store. ${difficulty.mistakes - mistakes} wrong ${difficulty.mistakes - mistakes === 1 ? 'store' : 'stores'} left.`
+        : 'Not that store. Try another one!';
+
       status();
 
       return;
@@ -127,11 +151,11 @@ export const mountCargo: TrainingGameMount = (root, context) => {
     hint.textContent = 'That is the right store. ✅';
     status();
 
-    if (placed >= CARGO_ROUND) {
+    if (placed >= round.items.length) {
       finished = true;
       hint.textContent = 'Every crate is stored!';
 
-      window.setTimeout(() => context.onComplete(cargoPerformance(mistakes)), 500);
+      window.setTimeout(() => context.onComplete(cargoPerformance(mistakes, difficulty)), 500);
     }
   }
 
