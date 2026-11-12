@@ -83,7 +83,7 @@ export const TRAINING_GAMES: readonly TrainingGame[] = [
   },
   {
     id: 'solar-power-up',
-    name: 'Solar Power-Up',
+    name: 'Solar Panel Power-Up',
     category: 'Logic',
     difficulty: 'Easy',
     description: 'Turn the power lines so the panels reach the battery.',
@@ -254,6 +254,9 @@ export type TrainingStart =
  * The rule is enforced here rather than by hiding a button: the sheet may
  * show six playable cards while only two of them can actually be finished,
  * and a player who finds a way past the button must not be paid for it.
+ *
+ * A game that was already finished today can be played again — practice is
+ * free — but finishing it pays nothing, which `completeTraining` sees to.
  */
 export function canStartTraining(run: RunState, gameId: string): TrainingStart {
   const game = TRAINING_GAMES.find((entry) => entry.id === gameId);
@@ -264,14 +267,6 @@ export function canStartTraining(run: RunState, gameId: string): TrainingStart {
 
   const day = trainingDay(run);
   const row = day.games.find((entry) => entry.id === game.id);
-
-  if (row?.status === 'completed') {
-    return {
-      ok: false,
-      reason: 'already',
-      message: `You already finished ${game.name} today. Try another game.`,
-    };
-  }
 
   if (row?.status === 'locked') {
     return {
@@ -321,10 +316,22 @@ export function completeTraining(
 
   if (!start.ok) return { ok: false, run, reason: start.reason, message: start.message };
 
-  const tier = trainingTier(performance);
-  const points = TRAINING_REWARDS[tier];
   const sol = trainingSol(run);
   const current = run.training.sol === sol ? run.training : emptyTraining(sol);
+
+  /* A game can be played again for practice, but it is only paid for once a
+     sol: this is where a second claim for the same game is turned away. */
+  if (current.completed.some((entry) => entry.gameId === gameId)) {
+    return {
+      ok: false,
+      run,
+      reason: 'already',
+      message: 'You already finished that training today, so there are no points this time.',
+    };
+  }
+
+  const tier = trainingTier(performance);
+  const points = TRAINING_REWARDS[tier];
 
   const training: TrainingState = {
     sol,

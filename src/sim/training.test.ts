@@ -128,12 +128,10 @@ describe('the daily limit', () => {
 });
 
 describe('playing the same game twice', () => {
-  it('refuses to start it again', () => {
+  it('can be played again, for practice', () => {
     const run = finish(aRun(), 'resource-merge');
-    const start = canStartTraining(run, 'resource-merge');
 
-    expect(start.ok).toBe(false);
-    expect(start.ok === false && start.reason).toBe('already');
+    expect(canStartTraining(run, 'resource-merge').ok).toBe(true);
   });
 
   it('pays nothing the second time', () => {
@@ -141,6 +139,7 @@ describe('playing the same game twice', () => {
     const outcome = completeTraining(run, 'resource-merge', 'excellent');
 
     expect(outcome.ok).toBe(false);
+    expect(outcome.ok === false && outcome.reason).toBe('already');
     expect(outcome.run.science).toBe(run.science);
     expect(trainingDay(outcome.run).completedCount).toBe(1);
   });
