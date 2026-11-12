@@ -1343,6 +1343,20 @@
 
   .gl__panel {
     overflow: visible;
+    /*
+      The panel is as tall as its own content.
+
+      In this layout the page scrolls, not the panel, so the panel has to be
+      as tall as what is in it. It used to be stretched to the height of the
+      row instead, and the row is as tall as the screen: the scroll box inside
+      the panel was then squeezed to nothing, and the panel's content - the
+      callout, the labels, the tiles - spilled out of it and painted over the
+      Run sol button underneath.
+
+      The phone draws the game at 1024 pixels wide, which is inside this
+      layout, so this is what a player on a phone saw.
+    */
+    align-self: start;
   }
 
   .gl__scroll {

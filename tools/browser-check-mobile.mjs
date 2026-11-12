@@ -349,6 +349,40 @@ try {
   await sleep(2000);
   await toAct();
 
+  /* ---- 5. The desk does not draw over itself.
+     The panel is inside a page that scrolls, and it used to be stretched to
+     the height of the screen instead of being as tall as its own content: the
+     callout and the labels then spilled out of it and painted over the Run sol
+     button underneath. */
+  const desk = await ev(`(() => {
+    const scroll = document.querySelector('#act .gl__scroll');
+    const callout = document.querySelector('#act .gl__callout');
+    const foot = document.querySelector('#act .gl__panel-foot');
+    const box = (el) => {
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { top: r.top, bottom: r.bottom, left: r.left, right: r.right };
+    };
+    return {
+      scrollHeight: scroll ? scroll.clientHeight : 0,
+      callout: box(callout),
+      foot: box(foot),
+    };
+})()`);
+
+  note('the panel is as tall as its content', (desk?.scrollHeight ?? 0) > 0, `${desk?.scrollHeight}px`);
+
+  if (desk?.callout !== null && desk?.callout !== undefined) {
+    note(
+      'and nothing paints over the Run sol button',
+      desk.foot !== null && desk.foot !== undefined && desk.callout.bottom <= desk.foot.top + 1,
+      `callout ends at ${Math.round(desk.callout.bottom)}, button starts at ${Math.round(desk.foot?.top ?? 0)}`,
+    );
+  } else {
+    note('and the callout is clear of the Run sol button', true, 'no callout on the desk');
+  }
+
+  /* ---- 6. The arrow pad, for the game that needs a keyboard. */
   const opened = await playCard('Rover Parking');
   note('the rover game opens', opened === true);
 

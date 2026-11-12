@@ -82,3 +82,33 @@ html.is-frame .act-order,
 html.is-frame .trn__card {
   min-height: 48px;
 }
+
+/*
+  THE WALK BUTTONS.
+
+  The two buttons the player holds to walk around the habitat are the one
+  control that has to be *held*, so they have to be big enough to hold. In the
+  frame they are scaled down with everything else, and 2.4rem in the frame is
+  under thirty pixels on the phone - a target a thumb cannot keep on. So in a
+  frame they are made bigger before the frame is scaled down, and land at
+  about forty-four pixels on the screen.
+*/
+html.is-frame .interior__dpad {
+  grid-template-columns: repeat(2, 4rem);
+  grid-template-rows: 4rem;
+  gap: 0.35rem;
+}
+
+html.is-frame .interior__pad {
+  font-size: 1rem;
+}
+
+/*
+  The arrow pad, the same story: its buttons are under thirty pixels on a
+  phone at the size they were first given.
+*/
+html.is-frame .pad {
+  width: 190px;
+  height: 190px;
+  gap: 8px;
+}
