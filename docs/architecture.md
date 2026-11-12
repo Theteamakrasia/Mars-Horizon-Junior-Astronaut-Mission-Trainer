@@ -24,7 +24,7 @@ than eyeballed, and it is what `npm run check` protects.
 
 ## The invariant, and why it is enforced
 
-958 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
+962 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
 reference it would still work, and the cost would surface later as an untestable bug.
 Enforced as `no-dom-in-pure-zone`.
 
@@ -947,7 +947,9 @@ There is **no navigation bar on the entry screen**. The app has one navigation b
 shared `.gl__header` drawn by `gameHeader()` in `ui/gameLoop.ts`, and it appears on
 exactly the four screens a player reaches once they are under way: `landing-site`,
 `base`, `act` and `debrief`. `naming` and `briefing` carry none, and neither do
-`supply`, `launch` or `interior`. Before this pass the app had four separate headers
+`supply`, `launch` or `interior`. The header's encyclopedia book is on **three** of those
+four: it is earned by reaching the outpost, so `landing-site` carries the same bar without
+it (D-080). Before this pass the app had four separate headers
 (`naming__header`, `briefing__header`, `landing-site__header` and `.gl__header`), each
 sized and drawn differently.
 
@@ -1146,6 +1148,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `RunStatus`, `SolEvent`, `DecisionRecord`, `SolRecord`, `SolActivity`, `Inspection` | what a sol did: the stores, the net, the blackout, the activity, the events and the notes. `Inspection` is how many stars an order was worked for |
 | | `newRun` | `(regionId, astronautName?) -> RunState` |
 | | `landAt` | `(run, regionId) -> RunState`; sets the region, keeping the astronaut's name |
+| | `hasReachedOutpost` | `(run: RunState \| null) -> boolean`; true once a landing site has been chosen, so the crew is on Mars. The one question a screen asks about how far a run has got — it gates the header's encyclopedia book, and `base`'s no-run fallback fails it on purpose (D-080) |
 | | `startOutpost` | `(run, modules) -> RunState`; lands the outpost with full batteries and the shielding those modules give, and resets the score |
 | | `withState` | `(run, patch) -> RunState` |
 | | `answerRoverFind` | `(run, answer) -> RunState`; answers the find the rover brought back and adds `FIND_SCIENCE`. A no-op when nothing waits |
@@ -1181,7 +1184,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 | `features/landing-site/view` | `mountLandingSite` | `(root, run, setRun) -> teardown`; map + five pins + Site Analysis panel, LAND HERE calls `landAt` then navigates to `nextStop('landing-site')`. Selecting a pin also shows that region's real NASA photo and fact (`regionCard`). It also prepends the shared navigation bar (`gameHeader('LANDING SITE', …)`) and removes it on teardown, so this screen carries the same bar as `base`, `act` and `debrief` |
 | `ui/gameLoop` | `gameScreen`, `gameWorld`, `gamePanel`, `gameSection`, `gameHeader`, `gameHud`, `HeaderOptions`, `PanelOptions`, `ScreenOptions`, `HudStat`, `SignalCard`, `WorldOptions` | the shared frame from the Figma frames (D-038): one `.gl` root, the illustrated world panel, and the scrolling right-hand panel. Every word, number and variant arrives in an options object; no `sim/` rule is applied here. `HudStat.icon`, `SignalCard.icon` and `WorldOptions.weatherIcon` are `IconName`, never a glyph (D-070) |
 | | `moduleFigures`, `moduleArt`, `MODULE_ART`, `WORLD_BACKGROUND`, `ASTRONAUT_SPRITE` | the artwork the world panel draws, owned here so `base`, `act` and `debrief` do not copy the imports |
-| | `gameHeader`, `gameHud`, `gameDock` | `gameHeader(options: HeaderOptions)`; without `onLeave` the right-hand label is plain decorative text; with it, the right side becomes the book (encyclopedia), the screen's own `help` button and a Menu button opening an in-screen leave dialog with Keep playing / Leave mission (D-044). `showEncyclopedia: false` hides the book on the page the book leads to (ISS-072). `gameHud` draws the five resource cards (`HudStat`) and `gameDock` the three-tab dock. `day` puts the mission-day tracker in the bar, between the brand and the controls: a screen with a run in play passes one, and a screen without one leaves its bar unchanged (D-070). The pause/settings/BUILD pills and the dock are `aria-hidden` spans, not buttons (D-038) |
+| | `gameHeader`, `gameHud`, `gameDock` | `gameHeader(options: HeaderOptions)`; without `onLeave` the right-hand label is plain decorative text; with it, the right side becomes the screen's own `help` button and a Menu button opening an in-screen leave dialog with Keep playing / Leave mission (D-044), plus the **encyclopedia book when the screen asks for it** — `showEncyclopedia` is off unless a screen passes true, and only `base`, `act` and `debrief` do, because the reference is earned at the outpost (D-080). `gameHud` draws the five resource cards (`HudStat`) and `gameDock` the three-tab dock. `day` puts the mission-day tracker in the bar, between the brand and the controls: a screen with a run in play passes one, and a screen without one leaves its bar unchanged (D-070). The pause/settings/BUILD pills and the dock are `aria-hidden` spans, not buttons (D-038) |
 | | `gameSection` | `(label, ...content) -> section`; an uppercase label and its body |
 | | `gameScreen` | `(options: ScreenOptions) -> section`; `help` carries the guide's `?` icon button in the header (D-060, D-070), and `panel.corner` puts the panel head's one right-hand fact in place (the science points, on `act`). There is no mission bar: it was removed in D-070, so the panel's own kicker names the day. `day?: DayModel` puts the mission-day tracker in the header (D-070). The rover button is gone: the rover is part of the run now, not a widget on the wall (D-062) |
 | | `moduleFigures`, `moduleArt`, `MODULE_ART`, `WORLD_BACKGROUND`, `ASTRONAUT_SPRITE` | artwork placement and the bundled asset URLs; the only import site for the figures base, act and debrief share |

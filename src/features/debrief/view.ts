@@ -14,7 +14,7 @@
 import { NEXT_HORIZON_CARD, factFor, factForTopic } from '../../data/nasaGallery';
 import { lastDetail, lastSource } from '../../data/spaceweather';
 import { h } from '../../dom/h';
-import { newRun, type RunState } from '../../sim/run';
+import { hasReachedOutpost, newRun, type RunState } from '../../sim/run';
 import { gamePanel, gameScreen, gameSection, gameWorld, moduleArt, moduleFigures, type HudStat, type SignalCard } from '../../ui/gameLoop';
 import { dayModel } from '../../ui/dayTracker';
 import { nasaCard } from '../../ui/nasaCard';
@@ -566,7 +566,7 @@ export function mountDebrief(
 
     const panel = mode === 'debrief' ? debriefPanel(run) : journalPanel(run);
 
-    mount.replaceChildren(gameScreen({ hud: hudFor(run), world: worldFor(run), panel, variant: 'gl--debrief', headerSub: 'MISSION DEBRIEF', onLeave: () => navigate('naming'), day: dayModel(run) }));
+    mount.replaceChildren(gameScreen({ hud: hudFor(run), world: worldFor(run), panel, variant: 'gl--debrief', headerSub: 'MISSION DEBRIEF', onLeave: () => navigate('naming'), day: dayModel(run), showEncyclopedia: hasReachedOutpost(run) }));
 
     if (focus !== undefined) mount.querySelector<HTMLElement>(`[data-focus="${focus}"]`)?.focus();
   }

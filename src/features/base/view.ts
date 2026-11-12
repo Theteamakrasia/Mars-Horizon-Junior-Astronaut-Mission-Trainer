@@ -18,7 +18,7 @@ import { loadForecast, type LoadedForecast } from '../../dom/forecastLoader';
 import { h } from '../../dom/h';
 import { factFor } from '../../data/nasaGallery';
 import { createForecast, type ForecastEvent } from '../../sim/forecast';
-import { newRun, startOutpost, withState, type RunState } from '../../sim/run';
+import { hasReachedOutpost, newRun, startOutpost, withState, type RunState } from '../../sim/run';
 import { regionById, siteScore } from '../../sim/regions';
 import { gamePanel, gameScreen, gameSection, gameWorld, keepScroll, moduleArt, moduleFigures, type HudStat, type SignalCard } from '../../ui/gameLoop';
 import { dayModel } from '../../ui/dayTracker';
@@ -362,6 +362,10 @@ export function mountBase(
       headerSub: 'BUILD YOUR OUTPOST',
       onLeave: () => navigate('naming'),
       day: dayModel(start),
+      /* The book is earned by reaching the outpost, not by having the bar: this
+         screen falls back to a run with no region when it is handed none, and
+         that run has not landed anywhere (D-080). */
+      showEncyclopedia: hasReachedOutpost(run),
       help: guideButton(() => {
         guideOpen = true;
         render();

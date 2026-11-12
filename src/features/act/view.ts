@@ -26,7 +26,7 @@ import { loadForecast, type LoadedForecast } from '../../dom/forecastLoader';
 import { h } from '../../dom/h';
 import { earthAdvice, earthIsInTime, optionOf, pendingCrisis, type Crisis } from '../../sim/crises';
 import { oneWayMinutes, roundTripMinutes } from '../../sim/comms';
-import { answerRoverFind, recordInspection, withState, type RunState } from '../../sim/run';
+import { answerRoverFind, hasReachedOutpost, recordInspection, withState, type RunState } from '../../sim/run';
 import { makeInspection, type Inspection } from '../../ui/activityPlayer';
 import { guideButton, guidePanel } from '../../ui/guide';
 import { ENGINE_NAME, engineUnlocked, type EngineKind } from '../../sim/minigames';
@@ -1439,6 +1439,7 @@ export function mountAct(
       headerSub: 'RUNNING THE DAY',
       onLeave: () => navigate('naming'),
       day: dayModel(state, advancedSol),
+      showEncyclopedia: hasReachedOutpost(run),
       help: guideButton(() => {
         guideOpen = true;
         openSheet = null;

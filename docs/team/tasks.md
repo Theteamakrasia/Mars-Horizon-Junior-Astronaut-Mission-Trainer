@@ -7,6 +7,7 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 
 | id | task | goal | owner | status | blocked by | notes |
 | --- | --- | --- | --- | --- | --- | --- |
+| TASK-103 | Only offer the encyclopedia once the player has reached the outpost | G-4 | agent | done | - | D-080, ISS-094. `hasReachedOutpost(run)` in `sim/run.ts`; `showEncyclopedia` is off unless asked, and `base`, `act` and `debrief` ask. The browser check asserts the map has no book and the build screen has one |
 | TASK-102 | Let the landing-site NASA dialog be dismissed, and stop the map leaving bands above and below it | G-4 | agent | done | - | ISS-091, ISS-092. One modal for both states, with the ✕ and the backdrop wired before the branch; the stage fills its cell and the picture crops |
 | TASK-101 | Give the mini game its own sheet, so it never merges with the desk | G-4 | agent | done | - | D-079, ISS-093. The tool opens over the orders; the desk sheet holds no tool; the tool cannot outlive its section. 50 browser checks |
 | TASK-100 | Make the how-to-play guide a popup with the astronaut reading it, one step per page | G-7 | agent | done | - | D-078, ISS-090. `ui/guide.ts` + `ui/guide.css`; the astronaut on the left, a speech bubble on the right, Next / Back / page dots / Read aloud; mounted on `document.body` so a redraw cannot reset the page; 801 tests |

@@ -6,6 +6,113 @@ Newest entry on top. Four bullets: **Did**, **Files**, **Problems**, **Next**.
 say so and say why - a clean change with an unexplained problem underneath is worse
 than a documented one.
 
+## 2026-11-12 — The encyclopedia is earned at the outpost
+
+**Did**
+
+- **Gated the book behind the outpost.** The encyclopedia was one click away on every
+  screen with the header, the landing-site map included: before choosing a site a player
+  could open a reference to every module in the game, and leave the journey from it. The
+  book now appears on `base`, `act` and `debrief` — the screens with a landed run — and
+  nowhere before them (D-080, ISS-094).
+- **Made the option opt-in rather than opt-out**, which is the half of the fix that lasts:
+  `showEncyclopedia` draws the book only when a screen asks, so the next screen added
+  before the outpost cannot inherit it by forgetting to say no.
+- **Answered it with one pure question.** `hasReachedOutpost(run)` in `sim/run.ts` is true
+  once a landing site has been chosen, and the three screens ask it. It cannot be "is
+  there a run", because `base` draws itself from `newRun('')` when it is handed none.
+- **Asserted both ends in the browser check**: no book on the map, a book on the build
+  screen.
+
+**Files**
+
+- `src/sim/run.ts` — `hasReachedOutpost`, with four tests in `run.test.ts`
+- `src/ui/gameLoop.ts` — the book is drawn only when a screen asks for it
+- `src/features/{base,act,debrief}/view.ts` — `showEncyclopedia: hasReachedOutpost(run)`
+- `src/features/encyclopedia/view.ts` — the redundant `showEncyclopedia: false` removed
+- `tools/browser-check-build.mjs` — the map has no book
+- `docs/team/{decisions,issues,tasks,progress-log}.md`, `docs/architecture.md`,
+  `AGENTS.md`
+
+**Problems**
+
+- **The leak was a default, not a decision.** Nobody chose to put the book on the map: the
+  header shows it unless told otherwise, and when the hub pass (D-070) gave the map the
+  same bar for a byte-identical header, the book came with it. A check that only asserted
+  the book *exists* on `base` could not have caught it; the new assertion checks where it
+  is absent.
+- **`base` fabricates a run when it is handed none** (`newRun('', 'Astronaut')`), so a
+  screen-local `true` would have offered the book for a run that never landed. That is why
+  the gate is a predicate on `regionId` rather than a constant.
+- **The merge entry from `78d5596` was committed below main's five entries**, so the file
+  had stopped reading newest-first. It sits at the top now, with this entry above it.
+- **`decisions.md` carried a doubled `---` and a wrong id** — D-078 said "Logged as
+  ISS-077", which is ISS-090 after the renumbering. Both came from the merge; both are
+  fixed here.
+
+**Next**
+
+- Nothing asserts the book is absent from `act`'s "not ready" fallback or the debrief's
+  empty state. The default makes it true, and a browser check for a screen nobody reaches
+  is not worth a run yet.
+
+---
+
+## 2026-11-12 — Merge main's training, day tracker and guide popup, and keep both sides
+
+**Did**
+
+- **Merged `origin/main`** (33 commits: the astronaut training system and its
+  two-a-sol lock, the mission-day tracker, the how-to-play popup, the launch skip and
+  five play-test fixes) into `game-loop-ui`, keeping both sides: main's training, tracker
+  and popup, and this branch's hub, real-data sheet and tool sheet.
+- **Renumbered this branch's entries**, because main had taken the ids while the branch
+  was open: the mini game's `ISS-077` became **ISS-093** and its `D-072` became
+  **D-079**, `TASK-095` became **TASK-101**. The two landing-site bugs got **ISS-091**
+  and **ISS-092**, with **TASK-102**.
+- **Taught the rover check the training rule.** Every sol starts the two-game count
+  again, so a check that opens the orders without training drives nothing; it now trains
+  whenever the tile says locked, and the rover is sent on mission 2 as designed.
+- **Corrected the test count to 958 in 46 files** in `AGENTS.md`, `README.md` and
+  `docs/architecture.md` — main carried 810 in two places while its own README table
+  said 958.
+
+**Files**
+
+- `docs/architecture.md`, `docs/team/{decisions,issues,tasks,progress-log}.md` — both
+  sides' entries, newest first, with this branch's ids moved up
+- `index.html` — main's `tabindex` on the parts panel kept through the reformat
+- `tools/browser-check-rover.mjs` — trains whenever the orders are locked
+- `tools/browser-check-day.mjs` — a crisis kicker counts as the day's count
+- `AGENTS.md`, `README.md` — the test count
+
+**Problems**
+
+- **`index.html` was the merge's silent risk.** This branch had reformatted the whole
+  file, so main's new markup — the skip button, the `tabindex` on the parts panel —
+  landed in a file whose every line had changed. The merge was clean apart from the parts
+  panel, and the skip button survived, but a reformat makes a file git cannot help with.
+- **The rover check was green on main and red on the merge**, and the cause was not the
+  code: today's tasks are locked until the crew trains, and the count resets every sol, so
+  a check that opens the orders without training reads "missing" for five sols and blames
+  the rover.
+- **The day check assumed no crisis.** On a crisis sol the panel kicker is the crisis
+  ("Sol 2 · Supply pod"), so it now only requires the kicker to begin with the day's
+  number.
+- **The journey check ran green and empty.** It drives the dev server on port 5173, not
+  the preview on 4173; run against the preview every step reads "none" and it looks like
+  the game is dead — the same lesson as ISS-074.
+- **Two `---` separators and a duplicate `D-072`** came out of the merge in
+  `decisions.md`, and a full-line `=======` was left in the triage table. All three were
+  the merge's, not the content's.
+
+**Next**
+
+- The tool sheet's two exits and the data sheet's length are still worth a look in a
+  browser, now that both sit in the merged screen.
+
+---
+
 ## 2026-11-12 — The day tracker, built to the reference strip
 
 **Did**
@@ -411,61 +518,6 @@ Olympus Mons (2 water gives 6% a sol).
 
 - The skip is recorded nowhere. If the debrief should say that a player cut the launch
   film, that is a run flag and a different change.
-
----
-
-## 2026-11-12 — Merge main's training, day tracker and guide popup, and keep both sides
-
-**Did**
-
-- **Merged `origin/main`** (33 commits: the astronaut training system and its
-  two-a-sol lock, the mission-day tracker, the how-to-play popup, the launch skip and
-  five play-test fixes) into `game-loop-ui`, keeping both sides: main's training, tracker
-  and popup, and this branch's hub, real-data sheet and tool sheet.
-- **Renumbered this branch's entries**, because main had taken the ids while the branch
-  was open: the mini game's `ISS-077` became **ISS-093** and its `D-072` became
-  **D-079**, `TASK-095` became **TASK-101**. The two landing-site bugs got **ISS-091**
-  and **ISS-092**, with **TASK-102**.
-- **Taught the rover check the training rule.** Every sol starts the two-game count
-  again, so a check that opens the orders without training drives nothing; it now trains
-  whenever the tile says locked, and the rover is sent on mission 2 as designed.
-- **Corrected the test count to 958 in 46 files** in `AGENTS.md`, `README.md` and
-  `docs/architecture.md` — main carried 810 in two places while its own README table
-  said 958.
-
-**Files**
-
-- `docs/architecture.md`, `docs/team/{decisions,issues,tasks,progress-log}.md` — both
-  sides' entries, newest first, with this branch's ids moved up
-- `index.html` — main's `tabindex` on the parts panel kept through the reformat
-- `tools/browser-check-rover.mjs` — trains whenever the orders are locked
-- `tools/browser-check-day.mjs` — a crisis kicker counts as the day's count
-- `AGENTS.md`, `README.md` — the test count
-
-**Problems**
-
-- **`index.html` was the merge's silent risk.** This branch had reformatted the whole
-  file, so main's new markup — the skip button, the `tabindex` on the parts panel —
-  landed in a file whose every line had changed. The merge was clean apart from the parts
-  panel, and the skip button survived, but a reformat makes a file git cannot help with.
-- **The rover check was green on main and red on the merge**, and the cause was not the
-  code: today's tasks are locked until the crew trains, and the count resets every sol, so
-  a check that opens the orders without training reads "missing" for five sols and blames
-  the rover.
-- **The day check assumed no crisis.** On a crisis sol the panel kicker is the crisis
-  ("Sol 2 · Supply pod"), so it now only requires the kicker to begin with the day's
-  number.
-- **The journey check ran green and empty.** It drives the dev server on port 5173, not
-  the preview on 4173; run against the preview every step reads "none" and it looks like
-  the game is dead — the same lesson as ISS-074.
-- **Two `---` separators and a duplicate `D-072`** came out of the merge in
-  `decisions.md`, and a full-line `=======` was left in the triage table. All three were
-  the merge's, not the content's.
-
-**Next**
-
-- The tool sheet's two exits and the data sheet's length are still worth a look in a
-  browser, now that both sit in the merged screen.
 
 ---
 

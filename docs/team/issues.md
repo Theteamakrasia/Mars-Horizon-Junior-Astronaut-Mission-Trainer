@@ -11,6 +11,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
+| ISS-094 | The encyclopedia was one click away before the player had an outpost | medium | agent | fixed | this branch |
 | ISS-093 | The mini game merged with the desk sheet, and stayed there after it closed | medium | agent | fixed | this branch |
 | ISS-092 | The landing-site map left a blank band above and below the picture | low | agent | fixed | this branch |
 | ISS-091 | "NASA data" before a region was chosen opened a dialog with no way out | high | agent | fixed | this branch |
@@ -103,6 +104,28 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | ISS-014 | `base.css` calls the page non-interactive while draggable | low | agent | fixed | this branch |
 
 ---
+
+## ISS-094 - The encyclopedia was one click away before the player had an outpost
+
+- **Reported by:** the owner, 2026-11-12: *"allow encyclopedia only after when player
+  reached base page and not before."*
+- **Where:** `src/ui/gameLoop.ts` — `gameHeader`, the `showEncyclopedia` option, and
+  `src/features/landing-site/view.ts`.
+- **Problem:** the book sat in the header of every screen that had the bar, the landing-site
+  map included. Before choosing a site or building anything, a player could open a
+  reference to every module in the game and, from it, leave the journey altogether — the
+  reference arrived before the thing it explains, and it read as a promise that the game
+  had started when it had not.
+- **Cause:** the option defaulted to *showing* and only the encyclopedia passed `false`.
+  That was correct when the bar was written, because only `base`, `act` and `debrief` drew
+  it. Then the hub pass (D-070) gave `landing-site` the same bar for a byte-identical
+  header, and the book came with it — nobody had to choose it, so nobody noticed it.
+- **Fix:** the book is opt-in. `gameHeader` draws it only when `showEncyclopedia` is true,
+  and the three screens with a landed run ask with the new pure `hasReachedOutpost(run)`
+  (`sim/run.ts`), which also keeps `base`'s no-run fallback from showing it. The browser
+  check asserts the map has no book and the build screen has one.
+- **Pre-existing:** yes; it arrived with the shared bar and was found by the owner while
+  reviewing the screens before the freeze.
 
 ## ISS-092 - The landing-site map left a blank band above and below the picture
 
@@ -1647,7 +1670,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-**Next free id: ISS-094.**
+**Next free id: ISS-095.**
 
 
 ---

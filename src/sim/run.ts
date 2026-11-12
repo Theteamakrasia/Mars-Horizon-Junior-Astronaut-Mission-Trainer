@@ -178,6 +178,20 @@ export function landAt(state: RunState, regionId: string): RunState {
 }
 
 /**
+ * True once the crew is on Mars: a landing site has been chosen, so an outpost
+ * is real.
+ *
+ * This is the question a screen asks when it needs to know whether the player
+ * has got as far as the outpost — the header's encyclopedia book is one, and it
+ * is only offered from `base` onwards (D-080). It cannot be "is there a run",
+ * because `base` falls back to `newRun('')` when it is handed none, and a run
+ * with no region has not landed anywhere.
+ */
+export function hasReachedOutpost(run: RunState | null): boolean {
+  return run !== null && run.regionId !== '';
+}
+
+/**
  * Answer the find the rover brought back.
  *
  * The choice is the stamp: a historic site is logged, a rock is collected or

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { BATTERY_KWH_PER_BANK, CORE_MODULES, SHIELDING_BASE, SHIELDING_PER_REGOLITH } from './modules';
-import { newRun, landAt, startOutpost, withState, type RunState } from './run';
+import { hasReachedOutpost, newRun, landAt, startOutpost, withState, type RunState } from './run';
 
 /*
  * The run state is the only thing shared between screens, so a change to it
@@ -115,5 +115,23 @@ describe('landing the outpost', () => {
     expect(landed.panelHealth).toBe(1);
     expect(landed.log).toEqual([]);
     expect(landed.decisions).toEqual([]);
+  });
+});
+
+describe('has reached the outpost', () => {
+  it('says no when there is no run at all', () => {
+    expect(hasReachedOutpost(null)).toBe(false);
+  });
+
+  it('says no for a run with no region, which is what base falls back to', () => {
+    expect(hasReachedOutpost(newRun('', 'Tester'))).toBe(false);
+  });
+
+  it('says yes once a region has been chosen', () => {
+    expect(hasReachedOutpost(newRun('jezero', 'Tester'))).toBe(true);
+  });
+
+  it('says yes after the landing site is picked on an empty run', () => {
+    expect(hasReachedOutpost(landAt(newRun('', 'Tester'), 'jezero'))).toBe(true);
   });
 });
