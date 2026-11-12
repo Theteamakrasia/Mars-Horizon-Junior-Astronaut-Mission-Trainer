@@ -13,7 +13,7 @@ See `../README.md` for the layout rules and
 The player has just chosen a landing site and pressed **Land here**. The map
 fades to black, the film plays, and the outpost arrives out of the dark.
 
-The film is **thirty-two seconds** long and is built from five supplied frames,
+The film is **seventeen seconds** long and is built from five supplied frames,
 played as one shot rather than five cuts:
 
 | beat | what is on screen |
@@ -25,6 +25,13 @@ played as one shot rather than five cuts:
 
 The region the player chose is on the screen throughout: its name on the
 approach, its own NASA fact on the landing.
+
+**One way down.** Every frame of the descent grows from the **bottom** of the
+frame, and the scale only ever rises (1.00 → 1.06 → 1.08 → 1.10 → 1.15), so the
+ground stays where it is while the capsule comes down towards it. The landing
+frame used to grow from a different point than the frame before it, and the
+dissolve read as the camera pulling back — one origin for the whole descent is
+the fix (D-085).
 
 ## What `model.ts` must contain
 
@@ -70,6 +77,17 @@ the movement away and leaves the film exactly as long.
   which was checked against NASA before it was written down and works offline.
 - **No new dependency.** The project has none, and a film of five stills does
   not need one.
+
+## The frames
+
+The five pictures are **WebP**, converted from the supplied JPEG by
+`tools/compress-cinematic-frames.py` at quality 84 — about 41 dB against the
+JPEG, which is where the difference stops being visible, and about half the
+weight. The originals are kept in `source/` beside them, and the tool fails
+loudly if a frame does not come out smaller.
+
+The frames are fetched at startup by `ui/landingFrames.ts`, so they are in the
+cache, and decoded, long before the player reaches the map.
 
 ## Handoff
 

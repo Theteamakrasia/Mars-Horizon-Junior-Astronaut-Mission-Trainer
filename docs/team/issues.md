@@ -11,7 +11,9 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
-| ISS-099 | The game drew its own pictograms and still carried emoji, with a drawn icon set supplied | medium | agent | fixed | this branch |
+| ISS-101 | The training check ran a sol and never answered the crisis on it, so the sol never happened | medium | agent | fixed | this branch |
+| ISS-100 | The setup window check expected a sparkle that is now a drawn icon, and read the cost as the wrong thing | low | agent | fixed | this branch |
+ and still carried emoji, with a drawn icon set supplied | medium | agent | fixed | this branch |
 | ISS-098 | The training check asserted the wrong thing about a refresh, and the game grew a save under it | medium | agent | fixed | this branch |
 | ISS-097 | The build check looked for the supply cards in the panel, and the cards moved to the setup window | low | agent | fixed | this branch |
 | ISS-096 | The training browser check re-walked the journey to test a refresh, so it always failed | medium | agent | fixed | this branch |
@@ -111,6 +113,41 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
+## ISS-101 - The training check ran a sol and never answered the crisis on it, so the sol never happened
+
+- **Reported by:** the agent, 2026-11-12, while adding the landing cinematic: the
+  training check failed six checks in a row, all of them about the day's training
+  not starting again on the next sol.
+- **Where:** `tools/browser-check-training.mjs`, the loop that runs a sol.
+- **Problem:** the loop clicked RUN SOL and stopped on the click. A crisis can
+  replace the hub the moment a sol starts, and a sol is not flown until that
+  crisis is answered - so the check left the crisis on the screen, the sol never
+  completed, the day never turned over, and the day's training never reset. Every
+  check after it then failed for reasons that had nothing to do with training.
+  The loop only passed when the forecast happened to bring no crisis that sol,
+  which is why it read as a flaky check rather than a broken one.
+- **Fix:** the loop now waits for the day counter in the header to move before it
+  stops, and keeps going round to answer a crisis that appears on the sol it
+  just started. The sol is finished when the day has moved on, which is what the
+  player sees.
+- **Logged before the fix,** because the rule is that a bug gets an id before it
+  is fixed (R-19).
+
+## ISS-100 - The setup window check expected a sparkle that is now a drawn icon, and read the cost as the wrong thing
+
+- **Reported by:** the agent, 2026-11-12, while adding the landing cinematic: the
+  setup window check failed five checks, one for each landing region.
+- **Where:** `tools/browser-check-setup-popup.mjs`, the list of the six supplies
+  and what each one costs.
+- **Problem:** the check expected the cost to read as the sparkle character and
+  the number. The icon set (D-083) replaced that character with a drawn sparkle
+  (ISS-099), and a drawn icon carries no text - so the card's text is now the
+  number on its own, and the check compared the two and said they were
+  different. The game was right and the check was stale.
+- **Fix:** the check compares the numbers, which is what the card says now, and
+  says so in a comment.
+- **Logged before the fix,** because the rule is that a bug gets an id before it
+  is fixed (R-19).
 ## ISS-099 - The game drew its own pictograms and still carried emoji, with a drawn icon set supplied
 
 - **Reported by:** the owner, 2026-11-12: a set of 56 drawn SVG icons, supplied in
@@ -1787,7 +1824,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-**Next free id: ISS-100.**
+**Next free id: ISS-102.**
 
 
 ---

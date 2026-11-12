@@ -36,838 +36,847 @@ exist** = planned, nothing written.
 
 ```
 Mars-Horizon-Junior-Astronaut-Mission-Trainer/
-│
+ 
 ├── index.html                          complete   54 lines. All five visual layers and the
-│                                                  <script type=module> entry. Contains an
-│                                                  external Google Fonts request — see ISS-007.
+                                                   <script type=module> entry. Contains an
+                                                   external Google Fonts request — see ISS-007.
 ├── package.json                        complete   6 scripts: dev, build, preview, typecheck,
-│                                                  test, check. Zero runtime dependencies.
+                                                   test, check. Zero runtime dependencies.
 ├── package-lock.json                   complete   generated, do not edit
 ├── tsconfig.json                       complete   strict, noUnusedLocals, bundler resolution
 ├── vite.config.ts                      complete   publicDir:false, base:'./', target es2020
 ├── LICENSE                             complete   MIT, "Team Akrasia 2026". Not mirrored into
-│                                                  package.json — see ISS-004.
+                                                   package.json — see ISS-004.
 ├── .gitignore                          partial    4 lines. Missing .env* — see ISS-006.
 ├── .gitattributes                      DOES NOT EXIST   See ISS-005. Cheapest thing to add.
-│
+ 
 ├── Assets/
-│   ├── images/floating.png             complete   145 KB astronaut sprite, imported from TS so
-│   │                                             Vite fingerprints it into dist/
-│   ├── images/briefing/                complete   astronaut.webp (203 KB). The cheerful astronaut
-│   │                                             between Earth and Mars; the briefing screen's
-│   │                                             scene. Imported from TS so Vite fingerprints it.
-│   ├── images/launch/                  complete   launch-cinematic.mp4 (6.9 MB, the launch film) and
-│   │                                             launch-poster.webp (90 KB, the pad frame the film
-│   │                                             is parked on). Both imported from TS so Vite
-│   │                                             fingerprints them.
-│   ├── images/docking/                 complete   3 WebP stills, ~150 KB each: the separated
-│   │                                             spacecraft, the docked craft and the assembled
-│   │                                             station. Read by tools/render-docking.py.
-│   ├── images/guide/                   complete   astronaut.png (74 KB, 260x340): the cutout
-│   │                                             that stands beside the speech bubble in the
-│   │                                             how-to-play popup. Imported from TS so Vite
-│   │                                             fingerprints it. A transparent background is
-│   │                                             what makes it work: the figure has to sit on
-│   │                                             the dimmed screen, not inside a box.
-│   ├── images/naming/                  complete   mars.webp (358 KB, 1818x1860) and
-│   │                                             astronaut.webp (130 KB, 1240x1236): the
-│   │                                             planet and the astronaut of the start
-│   │                                             screen. Both are drawn full-screen, so both
-│   │                                             are enlarged from the originals by
-│   │                                             tools/upscale-naming-assets.py.
-│   │   └── source/                     complete   the untouched originals (606x620 and
-│   │                                             620x618), kept so the enlargement can be
-│   │                                             re-run at any size. Read by
-│   │                                             tools/upscale-naming-assets.py.
-│   ├── images/parts/                   complete   5 WebP stills: the all-parts overview and one
-│   │                                             per part (propulsion, habitat, logistics,
-│   │                                             Orion), each with a different part outlined and a
-│   │                                             baked label card. Read by tools/render-parts.py.
-│   ├── images/rover/                    complete   rbutton.webp (58 KB, 512x512) and
-│   │                                             mars_rover_seamless_loop.gif (810 KB, 380x250,
-│   │                                             16 frames): the rover's button and its loop. Both
-│   │                                             imported from TS so Vite fingerprints them. The
-│   │                                             loop is the original GIF, shipped as it is: GIF
-│   │                                             is the one format every browser plays without
-│   │                                             argument, and it is only fetched when the player
-│   │                                             opens the rover's status window.
-│   ├── images/rover/source/             complete   the untouched button original (a 1254x1254
-│   │                                             PNG), kept so the conversion can be re-run. Read
-│   │                                             by tools/compress-rover-assets.py.
-│   └── README_ref/*.png                complete   6 UI mockups, ~2.4 MB. Never bundled
-│                                                 (publicDir:false exists to exclude them).
+    ├── images/floating.png             complete   145 KB astronaut sprite, imported from TS so
+                                                  Vite fingerprints it into dist/
+    ├── images/briefing/                complete   astronaut.webp (203 KB). The cheerful astronaut
+                                                  between Earth and Mars; the briefing screen's
+                                                  scene. Imported from TS so Vite fingerprints it.
+    ├── images/launch/                  complete   launch-cinematic.mp4 (6.9 MB, the launch film) and
+                                                  launch-poster.webp (90 KB, the pad frame the film
+                                                  is parked on). Both imported from TS so Vite
+                                                  fingerprints them.
+    ├── images/docking/                 complete   3 WebP stills, ~150 KB each: the separated
+                                                  spacecraft, the docked craft and the assembled
+                                                  station. Read by tools/render-docking.py.
+    ├── images/guide/                   complete   astronaut.png (74 KB, 260x340): the cutout
+                                                  that stands beside the speech bubble in the
+                                                  how-to-play popup. Imported from TS so Vite
+                                                  fingerprints it. A transparent background is
+                                                  what makes it work: the figure has to sit on
+                                                  the dimmed screen, not inside a box.
+    ├── images/naming/                  complete   mars.webp (358 KB, 1818x1860) and
+                                                  astronaut.webp (130 KB, 1240x1236): the
+                                                  planet and the astronaut of the start
+                                                  screen. Both are drawn full-screen, so both
+                                                  are enlarged from the originals by
+                                                  tools/upscale-naming-assets.py.
+        └── source/                     complete   the untouched originals (606x620 and
+                                                  620x618), kept so the enlargement can be
+                                                  re-run at any size. Read by
+                                                  tools/upscale-naming-assets.py.
+    ├── images/parts/                   complete   5 WebP stills: the all-parts overview and one
+                                                  per part (propulsion, habitat, logistics,
+                                                  Orion), each with a different part outlined and a
+                                                  baked label card. Read by tools/render-parts.py.
+    ├── images/rover/                    complete   rbutton.webp (58 KB, 512x512) and
+                                                  mars_rover_seamless_loop.gif (810 KB, 380x250,
+                                                  16 frames): the rover's button and its loop. Both
+                                                  imported from TS so Vite fingerprints them. The
+                                                  loop is the original GIF, shipped as it is: GIF
+                                                  is the one format every browser plays without
+                                                  argument, and it is only fetched when the player
+                                                  opens the rover's status window.
+    ├── images/rover/source/             complete   the untouched button original (a 1254x1254
+                                                  PNG), kept so the conversion can be re-run. Read
+                                                  by tools/compress-rover-assets.py.
+    └── README_ref/*.png                complete   6 UI mockups, ~2.4 MB. Never bundled
+                                                  (publicDir:false exists to exclude them).
 ├── Assets/video/
-│   ├── docking.mp4                     complete   1.7 MB. 3.0s, 1920x1080, 30fps, H.264, silent.
-│   │                                             The rendered docking clip. Built by
-│   │                                             tools/render-docking.py.
-│   ├── docking-poster.webp             complete   97 KB. The finished joint with its latch ring lit,
-│   │                                             used as the clip's poster while it buffers. Built by
-│   │                                             tools/extract-posters.py.
-│   ├── parts.mp4                       complete   5.5 MB. 12.0s, 1920x1080, 30fps, H.264, silent.
-│   │                                             The "meet the spacecraft" segment: title, four
-│   │                                             labelled parts with descriptions, overview outro.
-│   │                                             Each part holds 2.0s so its description can be
-│   │                                             read; the lower-third sits below the panels.
-│   │                                             Built by tools/render-parts.py.
-│   └── parts-poster.webp               complete   98 KB. The tour's "MEET THE SPACECRAFT" title card,
-│                                                 used as the clip's poster while it buffers. The first
-│                                                 frame would be black, so the poster is a frame in.
-│                                                 Built by tools/extract-posters.py.
-│
+    ├── docking.mp4                     complete   1.7 MB. 3.0s, 1920x1080, 30fps, H.264, silent.
+                                                  The rendered docking clip. Built by
+                                                  tools/render-docking.py.
+    ├── docking-poster.webp             complete   97 KB. The finished joint with its latch ring lit,
+                                                  used as the clip's poster while it buffers. Built by
+                                                  tools/extract-posters.py.
+    ├── parts.mp4                       complete   5.5 MB. 12.0s, 1920x1080, 30fps, H.264, silent.
+                                                  The "meet the spacecraft" segment: title, four
+                                                  labelled parts with descriptions, overview outro.
+                                                  Each part holds 2.0s so its description can be
+                                                  read; the lower-third sits below the panels.
+                                                  Built by tools/render-parts.py.
+    └── parts-poster.webp               complete   98 KB. The tour's "MEET THE SPACECRAFT" title card,
+                                                  used as the clip's poster while it buffers. The first
+                                                  frame would be black, so the poster is a frame in.
+                                                  Built by tools/extract-posters.py.
+ 
 ├── tools/
-│   ├── extract-posters.py              complete   ~55 lines. PyAV. Writes one WebP poster per film at a
-│   │                                             chosen frame, so a clip that is still buffering shows
-│   │                                             a picture rather than black. The tour's poster is its
-│   │                                             title card, because the clip opens on black.
-│   ├── render-docking.py               complete   241 lines. PIL + numpy + OpenCV + PyAV. Cuts the head out
-│   │                                             of the separated frame, rebuilds the black space
-│   │                                             behind it, and moves the sprite across a headless
-│   │                                             background while the camera pushes in.
-│   ├── render-parts.py                 complete   300+ lines. PIL + numpy + OpenCV + PyAV. Cross-dissolves the
-│   │                                                 four part stills under a push-in, with staggered
-│   │                                                 description bars and fade-through-black bookends.
-│   ├── upscale-naming-assets.py        complete   ~85 lines. PIL. Enlarges the start screen's planet and
-│   │                                             astronaut with a Lanczos resample and a light
-│   │                                             unsharp mask, from the untouched originals in
-│   │                                             Assets/images/naming/source/. They are drawn
-│   │                                             full-screen, so the 606px originals turned to
-│   │                                             mush at 1920px wide.
-│   ├── compress-rover-assets.py        complete   ~120 lines. PIL. Rewrites the rover's button as
-│   │                                             WebP from the untouched original in
-│   │                                             Assets/images/rover/source/. The button was a 1.4 MB
-│   │                                             PNG for a 56-84px circle; it is now 58 KB and
-│   │                                             indistinguishable side by side. The animation is NOT
-│   │                                             converted - it is shipped as the original GIF - but
-│   │                                             the script checks that it still has its frames,
-│   │                                             because a still frame there is a bug that looks
-│   │                                             like a design choice.
-│   ├── balance-check.mts              complete   ~180 lines. TypeScript, run by tsx. Plays every
-    │   │                                             legal build at every landing site over several
-    │   │                                             forecast seeds and fails when a site cannot hold
-    │   │                                             all five systems, or when too few builds can win.
-    │   │                                             The game was unwinnable for a long time and no
-    │   │                                             test said so; this is the check that says so
-    │   │                                             (D-064). npm run balance.
-    │   ├── browser-check-build.mjs        complete   Node only. Drives the real game in headless
-    │   │                                             Chrome: the build screen's limits and reasons,
-    │   │                                             the desk's three orders and six checks, the
-    │   │                                             standing orders on the board, the guide, a tool
-    │   │                                             worked for stars, and no console errors. 58 checks
-    │   │                                             (a few fewer when a crisis lands on the sol the
-    │   │                                             check runs).
-    │   ├── browser-check-journey.mjs      complete   Node only. Drives the whole journey from the
-    │   │                                             naming screen to the outpost and asserts that no
-    │   │                                             console error appears on the way.
-    │   ├── browser-check-training.mjs  complete  Node only. Drives the real game in headless Chrome: the
-    │   │                                         training section on the standing orders, all six games opening
-    │   │                                         and drawing themselves, two games won for points, the day's
-    │   │                                         two-game limit refusing a third, and the record surviving a
-    │   │                                         refresh. 40 checks.
-    │   ├── browser-check-rover.mjs         complete   ~230 lines. Node only. Drives the real game in
-│                                                 headless Chrome over the DevTools Protocol: names the
-│                                                 astronaut, walks to the outpost, deploys the rover
-│                                                 and checks that the NASA picture really loads and
-│                                                 that the rover's animation really moves. A check,
-│                                                 not a test - `npm test` stays free of a browser.
-│                                                 Needs `npm run build && npm run preview`.
-    │   └── browser-check-save.mjs          complete   Node only. Drives the save in headless Chrome:
-    │                                                 a first visit is asked for a name, starting a
-    │                                                 mission writes the run down, coming back to the
-    │                                                 root shows the greeting and CONTINUE, CONTINUE
-    │                                                 returns to the screen they left, a reload on the
-    │                                                 hash gets its run back, and START OVER takes the
-    │                                                 save away. 15 checks (D-081).
-│
-│   All eleven are dev tools: not scanned by `npm run check`, and they add no runtime dependency.
-│
+    ├── extract-posters.py              complete   ~55 lines. PyAV. Writes one WebP poster per film at a
+                                                  chosen frame, so a clip that is still buffering shows
+                                                  a picture rather than black. The tour's poster is its
+                                                  title card, because the clip opens on black.
+    ├── render-docking.py               complete   241 lines. PIL + numpy + OpenCV + PyAV. Cuts the head out
+                                                  of the separated frame, rebuilds the black space
+                                                  behind it, and moves the sprite across a headless
+                                                  background while the camera pushes in.
+    ├── render-parts.py                 complete   300+ lines. PIL + numpy + OpenCV + PyAV. Cross-dissolves the
+                                                      four part stills under a push-in, with staggered
+                                                      description bars and fade-through-black bookends.
+    ├── upscale-naming-assets.py        complete   ~85 lines. PIL. Enlarges the start screen's planet and
+                                                  astronaut with a Lanczos resample and a light
+                                                  unsharp mask, from the untouched originals in
+                                                  Assets/images/naming/source/. They are drawn
+                                                  full-screen, so the 606px originals turned to
+                                                  mush at 1920px wide.
+    ├── compress-rover-assets.py        complete   ~120 lines. PIL. Rewrites the rover's button as
+                                                  WebP from the untouched original in
+                                                  Assets/images/rover/source/. The button was a 1.4 MB
+                                                  PNG for a 56-84px circle; it is now 58 KB and
+                                                  indistinguishable side by side. The animation is NOT
+                                                  converted - it is shipped as the original GIF - but
+                                                  the script checks that it still has its frames,
+                                                  because a still frame there is a bug that looks
+                                                  like a design choice.
+    ├── balance-check.mts              complete   ~180 lines. TypeScript, run by tsx. Plays every
+                                                      legal build at every landing site over several
+                                                      forecast seeds and fails when a site cannot hold
+                                                      all five systems, or when too few builds can win.
+                                                      The game was unwinnable for a long time and no
+                                                      test said so; this is the check that says so
+                                                      (D-064). npm run balance.
+        ├── browser-check-build.mjs        complete   Node only. Drives the real game in headless
+                                                      Chrome: the build screen's limits and reasons,
+                                                      the desk's three orders and six checks, the
+                                                      standing orders on the board, the guide, a tool
+                                                      worked for stars, and no console errors. 58 checks
+                                                      (a few fewer when a crisis lands on the sol the
+                                                      check runs).
+        ├── browser-check-journey.mjs      complete   Node only. Drives the whole journey from the
+                                                      naming screen to the outpost and asserts that no
+                                                      console error appears on the way.
+        ├── browser-check-training.mjs  complete  Node only. Drives the real game in headless Chrome: the
+                                                  training section on the standing orders, all six games opening
+                                                  and drawing themselves, two games won for points, the day's
+                                                  two-game limit refusing a third, and the record surviving a
+                                                  refresh. 40 checks.
+        ├── browser-check-rover.mjs         complete   ~230 lines. Node only. Drives the real game in
+                                                  headless Chrome over the DevTools Protocol: names the
+                                                  astronaut, walks to the outpost, deploys the rover
+                                                  and checks that the NASA picture really loads and
+                                                  that the rover's animation really moves. A check,
+                                                  not a test - `npm test` stays free of a browser.
+                                                  Needs `npm run build && npm run preview`.
+        └── browser-check-save.mjs          complete   Node only. Drives the save in headless Chrome:
+                                                      a first visit is asked for a name, starting a
+                                                      mission writes the run down, coming back to the
+                                                      root shows the greeting and CONTINUE, CONTINUE
+                                                      returns to the screen they left, a reload on the
+                                                      hash gets its run back, and START OVER takes the
+                                                      save away. 15 checks (D-081).
+ 
+    All eleven are dev tools: not scanned by `npm run check`, and they add no runtime dependency.
+ 
 ├── scripts/
-│   └── check-imports.mjs               complete   Zone + banned-API checker, 9 rule ids.
-│                                                 KNOWN set empty; staleness rule verified by
-│                                                 running it. See "Layering".
-│
+    └── check-imports.mjs               complete   Zone + banned-API checker, 9 rule ids.
+                                                  KNOWN set empty; staleness rule verified by
+                                                  running it. See "Layering".
+ 
 ├── docs/
-│   ├── architecture.md                 this file
-│   ├── CHANGELOG.md                    unreleased and deployed project changes
-│   ├── game-flow.md                    complete   Mermaid map of every player decision, the
-│   │                                             sol loop, what is built, and where a new
-│   │                                             event plugs in
-│   ├── pull-requests/                   detailed PR descriptions
-│   │   ├── 001-ci-deployment-gates.md
-│   │   ├── 002-readme-polish.md
-│   │   └── 003-vercel-deployment-gate.md
-│   ├── codebase/                       evidence-backed repository map
-│   │   ├── STACK.md, STRUCTURE.md, ARCHITECTURE.md
-│   │   ├── CONVENTIONS.md, INTEGRATIONS.md, TESTING.md, CONCERNS.md
-│   └── team/
-│       ├── decisions.md                complete   numbered, newest first
-│       ├── issues.md                   complete   every logged issue, ISS-001..ISS-063
-│       ├── goals.md  tasks.md  progress-log.md
+    ├── architecture.md                 this file
+    ├── CHANGELOG.md                    unreleased and deployed project changes
+    ├── game-flow.md                    complete   Mermaid map of every player decision, the
+                                                  sol loop, what is built, and where a new
+                                                  event plugs in
+    ├── pull-requests/                   detailed PR descriptions
+        ├── 001-ci-deployment-gates.md
+        ├── 002-readme-polish.md
+        └── 003-vercel-deployment-gate.md
+    ├── codebase/                       evidence-backed repository map
+        ├── STACK.md, STRUCTURE.md, ARCHITECTURE.md
+        ├── CONVENTIONS.md, INTEGRATIONS.md, TESTING.md, CONCERNS.md
+    └── team/
+        ├── decisions.md                complete   numbered, newest first
+        ├── issues.md                   complete   every logged issue, ISS-001..ISS-063
+        ├── goals.md  tasks.md  progress-log.md
 ├── .github/workflows/
-│   ├── ci.yml                          PR/main checks: typecheck, tests, HTML, build
-│   └── deploy.yml                      fails its gate on failed checks; deploys validated default-branch commit to Vercel
+    ├── ci.yml                          PR/main checks: typecheck, tests, HTML, build
+    └── deploy.yml                      fails its gate on failed checks; deploys validated default-branch commit to Vercel
 ├── vercel.json                         disables native Git deployments; Actions owns the deployment gate
 ├── .htmlvalidate.json                  HTML rules; inline CSS is allowed
-│
+ 
 ├── AGENTS.md                           complete   the orientation file
 ├── README.md                           complete   front page: pitch, science, setup, structure
-│                                                 and links to every doc
-│
+                                                  and links to every doc
+ 
 └── src/
     ├── main.ts                         complete   composition root. Resolves the landing elements
-    │                                             by id, wires starfield + astronaut, reads
-    │                                             ?motion= and prefers-reduced-motion, then starts
-    │                                             the router. Owns the single in-memory `RunState`
-    │                                             and hands it to screens as (root, run, setRun).
+                                                  by id, wires starfield + astronaut, reads
+                                                  ?motion= and prefers-reduced-motion, then starts
+                                                  the router. Owns the single in-memory `RunState`
+                                                  and hands it to screens as (root, run, setRun).
     ├── style.css                       complete   5 lines. Landing-page entry only. Imports the
-    │                                             four stylesheets in DOM stacking order.
+                                                  four stylesheets in DOM stacking order.
     ├── vite-env.d.ts                   complete   1 line. Ambient declaration, exempt from
-    │                                             zone classification.
-    │
+                                                  zone classification.
+     
     ├── sim/                            PURE. No DOM. No network. Fully unit tested.
-    │   │                               Renamed from core/ this pass. "core" described
-    │   │                               neither squash-and-stretch nor resource depletion.
-    │   ├── drift.ts                    complete   247 lines. DVD-logo drift maths. Exports
-    │   │                                         stepDrift, createInitialDrift, driftSpeedForViewport,
-    │   │                                         clampToViewport, clampSpeed, rescaleSpeed;
-    │   │                                         MIN/MAX_DRIFT_SPEED 96/176, REDUCED_DRIFT_SPEED 34,
-    │   │                                         MAX_THROW_SPEED 620. Substeps at 1/120s.
-    │   │                                         createInitialDrift calls Math.random() 5 times.
-    │   ├── deform.ts                   complete   238 lines. Damped spring for squash-and-stretch.
-    │   │                                         Exports createDeform, impact, stretch,
-    │   │                                         releaseStretch, stepDeform, isDeformSettled,
-    │   │                                         deformScale; STIFFNESS 340, DAMPING 11,
-    │   │                                         MAX_COMPRESSION 0.19, MAX_DRAG_COMPRESSION 0.045,
-    │   │                                         IMPULSE 3.5.
-    │   ├── frame.ts                    complete   197 lines. Composes drift + deform per frame.
-    │   │                                         Exports createAstronautFrame, stepAstronaut,
-    │   │                                         releaseAstronaut, DRAG_FOLLOW_RATE 14,
-    │   │                                         DRAG_STRETCH_SPEED 3400, MIN_THROW_SPEED 60.
-    │   ├── drift.test.ts               complete   30 tests
-    │   ├── deform.test.ts              complete   30 tests
-    │   ├── frame.test.ts               complete   19 tests; open-space trajectory is deterministic
-    │   ├── resources.ts                complete   ResourceName, ResourceStores, clampStores, drainForSol,
-    │   │                                         depletedStores, createInitialStores, percentOf,
-    │   │                                         LIFE_STORES. Pure arithmetic, never mutates its
-    │   │                                         argument. 7 tests.
-    │   ├── sol.ts                      complete   advanceSol, decide, projectSol, powerPicture,
-    │   │                                         isRunOver, lostStores, isSelfSustaining,
-    │   │                                         endedBy, WIN_SOL. Solar generation, module draw +
-    │   │                                         night drain, crew use offset by modules, forecast
-    │   │                                         events, the chosen activity, science points,
-    │   │                                         clamp/cap, status. Turn-based (D-030). 53 tests.
-    │   ├── run.ts                      complete   RunStatus, RunState, SolEvent, DecisionRecord,
-    │   │                                         SolRecord, SolActivity, newRun, landAt, withState,
-    │   │                                         startOutpost, answerRoverFind, recordInspection,
-    │   │                                         inspectionStars, Inspection. RunState is the only
-    │   │                                         thing shared between screens; it carries
-    │   │                                         `modules`, `science`, `chosenActivity`, `rover`
-    │   │                                         and `inspections`. The last two are what put the
-    │   │                                         rover and the tools inside the run (D-062).
-    │   ├── save.ts                     complete   SAVE_VERSION, encodeRun, decodeRun: writing a run
-    │   │                                         down and reading it back. Pure, so the whole save
-    │   │                                         format is testable without a browser. The spine is
-    │   │                                         refused rather than guessed at, and everything past
-    │   │                                         it is repaired from a fresh run (D-081). 19 tests.
-    │   ├── save.test.ts                complete   19 tests: the round trip, a refused spine, and the
-    │   │                                         repairs.
-    │   ├── activities.ts               complete   ActivitySpec, ActivityOffer, ActivityStores,
-    │   │                                         ActivityRequirement, SolPlan, ACTIVITY_CATALOGUE,
-    │   │                                         SOL_PLANS, activityById, planForSol, lockedReason,
-    │   │                                         offerFor, offerForSpec. The twelve activities and
-    │   │                                         the twelve sol plans (D-051, D-054) — a curriculum,
-    │   │                                         not a random draw, which is why the orders are not
-    │   │                                         procedural (D-060). 18 tests. Carries no picture:
-    │   │                                         an activity's icon is mapped by id in
-    │   │                                         `features/act/view.ts`, because a model may not
-    │   │                                         import `ui/` (D-070).
-    │   ├── standingOrders.ts           complete   StandingOrder, STANDING_ORDERS, ordersThrough,
-    │   │                                         ordersForSol, orderById. The twenty-four rules the
-    │   │                                         player works to, two arriving every sol (D-060).
-    │   │                                         They are the five learning goals in the order the
-    │   │                                         player meets them (D-061). 7 tests.
-    │   ├── minigames.ts                complete   EngineKind, Grade, EngineOrder, EngineUnlockSol,
-    │   │                                         EngineName, engineUnlocked, gradeSequence,
-    │   │                                         gradeRadar, gradeTiming, gradeSort, PackItem,
-    │   │                                         gradePack, gradeMatch. The six tools and how each
-    │   │                                         is graded. Stars multiply science and never a
-    │   │                                         store (D-063). The tools unlock one a sol for the
-    │   │                                         first six, so every sol has at least one order
-    │   │                                         the player can work (ISS-065). 25 tests.
-    │   ├── guide.ts                    complete   GuideWhere, GuideStep, GUIDE_STEPS, guideStep.
-    │   │                                         The how-to-play guide: ten steps, each saying
-    │   │                                         where it happens. The words live here so they can
-    │   │                                         be read and tested without a browser (D-060). 6 tests.
-    │   ├── patches.ts                  complete   Patch, patchesFor, PATCH_COUNT. The ten badges a
-    │   │                                         run earns, worked out from the run itself. 7 tests.
-    │   │                                         No picture: `features/debrief/view.ts` maps a
-    │   │                                         patch id to an `IconName` (D-070).
-    │   ├── deskNotes.ts                complete   NoteFrom, DeskNote, DESK_NOTES, noteForSol. The
-    │   │                                         notes from home and the crew that land on the desk.
-    │   │                                         8 tests.
-    │   ├── science.ts                  complete   ScienceRank, SCIENCE_RANKS, SOL_LOG_POINTS,
-    │   │                                         rankFor, rankProgress. The score and the rank
-    │   │                                         ladder (D-052). 11 tests. No picture:
-    │   │                                         `ui/icons.ts`'s RANK_ICON maps a rank id to a
-    │   │                                         pictogram (D-070).
-    │   ├── goals.ts                    complete   ScienceGoal, GoalSpec, GoalStatus, GoalReading,
-    │   │                                         GoalObjective, SCIENCE_GOALS, goalById, goalProgress,
-    │   │                                         goalReadings, GOAL_AIMS, and the floor constants.
-    │   │                                         The five science goals the mission is about, and
-    │   │                                         what the player kept running (D-058, D-061).
-    │   │                                         There is deliberately no target and no score: the
-    │   │                                         goals are the learning outcomes, not a second
-    │   │                                         win condition. 23 tests.
-    │   ├── topics.ts                   complete   ScienceTopic, SCIENCE_TOPICS, TOPIC_LABEL,
-    │   │                                         isScienceTopic. The vocabulary the activities and
-    │   │                                         the NASA facts share.
-    │   ├── run.test.ts                  complete   11 tests
-    │   ├── balance.test.ts              complete   8 acceptance tests: a good build wins, a
-    │   │                                         careless one does not, the activity loop does
-    │   │                                         not make the game unwinnable, and more than one
-    │   │                                         region can be played.
-    │   ├── activities.test.ts          complete   18 tests
-    │   ├── science.test.ts             complete   11 tests
-    │   ├── goals.test.ts               complete   23 tests
-    │   ├── standingOrders.test.ts      complete   7 tests
-    │   ├── minigames.test.ts           complete   25 tests, including the rule that every sol has
-    │   │                                         an order the player can work
-    │   ├── training.ts                 complete  TrainingGameId, TrainingPerformance, TRAINING_GAMES,
-    │   │                                         TRAINING_DAILY_LIMIT, TRAINING_REWARDS, TrainingState,
-    │   │                                         TrainingCompletion, TrainingDay, TrainingGameRow,
-    │   │                                         TrainingStart, TrainingOutcome, emptyTraining, trainingSol,
-    │   │                                         trainingDay, trainingUnlocked, trainingTier, canStartTraining,
-    │   │                                         completeTraining, makeRandom, trainingSeed, TrainingRecord,
-    │   │                                         EMPTY_TRAINING_RECORD, trainingDayFor, withTrainingDay,
-    │   │                                         trainingDayRecord. The daily rule: two games a sol, each game
-    │   │                                         once a sol, and what a finished game is worth. The games are
-    │   │                                         handed a generator instead of Math.random, so a sol always
-    │   │                                         deals the same cards (D-075). 27 tests.
-    │   ├── trainingMerge.ts            complete  MERGE_SIZE, MERGE_TARGET, MERGE_LEVEL_NAMES, slideMergeLine,
-    │   │                                         moveMerge, spawnMerge, canMerge, mergeBest, mergePerformance.
-    │   │                                         The merge board: sixteen crates, and two of a kind make one of
-    │   │                                         the next kind. 23 tests.
-    │   ├── trainingMemory.ts           complete  MEMORY_FACES, MEMORY_PAIRS, dealMemoryDeck, memoryPerformance.
-    │   │                                         The deck of twelve cards, six pairs. 9 tests.
-    │   ├── trainingRover.ts            complete  ROVER_SIZE, ROVER_MAPS, ROVER_EXTRA_MOVES, ROVER_STEPS,
-    │   │                                         roverCell, roverOpen, roverRoute, roverMovesAllowed,
-    │   │                                         roverPerformance. The ground the rover crosses, and the
-    │   │                                         shortest route over it. 20 tests.
-    │   ├── trainingSolar.ts            complete  SOLAR_SIZE, SolarTile, SolarPuzzle, solarOpens,
-    │   │                                         rotateSolarTile, solarFlow, solarTapsNeeded,
-    │   │                                         generateSolarPuzzle, SOLAR_EXTRA_TAPS, solarPerformance. The
-    │   │                                         power board, generated so it is always winnable and never
-    │   │                                         starts solved. 16 tests.
-    │   ├── trainingCargo.ts            complete  CARGO_BOXES, CARGO_ITEMS, CARGO_ROUND, dealCargoRound,
-    │   │                                         cargoPerformance. The supplies that land and the stores they
-    │   │                                         belong in. 9 tests.
-    │   ├── trainingAsteroid.ts         complete  ASTEROID_SECONDS, ASTEROID_GOAL, asteroidDelay, asteroidLife,
-    │   │                                         asteroidIsDecoy, asteroidAccuracy, asteroidPerformance. The
-    │   │                                         round outside the outpost. 13 tests.
-    │   ├── training.test.ts            complete  27 tests over the daily rule: two games a sol, one reward
-    │   │                                         each, the reset on a new sol, and a claim that is paid for
-    │   │                                         twice.
-    │   ├── trainingMerge.test.ts       complete  23 tests
-    │   ├── trainingMemory.test.ts      complete  9 tests
-    │   ├── trainingRover.test.ts       complete  20 tests
-    │   ├── trainingSolar.test.ts       complete  16 tests
-    │   ├── trainingCargo.test.ts       complete  9 tests
-    │   ├── trainingAsteroid.test.ts    complete  13 tests
-    │   ├── guide.test.ts               complete   6 tests
-    │   ├── patches.test.ts             complete   7 tests
-    │   ├── deskNotes.test.ts           complete   8 tests
-    │   ├── modules.ts                  complete   ModuleKind, ModuleSpec, MODULE_CATALOGUE,
-    │   │                                         CORE_MODULES, specOf, countOf, systemsFor, extrasOf,
-    │   │                                         pointsSpent, extraSlots, extraModuleCount,
-    │   │                                         extraLimitOf, plus every tuning number:
-    │   │                                         BUILD_BUDGET 18, LOAD_KW, GREENHOUSE_WATER 3,
-    │   │                                         SHIELDING_BASE 30, SHIELDING_EROSION 0.5.
-    │   │                                         Catalogue in `sim/` because `act` needs it and
-    │   │                                         cannot import `base` (D-032); `extraLimitOf` is
-    │   │                                         the limit minus the lander's copy, so the build
-    │   │                                         card and the limit count the same thing
-    │   │                                         (ISS-054). 14 tests.
-    │   ├── rover.ts                    complete   RoverFind, RoverPhase, RoverState, newRover,
-    │   │                                         deployRover, recallRover, remainingFinds,
-    │   │                                         canDiscover, discover, logSite, collectMaterial,
-    │   │                                         leaveMaterial, pickForSol, FIND_SCIENCE,
-    │   │                                         FindAnswer, ROVER_FINDS. The rover's rules
-    │   │                                         AND its catalogue of real NASA finds: the
-    │   │                                         simulation owns the whole lifecycle, so the
-    │   │                                         catalogue lives here and not in `data/` (D-062).
-    │   │                                         It drives on sol time and touches no resource.
-    │   │                                         `rover.test.ts`: 31 tests.
-    │   ├── forecast.ts                 complete   ForecastEvent, FlareInput, ForecastKind,
-    │   │                                         flareIntensity, createForecast(flares, seed?,
-    │   │                                         dustScore?), createSeededRandom, planEvents,
-    │   │                                         randomSolBetween, stormChance, visibleForecast,
-    │   │                                         eventsStartingOn, stormOn, stormOpacity,
-    │   │                                         MIN_CLEAR_SOLS, forecastIsSpaced. The timetable
-    │   │                                         is seeded per run (D-048) and two events can
-    │   │                                         never touch (D-056); only the flare size comes
-    │   │                                         from data/.
-    │   ├── forecast.test.ts            complete   15 tests; the event spacing is asserted here
-    │   ├── crises.ts                   complete   Crisis, CrisisOption, COUNTDOWN_SECONDS,
-    │   │                                         crisisForEvent, pendingCrisis, optionOf,
-    │   │                                         earthIsInTime, earthAdvice. Each forecast event
-    │   │                                         stops the clock and asks for a choice (D-029).
-    │   ├── comms.ts                    complete   REAL_MIN/MAX_ONE_WAY_MINUTES, oneWayMinutes,
-    │   │                                         roundTripMinutes, earthCanAnswerInTime. A
-    │   │                                         simplified rising delay over the real range.
+                                        Renamed from core/ this pass. "core" described
+                                        neither squash-and-stretch nor resource depletion.
+        ├── drift.ts                    complete   247 lines. DVD-logo drift maths. Exports
+                                                  stepDrift, createInitialDrift, driftSpeedForViewport,
+                                                  clampToViewport, clampSpeed, rescaleSpeed;
+                                                  MIN/MAX_DRIFT_SPEED 96/176, REDUCED_DRIFT_SPEED 34,
+                                                  MAX_THROW_SPEED 620. Substeps at 1/120s.
+                                                  createInitialDrift calls Math.random() 5 times.
+        ├── deform.ts                   complete   238 lines. Damped spring for squash-and-stretch.
+                                                  Exports createDeform, impact, stretch,
+                                                  releaseStretch, stepDeform, isDeformSettled,
+                                                  deformScale; STIFFNESS 340, DAMPING 11,
+                                                  MAX_COMPRESSION 0.19, MAX_DRAG_COMPRESSION 0.045,
+                                                  IMPULSE 3.5.
+        ├── frame.ts                    complete   197 lines. Composes drift + deform per frame.
+                                                  Exports createAstronautFrame, stepAstronaut,
+                                                  releaseAstronaut, DRAG_FOLLOW_RATE 14,
+                                                  DRAG_STRETCH_SPEED 3400, MIN_THROW_SPEED 60.
+        ├── drift.test.ts               complete   30 tests
+        ├── deform.test.ts              complete   30 tests
+        ├── frame.test.ts               complete   19 tests; open-space trajectory is deterministic
+        ├── resources.ts                complete   ResourceName, ResourceStores, clampStores, drainForSol,
+                                                  depletedStores, createInitialStores, percentOf,
+                                                  LIFE_STORES. Pure arithmetic, never mutates its
+                                                  argument. 7 tests.
+        ├── sol.ts                      complete   advanceSol, decide, projectSol, powerPicture,
+                                                  isRunOver, lostStores, isSelfSustaining,
+                                                  endedBy, WIN_SOL. Solar generation, module draw +
+                                                  night drain, crew use offset by modules, forecast
+                                                  events, the chosen activity, science points,
+                                                  clamp/cap, status. Turn-based (D-030). 53 tests.
+        ├── run.ts                      complete   RunStatus, RunState, SolEvent, DecisionRecord,
+                                                  SolRecord, SolActivity, newRun, landAt, withState,
+                                                  startOutpost, answerRoverFind, recordInspection,
+                                                  inspectionStars, Inspection. RunState is the only
+                                                  thing shared between screens; it carries
+                                                  `modules`, `science`, `chosenActivity`, `rover`
+                                                  and `inspections`. The last two are what put the
+                                                  rover and the tools inside the run (D-062).
+        ├── save.ts                     complete   SAVE_VERSION, encodeRun, decodeRun: writing a run
+                                                  down and reading it back. Pure, so the whole save
+                                                  format is testable without a browser. The spine is
+                                                  refused rather than guessed at, and everything past
+                                                  it is repaired from a fresh run (D-081). 19 tests.
+        ├── save.test.ts                complete   19 tests: the round trip, a refused spine, and the
+                                                  repairs.
+        ├── activities.ts               complete   ActivitySpec, ActivityOffer, ActivityStores,
+                                                  ActivityRequirement, SolPlan, ACTIVITY_CATALOGUE,
+                                                  SOL_PLANS, activityById, planForSol, lockedReason,
+                                                  offerFor, offerForSpec. The twelve activities and
+                                                  the twelve sol plans (D-051, D-054) — a curriculum,
+                                                  not a random draw, which is why the orders are not
+                                                  procedural (D-060). 18 tests. Carries no picture:
+                                                  an activity's icon is mapped by id in
+                                                  `features/act/view.ts`, because a model may not
+                                                  import `ui/` (D-070).
+        ├── standingOrders.ts           complete   StandingOrder, STANDING_ORDERS, ordersThrough,
+                                                  ordersForSol, orderById. The twenty-four rules the
+                                                  player works to, two arriving every sol (D-060).
+                                                  They are the five learning goals in the order the
+                                                  player meets them (D-061). 7 tests.
+        ├── minigames.ts                complete   EngineKind, Grade, EngineOrder, EngineUnlockSol,
+                                                  EngineName, engineUnlocked, gradeSequence,
+                                                  gradeRadar, gradeTiming, gradeSort, PackItem,
+                                                  gradePack, gradeMatch. The six tools and how each
+                                                  is graded. Stars multiply science and never a
+                                                  store (D-063). The tools unlock one a sol for the
+                                                  first six, so every sol has at least one order
+                                                  the player can work (ISS-065). 25 tests.
+        ├── guide.ts                    complete   GuideWhere, GuideStep, GUIDE_STEPS, guideStep.
+                                                  The how-to-play guide: ten steps, each saying
+                                                  where it happens. The words live here so they can
+                                                  be read and tested without a browser (D-060). 6 tests.
+        ├── patches.ts                  complete   Patch, patchesFor, PATCH_COUNT. The ten badges a
+                                                  run earns, worked out from the run itself. 7 tests.
+                                                  No picture: `features/debrief/view.ts` maps a
+                                                  patch id to an `IconName` (D-070).
+        ├── deskNotes.ts                complete   NoteFrom, DeskNote, DESK_NOTES, noteForSol. The
+                                                  notes from home and the crew that land on the desk.
+                                                  8 tests.
+        ├── science.ts                  complete   ScienceRank, SCIENCE_RANKS, SOL_LOG_POINTS,
+                                                  rankFor, rankProgress. The score and the rank
+                                                  ladder (D-052). 11 tests. No picture:
+                                                  `ui/icons.ts`'s RANK_ICON maps a rank id to a
+                                                  pictogram (D-070).
+        ├── goals.ts                    complete   ScienceGoal, GoalSpec, GoalStatus, GoalReading,
+                                                  GoalObjective, SCIENCE_GOALS, goalById, goalProgress,
+                                                  goalReadings, GOAL_AIMS, and the floor constants.
+                                                  The five science goals the mission is about, and
+                                                  what the player kept running (D-058, D-061).
+                                                  There is deliberately no target and no score: the
+                                                  goals are the learning outcomes, not a second
+                                                  win condition. 23 tests.
+        ├── topics.ts                   complete   ScienceTopic, SCIENCE_TOPICS, TOPIC_LABEL,
+                                                  isScienceTopic. The vocabulary the activities and
+                                                  the NASA facts share.
+        ├── run.test.ts                  complete   11 tests
+        ├── balance.test.ts              complete   8 acceptance tests: a good build wins, a
+                                                  careless one does not, the activity loop does
+                                                  not make the game unwinnable, and more than one
+                                                  region can be played.
+        ├── activities.test.ts          complete   18 tests
+        ├── science.test.ts             complete   11 tests
+        ├── goals.test.ts               complete   23 tests
+        ├── standingOrders.test.ts      complete   7 tests
+        ├── minigames.test.ts           complete   25 tests, including the rule that every sol has
+                                                  an order the player can work
+        ├── training.ts                 complete  TrainingGameId, TrainingPerformance, TRAINING_GAMES,
+                                                  TRAINING_DAILY_LIMIT, TRAINING_REWARDS, TrainingState,
+                                                  TrainingCompletion, TrainingDay, TrainingGameRow,
+                                                  TrainingStart, TrainingOutcome, emptyTraining, trainingSol,
+                                                  trainingDay, trainingUnlocked, trainingTier, canStartTraining,
+                                                  completeTraining, makeRandom, trainingSeed, TrainingRecord,
+                                                  EMPTY_TRAINING_RECORD, trainingDayFor, withTrainingDay,
+                                                  trainingDayRecord. The daily rule: two games a sol, each game
+                                                  once a sol, and what a finished game is worth. The games are
+                                                  handed a generator instead of Math.random, so a sol always
+                                                  deals the same cards (D-075). 27 tests.
+        ├── trainingMerge.ts            complete  MERGE_SIZE, MERGE_TARGET, MERGE_LEVEL_NAMES, slideMergeLine,
+                                                  moveMerge, spawnMerge, canMerge, mergeBest, mergePerformance.
+                                                  The merge board: sixteen crates, and two of a kind make one of
+                                                  the next kind. 23 tests.
+        ├── trainingMemory.ts           complete  MEMORY_FACES, MEMORY_PAIRS, dealMemoryDeck, memoryPerformance.
+                                                  The deck of twelve cards, six pairs. 9 tests.
+        ├── trainingRover.ts            complete  ROVER_SIZE, ROVER_MAPS, ROVER_EXTRA_MOVES, ROVER_STEPS,
+                                                  roverCell, roverOpen, roverRoute, roverMovesAllowed,
+                                                  roverPerformance. The ground the rover crosses, and the
+                                                  shortest route over it. 20 tests.
+        ├── trainingSolar.ts            complete  SOLAR_SIZE, SolarTile, SolarPuzzle, solarOpens,
+                                                  rotateSolarTile, solarFlow, solarTapsNeeded,
+                                                  generateSolarPuzzle, SOLAR_EXTRA_TAPS, solarPerformance. The
+                                                  power board, generated so it is always winnable and never
+                                                  starts solved. 16 tests.
+        ├── trainingCargo.ts            complete  CARGO_BOXES, CARGO_ITEMS, CARGO_ROUND, dealCargoRound,
+                                                  cargoPerformance. The supplies that land and the stores they
+                                                  belong in. 9 tests.
+        ├── trainingAsteroid.ts         complete  ASTEROID_SECONDS, ASTEROID_GOAL, asteroidDelay, asteroidLife,
+                                                  asteroidIsDecoy, asteroidAccuracy, asteroidPerformance. The
+                                                  round outside the outpost. 13 tests.
+        ├── training.test.ts            complete  27 tests over the daily rule: two games a sol, one reward
+                                                  each, the reset on a new sol, and a claim that is paid for
+                                                  twice.
+        ├── trainingMerge.test.ts       complete  23 tests
+        ├── trainingMemory.test.ts      complete  9 tests
+        ├── trainingRover.test.ts       complete  20 tests
+        ├── trainingSolar.test.ts       complete  16 tests
+        ├── trainingCargo.test.ts       complete  9 tests
+        ├── trainingAsteroid.test.ts    complete  13 tests
+        ├── guide.test.ts               complete   6 tests
+        ├── patches.test.ts             complete   7 tests
+        ├── deskNotes.test.ts           complete   8 tests
+        ├── modules.ts                  complete   ModuleKind, ModuleSpec, MODULE_CATALOGUE,
+                                                  CORE_MODULES, specOf, countOf, systemsFor, extrasOf,
+                                                  pointsSpent, extraSlots, extraModuleCount,
+                                                  extraLimitOf, plus every tuning number:
+                                                  BUILD_BUDGET 18, LOAD_KW, GREENHOUSE_WATER 3,
+                                                  SHIELDING_BASE 30, SHIELDING_EROSION 0.5.
+                                                  Catalogue in `sim/` because `act` needs it and
+                                                  cannot import `base` (D-032); `extraLimitOf` is
+                                                  the limit minus the lander's copy, so the build
+                                                  card and the limit count the same thing
+                                                  (ISS-054). 14 tests.
+        ├── rover.ts                    complete   RoverFind, RoverPhase, RoverState, newRover,
+                                                  deployRover, recallRover, remainingFinds,
+                                                  canDiscover, discover, logSite, collectMaterial,
+                                                  leaveMaterial, pickForSol, FIND_SCIENCE,
+                                                  FindAnswer, ROVER_FINDS. The rover's rules
+                                                  AND its catalogue of real NASA finds: the
+                                                  simulation owns the whole lifecycle, so the
+                                                  catalogue lives here and not in `data/` (D-062).
+                                                  It drives on sol time and touches no resource.
+                                                  `rover.test.ts`: 31 tests.
+        ├── forecast.ts                 complete   ForecastEvent, FlareInput, ForecastKind,
+                                                  flareIntensity, createForecast(flares, seed?,
+                                                  dustScore?), createSeededRandom, planEvents,
+                                                  randomSolBetween, stormChance, visibleForecast,
+                                                  eventsStartingOn, stormOn, stormOpacity,
+                                                  MIN_CLEAR_SOLS, forecastIsSpaced. The timetable
+                                                  is seeded per run (D-048) and two events can
+                                                  never touch (D-056); only the flare size comes
+                                                  from data/.
+        ├── forecast.test.ts            complete   15 tests; the event spacing is asserted here
+        ├── crises.ts                   complete   Crisis, CrisisOption, COUNTDOWN_SECONDS,
+                                                  crisisForEvent, pendingCrisis, optionOf,
+                                                  earthIsInTime, earthAdvice. Each forecast event
+                                                  stops the clock and asks for a choice (D-029).
+        ├── comms.ts                    complete   REAL_MIN/MAX_ONE_WAY_MINUTES, oneWayMinutes,
+                                                  roundTripMinutes, earthCanAnswerInTime. A
+                                                  simplified rising delay over the real range.
 
-    │   └── regions.ts                  complete   The five landing regions: id, name,
-    │                                             blurb, pin {x, y} as stage %, and five
-    │                                             axis scores (0-5). Pure authored data,
-    │                                             no randomness. Exports SiteAxis,
-    │                                             SITE_AXES, SiteScore, Region, REGIONS,
-    │                                             NEUTRAL_SCORE, totalScore, regionById,
-    │                                             siteScore. Read by landing-site, base
-    │                                             and act without cross-feature imports.
-    │
+        └── regions.ts                  complete   The five landing regions: id, name,
+                                                  blurb, pin {x, y} as stage %, and five
+                                                  axis scores (0-5). Pure authored data,
+                                                  no randomness. Exports SiteAxis,
+                                                  SITE_AXES, SiteScore, Region, REGIONS,
+                                                  NEUTRAL_SCORE, totalScore, regionById,
+                                                  siteScore. Read by landing-site, base
+                                                  and act without cross-feature imports.
+     
     ├── ui/                             CROSS-SCREEN BROWSER GLUE. No framework, so no components.
-    │   ├── routes.ts                   complete   Pure route table and hash parsing. Exports
-    │   │                                         Route, ROUTE_ORDER, DEFAULT_ROUTE, parseRoute,
-    │   │                                         routeToHash, nextRoute, previousRoute. No DOM,
-    │   │                                         so it is unit tested like sim/.
-    │   ├── routes.test.ts              complete   19 tests. Every input literal — no Math.random,
-    │   │                                         no clock, so it cannot flake.
-    │   ├── registry.test.ts            complete   13 tests over the route → screen tables
-    │   ├── router.ts                   complete   startRouter(options) -> teardown, and
-    │   │                                         navigate(route). Reads location.hash, listens for
-    │   │                                         hashchange, normalises an unknown hash to the
-    │   │                                         default via replaceState, and mounts/unmounts
-    │   │                                         exactly one screen. Stops any read-aloud before
-    │   │                                         a route change. Wired into `main.ts`.
-    │   │                                         DOM behaviour UNVERIFIED in a browser.
-    │   ├── save.ts                     complete   SavedGame, readSave, writeSave, clearSave,
-    │   │                                         isSaveableScreen, resumeScreen. The run in this
-    │   │                                         browser's storage: one versioned key, every read
-    │   │                                         wrapped, and where CONTINUE sends the player. The
-    │   │                                         only file that knows storage exists (D-081).
-    │   ├── save.test.ts                complete   8 tests: which screens are worth resuming on, and
-    │   │                                         where CONTINUE falls back to when one is not.
-    │   ├── button-strip.ts             complete   createButtonStrip(root, options) -> ButtonStripSpec;
-    │   │                                         full-width fixed-height bottom strip owning Next /
-    │   │                                         Prev / action buttons; teardown mandatory.
-    │   ├── button-strip.css            complete   structural styles only (flex row, gap, padding);
-    │   │                                         features theme colours in their own CSS.
-    │   ├── readAloud.ts               complete   canReadAloud(), readAloud(text, onDone?),
-    │   │                                         stopReading(). Browser speechSynthesis only:
-    │   │                                         no audio file, no network, hidden where
-    │   │                                         unsupported. Cancels any playing passage
-    │   │                                         before starting a new one (D-043).
-    │   ├── readButton.ts              complete   readButton(getText, options?) -> button |
-    │   │                                         null. Shared toggle around readAloud: label
-    │   │                                         flips, aria-pressed tracks state, and a
-    │   │                                         cancelled passage cannot reset a newer one.
-    │   │                                         `getText` runs at click time so a screen can
-    │   │                                         read what it has revealed so far.
-    │   ├── nasaCard.ts                complete   nasaCard(card, kicker?) -> figure. One image,
-    │   │                                         caption, fact, credit and source link, plus
-    │   │                                         the shared read-aloud control when the browser
-    │   │                                         has speech. Static data only: no runtime fetch.
-    │   ├── nasaFeedCard.ts             complete   nasaFeedCard(fact, kicker?) -> figure. One live
-    │   │                                         NASA picture with its story, credit and date, in the
-    │   │                                         same card as the curated one. The picture is
-    │   │                                         optional: a video day keeps its words.
-    │   ├── nasa-card.css              complete   card frame, caption type scale, action row.
-    │   ├── activityPlayer.ts         complete   Inspection, InspectionResult, makeInspection.
-    │   │                                         Builds the work-order player for one order: which
-    │   │                                         tool it uses and the two readings it asks for.
-    │   │                                         The grading is in sim/minigames.ts (D-060).
-    │   ├── guide.ts                  complete   guidePanel(onClose), guideButton(onOpen). The
-    │   │                                         how-to-play popup and the `?` icon button in
-    │   │                                         the header, beside Menu. The astronaut stands
-    │   │                                         on the left and the words are in a speech bubble
-    │   │                                         on the right, one step per page, with Next,
-    │   │                                         Back, page dots and Read aloud (D-073).
-    │   │                                         `guidePanel` returns the BACKDROP, so the
-    │   │                                         caller mounts it on document.body and a redraw
-    │   │                                         cannot reset the page (ISS-077). The words
-    │   │                                         themselves come from sim/guide.ts.
-    │   ├── guide.css                 complete   the backdrop, the astronaut's stage, the bubble
-    │   │                                         and its tail, the header pill, the page dots and
-    │   │                                         the footer row. `position: fixed`, so it is
-    │   │                                         not affected by the panel's own scroll.
-    │   │                                         Imported by guide.ts only.
-    │   ├── icons.ts                  complete   IconName, ICON_PATHS, RESOURCE_ICON, RANK_ICON,
-    │   │                                         MODULE_ICON, icon(name, label?). The game's
-    │   │                                         whole pictogram set: the 56 drawings supplied
-    │   │                                         in Assets/icons/, read at build time and
-    │   │                                         parsed into path data, drawn into the SVG
-    │   │                                         namespace by dom/svg.ts. Filled and coloured,
-    │   │                                         so they carry their own paint rather than
-    │   │                                         following currentColor. The data and the
-    │   │                                         drawing live in one file so a test can read the
-    │   │                                         paths without a browser (D-070, D-083).
-    │   ├── icons.css                 complete   an icon is 1.55em square — the drawings ink
-    │   │                                         about 57% of their box — plus the rule for a
-    │   │                                         link's arrow, which points both ways.
-    │   │                                         Imported by icons.ts only.
-    │   ├── icons.test.ts             complete   11 tests: every name draws something, every
-    │   │                                         shape is painted, no shape holds an emoji, and
-    │   │                                         the five stores, the five ranks and the eight
-    │   │                                         modules each get their own pictogram.
-    │   ├── sheet.ts                  complete   sheet(options) -> backdrop, sheetCloseButton.
-    │   │                                         One section of a screen, opened as a dialog over
-    │   │                                         it: a header bar, a scrolling body, a closing
-    │   │                                         button, plus Escape, backdrop-click and a Tab
-    │   │                                         trap. The act desk's six buttons open into it
-    │   │                                         (D-070).
-    │   ├── sheet.css                 complete   the backdrop and the card. `position: fixed`, so
-    │   │                                         a sheet is not affected by the panel's own
-    │   │                                         scroll or its one-column collapse. The body
-    │   │                                         scrolls, so its children are told not to
-    │   │                                         shrink (ISS-076). Two backdrops: a section
-    │   │                                         sheet at 105, and one opened over it at
-    │   │                                         108 (D-079).
-    │   ├── training.ts                 complete  trainingSection(run, options) -> HTMLElement,
-    │   │                                         openTrainingGame(id, options) -> TrainingGameScreen | null,
-    │   │                                         readTrainingRecord, writeTrainingDay, applyTrainingRecord. The
-    │   │                                         ASTRONAUT TRAINING section at the top of the Standing orders
-    │   │                                         sheet, the dialog a game is played in, and the one thing the
-    │   │                                         browser is good at: the record of the day's training, which
-    │   │                                         is cleared when a new run begins (D-081).
-    │   ├── trainingGame.ts             complete  TrainingGameContext, TrainingGameHandle, TrainingGameMount.
-    │   │                                         The contract every training game keeps: a status line, a
-    │   │                                         completion callback, a generator, and a destroy that stops
-    │   │                                         every timer the game started.
-    │   ├── trainingMerge.ts            complete  mountMerge. The merge board on the screen: a swipe, the arrow
-    │   │                                         keys, and the keypad for a touch screen.
-    │   ├── trainingMemory.ts           complete  mountMemory. Twelve cards face down, and the clock beside the
-    │   │                                         tries.
-    │   ├── trainingRover.ts            complete  mountRover. The rover on the ground, driven by the keys or the
-    │   │                                         keypad. Bumping a rock costs no move.
-    │   ├── trainingSolar.ts            complete  mountSolar. The power board, with the power that reaches the
-    │   │                                         battery drawn in the sun's colour.
-    │   ├── trainingCargo.ts            complete  mountCargo. The crates and the stores. A crate can be dragged
-    │   │                                         in, or tapped and then tapped in, because a tablet and a
-    │   │                                         laptop are both being used to play this.
-    │   ├── trainingAsteroid.ts         complete  mountAsteroid. What drifts past the outpost, and what the
-    │   │                                         player cleared, missed and should have left alone.
-    │   ├── training.css                complete  the training section and the game dialog, in the game's own
-    │   │                                         colours: cream paper, navy ink, one orange. Imported by
-    │   │                                         training.ts only.
-    │   ├── registry.ts                 complete   the one composition seam. Exports ScreenFactory,
-    │   │                                         screenMount, resolveScreen, nextStop,
-    │   │                                         allScreenMounts. Maps all nine built routes onto
-    │   │                                         feature views; the only file permitted to import
-    │   │                                         them. `ScreenFactory` is (root, run, setRun) ->
-    │   │                                         teardown. Returns null for routes with nothing
-    │   │                                         built, so the router can fall through.
-    │   ├── baseLayout.json             complete   where every copy of every module stands on
-    │   │                                         the outpost panel: a list of poses per kind,
-    │   │                                         {left, bottom, width, flip?} each, in percent.
-    │   │                                         The nth entry is where the nth copy of that
-    │   │                                         kind stands. The file a developer produces with
-    │   │                                         the placement editor (D-065, D-066). The
-    │   │                                         stacking order is not here — it is a rule
-    │   │                                         (D-069).
-    │   ├── baseLayout.ts               complete   loads and validates baseLayout.json. Exports
-    │   │                                         ModuleSpot, ModulePoses, SPOT_BAND,
-    │   │                                         PANEL_RIGHT_EDGE, DEFAULT_POSES, MODULE_POSES,
-    │   │                                         LAYOUT_PROBLEMS, DEPTH_ORDER, depthFor, clamp,
-    │   │                                         clampSpot, roundSpot, resolvePoses,
-    │   │                                         describeLayoutProblems, buildLayoutJson,
-    │   │                                         pointToPercent, poseFor. A kind the file cannot
-    │   │                                         supply falls back to DEFAULT_POSES; an
-    │   │                                         out-of-range number is clamped, not discarded.
-    │   ├── baseLayout.test.ts          complete   55 tests. Every input literal.
-    │   ├── dayTracker.ts               complete   the mission-day tracker in the header (D-077).
-    │   │                                         Exports DayState, DayModel, dayModel,
-    │   │                                         dayTracker. `dayModel(run, advanced?)` is
-    │   │                                         pure and reads the day in play off the run
-    │   │                                         (`sol + 1`), so the tracker cannot disagree
-    │   │                                         with the simulation. `dayTracker(model)` draws
-    │   │                                         the day, the total and one pip per mission
-    │   │                                         day. Lives in `ui/` because base, act and
-    │   │                                         debrief all draw it and one feature may never
-    │   │                                         import another (R-5).
-    │   ├── dayTracker.test.ts          complete   10 tests. The model only: there is no jsdom
-    │   │                                         yet (ISS-013), so the DOM half is checked in
-    │   │                                         a real browser by tools/browser-check-day.mjs.
-    │   ├── day-tracker.css             complete   the tracker's own rules: the day in the
-    │   │                                         game's tokens, the twelve pips, the rail
-    │   │                                         between them, and the two animations (the
-    │   │                                         day in play breathes, the day just flown
-    │   │                                         flashes). The pips are filled stations on one
+        ├── routes.ts                   complete   Pure route table and hash parsing. Exports
+                                                  Route, ROUTE_ORDER, DEFAULT_ROUTE, parseRoute,
+                                                  routeToHash, nextRoute, previousRoute. No DOM,
+                                                  so it is unit tested like sim/.
+        ├── routes.test.ts              complete   19 tests. Every input literal — no Math.random,
+                                                  no clock, so it cannot flake.
+        ├── registry.test.ts            complete   13 tests over the route → screen tables
+        ├── router.ts                   complete   startRouter(options) -> teardown, and
+                                                  navigate(route). Reads location.hash, listens for
+                                                  hashchange, normalises an unknown hash to the
+                                                  default via replaceState, and mounts/unmounts
+                                                  exactly one screen. Stops any read-aloud before
+                                                  a route change. Wired into `main.ts`.
+                                                  DOM behaviour UNVERIFIED in a browser.
+        ├── save.ts                     complete   SavedGame, readSave, writeSave, clearSave,
+                                                  isSaveableScreen, resumeScreen. The run in this
+                                                  browser's storage: one versioned key, every read
+                                                  wrapped, and where CONTINUE sends the player. The
+                                                  only file that knows storage exists (D-081).
+        ├── save.test.ts                complete   8 tests: which screens are worth resuming on, and
+                                                  where CONTINUE falls back to when one is not.
+        ├── button-strip.ts             complete   createButtonStrip(root, options) -> ButtonStripSpec;
+                                                  full-width fixed-height bottom strip owning Next /
+                                                  Prev / action buttons; teardown mandatory.
+        ├── button-strip.css            complete   structural styles only (flex row, gap, padding);
+                                                  features theme colours in their own CSS.
+        ├── readAloud.ts               complete   canReadAloud(), readAloud(text, onDone?),
+                                                  stopReading(). Browser speechSynthesis only:
+                                                  no audio file, no network, hidden where
+                                                  unsupported. Cancels any playing passage
+                                                  before starting a new one (D-043).
+        ├── readButton.ts              complete   readButton(getText, options?) -> button |
+                                                  null. Shared toggle around readAloud: label
+                                                  flips, aria-pressed tracks state, and a
+                                                  cancelled passage cannot reset a newer one.
+                                                  `getText` runs at click time so a screen can
+                                                  read what it has revealed so far.
+        ├── nasaCard.ts                complete   nasaCard(card, kicker?) -> figure. One image,
+                                                  caption, fact, credit and source link, plus
+                                                  the shared read-aloud control when the browser
+                                                  has speech. Static data only: no runtime fetch.
+        ├── nasaFeedCard.ts             complete   nasaFeedCard(fact, kicker?) -> figure. One live
+                                                  NASA picture with its story, credit and date, in the
+                                                  same card as the curated one. The picture is
+                                                  optional: a video day keeps its words.
+        ├── nasa-card.css              complete   card frame, caption type scale, action row.
+        ├── activityPlayer.ts         complete   Inspection, InspectionResult, makeInspection.
+                                                  Builds the work-order player for one order: which
+                                                  tool it uses and the two readings it asks for.
+                                                  The grading is in sim/minigames.ts (D-060).
+        ├── guide.ts                  complete   guidePanel(onClose), guideButton(onOpen). The
+                                                  how-to-play popup and the `?` icon button in
+                                                  the header, beside Menu. The astronaut stands
+                                                  on the left and the words are in a speech bubble
+                                                  on the right, one step per page, with Next,
+                                                  Back, page dots and Read aloud (D-073).
+                                                  `guidePanel` returns the BACKDROP, so the
+                                                  caller mounts it on document.body and a redraw
+                                                  cannot reset the page (ISS-077). The words
+                                                  themselves come from sim/guide.ts.
+        ├── guide.css                 complete   the backdrop, the astronaut's stage, the bubble
+                                                  and its tail, the header pill, the page dots and
+                                                  the footer row. `position: fixed`, so it is
+                                                  not affected by the panel's own scroll.
+                                                  Imported by guide.ts only.
+        ├── icons.ts                  complete   IconName, ICON_PATHS, RESOURCE_ICON, RANK_ICON,
+                                                  MODULE_ICON, icon(name, label?). The game's
+                                                  whole pictogram set: the 56 drawings supplied
+                                                  in Assets/icons/, read at build time and
+                                                  parsed into path data, drawn into the SVG
+                                                  namespace by dom/svg.ts. Filled and coloured,
+                                                  so they carry their own paint rather than
+                                                  following currentColor. The data and the
+                                                  drawing live in one file so a test can read the
+                                                  paths without a browser (D-070, D-083).
+        ├── icons.css                 complete   an icon is 1.55em square — the drawings ink
+                                                  about 57% of their box — plus the rule for a
+                                                  link's arrow, which points both ways.
+                                                  Imported by icons.ts only.
+        ├── icons.test.ts             complete   11 tests: every name draws something, every
+                                                  shape is painted, no shape holds an emoji, and
+                                                  the five stores, the five ranks and the eight
+                                                  modules each get their own pictogram.
+        ├── sheet.ts                  complete   sheet(options) -> backdrop, sheetCloseButton.
+                                                  One section of a screen, opened as a dialog over
+                                                  it: a header bar, a scrolling body, a closing
+                                                  button, plus Escape, backdrop-click and a Tab
+                                                  trap. The act desk's six buttons open into it
+                                                  (D-070).
+        ├── sheet.css                 complete   the backdrop and the card. `position: fixed`, so
+                                                  a sheet is not affected by the panel's own
+                                                  scroll or its one-column collapse. The body
+                                                  scrolls, so its children are told not to
+                                                  shrink (ISS-076). Two backdrops: a section
+                                                  sheet at 105, and one opened over it at
+                                                  108 (D-079).
+        ├── training.ts                 complete  trainingSection(run, options) -> HTMLElement,
+                                                  openTrainingGame(id, options) -> TrainingGameScreen | null,
+                                                  readTrainingRecord, writeTrainingDay, applyTrainingRecord. The
+                                                  ASTRONAUT TRAINING section at the top of the Standing orders
+                                                  sheet, the dialog a game is played in, and the one thing the
+                                                  browser is good at: the record of the day's training, which
+                                                  is cleared when a new run begins (D-081).
+        ├── trainingGame.ts             complete  TrainingGameContext, TrainingGameHandle, TrainingGameMount.
+                                                  The contract every training game keeps: a status line, a
+                                                  completion callback, a generator, and a destroy that stops
+                                                  every timer the game started.
+        ├── trainingMerge.ts            complete  mountMerge. The merge board on the screen: a swipe, the arrow
+                                                  keys, and the keypad for a touch screen.
+        ├── trainingMemory.ts           complete  mountMemory. Twelve cards face down, and the clock beside the
+                                                  tries.
+        ├── trainingRover.ts            complete  mountRover. The rover on the ground, driven by the keys or the
+                                                  keypad. Bumping a rock costs no move.
+        ├── trainingSolar.ts            complete  mountSolar. The power board, with the power that reaches the
+                                                  battery drawn in the sun's colour.
+        ├── trainingCargo.ts            complete  mountCargo. The crates and the stores. A crate can be dragged
+                                                  in, or tapped and then tapped in, because a tablet and a
+                                                  laptop are both being used to play this.
+        ├── trainingAsteroid.ts         complete  mountAsteroid. What drifts past the outpost, and what the
+                                                  player cleared, missed and should have left alone.
+        ├── training.css                complete  the training section and the game dialog, in the game's own
+                                                  colours: cream paper, navy ink, one orange. Imported by
+                                                  training.ts only.
+        ├── registry.ts                 complete   the one composition seam. Exports ScreenFactory,
+                                                  screenMount, resolveScreen, nextStop,
+                                                  allScreenMounts. Maps all nine built routes onto
+                                                  feature views; the only file permitted to import
+                                                  them. `ScreenFactory` is (root, run, setRun) ->
+                                                  teardown. Returns null for routes with nothing
+                                                  built, so the router can fall through.
+        ├── baseLayout.json             complete   where every copy of every module stands on
+                                                  the outpost panel: a list of poses per kind,
+                                                  {left, bottom, width, flip?} each, in percent.
+                                                  The nth entry is where the nth copy of that
+                                                  kind stands. The file a developer produces with
+                                                  the placement editor (D-065, D-066). The
+                                                  stacking order is not here — it is a rule
+                                                  (D-069).
+        ├── baseLayout.ts               complete   loads and validates baseLayout.json. Exports
+                                                  ModuleSpot, ModulePoses, SPOT_BAND,
+                                                  PANEL_RIGHT_EDGE, DEFAULT_POSES, MODULE_POSES,
+                                                  LAYOUT_PROBLEMS, DEPTH_ORDER, depthFor, clamp,
+                                                  clampSpot, roundSpot, resolvePoses,
+                                                  describeLayoutProblems, buildLayoutJson,
+                                                  pointToPercent, poseFor. A kind the file cannot
+                                                  supply falls back to DEFAULT_POSES; an
+                                                  out-of-range number is clamped, not discarded.
+        ├── baseLayout.test.ts          complete   55 tests. Every input literal.
+        ├── dayTracker.ts               complete   the mission-day tracker in the header (D-077).
+                                                  Exports DayState, DayModel, dayModel,
+                                                  dayTracker. `dayModel(run, advanced?)` is
+                                                  pure and reads the day in play off the run
+                                                  (`sol + 1`), so the tracker cannot disagree
+                                                  with the simulation. `dayTracker(model)` draws
+                                                  the day, the total and one pip per mission
+                                                  day. Lives in `ui/` because base, act and
+                                                  debrief all draw it and one feature may never
+                                                  import another (R-5).
+        ├── dayTracker.test.ts          complete   10 tests. The model only: there is no jsdom
+                                                  yet (ISS-013), so the DOM half is checked in
+                                                  a real browser by tools/browser-check-day.mjs.
+        ├── day-tracker.css             complete   the tracker's own rules: the day in the
+                                                  game's tokens, the twelve pips, the rail
+                                                  between them, and the two animations (the
+                                                  day in play breathes, the day just flown
+                                                  flashes). The pips are filled stations on one
                                          rail and the words sit on the number's baseline
                                          (D-071). Imported by dayTracker.ts only, the
-    │   │                                         way nasa-card.css sits next to nasaCard.ts
-    │   │                                         (R-15).
-    │   ├── baseLayoutEditor.ts         complete   the placement editor (D-065 to D-069). Exports
-    │   │                                         startLayoutEditor(root) -> teardown. Dev-only:
-    │   │                                         a developer drags the fifteen copies of the
-    │   │                                         modules on the real outpost panel with
-    │   │                                         ?editlayout=1, resizes them with the corner
-    │   │                                         grip, mirrors them, and downloads
-    │   │                                         baseLayout.json. It opens showing the layout on
-    │   │                                         disk, and warns about a file with problems in
-    │   │                                         it. Loaded by a dynamic import in main.ts, so it
-    │   │                                         is compiled out of a production build entirely.
-    │   ├── base-layout-editor.css      complete   the editor's overlay: the drag handles, the
-    │   │                                         guide band and the toolbar. Imported by
-    │   │                                         baseLayoutEditor.ts only.
-    │   └── gameLoop.ts                 complete   the shared game-loop chrome from the Figma
-    │                                             frames (D-038): gameHeader, gameHud,
-    │                                             gameWorld, gamePanel, gameScreen,
-    │                                             gameSection, moduleFigures, moduleArt,
-    │                                             MODULE_ART, WORLD_BACKGROUND,
-    │                                             ASTRONAUT_SPRITE. Presentation only — every word
-    │                                             and number arrives as an argument, and it owns
-    │                                             the shared artwork imports so base, act and
-    │                                             debrief do not copy them. `gameHeader` takes an
-    │                                             optional `onLeave`: with it the right-hand label
-    │                                             becomes a book, the screen's own help button and
-    │                                             a Menu button opening an in-screen leave dialog
-    │                                             (D-044, D-070); without it the old plain label
-    │                                             stays. `gamePanel` takes an optional `corner` for
-    │                                             the one fact in the head's top right. The HUD,
-    │                                             the signals and the weather pill take an
-    │                                             `IconName`, not a glyph.
-    │
+                                                  way nasa-card.css sits next to nasaCard.ts
+                                                  (R-15).
+        ├── baseLayoutEditor.ts         complete   the placement editor (D-065 to D-069). Exports
+                                                  startLayoutEditor(root) -> teardown. Dev-only:
+                                                  a developer drags the fifteen copies of the
+                                                  modules on the real outpost panel with
+                                                  ?editlayout=1, resizes them with the corner
+                                                  grip, mirrors them, and downloads
+                                                  baseLayout.json. It opens showing the layout on
+                                                  disk, and warns about a file with problems in
+                                                  it. Loaded by a dynamic import in main.ts, so it
+                                                  is compiled out of a production build entirely.
+        ├── base-layout-editor.css      complete   the editor's overlay: the drag handles, the
+                                                  guide band and the toolbar. Imported by
+                                                  baseLayoutEditor.ts only.
+        └── gameLoop.ts                 complete   the shared game-loop chrome from the Figma
+                                                  frames (D-038): gameHeader, gameHud,
+                                                  gameWorld, gamePanel, gameScreen,
+                                                  gameSection, moduleFigures, moduleArt,
+                                                  MODULE_ART, WORLD_BACKGROUND,
+                                                  ASTRONAUT_SPRITE. Presentation only — every word
+                                                  and number arrives as an argument, and it owns
+                                                  the shared artwork imports so base, act and
+                                                  debrief do not copy them. `gameHeader` takes an
+                                                  optional `onLeave`: with it the right-hand label
+                                                  becomes a book, the screen's own help button and
+                                                  a Menu button opening an in-screen leave dialog
+                                                  (D-044, D-070); without it the old plain label
+                                                  stays. `gamePanel` takes an optional `corner` for
+                                                  the one fact in the head's top right. The HUD,
+                                                  the signals and the weather pill take an
+                                                  `IconName`, not a glyph.
+     
     ├── dom/                            landing-page side effects, and the keyboard rules the
-    │                                   screens share. Mostly untested (ISS-011).
-    │   ├── keys.ts                     complete   The keyboard rules more than one screen needs:
-    │   │                                         KeyModifiers; isPlainEnter(key, modifiers);
-    │   │                                         focusHandlesEnter(tagName). Pure. They used to
-    │   │                                         live in features/supply/model.ts, where the launch
-    │   │                                         parts tour could not have them (R-5).
-    │   ├── keys.test.ts                complete   7 tests: a plain Enter, an Enter with a
-    │   │                                         modifier, and a focused control that deals with
-    │   │                                         Enter itself.
-    │   ├── floatAstronaut.ts           complete   218 lines. The rAF loop, the two transforms, the
-    │   │                                         resize handler, the grab lifecycle. Exports
-    │   │                                         startFloatingAstronaut -> teardown. Discards deltas
-    │   │                                         over 50ms.
-    │   ├── forecastLoader.ts           complete   LoadedForecast; loadForecast(signal?, seed?,
-    │   │                                         dustScore?) fetches the flares and runs
-    │   │                                         createForecast. The join between data/ and sim/,
-    │   │                                         shared by base and act without a cross-feature
-    │   │                                         import. Never rejects. It also carries the
-    │   │                                         raw readings out in `flares`, because the
-    │   │                                         forecast is the game's reading of them and
-    │   │                                         the data sheet shows NASA's own (D-071).
-    │   ├── dailyFactLoader.ts          complete   LoadedDailyFacts; loadDailyFacts(signal) fetches
-    │   │                                         the NASA daily pictures. The join between data/ and
-    │   │                                         sim/, shared by act and debrief without a
-    │   │                                         cross-feature import. Never rejects.
-    │   ├── pointerGrab.ts              complete   207 lines. Exports attachGrab -> teardown.
-    │   │                                         Velocity is a 100ms windowed average, EMA smoothed.
-    │   ├── svg.ts                     complete   svg(shapes, attrs?). The one place that knows
-    │   │                                         the SVG namespace: an `<svg>` holding one path
-    │   │                                         per shape, built as nodes rather than parsed,
-    │   │                                         so an icon can never carry a string a player
-    │   │                                         typed. A shape carries its own paint — fill,
-    │   │                                         stroke, width, linecap, linejoin, fill-rule —
-    │   │                                         because the supplied drawings are filled and
-    │   │                                         coloured. Used by ui/icons.ts only.
-    │   └── starfield.ts                complete   63 lines. 140 stars across three depth layers.
-    │                                             Suspect: layers animate with no looping copy —
-    │                                             ISS-002, unverified in a browser.
-    │
+                                        screens share. Mostly untested (ISS-011).
+        ├── keys.ts                     complete   The keyboard rules more than one screen needs:
+                                                  KeyModifiers; isPlainEnter(key, modifiers);
+                                                  focusHandlesEnter(tagName). Pure. They used to
+                                                  live in features/supply/model.ts, where the launch
+                                                  parts tour could not have them (R-5).
+        ├── keys.test.ts                complete   7 tests: a plain Enter, an Enter with a
+                                                  modifier, and a focused control that deals with
+                                                  Enter itself.
+        ├── floatAstronaut.ts           complete   218 lines. The rAF loop, the two transforms, the
+                                                  resize handler, the grab lifecycle. Exports
+                                                  startFloatingAstronaut -> teardown. Discards deltas
+                                                  over 50ms.
+        ├── forecastLoader.ts           complete   LoadedForecast; loadForecast(signal?, seed?,
+                                                  dustScore?) fetches the flares and runs
+                                                  createForecast. The join between data/ and sim/,
+                                                  shared by base and act without a cross-feature
+                                                  import. Never rejects. It also carries the
+                                                  raw readings out in `flares`, because the
+                                                  forecast is the game's reading of them and
+                                                  the data sheet shows NASA's own (D-071).
+        ├── dailyFactLoader.ts          complete   LoadedDailyFacts; loadDailyFacts(signal) fetches
+                                                  the NASA daily pictures. The join between data/ and
+                                                  sim/, shared by act and debrief without a
+                                                  cross-feature import. Never rejects.
+        ├── pointerGrab.ts              complete   207 lines. Exports attachGrab -> teardown.
+                                                  Velocity is a 100ms windowed average, EMA smoothed.
+        ├── svg.ts                     complete   svg(shapes, attrs?). The one place that knows
+                                                  the SVG namespace: an `<svg>` holding one path
+                                                  per shape, built as nodes rather than parsed,
+                                                  so an icon can never carry a string a player
+                                                  typed. A shape carries its own paint — fill,
+                                                  stroke, width, linecap, linejoin, fill-rule —
+                                                  because the supplied drawings are filled and
+                                                  coloured. Used by ui/icons.ts only.
+        └── starfield.ts                complete   63 lines. 140 stars across three depth layers.
+                                                  Suspect: layers animate with no looping copy —
+                                                  ISS-002, unverified in a browser.
+     
     ├── data/                           COMPLETE. The only zone allowed to fetch. The rover's
-    │   │                               catalogue is NOT here: it moved into sim/rover.ts,
-    │   │                               because the simulation now owns the rover's whole
-    │   │                               lifecycle and data/ is for things fetched from a
-    │   │                               network (D-062).
-    │   ├── README.md                   the quarantine rules and the live-source chain
-    │   ├── spaceweather.ts             complete   SpaceWeatherEvent, SpaceWeatherSource
-    │   │                                         ('donki' | 'noaa' | 'fallback'),
-    │   │                                         parseFlares, parseNoaaFlares,
-    │   │                                         fetchSpaceWeather, lastSource, lastDetail,
-    │   │                                         describeWhen, strongestFlares. NASA DONKI ->
-    │   │                                         NOAA SWPC -> an empty fallback, in that
-    │   │                                         order; every flare is kept, not just the
-    │   │                                         strongest. `strongestFlares` orders the
-    │   │                                         readings for a screen that cannot show
-    │   │                                         thirty days of them (D-071).
-    │   ├── spaceweather.test.ts        complete   31 tests; every fetch is injected
-    │   ├── nasaGallery.ts             complete   Twelve sol cards plus a closing card,
-    │   │                                         five real region photos and forty tagged
-    │   │                                         facts. Static by choice (D-042): no
-    │   │                                         runtime image API, and the words are
-    │   │                                         unit tested here. `factForTopic`
-    │   │                                         picks the fact about one system.
-    │   ├── nasaDaily.ts                complete   DailyFact, DailyFactSource, parseApod,
-    │   │                                         cleanExplanation, fetchDailyFacts, lastDailySource,
-    │   │                                         lastDailyDetail, resetDailyFacts, savedFactFor.
-    │   │                                         NASA's Astronomy Picture of the Day, filtered to
-    │   │                                         Mars. An enrichment layer on top of the saved
-    │   │                                         gallery, never a replacement (D-053). 17 tests.
-    │   └── nasaGallery.test.ts         complete   25 tests; ids resolve, credits and links
-    │                                             present, length caps enforced, facts wrap
-    │                                             deterministically, every topic has facts.
-    │
+                                        catalogue is NOT here: it moved into sim/rover.ts,
+                                        because the simulation now owns the rover's whole
+                                        lifecycle and data/ is for things fetched from a
+                                        network (D-062).
+        ├── README.md                   the quarantine rules and the live-source chain
+        ├── spaceweather.ts             complete   SpaceWeatherEvent, SpaceWeatherSource
+                                                  ('donki' | 'noaa' | 'fallback'),
+                                                  parseFlares, parseNoaaFlares,
+                                                  fetchSpaceWeather, lastSource, lastDetail,
+                                                  describeWhen, strongestFlares. NASA DONKI ->
+                                                  NOAA SWPC -> an empty fallback, in that
+                                                  order; every flare is kept, not just the
+                                                  strongest. `strongestFlares` orders the
+                                                  readings for a screen that cannot show
+                                                  thirty days of them (D-071).
+        ├── spaceweather.test.ts        complete   31 tests; every fetch is injected
+        ├── nasaGallery.ts             complete   Twelve sol cards plus a closing card,
+                                                  five real region photos and forty tagged
+                                                  facts. Static by choice (D-042): no
+                                                  runtime image API, and the words are
+                                                  unit tested here. `factForTopic`
+                                                  picks the fact about one system.
+        ├── nasaDaily.ts                complete   DailyFact, DailyFactSource, parseApod,
+                                                  cleanExplanation, fetchDailyFacts, lastDailySource,
+                                                  lastDailyDetail, resetDailyFacts, savedFactFor.
+                                                  NASA's Astronomy Picture of the Day, filtered to
+                                                  Mars. An enrichment layer on top of the saved
+                                                  gallery, never a replacement (D-053). 17 tests.
+        └── nasaGallery.test.ts         complete   25 tests; ids resolve, credits and links
+                                                  present, length caps enforced, facts wrap
+                                                  deterministically, every topic has facts.
+     
     ├── features/                       one folder per screen. Every journey screen is built.
-    │   │                               There are no feature stubs left.
-    │   ├── README.md                   the layout contract: four files, depth 2, which rules are
-    │   │                               enforced vs convention
-    │   ├── naming/                     COMPLETE   Scene one. The entry screen.
-    │   │   ├── README.md                           the contract
-    │   │   ├── model.ts                 complete   104 lines. Exports MAX_NAME_LENGTH (24),
-    │   │   │                                     NameProblem, NameCheck, normaliseName,
-    │   │   │                                     checkName, displayName. Pure; length counted in
-    │   │   │                                     code points so an emoji costs 1, not 2.
-    │   │   ├── model.test.ts            complete   21 tests, every input a literal
-    │   │   ├── view.ts                  complete   mountNaming(root, run, setRun) -> teardown.
-    │   │   │                                     Validates on every keystroke; START MISSION
-    │   │   │                                     disabled until the name is usable.
-    │   │   └── naming.css               complete   the full-bleed scene: the stage is the
-    │   │                                         backdrop for the whole window, the
-    │   │                                         astronaut stands left, Mars fills the right
-    │   │                                         and the menu column sits over it. Outfit
-    │   │                                         type, translucent panels, a radial scrim
-    │   │                                         for legibility. naming-mars-turn (150s) and
-    │   │                                         naming-astronaut-float (9s), both removed
-    │   │                                         under prefers-reduced-motion. D-049
-    │   ├── briefing/                   COMPLETE   The mission briefing.
-    │   │   ├── README.md                           the contract
-    │   │   ├── model.ts                 complete   BEATS, beatsThrough, greetingFor. Pure. The
-    │   │   │                                     briefing says what the job is and what a day
-    │   │   │                                     is before the player has to live one: three
-    │   │   │                                     work orders, approve one, the day happens
-    │   │   │                                     (D-060).
-    │   │   ├── model.test.ts            complete   literal-input tests
-    │   │   ├── view.ts                  complete   mountBriefing(root, run, setRun) -> teardown.
-    │   │   │                                     One beat at a time under the artwork; NEXT or
-    │   │   │                                     Enter advances, Enter confirms on the last beat.
-    │   │   └── briefing.css             complete   aspect-locked artwork + message bubble
-    │   ├── supply/                     COMPLETE   The ration-check puzzle.
-    │   │   ├── README.md                           the contract
-    │   │   ├── model.ts                 complete   SUPPLY_BEATS, packsFor, judge, hintFor,
-    │   │   │                                     workingSentence, approximateTotalKg, seedFrom,
-    │   │   │                                     questionFor, choicesFor, promptFor,
-    │   │   │                                     puzzleFor, isPlainEnter, focusHandlesEnter.
-    │   │   │                                     The question and its four options change
-    │   │   │                                     every run, seeded from the astronaut name
-    │   │   │                                     (D-057); the keyboard rules are here so they
-    │   │   │                                     can be asserted. 71 tests.
-    │   │   ├── model.test.ts            complete   71 literal-input tests
-    │   │   ├── view.ts                  complete   mountSupply(root, run, setRun) -> teardown.
-    │   │   │                                     Enter advances while NEXT is visible, and
-    │   │   │                                     the screen resets its state on mount.
-    │   │   └── supply.css               complete   beats and the ration check
-    │   ├── launch/                     COMPLETE   The launch reel and spacecraft tour.
-    │   │   ├── README.md                           the contract
-    │   │   ├── model.ts                 complete   TITLE, SHOTS, PARTS, beat durations,
-    │   │   │                                     resolveBeatStart. 32 tests.
-    │   │   ├── model.test.ts            complete   32 literal-input tests
-    │   │   ├── view.ts                  complete   mountLaunch(root, run, setRun) -> teardown;
-    │   │   │                                     media-driven beats, poster frames
-    │   │   └── launch.css               complete   film stage, parts tour, reduced motion
-    │   ├── interior/                   COMPLETE   Walk the station and visit every room.
-    │   │   ├── README.md                           the contract
-    │   │   ├── model.ts                 complete   ROOMS, walker stepping, sprite mapping,
-    │   │   │                                     visited tracking. 42 tests.
-    │   │   ├── model.test.ts            complete   42 literal-input tests
-    │   │   ├── view.ts                  complete   mountInterior(root, run, setRun) -> teardown
-    │   │   └── interior.css             complete   room stage, walker and exit prompts
-    │   ├── landing-site/               COMPLETE   TASK-028. Choose a landing region, score 5 axes.
-    │   │   ├── README.md                           the contract
-    │   │   ├── model.ts                           complete   REGIONS, scoreRegion,
-    │   │   │                                       tradeoffSummary, totalScore,
-    │   │   │                                       strengthAndWeakness. Pure, 11 tests.
-    │   │   ├── model.test.ts                      complete   11 literal-input tests
-    │   │   ├── view.ts                            complete   mountLandingSite(root, run, setRun) -> teardown
-    │   │   └── landing-site.css                   complete   16:9 stage, five pins, Site Analysis panel
-    │   ├── base/                       COMPLETE   TASK-029. Outpost overview and build panel.
-    │   │   ├── README.md                           the contract
-    │   │   ├── model.ts                 complete   BUILDABLE, canPlace, addModule,
-    │   │   │                                     removeModule, pointsLeft, upkeepFor,
-    │   │   │                                     previewFor, previewSummary, upcomingWarnings.
-    │   │   │                                     Re-exports the `sim/modules.ts` catalogue
-    │   │   │                                     (D-032).
-    │   │   ├── model.test.ts            complete   23 literal-input tests
-    │   │   ├── view.ts                  complete   mountBase(root, run, setRun) -> teardown.
-    │   │   │                                     Rebuilt on the game-loop shell (D-038): the
-    │   │   │                                     outpost on Mars, the build panel, five cards.
-    │   │   │                                     The supply list is NOT here: it is in the
-    │   │   │                                     setup popup, and the panel opens that window
-    │   │   │                                     (D-082). Each card says what it does and
-    │   │   │                                     why the button is dead, and counts the extras
-    │   │   │                                     against the same limit the game uses
-    │   │   │                                     (ISS-054, ISS-055). The HUD carries a Day
-    │   │   │                                     power card that moves as the panels go in
-    │   │   │                                     (ISS-056). The guide opens here the first
-    │   │   │                                     time the player arrives (D-060).
-    │   │   ├── setupPopup.ts            complete   createSetupPopup(options) -> SetupPopup,
-    │   │   │                                     siteGoals(goals, options). The landing window:
-    │   │   │                                     the site, the five goals, the supply depot and
-    │   │   │                                     the points. Mounted on document.body, so a
-    │   │   │                                     redraw behind it cannot reset the page
-    │   │   │                                     (ISS-090). One state: the build is the
-    │   │   │                                     caller's `extras`, and every rule comes from
-    │   │   │                                     ./model (D-082).
-    │   │   ├── setupPopup.css           complete   the window: backdrop, head, progress row,
-    │   │   │                                     the six numbers, the two columns, the footer.
-    │   │   │                                     Imported by setupPopup.ts only.
-    │   │   └── base.css                 complete   the budget line and card reasons only
-    │   ├── act/                        COMPLETE   TASK-030. Turn-based sol control (D-030).
-    │   │   ├── README.md                           the contract
-    │   │   ├── model.ts                 complete   missionHeadline, meterRows, toneFor,
-    │   │   │                                     changeRows, progressPercent, secondsLeft,
-    │   │   │                                     powerSentence, activityCosts, activityRows,
-    │   │   │                                     scienceSummary, scienceSentence, powerToday,
-    │   │   │                                     hubTiles, HubSection, HubTile, HubContext.
-    │   │   │                                     Pure, 38 tests. It words the hub's buttons
-    │   │   │                                     and never touches an icon: a model may not
-    │   │   │                                     import ui/ (D-070). `HubContext` carries
-    │   │   │                                     what NASA answered — the count of pictures
-    │   │   │                                     and the count of live readings — because a
-    │   │   │                                     model may not import data/ (D-071).
-    │   │   ├── model.test.ts            complete   38 literal-input tests
-    │   │   ├── view.ts                  complete   mountAct(root, run, setRun) -> teardown.
-    │   │   │                                     **The desk is a hub of five or six buttons**,
-    │   │   │                                     each a label and one line of state, and each
-    │   │   │                                     opens its section as a sheet over the desk
-    │   │   │                                     (D-070): today's tasks, the desk, the standing
-    │   │   │                                     orders, the colony stats, NASA's real data, and
-    │   │   │                                     the review of the last sol. The review button
-    │   │   │                                     carries the sol's net-change chips, because a
-    │   │   │                                     change behind a button is still a change on
-    │   │   │                                     screen (ISS-057). The science points sit in the
-    │   │   │                                     panel head's top right, the sol count in its
-    │   │   │                                     kicker (ISS-073). Run sol -> advanceSol; on a
-    │   │   │                                     finished run, setRun then navigate to
-    │   │   │                                     `debrief`. A crisis replaces the hub (D-040).
-    │   │   │                                     Every pictogram is an `IconName`; the mapping
-    │   │   │                                     from an activity id to its icon lives here,
-    │   │   │                                     not in sim/. The **real data sheet is the
-    │   │   │                                     whole NASA layer** (D-071): NASA's live
-    │   │   │                                     daily picture, the saved card for the sol,
-    │   │   │                                     the landing region's own photograph, NASA's
-    │   │   │                                     own space-weather readings with their
-    │   │   │                                     source, and two NASA facts.
-    │   │   └── act.css                  complete   the hub tiles and chips, the tool, the crisis
-    │   │                                             option artwork, the work-order cards and
-    │   │                                             the real-data sheet's flare rows
-    │   └── debrief/                    COMPLETE   TASK-031. Why the run was won or lost.
-    │       ├── README.md                           the contract
-    │       ├── model.ts                 complete   Explanation, ConsumptionSummary, NextStep,
-    │       │                                     ScienceReport, ScienceRow, explainOutcome,
-    │       │                                     consumptionSummary, blackoutSols,
-    │       │                                     reviewDecisions, timeline, lowestPoints,
-    │       │                                     usedApproximateData, nextSteps,
-    │       │                                     wentEmpty, scienceReport, scienceHeadline,
-    │       │                                     scienceDetail, scienceSentence.
-    │       │                                     Conservative ledger attribution. 32 tests.
-    │       ├── model.test.ts            complete   32 literal-input tests
-    │       ├── view.ts                  complete   mountDebrief(root, run, setRun) -> teardown.
-    │       │                                     Results panel, plus the journal as a mode
-    │       │                                     (D-039): decisions, sol table, honesty note.
-    │       │                                     The certificate, the patches the run earned and
-    │       │                                     the standing orders the player worked under,
-    │       │                                     which is the keepsake (D-061).
-    │       └── debrief.css              complete   tip cards, journal entries, two-link footer
-    │
+                                        There are no feature stubs left.
+        ├── README.md                   the layout contract: four files, depth 2, which rules are
+                                        enforced vs convention
+        ├── naming/                     COMPLETE   Scene one. The entry screen.
+            ├── README.md                           the contract
+            ├── model.ts                 complete   104 lines. Exports MAX_NAME_LENGTH (24),
+                                                  NameProblem, NameCheck, normaliseName,
+                                                  checkName, displayName. Pure; length counted in
+                                                  code points so an emoji costs 1, not 2.
+            ├── model.test.ts            complete   21 tests, every input a literal
+            ├── view.ts                  complete   mountNaming(root, run, setRun) -> teardown.
+                                                  Validates on every keystroke; START MISSION
+                                                  disabled until the name is usable.
+            └── naming.css               complete   the full-bleed scene: the stage is the
+                                                  backdrop for the whole window, the
+                                                  astronaut stands left, Mars fills the right
+                                                  and the menu column sits over it. Outfit
+                                                  type, translucent panels, a radial scrim
+                                                  for legibility. naming-mars-turn (150s) and
+                                                  naming-astronaut-float (9s), both removed
+                                                  under prefers-reduced-motion. D-049
+        ├── briefing/                   COMPLETE   The mission briefing.
+            ├── README.md                           the contract
+            ├── model.ts                 complete   BEATS, beatsThrough, greetingFor. Pure. The
+                                                  briefing says what the job is and what a day
+                                                  is before the player has to live one: three
+                                                  work orders, approve one, the day happens
+                                                  (D-060).
+            ├── model.test.ts            complete   literal-input tests
+            ├── view.ts                  complete   mountBriefing(root, run, setRun) -> teardown.
+                                                  One beat at a time under the artwork; NEXT or
+                                                  Enter advances, Enter confirms on the last beat.
+            └── briefing.css             complete   aspect-locked artwork + message bubble
+        ├── supply/                     COMPLETE   The ration-check puzzle.
+            ├── README.md                           the contract
+            ├── model.ts                 complete   SUPPLY_BEATS, packsFor, judge, hintFor,
+                                                  workingSentence, approximateTotalKg, seedFrom,
+                                                  questionFor, choicesFor, promptFor,
+                                                  puzzleFor, isPlainEnter, focusHandlesEnter.
+                                                  The question and its four options change
+                                                  every run, seeded from the astronaut name
+                                                  (D-057); the keyboard rules are here so they
+                                                  can be asserted. 71 tests.
+            ├── model.test.ts            complete   71 literal-input tests
+            ├── view.ts                  complete   mountSupply(root, run, setRun) -> teardown.
+                                                  Enter advances while NEXT is visible, and
+                                                  the screen resets its state on mount.
+            └── supply.css               complete   beats and the ration check
+        ├── launch/                     COMPLETE   The launch reel and spacecraft tour.
+            ├── README.md                           the contract
+            ├── model.ts                 complete   TITLE, SHOTS, PARTS, beat durations,
+                                                  resolveBeatStart. 32 tests.
+            ├── model.test.ts            complete   32 literal-input tests
+            ├── view.ts                  complete   mountLaunch(root, run, setRun) -> teardown;
+                                                  media-driven beats, poster frames
+            └── launch.css               complete   film stage, parts tour, reduced motion
+        ├── interior/                   COMPLETE   Walk the station and visit every room.
+            ├── README.md                           the contract
+            ├── model.ts                 complete   ROOMS, walker stepping, sprite mapping,
+                                                  visited tracking. 42 tests.
+            ├── model.test.ts            complete   42 literal-input tests
+            ├── view.ts                  complete   mountInterior(root, run, setRun) -> teardown
+            └── interior.css             complete   room stage, walker and exit prompts
+        ├── landing-site/               COMPLETE   TASK-028. Choose a landing region, score 5 axes.
+            ├── README.md                           the contract
+            ├── model.ts                           complete   REGIONS, scoreRegion,
+                                                    tradeoffSummary, totalScore,
+                                                    strengthAndWeakness. Pure, 11 tests.
+            ├── model.test.ts                      complete   11 literal-input tests
+            ├── view.ts                            complete   mountLandingSite(root, run, setRun) -> teardown
+            └── landing-site.css                   complete   16:9 stage, five pins, Site Analysis panel
+        ├── landing-cinematic/             COMPLETE   TASK-108. The landing sequence: the film between the map and the outpost.
+            ├── README.md                           the contract
+            ├── model.ts                           complete   BEATS, TOTAL_DURATION_MS, cameraTransformAt,
+                                                    imageOpacityAt, shakeAt, swayAt, hazeOpacityAt,
+                                                    flashOpacityAt, captionOpacityAt, easeInOut.
+                                                    Pure, 48 tests.
+            ├── model.test.ts                      complete   48 literal-input tests
+            ├── view.ts                            complete   mountLandingCinematic(root, run, setRun) -> teardown
+            └── landing-cinematic.css               complete   the stage, the frames, the lower third, the skip
+        ├── base/                       COMPLETE   TASK-029. Outpost overview and build panel.
+            ├── README.md                           the contract
+            ├── model.ts                 complete   BUILDABLE, canPlace, addModule,
+                                                  removeModule, pointsLeft, upkeepFor,
+                                                  previewFor, previewSummary, upcomingWarnings.
+                                                  Re-exports the `sim/modules.ts` catalogue
+                                                  (D-032).
+            ├── model.test.ts            complete   23 literal-input tests
+            ├── view.ts                  complete   mountBase(root, run, setRun) -> teardown.
+                                                  Rebuilt on the game-loop shell (D-038): the
+                                                  outpost on Mars, the build panel, five cards.
+                                                  The supply list is NOT here: it is in the
+                                                  setup popup, and the panel opens that window
+                                                  (D-082). Each card says what it does and
+                                                  why the button is dead, and counts the extras
+                                                  against the same limit the game uses
+                                                  (ISS-054, ISS-055). The HUD carries a Day
+                                                  power card that moves as the panels go in
+                                                  (ISS-056). The guide opens here the first
+                                                  time the player arrives (D-060).
+            ├── setupPopup.ts            complete   createSetupPopup(options) -> SetupPopup,
+                                                  siteGoals(goals, options). The landing window:
+                                                  the site, the five goals, the supply depot and
+                                                  the points. Mounted on document.body, so a
+                                                  redraw behind it cannot reset the page
+                                                  (ISS-090). One state: the build is the
+                                                  caller's `extras`, and every rule comes from
+                                                  ./model (D-082).
+            ├── setupPopup.css           complete   the window: backdrop, head, progress row,
+                                                  the six numbers, the two columns, the footer.
+                                                  Imported by setupPopup.ts only.
+            └── base.css                 complete   the budget line and card reasons only
+        ├── act/                        COMPLETE   TASK-030. Turn-based sol control (D-030).
+            ├── README.md                           the contract
+            ├── model.ts                 complete   missionHeadline, meterRows, toneFor,
+                                                  changeRows, progressPercent, secondsLeft,
+                                                  powerSentence, activityCosts, activityRows,
+                                                  scienceSummary, scienceSentence, powerToday,
+                                                  hubTiles, HubSection, HubTile, HubContext.
+                                                  Pure, 38 tests. It words the hub's buttons
+                                                  and never touches an icon: a model may not
+                                                  import ui/ (D-070). `HubContext` carries
+                                                  what NASA answered — the count of pictures
+                                                  and the count of live readings — because a
+                                                  model may not import data/ (D-071).
+            ├── model.test.ts            complete   38 literal-input tests
+            ├── view.ts                  complete   mountAct(root, run, setRun) -> teardown.
+                                                  **The desk is a hub of five or six buttons**,
+                                                  each a label and one line of state, and each
+                                                  opens its section as a sheet over the desk
+                                                  (D-070): today's tasks, the desk, the standing
+                                                  orders, the colony stats, NASA's real data, and
+                                                  the review of the last sol. The review button
+                                                  carries the sol's net-change chips, because a
+                                                  change behind a button is still a change on
+                                                  screen (ISS-057). The science points sit in the
+                                                  panel head's top right, the sol count in its
+                                                  kicker (ISS-073). Run sol -> advanceSol; on a
+                                                  finished run, setRun then navigate to
+                                                  `debrief`. A crisis replaces the hub (D-040).
+                                                  Every pictogram is an `IconName`; the mapping
+                                                  from an activity id to its icon lives here,
+                                                  not in sim/. The **real data sheet is the
+                                                  whole NASA layer** (D-071): NASA's live
+                                                  daily picture, the saved card for the sol,
+                                                  the landing region's own photograph, NASA's
+                                                  own space-weather readings with their
+                                                  source, and two NASA facts.
+            └── act.css                  complete   the hub tiles and chips, the tool, the crisis
+                                                      option artwork, the work-order cards and
+                                                      the real-data sheet's flare rows
+        └── debrief/                    COMPLETE   TASK-031. Why the run was won or lost.
+            ├── README.md                           the contract
+            ├── model.ts                 complete   Explanation, ConsumptionSummary, NextStep,
+                                                  ScienceReport, ScienceRow, explainOutcome,
+                                                  consumptionSummary, blackoutSols,
+                                                  reviewDecisions, timeline, lowestPoints,
+                                                  usedApproximateData, nextSteps,
+                                                  wentEmpty, scienceReport, scienceHeadline,
+                                                  scienceDetail, scienceSentence.
+                                                  Conservative ledger attribution. 32 tests.
+            ├── model.test.ts            complete   32 literal-input tests
+            ├── view.ts                  complete   mountDebrief(root, run, setRun) -> teardown.
+                                                  Results panel, plus the journal as a mode
+                                                  (D-039): decisions, sol table, honesty note.
+                                                  The certificate, the patches the run earned and
+                                                  the standing orders the player worked under,
+                                                  which is the keepsake (D-061).
+            └── debrief.css              complete   tip cards, journal entries, two-link footer
+     
     └── styles/                         shared CSS: the landing page, the game-loop frame
         ├── base.css                    complete   94 lines. Tokens, reset, backdrop, nebulae.
-        │                                         Comment at line 60 is stale — ISS-014.
+                                                  Comment at line 60 is stale — ISS-014.
         ├── starfield.css               complete   70 lines. Carries the suspect ISS-002 animation.
         ├── astronaut.css               complete   82 lines. Three nested elements each owning one
-        │                                         transform, plus sway/breathe keyframes.
+                                                  transform, plus sway/breathe keyframes.
         ├── message.css                 complete   125 lines. Title, cursor, vignette, reduced-motion
-        │                                         block. Lines 100-101 contradict 110-113 — ISS-003.
+                                                  block. Lines 100-101 contradict 110-113 — ISS-003.
         └── game-loop.css               complete   the `.gl` frame for base, act and debrief (D-038):
                                                   header, HUD cards, world, dock, panel, cards,
                                                   choices, clock, journal, the header's icon
@@ -943,11 +952,11 @@ and delete its entry in the same commit.**
 ```
 index.html → main.ts → { createStarfield, startFloatingAstronaut }
 startFloatingAstronaut → rAF tick → stepAstronaut (pure) → render transforms
-                                     │
+                                      
              ┌───────────────────────┴────────────────────┐
              v                                            v
       stepDrift (position, bounces)              stepDeform (spring)
-             │  impact {normal, speed}                 │
+                impact {normal, speed}                  
              └────────────────> impact()/stretch() <────┘
 
 ui/router.ts → location.hash → parseRoute (pure) → onRoute(route) → main.ts
@@ -1207,7 +1216,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 | `sim/save` | `SAVE_VERSION` | 1 — bumped when `RunState` changes shape in a way the decoder cannot repair, so an old save is ignored rather than half-read (D-081) |
 | | `encodeRun` | `(run) -> unknown`; the run as something `JSON.stringify` can carry. A copy, so a later `withState` cannot reach into text already written |
 | | `decodeRun` | `(unknown) -> RunState \| null`; the spine (sol, region, name, stores, status, modules, panel health, science) is required, and everything past it is repaired from a fresh run. Null when there is no run to resume |
-| `ui/routes` | `Route` | `'naming' \| 'briefing' \| 'supply' \| 'launch' \| 'interior' \| 'landing' \| 'landing-site' \| 'base' \| 'act' \| 'debrief'` |
+| `ui/routes` | `Route` | `'naming' \| 'briefing' \| 'supply' \| 'launch' \| 'interior' \| 'landing' \| 'landing-site' \| 'landing-cinematic' \| 'base' \| 'act' \| 'debrief'` |
 | | `ROUTE_ORDER` | the routes in play order, `naming` first |
 | | `DEFAULT_ROUTE` | `'naming'` — the entry screen (D-021) |
 | | `parseRoute` | `(hash) -> Route \| null`; tolerant of missing/duplicated `/`, whitespace, case, query string. Returns null rather than throwing |
@@ -1249,6 +1258,12 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `moduleFigures`, `moduleArt`, `MODULE_ART`, `WORLD_BACKGROUND`, `ASTRONAUT_SPRITE` | artwork placement and the bundled asset URLs; the only import site for the figures base, act and debrief share |
 | `ui/dayTracker` | `dayModel`, `dayTracker` | `dayModel(run, advanced?) -> DayModel`: the mission-day tracker read off a run. Pure. The day in play is `sol + 1`, because `run.sol` counts the sols already flown; a finished run has no day in play. The total comes from `WIN_SOL`, never from a number typed here. `advanced` is the sol that has just been flown, which the act screen passes so one pip can flash (D-070) |
 | | `DayModel`, `DayState` | `DayModel` is `{day, done, total, states, advanced}` — the day in play, the days flown, the length of the mission, one state per day (`done`, `current` or `upcoming`) and the sol that just moved. `DayState` is that per-day state |
+| `features/landing-cinematic/model` | `BEATS`, `TOTAL_DURATION_MS` | the whole film: six beats, their times, the camera moves and the captions. One number for the runtime, so nothing can drift (D-085) |
+| | `cameraTransformAt`, `imageOpacityAt`, `captionOpacityAt`, `shakeAt`, `swayAt`, `hazeOpacityAt`, `flashOpacityAt`, `easeInOut` | what the film looks like at one moment, worked out in arithmetic. The camera is interpolated rather than keyframed, so the easing lives here and can be tested |
+| `features/landing-cinematic/view` | `mountLandingCinematic` | `(root, run, setRun) -> teardown`; plays the film for the region in the run and hands on to `base`. One `requestAnimationFrame` loop and one number - the milliseconds of film played - writes the whole screen, and only `transform` and `opacity` are ever written. The frames are decoded before the clock starts, a hidden tab pauses it, and SKIP, Escape and Enter all end it the same way: on black, and then the outpost |
+| `data/landingFacts` | `LANDING_FACTS`, `ZONE_FACTS`, `factById`, `zoneFact` | the NASA facts the film teaches, each with the NASA page it came from, and the one about each landing region. No request at all: the game is complete without a network |
+| `ui/landingFrames` | `LANDING_FRAME_URLS`, `preloadLandingFrames` | the five frames of the sequence, and the idle fetch that puts them in the cache before the player reaches them |
+| `ui/handoffFade` | `playHandoffFade` | puts up the black curtain one screen hands over through, and lifts it again. The Day 1 screen is not touched by the hand-off (D-085) |
 | `features/base/model` | `BUILDABLE`, `canPlace`, `addModule`, `removeModule`, `pointsLeft` | build rules over the `sim/modules.ts` catalogue (D-032). `canPlace` asks `siteAllows`, so the card and the goals panel cannot disagree about a site (ISS-079) |
 | | `buildCards`, `BuildCard` | the catalogue as cards. `have`/`limit` drive the minus button; `total`/`maxCount` are the number on the card and its maximum, and `fromLander` marks the free copy the lander brought (ISS-089, ISS-054) |
 | | `goalPreview`, `GoalPreview` | whether the build holds each of the five goals, and a sentence naming the cause when it does not. The water sentence is computed from the build and the site, not a fixed string (ISS-079) |

@@ -33,6 +33,7 @@ flowchart TD
     Launch["launch<br/>cinematic + tour"]:::impl
     Interior["interior<br/>visit all six rooms"]:::gate
     Site["landing-site<br/>pick 1 of 5 regions"]:::gate
+    Film["landing-cinematic<br/>the landing film"]:::impl
     Base["base<br/>spend 18 build points"]:::gate
     Act["act<br/>a desk of work orders"]:::impl
     Pending{"event due<br/>on sol + 1?"}:::impl
@@ -44,7 +45,8 @@ flowchart TD
     Supply -->|"correct answer reveals CONTINUE"| Launch
     Launch -->|"film ends, or SKIP"| Interior
     Interior -->|"every room visited"| Site
-    Site -->|"select a pin + Land here"| Base
+    Site -->|"select a pin + Land here"| Film
+    Film -->|"the film ends, or SKIP"| Base
     Base -->|"Land &amp; start sol 1"| Act
     Act --> Pending
     Pending -->|"yes, not yet decided"| Crisis
@@ -72,6 +74,7 @@ and `nextStop('naming')` goes straight to `briefing`.
 | D1 | Astronaut name | `naming` | Start Mission | non-empty after trimming; 24 characters max; runs of whitespace collapse | cannot submit empty | `astronautName` | — |
 | D2 | Ration packets | `supply` | answer the maths question | four numbers worked out from the question on screen: the answer, plus the three mistakes (forgot the crew, forgot the packet size, forgot both) | must be solved; CONTINUE stays hidden | not stored (the screen is a gate) | — |
 | D3 | Landing region | `landing-site` | Land here | Arcadia · Jezero · Olympus · Valles · Argyre | cannot skip | `regionId` | — |
+| D3b | The landing film | `landing-cinematic` | the map hands over | SKIP, Escape or Enter | the film plays to its end | — (it teaches; it decides nothing) | — |
 | D4 | Build loadout | `base` | Land &amp; start sol 1 | 8 module kinds, 18 build points, site rules and slot limits | allowed to launch with nothing extra | `modules` | — |
 | D5 | Which work order to approve | `act` | each calm sol | the three orders on the desk, each with two readings and possibly a tool | the day still runs; the order is not approved | `chosenActivity`, `inspections` | — |
 | D6 | Flare response | `act` | when the forecast rolls a flare | `shelter` · `shield-up` · `carry-on` | `carry-on`, `timedOut = true` | `decisions[]` | `solved` / `caught` |

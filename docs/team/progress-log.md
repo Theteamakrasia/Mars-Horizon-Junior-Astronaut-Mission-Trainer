@@ -70,6 +70,76 @@ than a documented one.
 
 ---
 
+## 2026-11-12 — The crew lands through a film
+
+**Did**
+
+- **Put a landing cinematic between the map and the outpost.** The player presses
+  LAND HERE, the map fades to black over half a second, and a seventeen-second
+  film plays: the approach to Mars, a black beat with one fact, the parachute
+  three times - each closer than the one before - and the landing. Then the
+  Day 1 screen comes up out of the black, with the how-to-play guide opening by
+  itself as it always did.
+- **Made the film one clock and one config object.** The whole timeline lives in
+  `features/landing-cinematic/model.ts`, and one `requestAnimationFrame` loop
+  writes the whole film from one number: the milliseconds of film played. Only
+  `transform` and `opacity` are ever written, and the frames are not filtered,
+  recoloured or redrawn - they are NASA's, and the game shows them.
+- **Kept the zoom going one way.** Every frame of the descent grows from the
+  bottom of the frame, so the ground comes up to meet the capsule and the scale
+  only ever rises. The landing frame used to grow from a different point than
+  the frame before it, and the dissolve read as the camera pulling back.
+- **Made the frames WebP, and fetched them early.** Five JPEG photographs were
+  the second-largest thing the game downloaded, and they arrived the moment the
+  player landed. They are now WebP - 633 KB down to 326 KB - and the shell
+  fetches them at startup, so the film opens on its first frame.
+- **Taught the region to the screen.** The zone's name is on the film twice, and
+  its own NASA fact - verified against the NASA page it came from - is on the
+  last shot. Thirteen facts in all, each with its source, all of them in
+  `data/landingFacts.ts` so the film works offline.
+
+**Files**
+
+- `src/features/landing-cinematic/` - `model.ts` (the timeline), `model.test.ts`
+  (48 tests), `view.ts` (the clock, the preload, the skip, the teardown),
+  `landing-cinematic.css`, `README.md`
+- `src/data/landingFacts.ts` - the verified NASA facts, and the one for each
+  landing region (20 tests)
+- `src/ui/landingFrames.ts` - the five frames and the idle fetch
+- `src/ui/handoffFade.ts` + `src/ui/handoff-fade.css` - the black curtain the
+  outpost comes up through
+- `src/ui/routes.ts`, `src/ui/registry.ts`, `index.html` - the screen in the
+  journey
+- `src/features/landing-site/` - the map fades to black before the film
+- `tools/compress-cinematic-frames.py` - the conversion, with the originals kept
+- `tools/browser-check-landing-cinematic.mjs` - 40 checks over the new screen
+- `docs/architecture.md`, `docs/game-flow.md`, `docs/team/*`, `AGENTS.md`,
+  `src/features/README.md`, `src/data/README.md`
+
+**Problems**
+
+- **The last shot zoomed out.** The landing frame grew from the bottom of the
+  frame while the chute frame before it grew from the middle, so the two
+  disagreed about where the ground was and the dissolve showed the same picture
+  at two sizes. It read as the camera pulling back at the worst moment of the
+  film. One origin for the whole descent fixed it, and the model now has a test
+  that says so (D-085).
+- **The film was half a minute long.** The owner asked for a quicker one, and
+  it is now seventeen seconds: the same six beats, the same words, less waiting.
+- **A picture on its way out revealed the picture under it.** The frames are
+  stacked, so the landing frame fading out uncovered the parachute frame
+  underneath it - the film went backwards for a moment at the end. A picture
+  that is leaving now takes the ones under it with it, and what is left is the
+  black the film fades into.
+- **Two browser checks were already broken.** The setup window check expected a
+  sparkle character that is now a drawn icon, and the training check ran a sol
+  without answering the crisis on it, so the sol never happened (ISS-100,
+  ISS-101). Both are fixed here.
+
+**Next**
+
+- The eight existing browser checks learn the film's SKIP button, and the new
+  one watches the film from beginning to end.
 ## 2026-11-12 — The supplies are bought in the landing window
 
 **Did**
