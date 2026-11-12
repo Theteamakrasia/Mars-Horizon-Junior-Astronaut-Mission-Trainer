@@ -59,7 +59,12 @@
   max-height: min(95vh, 62rem);
   border: clamp(2px, 0.2vw, 3px) solid var(--gl-navy);
   border-radius: clamp(16px, 1.8vw, 28px);
-  background: var(--gl-panel);
+  /* Slightly transparent: the outpost stays behind the window, so the window
+     is a sheet of glass over it rather than a wall in front of it. The scrim
+     has already dimmed the game, so the text keeps its contrast. */
+  background: rgba(255, 249, 236, 0.92);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
   box-shadow: 0 26px 60px rgba(5, 12, 22, 0.46);
   overflow: hidden;
 }
@@ -159,7 +164,7 @@
   gap: clamp(8px, 1vw, 20px);
   padding: clamp(8px, 0.9vw, 16px) clamp(14px, 1.5vw, 26px);
   border-bottom: 1px solid var(--gl-line);
-  background: var(--gl-cream);
+  background: rgba(245, 240, 227, 0.9);
 }
 
 .setup__block {
@@ -242,7 +247,7 @@
   min-width: 0;
   padding: clamp(4px, 0.45vw, 9px) clamp(5px, 0.55vw, 11px);
   border-radius: clamp(6px, 0.6vw, 12px);
-  background: var(--gl-card);
+  background: rgba(242, 233, 214, 0.92);
 }
 
 .setup__stat-icon {
@@ -348,7 +353,7 @@
   gap: clamp(8px, 1vw, 20px);
   padding: clamp(9px, 1vw, 18px) clamp(14px, 1.5vw, 26px);
   border-top: 1px solid var(--gl-line);
-  background: var(--gl-cream);
+  background: rgba(245, 240, 227, 0.9);
 }
 
 .setup__status-block {
