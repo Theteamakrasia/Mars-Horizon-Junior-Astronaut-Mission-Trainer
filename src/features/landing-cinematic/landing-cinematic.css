@@ -1,0 +1,462 @@
+/* ==========================================================================
+   LANDING CINEMATIC — the landing sequence
+
+   Five supplied frames, played as one film: the approach to Mars, a black
+   beat, the parachute descending closer and closer, and the landing.
+
+   The stage fills the screen it is mounted in. It is `position: absolute;
+   inset: 0` inside the routed section, which is `position: fixed; inset: 0`
+   like every other screen in the game, so the picture is exactly the size of
+   the game at any window shape: no letterbox bars, no stretching, no
+   scrollbars. The frames are scaled with `object-fit: cover` and nothing
+   else.
+
+   NOTHING HERE CHANGES HOW THE ARTWORK LOOKS. There is no filter on any
+   image - no hue-rotate, no saturate, no contrast, no blur - because the
+   frames are NASA's and the game's job is to show them, not to grade them.
+   The only things that move are `transform` and `opacity`, and the only
+   things drawn on top are faint overlays in the palette of the picture
+   itself: an engine glow, a sun flare, dust, and haze.
+
+   The times come from the model as custom properties where a CSS rule needs
+   one, and the camera is written from JavaScript every frame, because the
+   camera is interpolated rather than keyframed: one clock, one set of
+   numbers, and no way for two files to disagree about when a shot happens.
+   ========================================================================== */
+
+.landing-cinematic {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  box-sizing: border-box;
+  overflow: hidden;
+  /* The deep space the game's own landing page uses. The black beat and the
+     fade at the end are this colour showing through, not a black card. */
+  background: var(--space-void, #04060f);
+  color: var(--gl-panel, #fff9ec);
+  font-family: var(--gl-body, 'Nunito', system-ui, sans-serif);
+}
+
+.landing-cinematic *,
+.landing-cinematic *::before,
+.landing-cinematic *::after {
+  box-sizing: border-box;
+}
+
+/* ---------- THE STAGE ---------- */
+
+.landing-cinematic__stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* ---------- A PICTURE ---------- */
+
+/*
+  One layer per frame. The layer's opacity is the dissolve, and the frame
+  inside it carries the camera. They are separate elements because the
+  handheld wobble and the sway act on the whole shot while the camera moves
+  inside it, and two transforms on one element would fight.
+*/
+.landing-cinematic__scene {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  will-change: opacity;
+}
+
+.landing-cinematic__frame {
+  position: absolute;
+  inset: 0;
+  transform-origin: var(--landing-camera-origin, 50% 50%);
+  will-change: transform;
+}
+
+.landing-cinematic__image {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* Cover and nothing else: the frame grows to meet the window and crops a
+     little on the long axis. It is never stretched and never squashed. */
+  object-fit: cover;
+}
+
+/* ---------- THE OVERLAYS ---------- */
+
+.landing-cinematic__overlay {
+  position: absolute;
+  inset: 0;
+}
+
+/*
+  The engine glow, on the approach frame.
+
+  A soft blue pool of light where the engine is, breathing between a quarter
+  and nearly half strength. The gradient is placed on the picture's own
+  coordinates - 14% across and 47% down - so it stays on the engine as the
+  camera moves.
+*/
+.landing-cinematic__glow {
+  background: radial-gradient(
+    circle 90px at 14% 47%,
+    rgba(150, 205, 255, 0.5) 0%,
+    rgba(120, 180, 255, 0.16) 34%,
+    rgba(0, 0, 0, 0) 70%
+  );
+  animation: landing-glow 2400ms ease-in-out infinite alternate;
+}
+
+@keyframes landing-glow {
+  from {
+    opacity: 0.25;
+  }
+
+  to {
+    opacity: 0.45;
+  }
+}
+
+/* The sun's flare, top left of the approach frame, drifting very slowly. */
+.landing-cinematic__flare {
+  background: radial-gradient(
+    circle 130px at 8% 16%,
+    rgba(255, 246, 214, 0.5) 0%,
+    rgba(255, 205, 140, 0.14) 30%,
+    rgba(0, 0, 0, 0) 66%
+  );
+  animation: landing-flare 9000ms ease-in-out infinite alternate;
+}
+
+@keyframes landing-flare {
+  from {
+    opacity: 0.16;
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    opacity: 0.3;
+    transform: translate3d(1.2%, 0.8%, 0);
+  }
+}
+
+/*
+  The stars. Tiny white dots that twinkle, and nothing else: no movement, no
+  size change, so the sky is alive without the picture being re-drawn.
+*/
+.landing-cinematic__star {
+  position: absolute;
+  left: var(--x, 50%);
+  top: var(--y, 50%);
+  width: var(--s, 2px);
+  height: var(--s, 2px);
+  border-radius: 50%;
+  background: #ffffff;
+  animation: landing-twinkle 3200ms ease-in-out var(--d, 0ms) infinite;
+}
+
+@keyframes landing-twinkle {
+  0%,
+  100% {
+    opacity: 0.06;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/*
+  Speed streaks. Faint lines drifting across the frame, the way dust does
+  past a window. They are thin, low and slow, and there are only six of them:
+  enough to say "this craft is moving" and not enough to look like rain.
+*/
+.landing-cinematic__streak {
+  position: absolute;
+  top: var(--y, 50%);
+  left: -20%;
+  width: 16%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.42) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  opacity: 0.16;
+  animation: landing-streak 3200ms linear var(--d, 0ms) infinite;
+}
+
+@keyframes landing-streak {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(140vw, 0, 0);
+  }
+}
+
+/*
+  Dust, on the three chute frames.
+
+  Warm specks the colour of the Martian sky, drifting left to right at a
+  steady pace - linear, because dust does not ease in and out. The positions
+  and the delays are given per speck by the view.
+*/
+.landing-cinematic__dust {
+  position: absolute;
+  left: var(--x, 10%);
+  top: var(--y, 60%);
+  width: var(--s, 2px);
+  height: var(--s, 2px);
+  border-radius: 50%;
+  background: rgba(226, 168, 116, var(--o, 0.4));
+  animation: landing-dust 5600ms linear var(--d, 0ms) infinite;
+}
+
+@keyframes landing-dust {
+  from {
+    transform: translate3d(-8vw, 0, 0);
+  }
+
+  to {
+    transform: translate3d(108vw, -3vh, 0);
+  }
+}
+
+/*
+  The haze over the landing frame, and the flash of light as the capsule
+  touches down. Their opacity is written every frame from the model's
+  timeline, so the haze thickens with the shot and the flash fires at the
+  moment the film says it does.
+*/
+.landing-cinematic__haze {
+  background: radial-gradient(
+    ellipse 120% 80% at 50% 100%,
+    rgba(214, 138, 92, 0.55) 0%,
+    rgba(180, 110, 80, 0.2) 45%,
+    rgba(0, 0, 0, 0) 80%
+  );
+  opacity: 0;
+}
+
+.landing-cinematic__flash {
+  background: radial-gradient(
+    ellipse 90% 70% at 50% 62%,
+    rgba(255, 232, 196, 0.85) 0%,
+    rgba(255, 190, 130, 0.24) 45%,
+    rgba(0, 0, 0, 0) 78%
+  );
+  opacity: 0;
+}
+
+/* ---------- THE LOWER THIRD ---------- */
+
+/*
+  The words, bottom left, on the game's own navy panel with the game's own
+  orange accent.
+
+  Bottom left is a choice, not a default: the parachute and the capsule are
+  in the middle of the frame, so anything in the lower centre would sit on
+  top of them. The panel is narrow for the same reason.
+*/
+.landing-cinematic__caption {
+  position: absolute;
+  left: clamp(12px, 2.4vw, 40px);
+  bottom: clamp(12px, 2.6vh, 40px);
+  z-index: 4;
+  max-width: min(42%, 460px);
+  padding: clamp(10px, 1.1vw, 18px) clamp(12px, 1.3vw, 22px);
+  border-radius: clamp(10px, 0.9vw, 16px);
+  background: rgba(29, 45, 70, 0.88);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.45);
+  color: #f2f7ff;
+  opacity: 0;
+  will-change: opacity;
+}
+
+.landing-cinematic__caption-label {
+  margin: 0 0 0.35em;
+  color: #df542b;
+  font-family: var(--gl-display, 'Outfit', system-ui, sans-serif);
+  font-size: clamp(0.56rem, 0.7vw, 0.8rem);
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.landing-cinematic__caption-headline {
+  margin: 0 0 0.4em;
+  font-family: var(--gl-display, 'Outfit', system-ui, sans-serif);
+  font-size: clamp(1rem, 1.7vw, 1.7rem);
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-indent: 0.16em;
+  text-transform: uppercase;
+}
+
+.landing-cinematic__caption-title {
+  margin: 0 0 0.3em;
+  font-family: var(--gl-display, 'Outfit', system-ui, sans-serif);
+  font-size: clamp(1.1rem, 2vw, 2.1rem);
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.landing-cinematic__caption-fact {
+  margin: 0 0 0.35em;
+  font-size: clamp(0.72rem, 0.95vw, 1rem);
+  font-weight: 600;
+  line-height: 1.45;
+  color: #e8eef5;
+}
+
+.landing-cinematic__caption-source {
+  margin: 0.4em 0 0;
+  font-size: clamp(0.56rem, 0.7vw, 0.78rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: rgba(242, 247, 255, 0.62);
+}
+
+/* ---------- THE SKIP BUTTON ---------- */
+
+/*
+  Bottom right, quiet, and 44 pixels tall because it is pressed with a thumb
+  on a tablet. It is up from the first frame: the film's own exit is the one
+  thing a player should never have to wait for.
+*/
+.landing-cinematic__skip {
+  position: absolute;
+  right: clamp(12px, 1.6vw, 28px);
+  bottom: clamp(12px, 1.8vh, 28px);
+  z-index: 5;
+  appearance: none;
+  min-height: 44px;
+  padding: 0.5rem 1.1rem;
+  border: 1px solid rgba(242, 247, 255, 0.42);
+  border-radius: 10px;
+  background: rgba(4, 6, 15, 0.62);
+  color: #f2f7ff;
+  font-family: var(--gl-display, 'Outfit', system-ui, sans-serif);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-indent: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.landing-cinematic__skip:hover {
+  border-color: #df542b;
+  color: #ff7b33;
+}
+
+.landing-cinematic__skip:focus-visible {
+  outline: 2px solid #df542b;
+  outline-offset: 2px;
+}
+
+/* ---------- THE SPOKEN VERSION ---------- */
+
+/*
+  The sequence, read out. The pictures are the content of the scene, so they
+  carry no alt of their own - a screen reader would read two descriptions at
+  once for a scene that is one thing - and this passage says what is
+  happening instead.
+*/
+.landing-cinematic__visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---------- THE END ---------- */
+
+/*
+  The player cut the film short. The whole stage fades to black before the
+  hand-off, so a skip ends the way the film ends: on black, and then the
+  outpost.
+*/
+.landing-cinematic__stage.is-closing {
+  opacity: 0;
+  transition: opacity 260ms ease;
+}
+
+/*
+  The film is over: the compositor is released, so the screen is not holding
+  on to a layer it no longer needs.
+*/
+.landing-cinematic.is-finished .landing-cinematic__scene,
+.landing-cinematic.is-finished .landing-cinematic__frame,
+.landing-cinematic.is-finished .landing-cinematic__caption {
+  will-change: auto;
+}
+
+/* ---------- REDUCED MOTION ---------- */
+
+/*
+  Not a skip and not a shorter film. The same five pictures, the same facts,
+  the same thirty-two seconds - only the movement is gone: no push, no pan,
+  no roll, no wobble, no drifting dust.
+
+  The fades stay, because an opacity change is not the kind of motion the
+  setting is about, and the fades are how the sequence is timed.
+*/
+.landing-cinematic[data-landing-motion='reduced'] .landing-cinematic__glow,
+.landing-cinematic[data-landing-motion='reduced'] .landing-cinematic__flare,
+.landing-cinematic[data-landing-motion='reduced'] .landing-cinematic__star,
+.landing-cinematic[data-landing-motion='reduced'] .landing-cinematic__streak,
+.landing-cinematic[data-landing-motion='reduced'] .landing-cinematic__dust {
+  animation: none;
+}
+
+.landing-cinematic[data-landing-motion='reduced'] .landing-cinematic__flare,
+.landing-cinematic[data-landing-motion='reduced'] .landing-cinematic__star,
+.landing-cinematic[data-landing-motion='reduced'] .landing-cinematic__streak,
+.landing-cinematic[data-landing-motion='reduced'] .landing-cinematic__dust {
+  opacity: 0.2;
+}
+
+/* The same fallback when the setting is on but the feature has not been told:
+   a URL can be opened before the mount, and the OS preference should hold
+   regardless of what JavaScript got to. */
+@media (prefers-reduced-motion: reduce) {
+  .landing-cinematic .landing-cinematic__glow,
+  .landing-cinematic .landing-cinematic__flare,
+  .landing-cinematic .landing-cinematic__star,
+  .landing-cinematic .landing-cinematic__streak,
+  .landing-cinematic .landing-cinematic__dust {
+    animation: none;
+  }
+
+  .landing-cinematic .landing-cinematic__flare,
+  .landing-cinematic .landing-cinematic__star,
+  .landing-cinematic .landing-cinematic__streak,
+  .landing-cinematic .landing-cinematic__dust {
+    opacity: 0.2;
+  }
+}
+
+/* ---------- A PAUSED FILM ---------- */
+
+/*
+  A hidden tab freezes the whole sequence: the clock stops, and the drifting
+  dust and the twinkling stars stop with it, so the film resumes where it
+  was rather than in a different place.
+*/
+.landing-cinematic.is-paused .landing-cinematic__glow,
+.landing-cinematic.is-paused .landing-cinematic__flare,
+.landing-cinematic.is-paused .landing-cinematic__star,
+.landing-cinematic.is-paused .landing-cinematic__streak,
+.landing-cinematic.is-paused .landing-cinematic__dust {
+  animation-play-state: paused;
+}

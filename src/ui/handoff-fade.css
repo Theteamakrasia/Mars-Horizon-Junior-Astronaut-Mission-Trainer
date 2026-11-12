@@ -1,0 +1,26 @@
+/* ==========================================================================
+   THE HAND-OFF CURTAIN
+
+   The black sheet that lifts when one screen gives way to the next.
+
+   It sits above everything the game draws - the how-to-play popup at 120, the
+   setup window at 130 - so the whole screen, guide and all, comes up together
+   out of the black. The game itself is at 10.
+
+   It does not take the pointer: it is decoration over a screen that is about
+   to be replaced, and a click meant for the screen underneath has to reach it.
+   ========================================================================== */
+
+.handoff-fade {
+  position: fixed;
+  inset: 0;
+  z-index: 140;
+  background: var(--space-void, #04060f);
+  opacity: 1;
+  pointer-events: none;
+  transition: opacity 600ms ease-out;
+}
+
+.handoff-fade.is-lifting {
+  opacity: 0;
+}
