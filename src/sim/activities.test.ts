@@ -213,7 +213,7 @@ describe('the power gate', () => {
     const survey = everyOffer(storm).find((offer) => offer.spec.id === 'survey');
 
     expect(survey?.available).toBe(false);
-    expect(survey?.lockedReason).toContain('25 kWh');
+    expect(survey?.lockedReason).toContain('50 kWh');
     expect(survey?.lockedReason).toContain('You can spend 0 kWh today');
   });
 

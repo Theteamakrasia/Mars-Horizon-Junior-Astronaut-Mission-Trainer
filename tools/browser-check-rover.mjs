@@ -18,7 +18,8 @@
 import { spawn } from 'node:child_process';
 import { setTimeout as sleep } from 'node:timers/promises';
 
-import { playCargoGame } from './training-driver.mjs';
+import { doTheTraining } from './training-driver.mjs';
+
 const BASE = process.env.BASE_URL ?? 'http://localhost:4173';
 const CHROME = process.env.CHROME_PATH ?? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 
@@ -93,32 +94,22 @@ async function closeSheet() {
 }
 
 /**
- * Train the crew for today's sol: two cargo rounds.
+ * Open one of the training games from the standing orders sheet.
  *
- * The work orders are locked until the crew has trained, and the training
- * starts again with every sol (D-075), so the check has to train before each
- * sol it plays. The cargo round is the quick one, and the same game twice is
- * two plays of the day.
+ * Today's work orders are locked until the crew has trained twice (D-075),
+ * and every new sol starts the count again, so the check trains whenever the
+ * orders are shut — played for real, in the one place that knows how.
  */
-async function train() {
-  for (let round = 0; round < 2; round += 1) {
-    await closeSheet();
-    await evaluate(`(() => { const b = document.querySelector('#act .act-tile[data-tile="orders"]'); if (b) b.click(); })()`);
-    await sleep(600);
-    await evaluate(`(() => { const b = [...document.querySelectorAll('#act .trn__card')].find((c) => c.querySelector('.trn__card-name')?.textContent === 'Cargo Sorting'); if (b) b.querySelector('.trn__play').click(); })()`);
-    await sleep(700);
-    await playCargoGame(evaluate, sleep);
-    await evaluate(`(() => { const b = document.querySelector('#act .trn__btn--primary'); if (b) b.click(); })()`);
-    await sleep(700);
-  }
+async function openTrainingGame(name) {
+  await evaluate(`(() => { const b = document.querySelector('#act .act-tile[data-tile="orders"]'); if (b) b.click(); })()`);
+  await sleep(500);
+  await evaluate(`(() => { const b = [...document.querySelectorAll('#act .trn__card')].find((c) => c.querySelector('.trn__card-name')?.textContent === ${JSON.stringify(name)}); if (b) b.querySelector('.trn__play').click(); })()`);
+  await sleep(700);
+
+  return evaluate(`!!document.querySelector('#act .trn__backdrop')`);
 }
 
-/**
- * True when today's work orders are still shut.
- *
- * The orders are locked until the crew has trained twice (D-075), and every
- * new sol starts the count again, so the check trains whenever they are shut.
- */
+/** True when today's work orders are still shut. */
 function ordersLocked() {
   return evaluate(`(() => document.querySelector('#act .act-tile[data-tile="tasks"]')?.dataset.locked === 'true')()`);
 }
@@ -127,9 +118,10 @@ function ordersLocked() {
 async function trainIfLocked() {
   if (!(await ordersLocked())) return true;
 
-  await train();
+  const trained = await doTheTraining(evaluate, sleep, openTrainingGame);
+  await closeSheet();
 
-  return !(await ordersLocked());
+  return trained?.cargo === true && trained?.asteroid === true;
 }
 
 /**
@@ -187,14 +179,12 @@ async function answerCrisisIfAny() {
 async function playSol() {
   if (await answerCrisisIfAny()) return;
 
-  await train();
-  await closeSheet();
+  await trainIfLocked();
   await openTile('tasks');
   await evaluate(`(() => { const b = document.querySelector('#act .act-order:not([disabled])'); if (b) b.click(); })()`);
   await sleep(350);
   await closeSheet();
   await runTheSol();
-  await sleep(1400);
 }
 
 const results = [];
@@ -314,10 +304,6 @@ try {
       await sleep(350);
       await closeSheet();
       await runTheSol();
-      await sleep(1400);
-      /* The next sol starts the training again, and the work orders are
-         locked until it is done. */
-      await train();
     }
   }
 
@@ -326,7 +312,6 @@ try {
   if (sent === 'clicked') {
     await closeSheet();
     await runTheSol();
-    await sleep(1400);
 
     /* The rover moves on sol time: the find is on the desk from the next
        sol, and the next sol's orders are locked until the crew has trained
@@ -337,6 +322,19 @@ try {
   }
 
   // 4. The find is on the desk.
+  /* The picture is a file the browser still has to fetch, so the check waits
+     for it before asking whether it is there. */
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const loaded = await evaluate(`(() => {
+      const image = document.querySelector('#act .act-find__image');
+      return !!image && image.complete && image.naturalWidth > 0;
+    })()`);
+
+    if (loaded) break;
+
+    await sleep(300);
+  }
+
   const find = await evaluate(`(() => {
     const card = document.querySelector('#act .act-find');
     if (!card) return null;

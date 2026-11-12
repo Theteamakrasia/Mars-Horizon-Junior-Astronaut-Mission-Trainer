@@ -128,9 +128,9 @@ describe('the daily activity', () => {
     const rows = activityRows(run, 1);
     const survey = activityRows(run, 2).find((row) => row.id === 'survey');
 
-    expect(rows.find((row) => row.id === 'experiment')?.costs).toEqual(['−15 kWh']);
+    expect(rows.find((row) => row.id === 'experiment')?.costs).toEqual(['−30 kWh']);
     expect(rows.find((row) => row.id === 'experiment')?.gains).toEqual(['+6 science']);
-    expect(survey?.costs).toEqual(['−25 kWh']);
+    expect(survey?.costs).toEqual(['−50 kWh']);
   });
 
   it('shows a locked activity with the reason, rather than hiding it', () => {

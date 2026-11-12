@@ -289,8 +289,31 @@ export function mountAct(
 
     const crisis = pendingCrisis(run);
 
-    if (crisis === null) step();
-    else render();
+    /* A crisis is the day's work, so it runs the sol by itself. */
+    if (crisis !== null) {
+      render();
+
+      return;
+    }
+
+    /* The day cannot be skipped.
+     *
+     * The button is disabled when the crew has not trained or has not stamped
+     * an order, but the rule belongs here too: a sol is a day of work, and the
+     * sim must never be handed a sol that skipped one.
+     */
+    const orders = activityRows(run, run.sol + 1);
+
+    if (!trainingUnlocked(run) || (orders.length > 0 && !orders.some((row) => row.chosen))) {
+      trainingNotice = !trainingUnlocked(run)
+        ? `Complete ${TRAINING_DAILY_LIMIT} training games to unlock today's colony tasks.`
+        : "Choose today's activity before running the sol.";
+      render();
+
+      return;
+    }
+
+    step();
   }
 
   /**
@@ -875,7 +898,7 @@ export function mountAct(
         power.spare < 0 ? 'bad' : 'ok',
       ),
       row('In the bank', `${power.stored} of ${power.capacity} kWh`),
-      row('You can spend', `${power.spendable} kWh today`),
+      row('Your orders can use', `${power.spendable} kWh today`),
       row(
         'Night tonight',
         power.nightCovered
@@ -883,6 +906,13 @@ export function mountAct(
           : `${power.nightNeed} kWh · the bank is short`,
         power.nightCovered ? 'ok' : 'warn',
       ),
+      h('p', {
+        class: 'act-power__note',
+        text: `Your orders can use the power in the bank (${power.stored} kWh) plus the sunlight the outpost does not need (${Math.max(
+          0,
+          Math.round(power.spendable - power.stored),
+        )} kWh).`,
+      }),
     );
   }
 
@@ -1232,14 +1262,24 @@ export function mountAct(
     const mission = missionHeadline(state);
     const loading = loadingForecast && state.forecast.length === 0;
     const orders = activityRows(state, state.sol + 1);
+    const trained = trainingUnlocked(state);
+    /* The day cannot be skipped.
+     *
+     * Two things have to be true before the crew can run the sol: the work
+     * orders have to be open (so the crew has trained), and one of them has to
+     * be stamped. The second was checked; the first was only checked by
+     * accident, because a locked day happens to have no stamped order either.
+     * Both are checked here, and the button says which one is missing.
+     */
     const mustChoose = orders.length > 0 && !orders.some((row) => row.chosen);
+    const mustTrain = !trained;
 
     const grid = h('div', { class: 'act-hub' }, ...tiles.map(tileButton));
 
     /* The lock, said out loud on the desk itself: the orders are behind the
        training, and a player who cannot find out why is stuck. */
     const lock =
-      trainingUnlocked(state)
+      trained
         ? false
         : h(
             'div',
@@ -1277,12 +1317,27 @@ export function mountAct(
 
     const go = h(
       'button',
-      { class: 'gl__btn gl__btn--primary gl__btn--start', type: 'button', disabled: loading || mustChoose },
+      {
+        class: 'gl__btn gl__btn--primary gl__btn--start',
+        type: 'button',
+        disabled: loading || mustChoose || mustTrain,
+      },
       loading ? 'Reading space weather…' : `Run sol ${state.sol + 1}`,
       h('span', { class: 'gl__btn-arrow', 'aria-hidden': 'true', text: '→' }),
     );
 
     go.addEventListener('click', onRunSol);
+
+    /* The note says which of the two is missing, so the player is never left
+       with a button that will not press and no idea why. */
+    const note = mustTrain
+      ? h('p', {
+          class: 'gl__note',
+          text: `Do ${TRAINING_DAILY_LIMIT} training games to open today's work orders first.`,
+        })
+      : mustChoose
+        ? h('p', { class: 'gl__note', text: "Choose today's activity to run the sol." })
+        : false;
 
     return gamePanel({
       kicker: `Sol ${state.sol + 1} of ${WIN_SOL}`,
@@ -1295,7 +1350,7 @@ export function mountAct(
         gameSection('Today for the outpost', grid),
         forecastSection(state),
       ],
-      footer: [go, mustChoose ? h('p', { class: 'gl__note', text: "Choose today's activity to run the sol." }) : false],
+      footer: [go, note],
     });
   }
 

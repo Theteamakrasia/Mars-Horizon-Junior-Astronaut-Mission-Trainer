@@ -77,7 +77,7 @@ That is not an invented puzzle. It is why NASA's rovers and habitats lean heavil
 nuclear power rather than solar alone.
 
 An order draws from the same budget. Its kWh joins the same `extraPowerCost` path a
-flare's shielding digger uses, so spending 25 kWh on a rover survey with a flat battery
+flare's shielding digger uses, so spending 50 kWh on a rover survey with a flat battery
 runs the sol in a blackout — and that is the trade-off, not a decoration.
 
 ## What `model.ts` must contain

@@ -417,7 +417,7 @@ describe('the main activity', () => {
 
     const busy = advanceSol(withState(dark, { chosenActivity: 'survey' }));
 
-    /* The job is refused rather than run at a loss: a survey needs 25 kWh and
+    /* The job is refused rather than run at a loss: a survey needs 50 kWh and
        there are none, so the crew's day goes unspent. */
     expect(busy.log[0]?.activity).toBeNull();
     expect(busy.log[0]?.notes.join(' ')).toContain('not enough power');
@@ -451,6 +451,21 @@ describe('the main activity', () => {
     /* The bank settles at what the night needs and stays there. */
     expect(state.stores.power).toBe(30);
     expect(state.log.every((record) => record.blackout === 0)).toBe(true);
+  });
+
+  it('shows what the day\'s work cost, in the ledger', () => {
+    /* The player's complaint: spending power did not show up anywhere. The
+       receipt says what the order cost, and the sunlight it used is sunlight
+       that did not spill. */
+    const bare = outpost('jezero', []);
+    const quiet = advanceSol(bare).log[0];
+    const busy = advanceSol(withState(bare, { chosenActivity: 'experiment' })).log[0];
+
+    expect(busy?.powerExtra).toBe(30);
+    /* The order's kWh came out of the sunlight that would have spilled. */
+    expect(busy?.powerWasted).toBe((quiet?.powerWasted ?? 0) - 30);
+    /* And the outpost still drew what it draws, plus what the order cost. */
+    expect(busy?.powerUsed).toBe((quiet?.powerUsed ?? 0) + 30);
   });
 
   it('spends the activity power when the batteries can afford it', () => {

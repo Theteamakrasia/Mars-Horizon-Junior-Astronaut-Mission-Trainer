@@ -82,7 +82,19 @@ export interface ActivitySpec {
   };
   /** Science points earned for doing this. */
   readonly science: number;
-  /** Extra power the activity draws from the batteries, in kWh. */
+  /**
+   * Extra power the activity draws, in kWh.
+   *
+   * The scale is the day's power, not a round number: a good outpost has
+   * roughly a hundred kWh spare over a sol, so an order that costs 20 to 50
+   * kWh is a real share of what the Sun made that day, and an order that costs
+   * more than the sol's spare comes out of the batteries and shortens the
+   * night (ISS-084).
+   *
+   * The old prices were 8 to 25 kWh against a surplus of three hundred, so no
+   * order could ever cost anything: the player could not see what the power
+   * was for.
+   */
   readonly powerCostKwh: number;
   /**
    * The tool this order is inspected with, and the stars it can win.
@@ -156,7 +168,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     detail: 'The rover drives out and maps the ground around the outpost.',
     topic: 'missions',
     science: 4,
-    powerCostKwh: 25,
+    powerCostKwh: 50,
     sendsRover: true,
     storeDelta: {},
   },
@@ -167,7 +179,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     detail: 'A real experiment, run by real people, on real Mars.',
     topic: 'missions',
     science: 6,
-    powerCostKwh: 15,
+    powerCostKwh: 30,
     storeDelta: {},
   },
   {
@@ -177,7 +189,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     detail: 'You chart the ground so nothing gets lost out there.',
     topic: 'missions',
     science: 4,
-    powerCostKwh: 14,
+    powerCostKwh: 28,
     storeDelta: {},
   },
   {
@@ -189,7 +201,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     goal: 'dust-storm',
     system: { goal: 'dust-storm', label: 'Panels', store: 'panels' },
     science: 2,
-    powerCostKwh: 10,
+    powerCostKwh: 20,
     storeDelta: {},
     panelRepair: 0.25,
     requires: { kind: 'dirty-panels', why: 'The panels are already clean. There is nothing to sweep.' },
@@ -203,7 +215,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     goal: 'food',
     system: { goal: 'food', label: 'Food', store: 'food' },
     science: 2,
-    powerCostKwh: 8,
+    powerCostKwh: 16,
     storeDelta: { food: 6, water: -5 },
     requires: { kind: 'module', module: 'greenhouse', why: 'You have no greenhouse, so there is nothing to grow.' },
   },
@@ -214,7 +226,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     detail: 'You pick up a rock and study it. Mars rocks are full of surprises.',
     topic: 'missions',
     science: 4,
-    powerCostKwh: 10,
+    powerCostKwh: 20,
     storeDelta: {},
   },
   {
@@ -226,7 +238,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     goal: 'life-support',
     system: { goal: 'life-support', label: 'Water', store: 'water' },
     science: 3,
-    powerCostKwh: 20,
+    powerCostKwh: 40,
     storeDelta: { water: 6 },
     requires: { kind: 'module', module: 'ice-miner', why: 'You have no ice miner, so there is no ice to dig.' },
   },
@@ -239,7 +251,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     goal: 'life-support',
     system: { goal: 'life-support', label: 'Water', store: 'water' },
     science: 2,
-    powerCostKwh: 10,
+    powerCostKwh: 20,
     storeDelta: { water: 3 },
   },
   {
@@ -251,7 +263,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     goal: 'radiation',
     system: { goal: 'radiation', label: 'Shielding', store: 'shielding' },
     science: 3,
-    powerCostKwh: 18,
+    powerCostKwh: 36,
     storeDelta: { shielding: 8 },
   },
   {
@@ -263,7 +275,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     goal: 'radiation',
     system: { goal: 'radiation', label: 'Shielding', store: 'shielding' },
     science: 2,
-    powerCostKwh: 8,
+    powerCostKwh: 16,
     storeDelta: { shielding: 6 },
   },
   {
@@ -275,7 +287,7 @@ export const ACTIVITY_CATALOGUE: readonly ActivitySpec[] = [
     goal: 'life-support',
     system: { goal: 'life-support', label: 'Air', store: 'oxygen' },
     science: 2,
-    powerCostKwh: 12,
+    powerCostKwh: 24,
     storeDelta: { oxygen: 8 },
   },
 ];

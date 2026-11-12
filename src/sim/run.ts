@@ -70,7 +70,7 @@ export interface SolRecord {
    * kWh the night alone took from the batteries.
    *
    * The night is the silent spender: it is most of what a sol uses, and it was
-   * never on the screen, so a player who spent 15 kWh out of a bank holding
+   * never on the screen, so a player who spent 50 kWh out of a bank holding
    * 150 could not work out why the bank was nearly empty at the next dawn
    * (ISS-083). The receipt says it in numbers.
    */

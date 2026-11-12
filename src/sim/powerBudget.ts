@@ -8,7 +8,7 @@
  * It used to be three places, and they disagreed. The job card priced a job
  * against the level in the batteries at dawn. The desk showed how full the
  * batteries would be at dusk, and called it "available". Neither mentioned the
- * night, which is where most of the power goes. So a player who spent 15 kWh
+ * night, which is where most of the power goes. So a player who spent 50 kWh
  * out of a bank holding 150 could not work out why the bank was nearly empty
  * at the next dawn, and the honest reading of the screen was three different
  * numbers (ISS-083).

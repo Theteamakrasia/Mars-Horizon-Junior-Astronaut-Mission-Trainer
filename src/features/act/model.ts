@@ -32,14 +32,15 @@ import type { ScienceTopic } from '../../sim/topics';
  *   `demand`     what the outpost needs over the whole sol
  *   `spare`      the difference, and negative when the outpost runs down
  *   `stored`     what is in the batteries now
- *   `spendable`  what a job may cost today
+ *   `spendable`  what a job may cost today: the bank plus the sunlight the
+ *                outpost does not need
  *   `nightNeed`  what the night will take
  *
  * The night is in every one of them, because it is where the power goes. The
  * screen used to show the level in the batteries at dawn (always near zero),
  * and separately a projection that saturated at the battery's capacity (always
  * the same number), and neither mentioned the night — so a player who spent
- * 15 kWh out of a bank holding 150 could not work out why the bank was nearly
+ * 50 kWh out of a bank holding 150 could not work out why the bank was nearly
  * empty at the next dawn (ISS-083).
  */
 export interface TodayPower {
@@ -340,7 +341,7 @@ export function powerReceipt(run: RunState): string {
  * them, so a cost can never disagree with the words describing it.
  */
 export interface ActivityCost {
-  /** What the activity takes, e.g. `−25 kWh`. Empty when it is free. */
+  /** What the activity takes, e.g. `−50 kWh`. Empty when it is free. */
   readonly costs: readonly string[];
   /** What the activity gives, e.g. `+4 science`. */
   readonly gains: readonly string[];
@@ -468,15 +469,18 @@ export function orderChecks(run: RunState, row: ActivityRow): readonly OrderChec
   const power = powerToday(run);
   const cost = row.powerCost;
 
-  /* Every power number on the screen carries the night's demand with it: the
-     night is where most of the sol's power goes, and a price on its own reads
-     as a price against a bank that is really about to be emptied (ISS-083). */
+  /* Every power number on the screen carries the day's spare and the night's
+     demand with it: the night is where most of the sol's power goes, and the
+     spare is what the day's work competes for (ISS-083, ISS-084). */
   const powerCheck: OrderCheck =
     cost === 0
-      ? { label: 'Power', value: `free · night needs ${power.nightNeed} kWh`, ok: true, why: '' }
+      ? { label: 'Power', value: `free · tonight needs ${power.nightNeed} kWh`, ok: true, why: '' }
       : {
           label: 'Power',
-          value: `${cost} kWh of ${power.spendable} kWh today · night needs ${power.nightNeed} kWh`,
+          value:
+            power.spare > 0
+              ? `${cost} kWh of ${power.spare} kWh spare · tonight needs ${power.nightNeed} kWh`
+              : `${cost} kWh · today is ${Math.abs(power.spare)} kWh short · tonight needs ${power.nightNeed} kWh`,
           ok: cost <= power.spendable,
           why:
             cost > power.spendable

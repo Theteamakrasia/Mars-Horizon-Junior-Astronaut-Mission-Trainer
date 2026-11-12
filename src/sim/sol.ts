@@ -253,7 +253,7 @@ export function advanceSol(run: RunState, roverRoll?: number): RunState {
   //
   // Its power draw joins the same `extraPowerCost` the flare's shielding
   // digger uses, so an activity competes with life support for the same kWh:
-  // spend 25 kWh on a rover survey with a flat battery and the sol runs in a
+  // spend 50 kWh on a rover survey with a flat battery and the sol runs in a
   // blackout. That is the trade-off the whole game is built around, and it
   // comes free from the model that was already here.
   //

@@ -257,7 +257,7 @@ try {
      Chrome restores the last session in a profile it has used before, and the
      restored page still holds the run of that session in memory, which the
      storage cannot reach. */
-  await evaluate(`(() => { try { localStorage.removeItem('marsHorizon.training.v1'); } catch (e) { /* no storage */ } })()`);
+  await evaluate(`(() => { try { localStorage.removeItem('mars-horizon.training.v1'); } catch (e) { /* no storage */ } })()`);
   await send('Page.reload', {});
   await waitFor(`!!document.getElementById('naming') && !document.getElementById('naming').hidden`);
 
@@ -614,6 +614,16 @@ try {
   note('every work order carries two checks', desk?.checks === 6, `${desk?.checks} checks`);
 
   // 10. Pick one, then work it with the tool it carries.
+  /* The day cannot be skipped: the sol only runs once the crew has trained
+     and stamped an order. The button says so while it is shut. */
+  const beforeStamping = await evaluate(`(() => {
+    const el = [...document.querySelectorAll('#act button')].find((n) => (n.textContent ?? '').includes('Run sol'));
+    const note = [...document.querySelectorAll('#act .gl__note')].map((n) => (n.textContent ?? '').trim()).find((t) => t.includes('activity'));
+    return { disabled: el?.disabled === true, note: note ?? '' };
+  })()`);
+
+  note('the sol cannot be run before the day\'s work is stamped', beforeStamping.disabled === true, beforeStamping.note || 'no note');
+
   const picked = await evaluate(`(() => {
     const b = document.querySelector('#act .act-order:not([disabled])');
     if (!b) return 'missing';
@@ -622,6 +632,13 @@ try {
   })()`);
   note('an order can be stamped', picked === 'clicked', picked);
   await sleep(500);
+
+  const afterStamping = await evaluate(`(() => {
+    const el = [...document.querySelectorAll('#act button')].find((n) => (n.textContent ?? '').includes('Run sol'));
+    return el?.disabled === false;
+  })()`);
+
+  note('and the sol runs once it is stamped', afterStamping === true);
 
   const opened = await evaluate(`(() => {
     const b = document.querySelector('#act .insp__open:not([disabled])');
