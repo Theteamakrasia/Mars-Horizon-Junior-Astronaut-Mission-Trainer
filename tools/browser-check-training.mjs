@@ -408,8 +408,33 @@ try {
   await sleep(700);
   await ev(`(() => { const card = [...document.querySelectorAll("#act .act-order")].find((c) => !c.disabled); if (card) card.click(); })()`);
   await sleep(600);
-  await ev(`(() => { const b = [...document.querySelectorAll("#act button")].find((n) => n.textContent.includes("Run sol")); if (b) b.click(); })()`);
-  await sleep(1800);
+  /* The button is disabled while the space weather is loading, and a crisis
+     replaces the hub on the sol. */
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    const crisis = await ev(`!!document.querySelector("#act .gl__choices")`);
+
+    if (crisis) {
+      await ev(`(() => { const c = document.querySelector("#act .gl__choice"); if (c) c.click(); })()`);
+      await sleep(1400);
+      break;
+    }
+
+    const outcome = await ev(`(() => {
+      const screen = document.getElementById("act");
+      const el = [...screen.querySelectorAll("button")].find((n) => n.textContent.trim().includes("Run sol"));
+      if (!el) return "missing";
+      if (el.disabled) return "disabled";
+      el.click();
+      return "clicked";
+    })()`);
+
+    if (outcome === "clicked") {
+      await sleep(1600);
+      break;
+    }
+
+    await sleep(600);
+  }
 
   await tap('#act .act-tile[data-tile="orders"]');
   await sleep(700);
