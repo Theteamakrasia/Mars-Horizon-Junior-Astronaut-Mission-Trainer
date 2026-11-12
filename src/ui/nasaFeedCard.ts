@@ -58,8 +58,8 @@ export function nasaFeedCard(fact: DailyFact, kicker = 'From NASA today'): HTMLE
   const actions = h('div', { class: 'nasa-card__actions' });
   const read = readButton(() => `${fact.title}. ${fact.text}`, {
     className: 'nasa-card__read',
-    idleLabel: '🔊 Read to me',
-    stopLabel: '⏹ Stop reading',
+    idleLabel: 'Read to me',
+    stopLabel: 'Stop reading',
     ariaLabel: 'Read this card aloud',
   });
 

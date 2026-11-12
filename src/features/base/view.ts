@@ -27,6 +27,7 @@ import { hasReachedOutpost, newRun, startOutpost, withState, type RunState } fro
 import { regionById, siteScore } from '../../sim/regions';
 import { gamePanel, gameScreen, gameSection, gameWorld, keepScroll, moduleFigures, type HudStat, type SignalCard } from '../../ui/gameLoop';
 import { dayModel } from '../../ui/dayTracker';
+import { icon, RESOURCE_ICON } from '../../ui/icons';
 import { readButton } from '../../ui/readButton';
 import { guideButton, guidePanel } from '../../ui/guide';
 import { nextStop } from '../../ui/registry';
@@ -140,10 +141,10 @@ export function mountBase(
     return [
       { icon: 'sun', label: 'Day power', value: `${summary.dayKwh} kWh` },
       { icon: 'moon', label: 'Night power', value: `${summary.nightHours} / 12 h`, tone: summary.nightHours < 12 ? ('warn' as const) : ('ok' as const) },
-      { icon: 'oxygen', label: 'Air', value: 'Ready' },
-      { icon: 'droplet', label: 'Water', value: daysLabel(summary.waterDays, 'Recycled'), tone: summary.waterDays < 12 ? ('warn' as const) : ('ok' as const) },
-      { icon: 'leaf', label: 'Food', value: daysLabel(summary.foodDays, 'Grown'), tone: summary.foodDays < 12 ? ('warn' as const) : ('ok' as const) },
-      { icon: 'shield', label: 'Shield', value: `${summary.shielding} / 100`, tone: summary.shielding < 40 ? ('warn' as const) : ('ok' as const) },
+      { icon: RESOURCE_ICON.oxygen, label: 'Air', value: 'Ready' },
+      { icon: RESOURCE_ICON.water, label: 'Water', value: daysLabel(summary.waterDays, 'Recycled'), tone: summary.waterDays < 12 ? ('warn' as const) : ('ok' as const) },
+      { icon: RESOURCE_ICON.food, label: 'Food', value: daysLabel(summary.foodDays, 'Grown'), tone: summary.foodDays < 12 ? ('warn' as const) : ('ok' as const) },
+      { icon: RESOURCE_ICON.shielding, label: 'Shield', value: `${summary.shielding} / 100`, tone: summary.shielding < 40 ? ('warn' as const) : ('ok' as const) },
     ];
   }
 
@@ -286,7 +287,7 @@ export function mountBase(
     const budget = h(
       'div',
       { class: 'gl__budget' },
-      h('span', null, h('span', { 'aria-hidden': 'true', text: '✦ ' }), `${pointsLeft(extras)} points left`),
+      h('span', null, h('span', { class: 'gl__points-mark', 'aria-hidden': 'true' }, icon('sparkle')), `${pointsLeft(extras)} points left`),
       h('span', { text: `${extras.length} / ${extraSlots(regionId)} extras` }),
     );
 
@@ -296,7 +297,7 @@ export function mountBase(
       'button',
       { class: 'gl__btn gl__btn--navy', type: 'button' },
       'Choose your extras',
-      h('span', { class: 'gl__btn-arrow', 'aria-hidden': 'true', text: '→' }),
+      h('span', { class: 'gl__btn-arrow', 'aria-hidden': 'true' }, icon('chevron')),
     );
 
     keep('open-setup', openSetupButton);
@@ -331,7 +332,7 @@ export function mountBase(
       'button',
       { class: 'gl__btn gl__btn--primary gl__btn--start', type: 'button' },
       landed ? 'Land again from sol 1' : 'Land & start sol 1',
-      h('span', { class: 'gl__btn-arrow', 'aria-hidden': 'true', text: '→' }),
+      h('span', { class: 'gl__btn-arrow', 'aria-hidden': 'true' }, icon('chevron')),
     );
 
     launch.addEventListener('click', () => {

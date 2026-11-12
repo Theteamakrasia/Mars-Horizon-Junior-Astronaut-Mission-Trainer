@@ -13,7 +13,7 @@ demo **Nov 14-15**.
 **The one invariant: `sim/` and each feature's `model.ts` are pure — no `document`, no
 `window`, no network.**
 
-That is what lets 962 tests run in a few seconds with no browser and no mocks, so the game
+That is what lets 1051 tests run in a few seconds with no browser and no mocks, so the game
 can be asserted on rather than eyeballed. Everything else here exists to protect it. If
 you are unsure where code goes: if it touches the DOM it is not pure.
 
@@ -88,9 +88,9 @@ human upholds it and nothing catches you.
 | R-8 | No `fetch`/`XHR`/`WebSocket`/`EventSource` outside `data/` | **enforced** | `no-network-outside-data` |
 | R-9 | No `alert`/`confirm`/`prompt`, anywhere | **enforced** | `no-alert` |
 | R-10 | No `on*="..."` inline handlers in markup | **enforced** | `no-inline-handler` |
-| R-11 | A relative import that resolves to nothing is an error | **enforced** | `unresolved-import` |
+| R-11 | A relative import that resolves to nothing is an error | **enforced** | `unresolved-import`, `unresolved-asset` |
 | R-12 | Typecheck clean; `strict`, `noUnusedLocals` | **enforced** | `npm run check` |
-| R-13 | Tests pass (962 today) | **enforced** | `npm test`, watch ISS-015 |
+| R-13 | Tests pass (1051 today) | **enforced** | `npm test`, watch ISS-015 |
 | R-14 | No `index.ts` barrel files — import concrete paths | convention | nothing |
 | R-15 | Feature CSS is imported by its own `view.ts`, never added to `style.css` | convention | nothing |
 | R-16 | Files are UTF-8, LF, no BOM. Preserve a file's existing endings | convention | **nothing** — ISS-005 |
@@ -300,7 +300,7 @@ opening its folder — that is the whole point of the layout.
 | **The rover, and what it finds** | `src/sim/rover.ts` — **built**, 31 tests; its state is `RunState.rover` |
 | **The work-order player and the six tools** | `src/ui/activityPlayer.ts`, `src/sim/minigames.ts` — **built** |
 | **The how-to-play guide** | `src/ui/guide.ts`, `src/sim/guide.ts` — **built**; a **popup** with the astronaut on the left and a speech bubble on the right, one step per page (D-073); the `?` icon beside Menu |
-| **The pictograms** (35 line drawings, the five stores, the five ranks) | `src/ui/icons.ts` — `IconName`, `ICON_PATHS`, `icon()`; drawn through `src/dom/svg.ts` (D-070) |
+| **The pictograms** (the 56 supplied drawings, the five stores, the five ranks, the eight modules) | `src/ui/icons.ts` — `IconName`, `ICON_PATHS`, `RESOURCE_ICON`, `RANK_ICON`, `MODULE_ICON`, `icon()`; read from `Assets/icons/` at build time and drawn through `src/dom/svg.ts` (D-070, D-083) |
 | **A section opened over a screen** (the desk's six buttons) | `src/ui/sheet.ts` — backdrop, header, scrolling body, close, `Escape` and a Tab trap (D-070) |
 | **The header's book / help / Menu, and the panel's corner fact** | `src/ui/gameLoop.ts` — `HeaderOptions`, `ScreenOptions.help`, `ScreenOptions.showEncyclopedia`, `PanelOptions.corner`. The book is **opt-in**: it is earned by reaching the outpost, and `hasReachedOutpost` (`sim/run.ts`) is how the three screens ask (D-080) |
 | **Is the game still winnable?** | `npm run balance` — `tools/balance-check.mts`; fails if a site cannot hold all five systems |
@@ -336,7 +336,7 @@ opening its folder — that is the whole point of the layout.
 npm install
 npm run dev        # Vite dev server
 npm run check      # layer + banned-API check, then tsc --noEmit   <- run this
-npm test           # vitest, 962 tests                            <- 40% flaky, ISS-015
+npm test           # vitest, 1051 tests                            <- 40% flaky, ISS-015
 npm run build      # to dist/
 npm run preview    # serve the build
 npm run balance    # is the game still winnable?  <- run this after touching sim/

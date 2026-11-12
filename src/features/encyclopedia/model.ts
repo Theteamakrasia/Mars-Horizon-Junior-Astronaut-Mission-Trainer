@@ -14,7 +14,6 @@ import { MODULE_CATALOGUE, specOf, type ModuleKind } from '../../sim/modules';
 export interface EncyclopediaEntry {
   readonly kind: ModuleKind;
   readonly name: string;
-  readonly emoji: string;
   /** Build points; zero means it comes with the lander. */
   readonly cost: number;
   /** One line shown in the list: what it does. */
@@ -44,7 +43,6 @@ export function entries(): readonly EncyclopediaEntry[] {
   return MODULE_CATALOGUE.map((spec) => ({
     kind: spec.kind,
     name: spec.name,
-    emoji: spec.emoji,
     cost: spec.cost,
     oneLine: spec.gives,
     gives: spec.gives,

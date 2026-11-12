@@ -6,6 +6,70 @@ Newest entry on top. Four bullets: **Did**, **Files**, **Problems**, **Next**.
 say so and say why - a clean change with an unexplained problem underneath is worse
 than a documented one.
 
+
+## 2026-11-12 — Drew every pictogram from the supplied icon set
+
+**Did**
+
+- **Replaced the 35 hand-drawn line icons with the 56 supplied drawings.** `Assets/icons/`
+  is read at build time with `?raw` and parsed into path data, so the game still draws
+  one inline `<svg>` per icon and `icon()` keeps its signature. `src/dom/svg.ts` learned
+  colour: a shape now carries its own fill, stroke, width, linecap, linejoin and
+  fill-rule, because the drawings are filled and coloured rather than stroked in ink.
+- **Made one picture per thing.** `RESOURCE_ICON`, `RANK_ICON` and a new `MODULE_ICON`
+  in `src/ui/icons.ts` are now the only maps from a thing to its drawing. The build
+  screen, the desk and the debrief show the same water, food and radiation wall, and the
+  cargo game's shelves wear the game's own stores. The first pass left the build screen
+  drawing its own drop, leaf and shield next to the desk's bottle, carrot and wall — the
+  owner saw it and it was wrong.
+- **Took the last of the emoji out.** The module emoji left `sim/modules.ts` and the
+  encyclopedia model; the stars, the padlock, the tick and the points mark became
+  drawings; the speaker, the stop square and the door became plain words, because the
+  supplied set has no counterpart for them. The `☰` on the Menu button stays a character:
+  it is a dingbat, not an emoji, and it is drawn the same way on every machine.
+- **Verified the tree**: `npm run check`, 1051 tests, build, `npm run balance`, and all
+  five browser checks — plus screenshots of every screen, looked at.
+
+**Files**
+
+- `src/ui/icons.ts`, `src/ui/icons.css`, `src/ui/icons.test.ts` — the new set, the parser, 11 tests
+- `src/dom/svg.ts` — a shape carries its paint
+- `src/sim/modules.ts`, `src/features/encyclopedia/{model.ts,model.test.ts}` — the module emoji are gone
+- `src/features/{base,act,debrief,encyclopedia,landing-site}/view.ts` — one picture per store; the arrows are chevrons
+- `src/ui/{gameLoop,training,trainingCargo,trainingMerge,readButton,nasaCard,nasaFeedCard}.ts` — the last emoji
+- `scripts/check-imports.mjs` — relative asset imports resolve, and a drawing nobody draws fails the check
+- `docs/team/{decisions,issues,tasks,progress-log}.md` — D-083, ISS-099, TASK-106
+- `docs/architecture.md`, `AGENTS.md`, `icons-list.md` — the icon set is described as it is
+
+**Problems**
+
+- **The new drawings are filled pictures, not strokes, so they cannot follow the ink.**
+  Every rule that tinted an icon — `color:` on the card, the tile, the callout — is now
+  dead, and the CSS had to be retuned: a filled 96-unit picture inks about 57% of its box,
+  so the box is 1.55em wide and the ink lands about where the old line drawing did. The
+  places where the icon size was in `em` of a wrapper's font-size needed checking one by
+  one, and the training game's shelves needed their store pictures made bigger by hand.
+- **The `close` drawing has no supplied counterpart**, so the X on the guide, the section
+  sheet and the training dialog is still the old line drawing, scaled into the same box
+  and keeping its `currentColor` stroke. It is the one icon in the set that is not from
+  the folder, and the folder is checked against the code, so it had to be drawn by hand
+  rather than imported.
+- **The set and the code can drift apart.** The supplied folder was on disk with 56 files
+  and the game drew 35 of its own; nothing would have said so. `check-imports.mjs` now
+  fails a drawing in `Assets/icons/` that the game does not draw, and it resolves relative
+  asset imports as well, so a mistyped asset path fails the check instead of the build.
+- **The icons-list.md that came with the set was out of date**: it named `habitat.svg`
+  where the file is `habitat-module.svg`, and it listed no `close`. It is rewritten to
+  match the files on disk.
+
+**Next**
+
+- The eight module drawings are in the set and mapped, but nothing on screen uses them
+  yet — the module artwork on the outpost panel and in the encyclopedia is still the PNG.
+  Placing them is a separate decision (D-083, Rejected (g)).
+
+---
+
 ## 2026-11-12 — The supplies are bought in the landing window
 
 **Did**
@@ -144,6 +208,55 @@ than a documented one.
 
 ---
 
+## 2026-11-12 — Pulled main's sprite and shuffle work, and settled the training rule
+
+**Did**
+
+- **Pulled `origin/main`** — a fast-forward to `4febaf6` (PR #35, "s1": the boy sprite's
+  glitch, a per-sol shuffle of the day's orders, randomised MCQ answers, the empty boxes
+  gone, plus a fix to night power and an optional rover roll in `advanceSol`). This branch's
+  commits were already on main, so there was nothing of ours to replay — the tree is main's.
+- **Settled the training rule the pull exposed.** `70eb857` added
+  `clearTrainingRecord()` so a new run cannot inherit the last run's games and points, and
+  left `browser-check-training.mjs` asserting the opposite. The new run wins: the record is
+  per run (D-081, superseding D-076's persistence sentence), and the check's last step now
+  asserts 0/2 games, the orders locked, the six games playable and no points carried over.
+- **Verified the combined tree**: `npm run check`, 962 tests, build, `npm run balance`, and
+  all five browser checks — including the encyclopedia gate from the previous commit.
+
+**Files**
+
+- `tools/browser-check-training.mjs` — step 8 asserts the new contract
+- `docs/team/{decisions,issues,tasks,progress-log}.md` — D-081, ISS-095, TASK-104
+- `docs/architecture.md`, `README.md` — nothing claims a day's training survives a refresh
+
+**Problems**
+
+- **Main was red on its own check.** `npm run check` and `npm test` were both green while
+  the browser check failed 3 of 40, because a check is not part of either command. That is
+  the fourth time this month the browser pass was the only thing that could see a rule
+  change (ISS-074, ISS-090, ISS-093).
+- **The decision and the code were both in the tree, disagreeing.** D-076 said the record
+  survives a refresh; `70eb857` cleared it on every new run. Only the check could tell, and
+  only running it against this tree did.
+- **The record is now write-only in practice.** Inside a run `RunState.training` already
+  holds the day, and across runs the record is cleared, so the `localStorage` copy no longer
+  changes what a player sees. It is left in place — it is the right home for a day's games
+  if a save ever lands (D-003) — but it is now maintenance with no visible effect.
+- **The pull was a fast-forward, not a merge**, because main already contained this branch
+  (PRs #33 and #34). There were no "both sides" to keep; the only thing to reconcile was
+  the check.
+
+**Next**
+
+- The day's orders are now shuffled per sol with `Math.random()`, so the checks must keep
+  driving by text rather than by position. They do, and they passed twice, but it is the
+  kind of change that turns a check flaky a fortnight later.
+- `taskOrderSol` remembers the shuffle by sol alone, not by run, so a new run on sol 1 can
+  inherit the order the last run was given. Worth a look if the shuffle is meant to feel
+  fresh each mission.
+
+---
 
 ## 2026-11-12 — The encyclopedia is earned at the outpost
 

@@ -1,13 +1,40 @@
 /* ICONS — imported by ui/icons.ts only (R-15).
-   Every pictogram is a stroked 24×24 drawing, sized in `em` so it follows the
-   text it sits beside and coloured by `currentColor` so it follows the tone of
-   the card it is on. */
+   Every pictogram is one of the drawings in `Assets/icons/`: filled, coloured,
+   and drawn in a 96-unit box, so an icon is a picture rather than a stroke.
+
+   The drawings ink about 57% of their box and leave a margin around
+   themselves, so the box has to be wider than the text an icon sits beside —
+   the ink ends up about the size of the old line drawing, and the padding
+   around it keeps the picture off its neighbour's words. */
 
 .ico {
   display: inline-block;
   flex: 0 0 auto;
-  width: 1em;
-  height: 1em;
-  vertical-align: -0.14em;
+  width: 1.55em;
+  height: 1.55em;
+  vertical-align: -0.33em;
   overflow: visible;
+}
+
+/*
+   A small arrow at the end of a link or a button.
+
+   The chevron points forward, so the way back is the same picture turned
+   around. It is a picture and not a glyph, because a glyph is drawn by the
+   operating system and the game's arrows should look like the game's.
+ */
+.gl__link-arrow {
+  display: inline-flex;
+  align-items: center;
+  line-height: 0;
+}
+
+.gl__link-arrow .ico {
+  width: 0.9em;
+  height: 0.9em;
+  vertical-align: 0;
+}
+
+.gl__link-arrow--back .ico {
+  transform: scaleX(-1);
 }

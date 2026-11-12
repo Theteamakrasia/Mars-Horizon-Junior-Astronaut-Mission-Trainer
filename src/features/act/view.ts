@@ -99,16 +99,16 @@ const TILE_ICON: Readonly<Record<HubSection, IconName>> = {
 
 /** The pictogram for a work order, by activity id. */
 const ORDER_ICON: Readonly<Record<string, IconName>> = {
-  rest: 'sun',
-  survey: 'rover',
+  rest: 'rest',
+  survey: 'survey',
   experiment: 'flask',
   'map-site': 'map',
   'sweep-panels': 'sparkle',
-  'grow-extra': 'leaf',
+  'grow-extra': 'food',
   'sample-rock': 'rock',
   'dig-ice': 'pick',
   'recycle-tune': 'recycle',
-  'stack-shielding': 'shield',
+  'stack-shielding': 'shielding',
   'mend-suits': 'helmet',
   'air-check': 'oxygen',
 };
@@ -470,7 +470,7 @@ export function mountAct(
      */
     const rows: HudStat[] = [
       {
-        icon: 'bolt',
+        icon: RESOURCE_ICON.power,
         label: `Power · ${power.generated} kWh today`,
         value: power.spare >= 0 ? `+${power.spare} kWh spare` : `${Math.abs(power.spare)} kWh short`,
         percent:
@@ -934,7 +934,7 @@ export function mountAct(
       h(
         'div',
         { class: 'gl__mini' },
-        h('span', { class: 'gl__mini-label' }, icon('bolt'), 'For today'),
+        h('span', { class: 'gl__mini-label' }, icon(RESOURCE_ICON.power), 'For today'),
         h('span', { class: 'gl__mini-value', text: `${today.spendable} kWh` }),
         h('span', { class: 'gl__mini-detail', text: 'what a job may cost' }),
       ),
@@ -1323,7 +1323,7 @@ export function mountAct(
         disabled: loading || mustChoose || mustTrain,
       },
       loading ? 'Reading space weather…' : `Run sol ${state.sol + 1}`,
-      h('span', { class: 'gl__btn-arrow', 'aria-hidden': 'true', text: '→' }),
+      h('span', { class: 'gl__btn-arrow', 'aria-hidden': 'true' }, icon('chevron')),
     );
 
     go.addEventListener('click', onRunSol);
@@ -1704,7 +1704,7 @@ export function mountAct(
   }
 
   function notice(text: string, label: string, route: 'landing-site' | 'base'): void {
-    const button = h('button', { class: 'gl__btn gl__btn--primary gl__btn--start', type: 'button' }, label, h('span', { class: 'gl__btn-arrow', 'aria-hidden': 'true', text: '→' }));
+    const button = h('button', { class: 'gl__btn gl__btn--primary gl__btn--start', type: 'button' }, label, h('span', { class: 'gl__btn-arrow', 'aria-hidden': 'true' }, icon('chevron')));
 
     button.addEventListener('click', () => navigate(route));
 

@@ -105,7 +105,6 @@ export interface ModuleSpec {
   readonly name: string;
   /** How the crew says more than one of it: "solar arrays", not "solar arrayss". */
   readonly plural: string;
-  readonly emoji: string;
   /** Build points. Core modules cost nothing: they come with the lander. */
   readonly cost: number;
   /** How many of this module can exist in total. */
@@ -123,7 +122,6 @@ export const MODULE_CATALOGUE: readonly ModuleSpec[] = [
     kind: 'habitat',
     name: 'Habitat',
     plural: 'habitats',
-    emoji: '🏠',
     cost: 0,
     maxCount: 1,
     gives: 'A home for the crew',
@@ -133,7 +131,6 @@ export const MODULE_CATALOGUE: readonly ModuleSpec[] = [
     kind: 'life-support',
     name: 'Life Support',
     plural: 'life support units',
-    emoji: '🫁',
     cost: 0,
     maxCount: 1,
     gives: 'Makes air, recycles water',
@@ -143,7 +140,6 @@ export const MODULE_CATALOGUE: readonly ModuleSpec[] = [
     kind: 'solar-array',
     name: 'Solar Array',
     plural: 'solar arrays',
-    emoji: '☀️',
     cost: 2,
     maxCount: 4,
     gives: `+${SOLAR_KW_PER_ARRAY} kW in daylight`,
@@ -153,7 +149,6 @@ export const MODULE_CATALOGUE: readonly ModuleSpec[] = [
     kind: 'batteries',
     name: 'Battery Bank',
     plural: 'battery banks',
-    emoji: '🔋',
     cost: 2,
     maxCount: 4,
     gives: `Stores ${BATTERY_KWH_PER_BANK} kWh`,
@@ -163,7 +158,6 @@ export const MODULE_CATALOGUE: readonly ModuleSpec[] = [
     kind: 'greenhouse',
     name: 'Greenhouse',
     plural: 'greenhouses',
-    emoji: '🌱',
     cost: 3,
     maxCount: 1,
     gives: 'Grows food',
@@ -173,7 +167,6 @@ export const MODULE_CATALOGUE: readonly ModuleSpec[] = [
     kind: 'ice-miner',
     name: 'Ice Miner',
     plural: 'ice miners',
-    emoji: '⛏️',
     cost: 3,
     maxCount: 1,
     gives: 'Makes water from ice',
@@ -183,7 +176,6 @@ export const MODULE_CATALOGUE: readonly ModuleSpec[] = [
     kind: 'regolith-shield',
     name: 'Regolith Shield',
     plural: 'regolith shields',
-    emoji: '🛡️',
     cost: 2,
     maxCount: 2,
     gives: `+${SHIELDING_PER_REGOLITH} shielding`,
@@ -194,7 +186,6 @@ export const MODULE_CATALOGUE: readonly ModuleSpec[] = [
     kind: 'nuclear-unit',
     name: 'Nuclear Power Unit',
     plural: 'nuclear units',
-    emoji: '☢️',
     cost: 4,
     maxCount: 1,
     gives: `${NUCLEAR_KW} kW, day or night`,

@@ -11,6 +11,8 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
+| ISS-099 | The game drew its own pictograms and still carried emoji, with a drawn icon set supplied | medium | agent | fixed | this branch |
+| ISS-098 | The training check asserted the wrong thing about a refresh, and the game grew a save under it | medium | agent | fixed | this branch |
 | ISS-097 | The build check looked for the supply cards in the panel, and the cards moved to the setup window | low | agent | fixed | this branch |
 | ISS-096 | The training browser check re-walked the journey to test a refresh, so it always failed | medium | agent | fixed | this branch |
 | ISS-095 | Closing the tab lost the whole run, and the menu asked for the name again | high | agent | fixed | this branch |
@@ -109,6 +111,60 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
+## ISS-099 - The game drew its own pictograms and still carried emoji, with a drawn icon set supplied
+
+- **Reported by:** the owner, 2026-11-12: a set of 56 drawn SVG icons, supplied in
+  `Assets/icons/`, with `icons-list.md` mapping each one to the place it is used.
+- **Where:** `src/ui/icons.ts` (35 hand-drawn 24×24 line drawings), `src/dom/svg.ts`
+  (a shape that is a stroke or a fill and nothing else), `src/sim/modules.ts` (eight
+  module emoji), `src/features/encyclopedia/model.ts` (`EncyclopediaEntry.emoji`), and
+  the emoji still in the UI: `src/ui/readButton.ts`, `src/ui/nasaCard.ts`,
+  `src/ui/nasaFeedCard.ts`, `src/ui/training.ts`, `src/ui/trainingCargo.ts`,
+  `src/ui/gameLoop.ts`, `src/features/base/view.ts`, `src/features/encyclopedia/view.ts`
+  and `src/features/landing-site/view.ts`.
+- **Problem:** the game draws its own pictograms, in one ink, and carries nine emoji
+  that the operating system draws. An emoji is a different picture on Windows, Android
+  and iOS, at a size the game cannot set — the reason D-070 gave for moving off them —
+  and the pictograms are not the ones that were designed for the game. The supplied set
+  is drawn in the game's own palette (cream `#FFF4DB`, navy `#293A49`, orange
+  `#D66B46`) and in the same hand as the module artwork already in
+  `Assets/images/game-loop/`, so it belongs on the cream panel.
+- **Cause:** the icon set was written by hand (D-070) before the drawn set existed.
+- **Fix:** `src/ui/icons.ts` reads the 56 assets and draws them, `src/dom/svg.ts` learns
+  colour, the module emoji leave `sim/`, and the last emoji leave the UI. **One picture
+  per thing**: `RESOURCE_ICON`, `RANK_ICON` and `MODULE_ICON` in `src/ui/icons.ts` are
+  now the only maps from a thing to its drawing, so a store looks the same on the build
+  screen, on the desk and in the debrief, and the training games' shelves wear the
+  game's own stores. `scripts/check-imports.mjs` resolves relative asset imports and
+  fails a drawing in `Assets/icons/` that the game does not draw, so the set and the
+  game cannot drift apart. D-083 records the choice.
+- **Pre-existing:** yes, since D-070.
+
+## ISS-098 - The training check asserted the wrong thing about a refresh, and the game grew a save under it
+
+- **Reported by:** agent, 2026-11-12, while verifying the merge of PR #35: three checks
+  failed on an otherwise green tree — "the day is still two games on" (0/2), "the tasks are
+  still open" (Locked · 2 training games first), and "the science score did not go back to
+  nothing" (8 points then 0 points).
+- **Where:** `tools/browser-check-training.mjs`, step 8; `src/ui/training.ts`,
+  `clearTrainingRecord()`; its callers in `features/naming/view.ts` and
+  `features/debrief/view.ts`.
+- **Problem:** step 8 was meant to prove what a refresh does to the day's training, and it
+  asserted the wrong thing twice over. It first asserted D-076's contract — the day's
+  training is written down and survives a refresh — while the code cleared the record
+  whenever a run began. And it measured a refresh by **walking the journey again**, which
+  starts a *new mission*, and a new mission is a new training day. So the step destroyed
+  the thing it was about to measure, whichever contract it believed in.
+- **Cause:** `70eb857` added the clear to stop a new run inheriting a previous run's games
+  and points, and did not update the check or the decision it contradicted. The step had
+  been failing since the naming screen began clearing the training record on submit.
+- **Fix:** step 8 now reloads the page and reads the desk where it is, instead of walking
+  the journey again, and waits for the new document's load event (ISS-096). With the save
+  (D-081) a refresh **resumes** the run rather than beginning one, so the day and its
+  points survive it — which is the contract the step asserts. D-084 records the rule that
+  a *new run* starts a new training day.
+- **Pre-existing:** yes, on `main` since `70eb857`; found by this merge, not caused by it.
+
 ## ISS-097 - The build check looked for the supply cards in the panel, and the cards moved to the setup window
 
 - **Reported by:** the agent, 2026-11-12, while moving the supply list into the landing
@@ -165,7 +221,6 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
   before the router starts; the menu shows the astronaut's name, the sol they stopped on,
   and CONTINUE / START OVER in place of the name field (D-081). Supabase is still deferred.
 - **Pre-existing:** yes — since the first screen; found by the owner before the freeze.
-
 
 ## ISS-094 - The encyclopedia was one click away before the player had an outpost
 
@@ -1732,7 +1787,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-**Next free id: ISS-098.**
+**Next free id: ISS-100.**
 
 
 ---

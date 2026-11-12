@@ -24,7 +24,7 @@ than eyeballed, and it is what `npm run check` protects.
 
 ## The invariant, and why it is enforced
 
-962 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
+1051 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
 reference it would still work, and the cost would surface later as an untestable bug.
 Enforced as `no-dom-in-pure-zone`.
 
@@ -490,18 +490,23 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         not affected by the panel's own scroll.
     │   │                                         Imported by guide.ts only.
     │   ├── icons.ts                  complete   IconName, ICON_PATHS, RESOURCE_ICON, RANK_ICON,
-    │   │                                         icon(name, label?). The game's whole pictogram
-    │   │                                         set: 35 stroked 24×24 line drawings, coloured
-    │   │                                         by currentColor, drawn into the SVG namespace
-    │   │                                         by dom/svg.ts. The data and the drawing live in
-    │   │                                         one file so a test can read the paths without
-    │   │                                         a browser (D-070). The `bulb` mark on the
-    │   │                                         guide's header pill is one of them (D-073).
-    │   ├── icons.css                 complete   one rule: an icon is 1em square and follows
-    │   │                                         the text. Imported by icons.ts only.
-    │   ├── icons.test.ts             complete   6 tests: every name draws something, no shape
-    │   │                                         holds an emoji, the five stores and the five
-    │   │                                         ranks each get their own pictogram.
+    │   │                                         MODULE_ICON, icon(name, label?). The game's
+    │   │                                         whole pictogram set: the 56 drawings supplied
+    │   │                                         in Assets/icons/, read at build time and
+    │   │                                         parsed into path data, drawn into the SVG
+    │   │                                         namespace by dom/svg.ts. Filled and coloured,
+    │   │                                         so they carry their own paint rather than
+    │   │                                         following currentColor. The data and the
+    │   │                                         drawing live in one file so a test can read the
+    │   │                                         paths without a browser (D-070, D-083).
+    │   ├── icons.css                 complete   an icon is 1.55em square — the drawings ink
+    │   │                                         about 57% of their box — plus the rule for a
+    │   │                                         link's arrow, which points both ways.
+    │   │                                         Imported by icons.ts only.
+    │   ├── icons.test.ts             complete   11 tests: every name draws something, every
+    │   │                                         shape is painted, no shape holds an emoji, and
+    │   │                                         the five stores, the five ranks and the eight
+    │   │                                         modules each get their own pictogram.
     │   ├── sheet.ts                  complete   sheet(options) -> backdrop, sheetCloseButton.
     │   │                                         One section of a screen, opened as a dialog over
     │   │                                         it: a header bar, a scrolling body, a closing
@@ -521,7 +526,7 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         ASTRONAUT TRAINING section at the top of the Standing orders
     │   │                                         sheet, the dialog a game is played in, and the one thing the
     │   │                                         browser is good at: the record of the day's training, which
-    │   │                                         survives a refresh (D-075).
+    │   │                                         is cleared when a new run begins (D-081).
     │   ├── trainingGame.ts             complete  TrainingGameContext, TrainingGameHandle, TrainingGameMount.
     │   │                                         The contract every training game keeps: a status line, a
     │   │                                         completion callback, a generator, and a destroy that stops
@@ -652,7 +657,10 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         the SVG namespace: an `<svg>` holding one path
     │   │                                         per shape, built as nodes rather than parsed,
     │   │                                         so an icon can never carry a string a player
-    │   │                                         typed. Used by ui/icons.ts only.
+    │   │                                         typed. A shape carries its own paint — fill,
+    │   │                                         stroke, width, linecap, linejoin, fill-rule —
+    │   │                                         because the supplied drawings are filled and
+    │   │                                         coloured. Used by ui/icons.ts only.
     │   └── starfield.ts                complete   63 lines. 140 stars across three depth layers.
     │                                             Suspect: layers animate with no looping copy —
     │                                             ISS-002, unverified in a browser.
@@ -1055,7 +1063,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 | `main.ts` | none (side effects) | composition root; throws on a missing element id |
 | `dom/forecastLoader` | `LoadedForecast`, `loadForecast` | `(signal?, seed = Date.now(), dustScore = NEUTRAL_SCORE.dust) -> Promise<LoadedForecast>`; never rejects. Fetches flares through `data/spaceweather`, then runs `sim/forecast.createForecast`. Sits in `dom/` because it joins `data/` and `sim/`, and both `base` and `act` need it without importing each other (R-5). `LoadedForecast.flares` carries the raw readings out, so a screen can show NASA's own space weather and not only the game's timetable (D-071) |
 | `dom/dailyFactLoader` | `LoadedDailyFacts`, `loadDailyFacts` | `(signal?) -> Promise<LoadedDailyFacts>`; never rejects. Fetches NASA's daily pictures through `data/nasaDaily` and reports the source. In `dom/` for the same reason as the forecast loader: `act` and `debrief` both want it and R-5 stops them importing each other |
-| `dom/svg` | `svg` | `(shapes, attrs = {}) -> SVGSVGElement`; an `<svg>` holding one `<path>` per shape, with `stroke`/`fill` set to `currentColor`. Built as nodes rather than parsed from a string, so the one place that knows the SVG namespace can never be handed markup. Used by `ui/icons.ts` only |
+| `dom/svg` | `svg` | `(shapes, attrs = {}) -> SVGSVGElement`; an `<svg>` holding one `<path>` per shape, each painted with the fill, stroke, width, linecap, linejoin and fill-rule its shape carries; the `viewBox` comes from the attributes. Built as nodes rather than parsed from a string, so the one place that knows the SVG namespace can never be handed markup. Used by `ui/icons.ts` only |
 | `data/spaceweather` | `SpaceWeatherEvent`, `SpaceWeatherSource` | a flare as the game uses it; source is `'donki' \| 'noaa' \| 'fallback'` |
 | | `fetchSpaceWeather` | `(options?) -> Promise<SpaceWeatherEvent[]>`; never rejects. Tries NASA DONKI, then NOAA SWPC, then the empty `FALLBACK_FLARES`. Every flare is kept, not just the strongest. Remembers one answer so two screens cost one request; an answer abandoned by its caller is not remembered |
 | | `parseFlares`, `parseNoaaFlares` | `(json) -> SpaceWeatherEvent[]`; validate every field and drop anything malformed rather than trusting the wire |
@@ -1085,7 +1093,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 | `ui/nasaFeedCard` | `nasaFeedCard` | `(fact: DailyFact, kicker?) -> figure`; the live NASA picture in the same card as the curated one. The picture is optional — a video day keeps its words |
 | `ui/activityPlayer` | `Inspection`, `InspectionResult`, `makeInspection` | `(engine, sol) -> Inspection`; the work-order player for one order: which tool it uses, what the two readings ask for, and how it is graded. The grading itself is in `sim/minigames.ts`, so the rules stay pure (D-060). `Inspection.done()` reports whether the player has finished; nothing gates on it yet, so the Finish button is always there |
 | `ui/guide` | `guidePanel`, `guideButton` | `guidePanel(onClose) -> HTMLElement`; the how-to-play **popup**, returned as the **backdrop** so the caller can mount it on `document.body`. The astronaut stands on the left and the words are in a speech bubble on the right, **one step per page**, with a header pill, a tail pointing at him, Next, Back, page dots, Read aloud and a close button. It owns `Escape`, the backdrop click, a Tab trap, `ArrowLeft`/`ArrowRight` to turn pages, and hands the focus back to the `?` button when it closes. Mounted on the document rather than inside the screen, so a redraw behind it cannot reset the page (ISS-077). `guideButton(onOpen) -> HTMLButtonElement`; the `?` icon button in the header, beside Menu, on every screen that opts in with `ScreenOptions.help`. The words are in `sim/guide.ts` (D-060, D-070, D-073) |
-| `ui/icons` | `IconName`, `ICON_PATHS`, `RESOURCE_ICON`, `RANK_ICON`, `icon` | `ICON_PATHS: Record<IconName, readonly Shape[]>` — the game's 35 stroked 24×24 line drawings, drawn through `dom/svg.svg`. `icon(name, label?) -> SVGSVGElement`: decorative and hidden from a screen reader unless `label` is given, in which case it becomes an `img` with that name. `RESOURCE_ICON` maps the five stores, `RANK_ICON` the five science ranks. Pure data plus one DOM builder, so a test can read every path without a browser (D-070) |
+| `ui/icons` | `IconName`, `ICON_PATHS`, `RESOURCE_ICON`, `RANK_ICON`, `MODULE_ICON`, `icon` | `ICON_PATHS: Record<IconName, readonly Shape[]>` — the game's pictogram set: the 56 drawings supplied in `Assets/icons/`, read with `?raw` and parsed into path data at build time, so the drawing on the screen is the drawing that was designed. Filled and coloured, in a 96-unit box, and drawn through `dom/svg.svg`. `icon(name, label?) -> SVGSVGElement`: decorative and hidden from a screen reader unless `label` is given, in which case it becomes an `img` with that name. `RESOURCE_ICON` maps the five stores, `RANK_ICON` the five science ranks and `MODULE_ICON` the eight module kinds — the one picture per thing, so a store looks the same on every screen. Pure data plus one DOM builder, so a test can read every path without a browser (D-070, D-083) |
 | `ui/sheet` | `SheetOptions`, `sheet`, `sheetCloseButton` | `(options: {icon, kicker?, title, body, footer?, doneLabel?, layer?, onClose}) -> HTMLElement`; one section of a screen as a dialog over it: backdrop, card, header bar, scrolling `.sheet__body`, closing button, and one `onClose` for the close button, the done button, the backdrop and `Escape`. A Tab trap keeps focus inside. The body's children keep their own heights and the body scrolls, so a picture is never clipped by its own card (ISS-076). `layer` picks the rung of the stacking ladder: `section` (105) by default, `tool` (108) for a sheet opened **over** another sheet. `sheetCloseButton(mounted) -> HTMLElement \| null` finds the button to focus once it is in the document. The act hub's five or six tiles open into it (D-070) |
 | `sim/drift` | `stepDrift` | `(state, dt, size, viewport) -> DriftResult`; reflects off walls, returns the fastest `Impact` or null |
 | | `createInitialDrift` | `(size, viewport, speed) -> DriftState`; random 30-45 degree diagonal. **5 `Math.random()` calls** |
@@ -1118,7 +1126,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `createInitialStores` | `(overrides?) -> ResourceStores` |
 | | `percentOf` | `(name, stores, powerCapacity) -> number`; how full a store is, for the HUD |
 | `sim/modules` | `ModuleKind` | the eight catalogue kinds |
-| | `ModuleSpec`, `MODULE_CATALOGUE` | every spec: name, cost, max count, what it gives, what it needs, and any build gate |
+| | `ModuleSpec`, `MODULE_CATALOGUE` | every spec: name, cost, max count, what it gives, what it needs, and any build gate. No pictogram: a pure model may not carry one, so the module's picture is `ui/icons.ts`'s `MODULE_ICON` (D-083) |
 | | `CORE_MODULES` | the four the lander brings: habitat, life-support, solar-array, batteries |
 | | `specOf` | `(kind) -> ModuleSpec`; throws a `RangeError` on an unknown kind |
 | | `siteAllows` | `(kind, regionId) -> boolean`; whether the ground can host the module at all, so the build card and the water goal ask one function instead of answering the same `requires` rule twice (ISS-079) |
@@ -1173,7 +1181,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 | `sim/trainingSolar` | `generateSolarPuzzle`, `solarFlow`, `rotateSolarTile`, `solarTapsNeeded`, `solarPerformance` | the power board, generated rather than written down: a route is carved and every tile on it is turned away from its answer, so the game is always winnable and never starts solved (D-075) |
 | `sim/trainingCargo` | `CARGO_BOXES`, `CARGO_ITEMS`, `dealCargoRound`, `cargoPerformance` | the supplies that land and the stores they belong in. Every store gets at least one crate (D-075) |
 | `sim/trainingAsteroid` | `ASTEROID_GOAL`, `ASTEROID_SECONDS`, `asteroidDelay`, `asteroidLife`, `asteroidIsDecoy`, `asteroidAccuracy`, `asteroidPerformance` | the round outside the outpost: what drifts past, how fast, and what a friendly satellite costs the player (D-075) |
-| `ui/training` | `trainingSection`, `openTrainingGame`, `readTrainingRecord`, `writeTrainingDay`, `applyTrainingRecord` | the ASTRONAUT TRAINING section at the top of the Standing orders sheet, the dialog a game is played in, and the record of the day's training. The record is written to `localStorage` under one key, so a refresh does not hand the player the same two games again (D-075); the run itself is saved separately by `ui/save.ts` (D-081) |
+| `ui/training` | `trainingSection`, `openTrainingGame`, `readTrainingRecord`, `writeTrainingDay`, `applyTrainingRecord`, `clearTrainingRecord` | the ASTRONAUT TRAINING section at the top of the Standing orders sheet, the dialog a game is played in, and the record of the day's training. The record is written to `localStorage` under one key, so a refresh does not hand the player the same two games again (D-075); it is cleared when a **new run** begins — naming the astronaut, or "play again" — and a refresh is not a new run any more, because the run itself is saved separately by `ui/save.ts` (D-081, D-084) |
 | | `applyTrainingRecord` | `(run) => RunState`; puts the written-down training back onto a run that has not trained yet today. A run that has already trained keeps what it did — the session is the truer record, and a browser that refused to write must not take points away (D-075) |
 | `ui/trainingGame` | `TrainingGameContext`, `TrainingGameHandle`, `TrainingGameMount` | the contract every training game keeps: a status line, a completion callback, a generator, and a `destroy` that stops every timer the game started (D-075) |
 | `sim/patches` | `Patch`, `patchesFor`, `PATCH_COUNT` | the ten badges a run earns, worked out from the run itself; the debrief prints the ones that were earned (D-060). No `icon`: `features/debrief/view.ts` maps a patch id to an `IconName` (D-070) |
