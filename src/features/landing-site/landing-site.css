@@ -439,6 +439,23 @@
   }
 }
 
+/*
+  The screen fades to black on the way out.
+
+  The landing cinematic opens on black, so this is the other half of one
+  transition: the map and the Site Analysis panel go out together over half a
+  second, and the film comes up out of the dark. The stage's own push-in runs
+  underneath it, aimed at the pin the player chose.
+
+  The root fades rather than a black card over it: the screen behind the map
+  is already the game's own dark, so an opacity fade lands on black with no
+  extra element and nothing to get in the way of a click.
+*/
+.landing-site.is-leaving {
+  opacity: 0;
+  transition: opacity 500ms ease;
+}
+
 /* --- Reduced motion --- */
 
 @media (prefers-reduced-motion: reduce) {
