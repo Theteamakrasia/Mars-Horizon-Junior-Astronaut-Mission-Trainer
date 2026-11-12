@@ -67,6 +67,10 @@ behind black, which is what is on screen anyway.
 they all end the same way: on black, and then the outpost. Reduced motion takes
 the movement away and leaves the film exactly as long.
 
+**The Skip button is in the top right corner**, which is where the launch reel's
+is as well (`.launch__skip`). The game has two films, and the one control that
+ends a film is in the same corner of both of them (D-086, ISS-102).
+
 ## What it does NOT contain
 
 - **No route of its own for the hand-off.** The film is a screen in the journey:

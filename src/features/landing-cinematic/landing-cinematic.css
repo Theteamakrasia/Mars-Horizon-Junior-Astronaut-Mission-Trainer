@@ -325,14 +325,26 @@
 /* ---------- THE SKIP BUTTON ---------- */
 
 /*
-  Bottom right, quiet, and 44 pixels tall because it is pressed with a thumb
-  on a tablet. It is up from the first frame: the film's own exit is the one
-  thing a player should never have to wait for.
+  Top right, quiet, and 44 pixels tall because it is pressed with a thumb on a
+  tablet. It is up from the first frame: the film's own exit is the one thing a
+  player should never have to wait for.
+
+  Top right is the launch reel's corner as well (`.launch__skip`, the same
+  `top: 1rem; right: 1rem`), and that is the point: the game has two films,
+  and the one control that ends a film should not move between them. A player
+  who cut the departure reel learned to look up; there is now something up
+  there to find. The bottom right is the busiest corner of this screen - the
+  caption panel runs along the bottom edge, and the lower middle of the frame
+  is where the parachute and the capsule are.
+
+  Inside the stage, which is the viewport here: the stage is `inset: 0` inside
+  a fixed screen, so the button is measured against the window and not against
+  a letterboxed picture.
 */
 .landing-cinematic__skip {
   position: absolute;
-  right: clamp(12px, 1.6vw, 28px);
-  bottom: clamp(12px, 1.8vh, 28px);
+  top: 1rem;
+  right: 1rem;
   z-index: 5;
   appearance: none;
   min-height: 44px;
