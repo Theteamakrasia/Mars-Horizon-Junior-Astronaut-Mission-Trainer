@@ -1,0 +1,454 @@
+/* SETUP POPUP — imported by setupPopup.ts only (R-15).
+
+   The landing window over the build screen: the site, the five goals, and the
+   supply depot. It is the game's own cream panel with the game's own orange,
+   navy and green, so it reads as part of Mars Horizon rather than as a
+   window dropped on top of it.
+
+   It is mounted on `document.body`, outside the `.gl` shell, so it carries the
+   box model and the focus ring the game's screens get from `.gl` — the same
+   note the guide's stylesheet makes.
+
+   It sits above everything else the screen can open: see the stacking ladder
+   at the top of styles/game-loop.css. */
+
+.setup__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+  display: grid;
+  place-items: center;
+  padding: clamp(8px, 1.6vw, 28px);
+  background: rgba(8, 16, 28, 0.6);
+  color: var(--gl-ink);
+  font-family: var(--gl-body);
+  font-weight: 600;
+  line-height: 1.35;
+  color-scheme: light;
+  animation: setup-fade 200ms ease-out both;
+}
+
+.setup__backdrop,
+.setup__backdrop *,
+.setup__backdrop *::before,
+.setup__backdrop *::after {
+  box-sizing: border-box;
+}
+
+.setup__backdrop :focus-visible {
+  outline: 3px solid var(--gl-orange);
+  outline-offset: 2px;
+}
+
+@keyframes setup-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* --------------------------------------------------------------- the card -- */
+
+.setup__card {
+  display: flex;
+  flex-direction: column;
+  width: min(78rem, 96vw);
+  max-height: min(95vh, 62rem);
+  border: clamp(2px, 0.2vw, 3px) solid var(--gl-navy);
+  border-radius: clamp(16px, 1.8vw, 28px);
+  /* Slightly transparent: the outpost stays behind the window, so the window
+     is a sheet of glass over it rather than a wall in front of it. The scrim
+     has already dimmed the game, so the text keeps its contrast. */
+  background: rgba(255, 249, 236, 0.92);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 26px 60px rgba(5, 12, 22, 0.46);
+  overflow: hidden;
+}
+
+.setup__card:focus {
+  outline: none;
+}
+
+/* --------------------------------------------------------------- the head -- */
+
+.setup__head {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: start;
+  gap: clamp(10px, 1.2vw, 22px);
+  padding: clamp(10px, 1.1vw, 18px) clamp(14px, 1.5vw, 26px);
+  border-bottom: 1px solid var(--gl-line);
+}
+
+.setup__headings {
+  min-width: 0;
+}
+
+.setup__kicker {
+  margin: 0;
+  color: var(--gl-orange);
+  font-family: var(--gl-display);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-size: clamp(0.5rem, 0.72vw, 0.9rem);
+}
+
+.setup__title {
+  margin: 0.15em 0 0;
+  color: var(--gl-ink);
+  font-family: var(--gl-display);
+  font-weight: 900;
+  font-size: clamp(1.2rem, 2.1vw, 2.2rem);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+}
+
+.setup__sub {
+  margin: 0.35em 0 0;
+  color: var(--gl-ink);
+  font-size: clamp(0.72rem, 0.95vw, 1.05rem);
+  font-weight: 700;
+}
+
+.setup__blurb {
+  margin: 0.2em 0 0;
+  color: var(--gl-muted);
+  font-size: clamp(0.66rem, 0.85vw, 0.95rem);
+  font-weight: 600;
+}
+
+/* The picture of the place the crew has landed on: the same wide picture the
+   landing-site map shows, in the same 16:9 frame. */
+.setup__art-wrap {
+  flex: 0 0 auto;
+}
+
+.setup__art {
+  display: block;
+  width: clamp(140px, 13vw, 210px);
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--gl-line);
+  border-radius: clamp(6px, 0.6vw, 12px);
+  object-fit: cover;
+  background: var(--gl-card);
+}
+
+.setup__close {
+  display: grid;
+  place-items: center;
+  width: clamp(26px, 2.2vw, 36px);
+  height: clamp(26px, 2.2vw, 36px);
+  border: 1px solid var(--gl-line);
+  border-radius: 50%;
+  background: var(--gl-card);
+  color: var(--gl-ink);
+  cursor: pointer;
+}
+
+.setup__close:hover {
+  background: var(--gl-card-strong);
+}
+
+/* ------------------------------------------------------------- the progress -- */
+
+.setup__progress {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(8px, 1vw, 20px);
+  padding: clamp(8px, 0.9vw, 16px) clamp(14px, 1.5vw, 26px);
+  border-bottom: 1px solid var(--gl-line);
+  background: rgba(245, 240, 227, 0.9);
+}
+
+.setup__block {
+  min-width: 0;
+}
+
+.setup__label {
+  margin: 0;
+  color: var(--gl-muted);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: clamp(0.48rem, 0.66vw, 0.8rem);
+}
+
+.setup__progress-value {
+  margin: 0.15em 0 0;
+  color: var(--gl-ink);
+  font-family: var(--gl-display);
+  font-weight: 800;
+  font-size: clamp(0.72rem, 0.95vw, 1.1rem);
+}
+
+/* One pip per goal: filled when the build holds it. */
+.setup__pips {
+  display: flex;
+  gap: clamp(3px, 0.4vw, 7px);
+  margin-top: clamp(3px, 0.35vw, 6px);
+}
+
+.setup__pip {
+  width: clamp(14px, 1.5vw, 24px);
+  height: clamp(5px, 0.55vw, 9px);
+  border-radius: 999px;
+  background: var(--gl-card-strong);
+}
+
+.setup__pip--ready {
+  background: var(--gl-green);
+}
+
+.setup__points-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: clamp(6px, 0.8vw, 16px);
+}
+
+.setup__points-value {
+  margin: 0.15em 0 0;
+  color: var(--gl-orange);
+  font-family: var(--gl-display);
+  font-weight: 900;
+  font-size: clamp(0.8rem, 1.05vw, 1.25rem);
+}
+
+.setup__extras {
+  margin: 0;
+  color: var(--gl-muted);
+  font-size: clamp(0.6rem, 0.76vw, 0.92rem);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* -------------------------------------------------------------- the numbers -- */
+
+.setup__stats {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: clamp(4px, 0.5vw, 10px);
+  padding: clamp(6px, 0.7vw, 12px) clamp(14px, 1.5vw, 26px);
+  border-bottom: 1px solid var(--gl-line);
+}
+
+.setup__stat {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  min-width: 0;
+  padding: clamp(4px, 0.45vw, 9px) clamp(5px, 0.55vw, 11px);
+  border-radius: clamp(6px, 0.6vw, 12px);
+  background: rgba(242, 233, 214, 0.92);
+}
+
+.setup__stat-icon {
+  flex: 0 0 auto;
+  color: var(--gl-orange);
+}
+
+.setup__stat[data-tone='warn'] .setup__stat-icon {
+  color: var(--gl-warn-ink);
+}
+
+.setup__stat-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.setup__stat-label {
+  color: var(--gl-muted);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: clamp(0.42rem, 0.56vw, 0.68rem);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.setup__stat-value {
+  color: var(--gl-ink);
+  font-family: var(--gl-display);
+  font-weight: 800;
+  font-size: clamp(0.6rem, 0.78vw, 0.95rem);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --------------------------------------------------------------- the body -- */
+
+.setup__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(13rem, 1fr) minmax(0, 1.6fr);
+  gap: clamp(10px, 1.2vw, 24px);
+  padding: clamp(8px, 0.9vw, 16px) clamp(14px, 1.5vw, 26px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gl-card-strong) transparent;
+}
+
+.setup__col {
+  min-width: 0;
+}
+
+.setup__hint {
+  margin: 0.15em 0 0.6em;
+  color: var(--gl-muted);
+  font-size: clamp(0.62rem, 0.78vw, 0.92rem);
+  font-weight: 600;
+}
+
+/* The goal rows carry a word as well as a tick, so the player can read the
+   state without knowing what a tick means. */
+.gl--base .setup__goals .gl__goal {
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+}
+
+.gl--base .setup__goals .gl__goal-state {
+  color: var(--gl-green);
+  font-size: clamp(0.5rem, 0.62vw, 0.76rem);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.gl--base .setup__goals .gl__goal[data-ok='false'] .gl__goal-state {
+  color: var(--gl-orange-deep);
+}
+
+/* What is still missing, in one line under the depot. */
+.setup__still {
+  margin: clamp(6px, 0.7vw, 12px) 0 0;
+  padding: clamp(5px, 0.55vw, 10px) clamp(7px, 0.75vw, 14px);
+  border-radius: clamp(6px, 0.6vw, 12px);
+  background: var(--gl-warn-bg);
+  color: var(--gl-warn-ink);
+  font-size: clamp(0.58rem, 0.74vw, 0.9rem);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+/* -------------------------------------------------------------- the footer -- */
+
+.setup__foot {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: clamp(8px, 1vw, 20px);
+  padding: clamp(9px, 1vw, 18px) clamp(14px, 1.5vw, 26px);
+  border-top: 1px solid var(--gl-line);
+  background: rgba(245, 240, 227, 0.9);
+}
+
+.setup__status-block {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(2px, 0.3vw, 6px);
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.setup__status {
+  display: flex;
+  align-items: center;
+  gap: clamp(6px, 0.7vw, 12px);
+  min-width: 0;
+}
+
+.setup__status-icon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: clamp(24px, 2.1vw, 34px);
+  height: clamp(24px, 2.1vw, 34px);
+  border-radius: 50%;
+  background: var(--gl-green-soft);
+  color: var(--gl-green);
+}
+
+.setup__status-body {
+  min-width: 0;
+}
+
+.setup__status-title {
+  margin: 0;
+  color: var(--gl-ink);
+  font-family: var(--gl-display);
+  font-weight: 800;
+  font-size: clamp(0.68rem, 0.88vw, 1rem);
+}
+
+.setup__status-detail {
+  margin: 0.05em 0 0;
+  color: var(--gl-muted);
+  font-size: clamp(0.58rem, 0.74vw, 0.9rem);
+  font-weight: 600;
+}
+
+.setup__launch {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: clamp(150px, 16vw, 260px);
+  justify-content: space-between;
+}
+
+/* ------------------------------------------------------------- responsive -- */
+
+@media (max-width: 60rem) {
+  .setup__body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .setup__stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 40rem) {
+  .setup__head {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .setup__art-wrap {
+    display: none;
+  }
+
+  .setup__progress {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .setup__stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .setup__foot {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .setup__launch {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .setup__backdrop {
+    animation: none;
+  }
+}

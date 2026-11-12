@@ -10,6 +10,14 @@ See `../README.md` for the layout rules.
 The player touches down and lays out the first modules. This is the outpost overview
 screen, and it is the home base for the rest of the run.
 
+**The supply list is in the landing window, not in the panel** (D-082). `setupPopup.ts`
+draws a popup over this screen — the site, the five site goals, all six supplies and the
+points — and it opens by itself when the crew lands. The panel keeps the state of the
+build (the points bar, the goals, the NASA fact) and a **"Choose your extras"** button
+that opens the window, so the two are never on screen at once. The window is mounted on
+`document.body`, like the guide, because this screen redraws itself on every press and a
+popup inside the screen was rebuilt each time (ISS-090).
+
 The first four modules come from the project README:
 
 | module | what it provides |
@@ -44,8 +52,13 @@ Costs and upkeep belong in `constants.ts` so the tuning is visible in one file.
 ## What `view.ts` must contain
 
 The outpost overview: placed modules, the Life Support and Resources panel showing the
-five stores as percentages, the incoming-weather warning, and the Build New Module
-control.
+five stores as percentages, the incoming-weather warning, the points and the goals of the
+build, the button that opens the landing window, and the control that starts the run.
+
+**The cards are not here.** They are in `setupPopup.ts`, which draws the landing window:
+the site, the five goals, the six supplies and the points. `view.ts` owns the build
+(`extras`) and the window draws it, so the two cannot disagree. The window's button and
+the panel's call the same `land()`, so there is one way the run starts.
 
 **And the feedback that makes the build legible** (ISS-054, ISS-055, ISS-056):
 

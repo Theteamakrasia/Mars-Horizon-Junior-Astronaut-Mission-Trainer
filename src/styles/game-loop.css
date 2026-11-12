@@ -33,6 +33,7 @@
     108       the mini game's sheet, over the section sheet it came from.
     110       the leave-mission dialog.
     120       the how-to-play popup, over everything.
+    130       the setup popup, over the how-to-play popup.
 
    The gap at 80 is deliberate. A module may reach 79, and nothing the
    screen draws over the panel may sit below it — which is exactly what

@@ -11,8 +11,10 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
+| ISS-097 | The build check looked for the supply cards in the panel, and the cards moved to the setup window | low | agent | fixed | this branch |
 | ISS-096 | The training browser check re-walked the journey to test a refresh, so it always failed | medium | agent | fixed | this branch |
 | ISS-095 | Closing the tab lost the whole run, and the menu asked for the name again | high | agent | fixed | this branch |
+
 | ISS-094 | The encyclopedia was one click away before the player had an outpost | medium | agent | fixed | this branch |
 | ISS-093 | The mini game merged with the desk sheet, and stayed there after it closed | medium | agent | fixed | this branch |
 | ISS-092 | The landing-site map left a blank band above and below the picture | low | agent | fixed | this branch |
@@ -107,6 +109,24 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
+## ISS-097 - The build check looked for the supply cards in the panel, and the cards moved to the setup window
+
+- **Reported by:** the agent, 2026-11-12, while moving the supply list into the landing
+  window (D-082).
+- **Where:** `tools/browser-check-build.mjs` — the card steps read `#base .gl__card`, and the
+  scroll step read the panel's `#base .gl__scroll`.
+- **Problem:** the check pinned *where* the supply list was drawn, not what it did. When the
+  list moved into the setup window, the check would have gone on reading a panel that no
+  longer had cards in it — and it would have reported "every card shows a count and a limit"
+  against an empty list rather than failing loudly.
+- **Cause:** the check asked for the cards by their old home. The card behaviour it was
+  really pinning — the count against the limit, the lander's copy, the dead "+" and its
+  reason, the panel keeping its place on a press — is about the cards, not about the panel.
+- **Fix:** the card steps now read `body .setup__backdrop .gl__card`, the scroll step watches
+  the window's own scroller (`setup__body`), and the guide is checked first, because the
+  window waits for it. The check still asserts all of the same behaviour, and it now asserts
+  that the panel behind the window has no supply cards at all.
+- **Pre-existing:** no; it was caused by this change and found by running the check.
 ## ISS-096 - The training browser check re-walked the journey to test a refresh, so it always failed
 
 - **Reported by:** the agent, 2026-11-12, while checking the save (D-081): `node
@@ -145,6 +165,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
   before the router starts; the menu shows the astronaut's name, the sol they stopped on,
   and CONTINUE / START OVER in place of the name field (D-081). Supabase is still deferred.
 - **Pre-existing:** yes — since the first screen; found by the owner before the freeze.
+
 
 ## ISS-094 - The encyclopedia was one click away before the player had an outpost
 
@@ -1711,7 +1732,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-**Next free id: ISS-095.**
+**Next free id: ISS-098.**
 
 
 ---
