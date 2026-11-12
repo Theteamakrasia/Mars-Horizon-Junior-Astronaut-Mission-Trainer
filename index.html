@@ -976,6 +976,23 @@
       </div>
     </section>
 
+    <!-- The landing cinematic. The film that plays between the landing-site map
+         and the outpost: the approach to Mars, the parachute coming down, and
+         the landing. It builds its own DOM, so this mount point is empty on
+         purpose, and it hands itself to the next stop when it is over.
+
+         One control: a Skip button, which cuts the film short and goes
+         straight to the outpost. Escape and Enter do the same.
+
+         Every element landing-cinematic/view.ts queries carries a data hook
+         below. It queries none: the film draws itself. -->
+    <section
+      id="landing-cinematic"
+      class="landing-cinematic"
+      aria-label="Landing sequence"
+      hidden
+    ></section>
+
     <!-- Post-landing screens. NASA's base/act/debrief views build their own DOM
          from scratch, so these mount points are empty on purpose. Reached from
          landing-site: base (build, then land) -> act (one sol per press) ->

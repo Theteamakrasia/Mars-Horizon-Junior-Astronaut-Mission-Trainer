@@ -83,7 +83,16 @@ describe('progression', () => {
     expect(nextRoute('supply')).toBe('launch');
     expect(nextRoute('launch')).toBe('interior');
     expect(nextRoute('interior')).toBe('landing-site');
-    expect(nextRoute('landing-site')).toBe('base');
+  });
+
+  it('plays the landing film between the landing site and the outpost', () => {
+    // The player chooses a site, the film plays, and the outpost is waiting at
+    // the end of it.
+    expect(nextRoute('landing-site')).toBe('landing-cinematic');
+    expect(nextRoute('landing-cinematic')).toBe('base');
+  });
+
+  it('carries on from the outpost', () => {
     expect(nextRoute('base')).toBe('act');
     expect(nextRoute('act')).toBe('debrief');
   });
