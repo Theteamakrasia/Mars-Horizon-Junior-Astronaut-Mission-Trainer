@@ -6,12 +6,17 @@
  * preview runs the real sol step, so it cannot promise what the sim will not
  * deliver.
  *
+ * The supply list lives in the setup popup (./setupPopup), the landing window
+ * that opens over this screen. The panel keeps the state of the build — the
+ * points, the goals and the button that starts the run — and the popup is
+ * where the modules are bought, so the two are never on screen at once.
+ *
  * Space-weather data is fetched here (through `dom/forecastLoader`) so the
  * forecast warning is on screen before the player commits, which is the README's
  * first lesson: forecast before you act.
  *
  * The layout follows the game-loop frame (`66:14`): the outpost on Mars on the
- * left, the module catalogue on the right, five resource cards above.
+ * left, the build panel on the right, five resource cards above.
  */
 
 import { loadForecast, type LoadedForecast } from '../../dom/forecastLoader';
@@ -20,7 +25,7 @@ import { factFor } from '../../data/nasaGallery';
 import { createForecast, type ForecastEvent } from '../../sim/forecast';
 import { hasReachedOutpost, newRun, startOutpost, withState, type RunState } from '../../sim/run';
 import { regionById, siteScore } from '../../sim/regions';
-import { gamePanel, gameScreen, gameSection, gameWorld, keepScroll, moduleArt, moduleFigures, type HudStat, type SignalCard } from '../../ui/gameLoop';
+import { gamePanel, gameScreen, gameSection, gameWorld, keepScroll, moduleFigures, type HudStat, type SignalCard } from '../../ui/gameLoop';
 import { dayModel } from '../../ui/dayTracker';
 import { readButton } from '../../ui/readButton';
 import { guideButton, guidePanel } from '../../ui/guide';
@@ -31,17 +36,16 @@ import {
   BUDGET_NONE,
   CORE_MODULES,
   RESTART_NOTE,
-  addModule,
   buildCards,
   extraSlots,
   goalPreview,
   pointsLeft,
   previewFor,
   previewSummary,
-  removeModule,
   upcomingWarnings,
   type ModuleKind,
 } from './model';
+import { createSetupPopup, siteGoals, type SetupPopup } from './setupPopup';
 
 import '../../styles/game-loop.css';
 import './base.css';
@@ -74,8 +78,6 @@ export function mountBase(
   let disposed = false;
   /** What the player just did, so the screen can say so. */
   let toast = '';
-  /** The card that changed, so it can flash. */
-  let changed: ModuleKind | null = null;
   let toastTimer: number | null = null;
   const controller = new AbortController();
 
@@ -116,6 +118,33 @@ export function mountBase(
   let guideEl: HTMLElement | null = null;
   /** The toast node in the current tree, so it can be taken away without a redraw. */
   let toastNode: HTMLElement | null = null;
+  /**
+   * The setup popup: the landing window where the modules are bought.
+   *
+   * It is mounted on `document.body` for the same reason the guide is, and it
+   * is drawn from the same `extras` the panel draws from, so the two can never
+   * disagree about the build.
+   */
+  let setup: SetupPopup | null = null;
+  /** The setup popup has opened itself once, so it never ambushes twice. */
+  let setupShown = false;
+
+  /** The six numbers the outpost is about: the screen's HUD, and the popup's row. */
+  function outpostStats(current: readonly ModuleKind[]): readonly HudStat[] {
+    const summary = previewSummary(current, regionId);
+    const daysLabel = (days: number, steady: string): string => (Number.isFinite(days) ? `${days} sols` : steady);
+
+    /* Day power is on the screen because it is the number that moves when the
+       player adds a solar array. Nothing else on this screen did. */
+    return [
+      { icon: 'sun', label: 'Day power', value: `${summary.dayKwh} kWh` },
+      { icon: 'moon', label: 'Night power', value: `${summary.nightHours} / 12 h`, tone: summary.nightHours < 12 ? ('warn' as const) : ('ok' as const) },
+      { icon: 'oxygen', label: 'Air', value: 'Ready' },
+      { icon: 'droplet', label: 'Water', value: daysLabel(summary.waterDays, 'Recycled'), tone: summary.waterDays < 12 ? ('warn' as const) : ('ok' as const) },
+      { icon: 'leaf', label: 'Food', value: daysLabel(summary.foodDays, 'Grown'), tone: summary.foodDays < 12 ? ('warn' as const) : ('ok' as const) },
+      { icon: 'shield', label: 'Shield', value: `${summary.shielding} / 100`, tone: summary.shielding < 40 ? ('warn' as const) : ('ok' as const) },
+    ];
+  }
 
   /** Say what the player just did, and let it go after a few seconds. */
   function announce(message: string): void {
@@ -143,6 +172,66 @@ export function mountBase(
     render();
   }
 
+  /**
+   * Land the outpost and start the twelve sols.
+   *
+   * One function, called from the panel's button and from the setup popup's
+   * button, so there is a single way the run starts and it behaves the same
+   * wherever it was pressed.
+   */
+  function land(): void {
+    const forecastNow = forecast();
+    const prepared = withState(start, {
+      forecast: forecastNow.length > 0 ? forecastNow : createForecast([], Date.now(), siteScore(regionId).dust),
+    });
+    const next = startOutpost(prepared, [...CORE_MODULES, ...extras]);
+
+    setRun(next);
+    navigate(nextStop('base') ?? 'act');
+  }
+
+  /** The label on the button that lands the outpost. */
+  function launchLabel(): string {
+    return start.modules.length > 0 ? 'Land again from sol 1' : 'Land & start sol 1';
+  }
+
+  /** Open the setup popup over the build screen. */
+  function openSetup(): void {
+    if (setup !== null) return;
+
+    setupShown = true;
+
+    setup = createSetupPopup({
+      regionId,
+      extras,
+      stats: () => outpostStats(extras),
+      launchLabel: launchLabel(),
+      onChange: (next, message) => {
+        extras = next;
+        announce(message);
+        render();
+      },
+      onLaunch: () => {
+        land();
+      },
+      onClose: () => {
+        closeSetup();
+      },
+    });
+
+    document.body.append(setup.element);
+  }
+
+  /** Take the setup popup off the document, and give the focus back. */
+  function closeSetup(): void {
+    setup?.element.remove();
+    setup = null;
+
+    window.requestAnimationFrame(() => {
+      document.querySelector<HTMLElement>('[data-focus="open-setup"]')?.focus();
+    });
+  }
+
   function render(focusKey?: string): void {
     /*
      * Where the player was, before the tree is replaced.
@@ -164,22 +253,10 @@ export function mountBase(
       focusable.set(key, el);
     };
 
-    const summary = previewSummary(extras, regionId);
     const lines = previewFor(extras, regionId);
     const warning = lines.find((line) => line.tone !== 'ok') ?? null;
 
-    const daysLabel = (days: number, steady: string): string => (Number.isFinite(days) ? `${days} sols` : steady);
-
-    /* Day power is on the screen because it is the number that moves when the
-       player adds a solar array. Nothing else on this screen did. */
-    const hud: readonly HudStat[] = [
-      { icon: 'sun', label: 'Day power', value: `${summary.dayKwh} kWh` },
-      { icon: 'moon', label: 'Night power', value: `${summary.nightHours} / 12 h`, tone: summary.nightHours < 12 ? ('warn' as const) : ('ok' as const) },
-      { icon: 'oxygen', label: 'Air', value: 'Ready' },
-      { icon: 'droplet', label: 'Water', value: daysLabel(summary.waterDays, 'Recycled'), tone: summary.waterDays < 12 ? ('warn' as const) : ('ok' as const) },
-      { icon: 'leaf', label: 'Food', value: daysLabel(summary.foodDays, 'Grown'), tone: summary.foodDays < 12 ? ('warn' as const) : ('ok' as const) },
-      { icon: 'shield', label: 'Shield', value: `${summary.shielding} / 100`, tone: summary.shielding < 40 ? ('warn' as const) : ('ok' as const) },
-    ];
+    const hud = outpostStats(extras);
 
     const signals: SignalCard[] = [
       {
@@ -212,91 +289,23 @@ export function mountBase(
       h('span', { text: `${extras.length} / ${extraSlots(regionId)} extras` }),
     );
 
-    const cards = h('div', { class: 'gl__grid' });
+    /* The supply list lives in the setup popup, so this button is the way
+       into it. The player must never be left without the modules. */
+    const openSetupButton = h(
+      'button',
+      { class: 'gl__btn gl__btn--navy', type: 'button' },
+      'Choose your extras',
+      h('span', { class: 'gl__btn-arrow', 'aria-hidden': 'true', text: '→' }),
+    );
 
-    for (const card of buildCards(extras, regionId)) {
-      const add = h('button', { class: 'gl__step gl__step--add', type: 'button', 'aria-label': `Add ${card.name}`, disabled: card.blocked !== '' }, '+');
-      const remove = h('button', { class: 'gl__step', type: 'button', 'aria-label': `Remove ${card.name}`, disabled: card.have === 0 }, '−');
+    keep('open-setup', openSetupButton);
 
-      keep(`add-${card.kind}`, add);
-      keep(`remove-${card.kind}`, remove);
-
-      add.addEventListener('click', () => {
-        const next = addModule(extras, card.kind, regionId);
-
-        if (next === extras) return;
-
-        extras = next;
-        changed = card.kind;
-        announce(`${card.name} added · ${card.cost} points spent`);
-        render(`add-${card.kind}`);
-      });
-
-      remove.addEventListener('click', () => {
-        const next = removeModule(extras, card.kind);
-
-        if (next === extras) return;
-
-        extras = next;
-        changed = card.kind;
-        announce(`${card.name} removed · ${card.cost} points back`);
-        render(`remove-${card.kind}`);
-      });
-
-      cards.append(
-        h(
-          'article',
-          { class: card.kind === changed ? 'gl__card gl__card--changed' : 'gl__card' },
-          h(
-            'div',
-            { class: 'gl__card-head' },
-            h('img', { class: 'gl__card-img', src: moduleArt(card.kind), alt: '' }),
-            h('p', { class: 'gl__card-name', text: card.name }),
-            h('span', { class: 'gl__cost', text: `✦ ${card.cost}` }),
-            card.atLimit ? h('span', { class: 'gl__card-max', text: 'MAX' }) : null,
-          ),
-          h('p', { class: 'gl__card-line', text: card.gives }),
-          h('p', { class: 'gl__card-tag', text: card.needs }),
-          h(
-            'div',
-            { class: 'gl__stepper' },
-            remove,
-            h(
-              'span',
-              { class: 'gl__count' },
-              h('strong', { text: String(card.total) }),
-              h('small', { text: `/${card.maxCount}` }),
-            ),
-            add,
-          ),
-          /* The lander's free copy is counted on the card, not just in the
-             maths: the outpost really has one solar array and one battery
-             before the player spends anything (ISS-077). */
-          card.fromLander > 0
-            ? h('p', { class: 'gl__card-lander', text: `Includes ${card.fromLander} from the lander.` })
-            : null,
-          /* The reason is shown whenever the "+" is dead, not only the first
-             time. The old code hid it the moment the player owned one, which
-             is exactly when the limit started to matter. */
-          card.blocked !== '' ? h('p', { class: 'gl__card-why', text: card.blocked }) : null,
-        ),
-      );
-    }
+    openSetupButton.addEventListener('click', () => {
+      openSetup();
+    });
 
     // ---- What this build can do for the five goals.
-    const goals = h('div', { class: 'gl__goals' });
-
-    for (const goal of goalPreview(extras, regionId)) {
-      goals.append(
-        h(
-          'div',
-          { class: 'gl__goal', 'data-ok': String(goal.ok) },
-          h('span', { class: 'gl__goal-mark', 'aria-hidden': 'true', text: goal.ok ? '✓' : '✗' }),
-          h('span', { class: 'gl__goal-title', text: goal.title }),
-          h('span', { class: 'gl__goal-why', text: goal.ok ? '' : goal.why }),
-        ),
-      );
-    }
+    const goals = siteGoals(goalPreview(extras, regionId));
 
     /* The build screen is reachable again after the landing, and the button
        under the cards starts the outpost over. Say so on the button and under
@@ -310,14 +319,7 @@ export function mountBase(
     );
 
     launch.addEventListener('click', () => {
-      const forecastNow = forecast();
-      const prepared = withState(start, {
-        forecast: forecastNow.length > 0 ? forecastNow : createForecast([], Date.now(), siteScore(regionId).dust),
-      });
-      const next = startOutpost(prepared, [...CORE_MODULES, ...extras]);
-
-      setRun(next);
-      navigate(nextStop('base') ?? 'act');
+      land();
     });
 
     /* The whole build, read out. The cards are the decision, and a player
@@ -347,8 +349,8 @@ export function mountBase(
       body: [
         budget,
         toastElement,
+        openSetupButton,
         gameSection('Your goals with this build', goals),
-        cards,
         h('p', { class: 'gl__note', text: `NASA fact · ${factFor(start.sol + regionId.length).text} (${factFor(start.sol + regionId.length).credit})` }),
       ],
       footer: [launch, h('p', { class: 'gl__note', text: landed ? RESTART_NOTE : BUDGET_NONE }), read ?? false],
@@ -391,6 +393,19 @@ export function mountBase(
       guideEl = null;
     }
 
+    /* The setup popup is the landing window: it opens by itself while the
+       outpost is still being prepared, and the panel's button opens it again
+       afterwards. It waits for the guide, so the two are never on screen at
+       once, and it never opens itself twice. */
+    if (!guideOpen && !setupShown && !landed) {
+      openSetup();
+    }
+
+    /* The window reads the same build as the panel, so it is redrawn whenever
+       the panel is. It lives outside the screen, so this cannot disturb the
+       page the player is reading. */
+    setup?.update(extras);
+
     live.textContent = toast;
     screen.append(live);
     mount.replaceChildren(screen);
@@ -421,6 +436,10 @@ export function mountBase(
     if (toastTimer !== null) window.clearTimeout(toastTimer);
     guideEl?.remove();
     guideEl = null;
+    /* The window is on the document, not in the screen, so the teardown has
+       to take it off itself. */
+    setup?.element.remove();
+    setup = null;
     mount.replaceChildren();
   };
 }
