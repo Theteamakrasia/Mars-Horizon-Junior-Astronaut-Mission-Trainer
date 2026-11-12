@@ -233,7 +233,11 @@ of ending the attempt (ISS-034, ISS-035). Nothing from this screen is stored in 
 
 `#/launch` plays the launch film, then a spacecraft parts tour. The tour is a full-viewport
 panel rather than part of the letterboxed 16:9 stage, so its name, image, description and
-three controls cannot be clipped on a short window (D-036). **Continue** is the only exit.
+three controls cannot be clipped on a short window (D-036). **Continue** is the only way off
+the screen.
+
+A **SKIP** button appears halfway through the departure and cuts the reel straight to the parts
+tour — the same screen the reel ends on, just sooner (D-072). The title card always plays.
 
 <a id="spacecraft-interior"></a>
 ### 5. Spacecraft Interior
@@ -289,6 +293,13 @@ The **how-to-play guide** opens by itself the first time you reach this screen, 
 button in the header brings it back on any later sol — beside the encyclopedia book and
 the Menu.
 
+It is a **popup with the astronaut doing the talking**: he stands on the left and the
+words are in a speech bubble on the right, **one step per page**, with a Next button, a
+Back button, ten page dots and a **Read aloud** button that speaks the page in the
+browser's own voice. The screen behind it is dimmed, and the whole thing is a dialog:
+`Escape` closes it, the arrow keys turn the pages, and it stays open while the screen
+behind it redraws (D-073).
+
 The run's hazards are rolled from a seed, so each mission is a little different: a flare
 here, a dust storm there, at least one sol of quiet between them (D-048, D-056). This screen
 is where you prepare for what you can see. Press **Land & start sol 1** when you are ready.
@@ -324,6 +335,12 @@ every sol has something to work and no two days feel the same.
 the desk, until there are twenty-four of them. They are the five learning goals in the
 order you meet them, and they are also the keepsake: the debrief prints the standing orders
 you worked under.
+
+**At the top of the standing orders is the crew's training** (D-075). Six small games -
+Resource Merge, Memory Match, Rover Parking, Solar Panel Power-Up, Cargo Sorting and
+Asteroid Defender - and the day's work orders stay locked until the crew has finished any
+two of them. Each game is worth a few science points, and the day's record is written
+down, so a refresh cannot hand you the same two games twice.
 
 Also on the desk: a **note from home** or the crew, and — if you sent the rover out — the
 **document the rover brings back**, a real NASA picture of a place from the past or a rare
@@ -557,7 +574,9 @@ This game is built for young players first, and every decision follows from that
 - **A guide, and a desk you can read.** The desk is a hub of buttons, each one line of
   state, so the whole day is visible at a glance (D-070). The guide says where everything
   is; it opens by itself the first time you reach the outpost and comes back from a `?`
-  button whenever you need it.
+  button whenever you need it. It is a popup with the astronaut standing beside a speech
+  bubble, one step per page, so a child reads one thing at a time rather than a wall of
+  text (D-073).
 - **No punishing complexity.** A child can land, survive several sols and understand *why*
   they made the choices they did — without reading a manual.
 - **Losing is informative.** There's no game-over screen that just says "you failed." You get a
@@ -592,11 +611,13 @@ player decision, the sol loop, what is built and where a new event plugs in are 
 | Live flare strength | **Built** — NASA DONKI → NOAA SWPC → baked fallback |
 | Live NASA daily pictures | **Built** — Astronomy Picture of the Day → the saved gallery |
 | The rover | **Built** — part of the run: sent out by an order, comes back with a document (D-062) |
+| The how-to-play guide | **Built** — a popup with the astronaut and a speech bubble, ten steps one page at a time (D-073); it opens by itself at the build screen |
 | The how-to-play guide | **Built** — ten steps; it opens by itself at the build screen |
+| The mission-day tracker | **Built** — the day in play and twelve pips on a lit path, in the header at every landing site (D-070, D-071) |
 | The balance | **Checked, not assumed** — `npm run balance` fails if a site cannot hold all five systems (D-064) |
-| Tests | **795 tests in 37 files** (`npm test`, 2026-11-11) |
+| Tests | **958 tests in 46 files** (`npm test`, 2026-11-12) |
 | Checks | **Clean** — import layers, banned APIs, markup, strict typecheck |
-| Browser checks | **Green** — build 25/25, rover 9/9, the whole journey with no console errors |
+| Browser checks | **Green** - build 56/56, the training 40/40, the day tracker 29/29, the whole journey with no console errors |
 | Save / resume | **Not built** — in-memory only (D-003) |
 | Login before `naming` | **Not built** — Supabase deferred (D-003, TASK-022) |
 | Plan phase | **Deliberately not built** — do not add unasked (D-029) |
@@ -614,7 +635,7 @@ player decision, the sol loop, what is built and where a new event plugs in are 
 ### The one invariant
 
 `sim/` and each feature's `model.ts` are pure: no `document`, no `window`, no network. That
-is what lets 795 tests run in a few seconds with no browser, no mocks, and no jsdom. It is enforced by
+is what lets 958 tests run in a few seconds with no browser, no mocks, and no jsdom. It is enforced by
 `npm run check` (`scripts/check-imports.mjs`), not left to good intentions.
 
 ---
@@ -626,7 +647,7 @@ is what lets 795 tests run in a few seconds with no browser, no mocks, and no js
 npm install       # dev dependencies only — the game ships no runtime dependencies
 npm run dev       # Vite dev server, http://localhost:5173
 npm run check     # import-layer + banned-API + markup checks, then tsc --noEmit
-npm test          # Vitest, 795 tests in 37 files
+npm test          # Vitest, 958 tests in 46 files
 npm run balance   # is the game still winnable? run this after touching sim/
 npm run build     # production bundle in dist/
 npm run preview   # serve the built bundle locally
@@ -749,8 +770,9 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   ├── baseLayout.ts        ← loads and validates that layout
     │   ├── baseLayoutEditor.ts  ← the ?editlayout=1 placement editor (dev only)
     │   ├── activityPlayer.ts    ← the work-order player
-    │   ├── guide.ts             ← the how-to-play panel and its button
-    │   ├── icons.ts             ← the 34 pictograms the game draws
+    │   ├── guide.ts             ← the how-to-play popup and its button
+    │   ├── guide.css            ← the bubble, the astronaut and the page controls
+    │   ├── icons.ts             ← the 35 pictograms the game draws
     │   ├── sheet.ts             ← a section opened over a screen
     │   ├── nasaCard.ts · nasaFeedCard.ts ← the curated and the live NASA cards
     │   └── button-strip.ts · button-strip.css

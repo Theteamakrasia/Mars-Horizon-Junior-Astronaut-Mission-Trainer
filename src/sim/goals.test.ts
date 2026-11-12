@@ -14,6 +14,9 @@ import type { ForecastEvent } from './forecast';
  */
 
 const SOLAR: readonly ModuleKind[] = ['solar-array', 'solar-array', 'batteries', 'batteries'];
+/** More load than the lander's one battery can carry through a night. */
+const OVERLOADED: readonly ModuleKind[] = ['greenhouse', 'ice-miner'];
+
 const CLOSED_LOOP: readonly ModuleKind[] = [
   'solar-array',
   'solar-array',
@@ -130,7 +133,8 @@ describe('reading the goals off a run', () => {
   });
 
   it('blames the flat batteries when the air and water makers slow down', () => {
-    let run = outpost('jezero', []);
+    /* Greenhouse and miner on the lander's one battery: more than a night holds. */
+    let run = outpost('jezero', OVERLOADED);
 
     run = advanceSol(run);
 
@@ -223,8 +227,8 @@ describe('the goals as objectives', () => {
   });
 
   it('does not count a sol with a blackout towards the power goal', () => {
-    /* No solar and no batteries: the batteries are flat from the first sol. */
-    let run = outpost('jezero', []);
+    /* Too much load for one battery: the batteries are flat by the end of the first night. */
+    let run = outpost('jezero', OVERLOADED);
 
     run = advanceSol(run);
 
@@ -236,7 +240,7 @@ describe('the goals as objectives', () => {
 
   it('keeps counting a sol towards the goals it did hold', () => {
     /* The same bad sol: the power goal is lost, the food goal is not. */
-    let run = outpost('jezero', []);
+    let run = outpost('jezero', OVERLOADED);
 
     run = advanceSol(run);
 

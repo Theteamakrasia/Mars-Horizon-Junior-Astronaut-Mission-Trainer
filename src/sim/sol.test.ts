@@ -308,7 +308,7 @@ describe('forecast', () => {
 
 describe('advancing a sol', () => {
   it('starts the outpost with full batteries', () => {
-    expect(outpost('jezero', []).stores.power).toBe(100);
+    expect(outpost('jezero', []).stores.power).toBe(150);
   });
 
   it('does not mutate the run it is given', () => {
@@ -346,7 +346,8 @@ describe('advancing a sol', () => {
 
   it('slows oxygen generation during a blackout, which is how a power failure becomes an air failure', () => {
     const full = projectSol(outpost('jezero', SOLAR_FIRST)).net.oxygen;
-    const starved = projectSol(withState(outpost('jezero', []), { stores: { ...outpost('jezero', []).stores, power: 0 } })).net.oxygen;
+    const overloaded = outpost('jezero', ['greenhouse', 'ice-miner']);
+    const starved = projectSol(withState(overloaded, { stores: { ...overloaded.stores, power: 0 } })).net.oxygen;
 
     expect(full).toBeGreaterThanOrEqual(0);
     expect(starved).toBeLessThan(full);
@@ -568,14 +569,14 @@ describe('ending a run', () => {
     expect(run.sol).toBe(WIN_SOL);
   });
 
-  it('survives without the water, but only just: the tank is nearly empty at the end', () => {
+  it('survives a greenhouse without an ice miner, because life support recycles its water', () => {
     /* A greenhouse without an ice miner used to lose the run on water every
-       time. It now survives, on about a tenth of a tank — which is the point
-       of the ice miner, said louder. */
+       time. Life support now recaptures most of what the plants give off, so
+       the tank ends the run well above empty. */
     const run = playOut(outpost('jezero', SOLAR_FIRST), SMART);
 
     expect(run.status).toBe('won');
-    expect(run.stores.water).toBeLessThan(20);
+    expect(run.stores.water).toBeGreaterThan(20);
   });
 
   it('loses when there is no greenhouse, and says food was what ran out', () => {
@@ -624,5 +625,50 @@ describe('ending a run', () => {
     expect(picture.generatedKw).toBeGreaterThan(0);
     expect(picture.nightDrainKw).toBeGreaterThan(0);
     expect(picture.capacityKwh).toBeGreaterThan(0);
+  });
+});
+
+describe('the books: what a sol made and what it used', () => {
+  const BUILDS: readonly (readonly ModuleKind[])[] = [
+    [],
+    ['solar-array', 'batteries', 'greenhouse'],
+    ['greenhouse', 'ice-miner'],
+    ['solar-array', 'batteries', 'batteries', 'greenhouse', 'ice-miner', 'regolith-shield', 'nuclear-unit'],
+  ];
+
+  it('makes produced minus used equal the net change, for every store, on every sol', () => {
+    for (const region of ['arcadia', 'jezero', 'olympus', 'valles', 'argyre']) {
+      for (const extras of BUILDS) {
+        for (const seed of [1, 2, 3]) {
+          let run = outpost(region, extras, seed);
+
+          for (let sol = 0; sol < 12 && run.status === 'active'; sol += 1) {
+            run = advanceSol(withState(run, { chosenActivity: sol % 2 === 0 ? 'rest' : 'survey' }));
+
+            const record = run.log[run.log.length - 1];
+
+            for (const name of ['oxygen', 'water', 'food', 'shielding'] as const) {
+              expect(record.produced[name] - record.consumed[name]).toBeCloseTo(record.net[name], 6);
+            }
+
+            /* Sunlight with nowhere to go is neither stored nor used. */
+            expect(record.produced.power - record.consumed.power - record.powerWasted).toBeCloseTo(record.net.power, 6);
+
+            for (const name of ['power', 'oxygen', 'water', 'food', 'shielding'] as const) {
+              expect(record.produced[name]).toBeGreaterThanOrEqual(0);
+              expect(record.consumed[name]).toBeGreaterThanOrEqual(0);
+            }
+          }
+        }
+      }
+    }
+  });
+
+  it('counts only the power that was actually drawn as used, never the part the batteries could not give', () => {
+    const run = advanceSol(outpost('jezero', ['greenhouse', 'ice-miner']));
+    const record = run.log[0];
+
+    expect(record.blackout).toBeGreaterThan(0);
+    expect(record.consumed.power).toBeLessThan(record.powerUsed);
   });
 });

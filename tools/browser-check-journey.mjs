@@ -12,6 +12,10 @@
  * because a screen can be perfect on its own and unreachable from the one
  * before it, and the launch reel in particular takes its own time before it
  * will let the player on.
+ *
+ * The reel is cut short with its SKIP button rather than watched to the end:
+ * that is the path a player takes, the check finishes in seconds rather than
+ * half a minute, and the button gets exercised on the way through.
  */
 import { spawn } from "node:child_process";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -46,7 +50,25 @@ try {
   await tap("#supply [data-supply-next]");
   await tap("#supply [data-supply-continue]");
   console.log("3 supply -> " + await where() + " (choice " + choice + ")");
-  await sleep(22000);
+  // The launch screen is up. The title card is the one beat that always plays,
+  // so the SKIP button must not be there yet.
+  await waitFor(`(() => { const e = document.getElementById("launch"); return !!e && !e.hidden; })()`);
+  const launchAt = Date.now();
+  await sleep(400);
+  console.log("   skip during the title card: " + await ev(`(() => { const b = document.querySelector("#launch [data-launch-skip]"); if (!b) return "missing"; return b.hidden ? "hidden" : "VISIBLE (wrong)"; })()`));
+  // Then it appears - halfway through the departure - and pressing it cuts the
+  // reel and opens the parts tour. The button is the way past eight seconds of
+  // film, so it has to turn up long before that.
+  const skipShown = await waitFor(`(() => { const b = document.querySelector("#launch [data-launch-skip]"); return !!b && !b.hidden; })()`, 80);
+  const skipAfter = Date.now() - launchAt;
+  console.log("   skip appeared: " + skipShown + " after " + skipAfter + "ms");
+  // The number is approximate: the check sees the screen up to 250ms after it
+  // mounted, and polls for the button on the same 250ms tick. The threshold is
+  // set well above the true 2625ms, so a regression back to the old 5250ms
+  // fails loudly rather than passing by a hair.
+  if (skipAfter > 3500) errors.push("the skip button took " + skipAfter + "ms to appear - it must be up halfway through the departure, not with the films");
+  console.log("   launch skip: " + await tap("#launch [data-launch-skip]"));
+  console.log("   parts tour open: " + await waitFor(`(() => { const p = document.querySelector("#launch [data-launch-parts-panel]"); return !!p && !p.hidden; })()`, 20));
   console.log("   launch parts: " + await tap("#launch [data-launch-parts-continue]"));
   await sleep(2000);
   console.log("4 launch -> " + await where());

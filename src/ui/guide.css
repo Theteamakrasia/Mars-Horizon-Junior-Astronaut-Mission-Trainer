@@ -1,0 +1,489 @@
+/* GUIDE — imported by ui/guide.ts only (R-15).
+
+   The how-to-play popup: a dimmed backdrop, the astronaut on the left, and one
+   page of a speech bubble on the right. The astronaut is the person talking,
+   so the bubble's tail points at them and the Next button turns the page.
+
+   It sits above everything else the screen can open: see the stacking ladder
+   at the top of styles/game-loop.css. */
+
+.guide__backdrop {
+  --guide-paper: #fdf1dd;
+  --guide-paper-top: #fff9ed;
+  --guide-navy: #1d2d46;
+
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: clamp(10px, 2.4vw, 40px);
+  background: rgba(8, 16, 28, 0.56);
+  color: var(--gl-ink);
+  font-family: var(--gl-body);
+  animation: guide-fade 220ms ease-out both;
+}
+
+/* The popup is mounted on `document.body`, outside the `.gl` shell, so it has
+   to carry the box model and focus ring the game's screens get from `.gl`. */
+.guide__backdrop,
+.guide__backdrop *,
+.guide__backdrop *::before,
+.guide__backdrop *::after {
+  box-sizing: border-box;
+}
+
+.guide__backdrop :focus-visible {
+  outline: 3px solid var(--gl-orange);
+  outline-offset: 2px;
+}
+
+/* The astronaut and the bubble move as one pair, so the tail keeps pointing
+   at the person who is talking at every screen size. */
+.guide__stage {
+  position: relative;
+  display: grid;
+  grid-template-columns: clamp(5rem, 20vw, 15rem) minmax(0, 1fr);
+  align-items: end;
+  width: min(58rem, 96vw);
+  max-height: 92vh;
+}
+
+/* ------------------------------------------------------------ astronaut -- */
+
+.guide__astro-wrap {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  min-width: 0;
+  animation: guide-astro-in 520ms cubic-bezier(0.2, 0.8, 0.25, 1) both;
+}
+
+.guide__glow {
+  position: absolute;
+  bottom: 4%;
+  width: 92%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(223, 84, 43, 0.32), transparent 66%);
+  filter: blur(12px);
+}
+
+/* A soft shadow under the boots, so the cutout stands on the ground rather
+   than floating in front of the dimmed screen. */
+.guide__astro-wrap::after {
+  content: '';
+  position: absolute;
+  right: 12%;
+  bottom: 1.5%;
+  left: 12%;
+  height: 6%;
+  border-radius: 50%;
+  background: rgba(5, 12, 22, 0.38);
+  filter: blur(6px);
+}
+
+.guide__astro {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  max-height: min(64vh, 34rem);
+  object-fit: contain;
+  object-position: bottom center;
+  filter: drop-shadow(0 18px 22px rgba(5, 12, 22, 0.38));
+  user-select: none;
+  -webkit-user-drag: none;
+  animation: guide-bob 4.2s 620ms ease-in-out infinite;
+}
+
+/* --------------------------------------------------------------- bubble -- */
+
+.guide__bubble {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-height: min(84vh, 42rem);
+  padding: clamp(24px, 2.4vw, 38px) clamp(18px, 2.2vw, 38px) clamp(14px, 1.5vw, 22px);
+  border: clamp(2px, 0.2vw, 3px) solid var(--guide-navy);
+  border-radius: clamp(18px, 2vw, 32px);
+  background: linear-gradient(180deg, var(--guide-paper-top), var(--guide-paper));
+  color: var(--gl-ink);
+  box-shadow:
+    0 26px 60px rgba(5, 12, 22, 0.46),
+    inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  animation: guide-bubble-in 440ms cubic-bezier(0.2, 0.9, 0.3, 1.12) both;
+}
+
+/* The tail: a navy triangle with a paper one laid over it, leaving an outline
+   the same weight as the bubble's border. It points left, at the astronaut. */
+.guide__bubble::before,
+.guide__bubble::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-style: solid;
+}
+
+.guide__bubble::before {
+  bottom: clamp(42px, 6vw, 70px);
+  left: -22px;
+  border-width: 20px 22px 20px 0;
+  border-color: transparent var(--guide-navy) transparent transparent;
+}
+
+.guide__bubble::after {
+  bottom: clamp(46px, 6vw, 74px);
+  left: -16px;
+  border-width: 16px 17px 16px 0;
+  border-color: transparent var(--guide-paper) transparent transparent;
+}
+
+/* The little "How to play" pill, sitting on the bubble's top edge. */
+.guide__pill {
+  position: absolute;
+  top: calc(clamp(18px, 2vw, 30px) * -1);
+  left: clamp(14px, 2.2vw, 36px);
+  display: flex;
+  align-items: center;
+  gap: 0.55em;
+  padding: clamp(6px, 0.75vw, 11px) clamp(13px, 1.5vw, 24px);
+  border-radius: 999px;
+  background: var(--guide-navy);
+  color: #fff;
+  box-shadow: 0 10px 22px rgba(5, 12, 22, 0.35);
+  font-family: var(--gl-display);
+  font-size: clamp(0.82rem, 1.05vw, 1.3rem);
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+  animation: guide-pill-in 480ms 100ms cubic-bezier(0.2, 0.9, 0.3, 1.12) both;
+}
+
+.guide__pill-icon {
+  display: grid;
+  place-items: center;
+  color: #ffc85e;
+  font-size: 1.16em;
+}
+
+.guide__close {
+  position: absolute;
+  top: clamp(8px, 0.8vw, 14px);
+  right: clamp(8px, 0.8vw, 14px);
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: clamp(26px, 2.3vw, 38px);
+  height: clamp(26px, 2.3vw, 38px);
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 2px 8px rgba(5, 12, 22, 0.16);
+  color: var(--guide-navy);
+  font-size: clamp(0.72rem, 0.88vw, 1rem);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.guide__close:hover {
+  background: var(--gl-orange);
+  color: #fff;
+}
+
+/* ---------------------------------------------------------- page content -- */
+
+.guide__page {
+  --guide-from: 16px;
+
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gl-card-strong) transparent;
+}
+
+.guide__page--in {
+  animation: guide-page-in 260ms ease-out both;
+}
+
+.guide__where {
+  margin: 0 0 0.3em;
+  color: var(--gl-orange-deep);
+  font-size: clamp(0.6rem, 0.72vw, 0.88rem);
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.guide__heading {
+  max-width: 20ch;
+  margin: 0;
+  padding-right: clamp(20px, 2.2vw, 32px);
+  color: var(--gl-ink);
+  font-family: var(--gl-display);
+  font-size: clamp(1.25rem, 2.05vw, 2.1rem);
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+}
+
+.guide__text {
+  max-width: 34ch;
+  margin: 0.65em 0 0;
+  color: #3d4c60;
+  font-size: clamp(0.88rem, 1.08vw, 1.2rem);
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+/* ---------------------------------------------------------------- footer -- */
+
+.guide__foot {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: clamp(6px, 0.7vw, 12px);
+  margin-top: clamp(10px, 1.2vw, 18px);
+  padding-top: clamp(8px, 0.8vw, 14px);
+  border-top: 1px solid var(--gl-line);
+}
+
+.guide__tools {
+  order: 1;
+}
+
+.guide__read {
+  border: 1px solid var(--gl-line);
+  border-radius: 999px;
+  padding: 0.55em 0.95em;
+  background: var(--gl-card);
+  color: var(--gl-ink);
+  font-family: var(--gl-body);
+  font-size: clamp(0.64rem, 0.78vw, 0.88rem);
+  font-weight: 800;
+  line-height: 1.1;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.guide__read:hover {
+  background: var(--gl-card-strong);
+}
+
+.guide__read[aria-pressed='true'] {
+  background: var(--gl-peach);
+  color: var(--gl-orange-deep);
+}
+
+.guide__progress {
+  order: 2;
+  display: flex;
+  align-items: center;
+  gap: 0.55em;
+  margin-left: auto;
+}
+
+.guide__dots {
+  display: flex;
+  align-items: center;
+  gap: clamp(3px, 0.32vw, 5px);
+}
+
+.guide__dot {
+  display: block;
+  width: clamp(5px, 0.42vw, 7px);
+  height: clamp(5px, 0.42vw, 7px);
+  border-radius: 999px;
+  background: var(--gl-card-strong);
+  transition: width 180ms ease, background 180ms ease, opacity 180ms ease;
+}
+
+.guide__dot--done {
+  background: var(--gl-navy-soft);
+  opacity: 0.4;
+}
+
+.guide__dot--active {
+  width: clamp(14px, 1.2vw, 20px);
+  background: var(--gl-orange);
+}
+
+.guide__count {
+  margin: 0;
+  color: var(--gl-muted);
+  font-size: clamp(0.58rem, 0.7vw, 0.82rem);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.guide__nav {
+  order: 3;
+  display: flex;
+  align-items: center;
+  gap: clamp(2px, 0.3vw, 6px);
+}
+
+.guide__back {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.6em 0.9em;
+  background: transparent;
+  color: var(--gl-muted);
+  font-family: var(--gl-body);
+  font-size: clamp(0.64rem, 0.78vw, 0.88rem);
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.guide__back:hover:not(:disabled) {
+  background: var(--gl-card);
+  color: var(--gl-ink);
+}
+
+.guide__back:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.guide__next {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  border: 0;
+  border-radius: 999px;
+  padding: clamp(0.52rem, 0.68vw, 0.85rem) clamp(1rem, 1.4vw, 1.7rem);
+  background: linear-gradient(180deg, #ef7046, var(--gl-orange));
+  color: #fff;
+  box-shadow:
+    0 8px 18px rgba(207, 71, 38, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.38);
+  font-family: var(--gl-display);
+  font-size: clamp(0.8rem, 0.98vw, 1.08rem);
+  font-weight: 900;
+  line-height: 1.1;
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.guide__next:hover {
+  transform: translateY(-1px) scale(1.02);
+  box-shadow:
+    0 11px 22px rgba(207, 71, 38, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.38);
+}
+
+.guide__next:active {
+  transform: translateY(1px) scale(0.99);
+}
+
+.guide__next .ico {
+  width: 1em;
+  height: 1em;
+}
+
+/* ------------------------------------------------------------ animations -- */
+
+@keyframes guide-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes guide-astro-in {
+  from {
+    opacity: 0;
+    transform: translate(-26px, 20px) rotate(-2deg);
+  }
+}
+
+@keyframes guide-bubble-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.94);
+  }
+}
+
+@keyframes guide-pill-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.9);
+  }
+}
+
+@keyframes guide-page-in {
+  from {
+    opacity: 0;
+    transform: translateX(var(--guide-from, 16px));
+  }
+}
+
+@keyframes guide-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-0.4deg);
+  }
+
+  50% {
+    transform: translateY(-7px) rotate(0.4deg);
+  }
+}
+
+/* A child who has asked the system for less motion gets the same popup without
+   the entrance, the float or the page slide. */
+@media (prefers-reduced-motion: reduce) {
+  .guide__backdrop,
+  .guide__astro-wrap,
+  .guide__astro,
+  .guide__bubble,
+  .guide__pill,
+  .guide__page--in {
+    animation: none;
+  }
+
+  .guide__next,
+  .guide__dot,
+  .guide__read {
+    transition: none;
+  }
+}
+
+/* On a phone the pair stays side by side, with the astronaut narrow enough to
+   leave the bubble readable. The tail still points at them. */
+@media (max-width: 520px) {
+  .guide__backdrop {
+    padding: 8px;
+  }
+
+  .guide__stage {
+    grid-template-columns: 5rem minmax(0, 1fr);
+    width: 100%;
+  }
+
+  .guide__bubble {
+    padding: 22px 14px 12px;
+    border-radius: 18px;
+  }
+
+  .guide__heading {
+    padding-right: 26px;
+  }
+
+  .guide__foot {
+    gap: 6px;
+  }
+
+  .guide__progress {
+    margin-left: 0;
+  }
+
+  .guide__nav {
+    margin-left: auto;
+  }
+}

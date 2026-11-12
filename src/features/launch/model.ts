@@ -1,5 +1,5 @@
 /**
- * The launch cinematic: two stills, three films, and the title card.
+ * The launch cinematic: two stills, two films, and the title card.
  *
  * Pure: no DOM, no timer, no randomness. Every test input is a literal, so this
  * file cannot flake — the defect recorded as ISS-015.
@@ -35,10 +35,15 @@
  *
  * On the timings
  * --------------
- * There is no skip. The screen's only exit is the hand-off timer in view.ts, which
- * makes the total the most load-bearing number in the feature — hence
- * TOTAL_DURATION_MS being derived from the parts rather than typed alongside them,
- * where the two could disagree.
+ * The screen's only exit is the parts tour, which view.ts opens when the last
+ * film ends - or when the player presses SKIP, which appears halfway through the
+ * departure and cuts the reel straight to that tour. The total is therefore the
+ * most load-bearing number in the feature - hence TOTAL_DURATION_MS being derived
+ * from the parts rather than typed alongside them, where the two could disagree.
+ *
+ * The skip does not change this number. A skip is an exit, not a shorter reel:
+ * the films are still as long as they are, and a player who does not press it
+ * sees all of them.
  */
 
 /** One beat of the sequence. */
@@ -331,10 +336,55 @@ export const NASA_FACT =
   'A rocket that goes far usually drops its empty fuel tanks partway up, which is called staging.';
 
 /**
+ * The label on the skip button.
+ *
+ * One word. It is the word a video player uses and the word a child reads as
+ * "make this stop", and anything longer turns a control into a sentence.
+ */
+export const SKIP_LABEL = 'Skip';
+
+/**
+ * What the skip button does, for anyone who cannot see the label.
+ *
+ * The button cuts the rest of the reel and lands on the parts tour, which is
+ * where the reel ends anyway - so the description says where the player goes,
+ * not only what stops.
+ */
+export const SKIP_DESCRIPTION =
+  'Skip the launch and go straight to the spacecraft tour';
+
+/**
+ * When the films begin, in milliseconds from the mount.
+ *
+ * The title card and the two stills are the departure, and they play in full
+ * unless the player skips - which they can do before the films, because the
+ * skip button is already up by then.
+ *
+ * Derived from the parts, so it cannot drift from them.
+ */
+export const FILMS_BEGIN_MS =
+  TITLE_DURATION_MS + SHOTS.reduce((total, shot) => total + shot.durationMs, 0);
+
+/**
+ * When the skip button appears, in milliseconds from the mount.
+ *
+ * Halfway through the departure - half the wait it used to cost, which was the
+ * whole of it, because the button used to appear with the films.
+ *
+ * It is up before the films begin, so the films can be cut, and it is up after
+ * the title card has gone, so the title card always plays. That is the one
+ * beat of this screen nobody can skip.
+ *
+ * Derived from FILMS_BEGIN_MS, so it cannot drift from the reel.
+ */
+export const SKIP_APPEARS_MS = Math.round(FILMS_BEGIN_MS / 2);
+
+/**
  * The whole runtime, title included.
  *
- * Derived, so it cannot drift from the parts. view.ts sets the hand-off timer from
- * this number, and it is the only way off the screen.
+ * Derived, so it cannot drift from the parts. It is the reel's nominal length -
+ * how long the films run if nobody presses SKIP - and not a timer: the screen
+ * exits when the last film ends, or when the player skips.
  *
  * Note there is no separate reduced-motion duration, and that is deliberate.
  * Reduced motion removes the movement, not the information: the stills, the

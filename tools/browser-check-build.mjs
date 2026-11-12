@@ -16,10 +16,16 @@
  */
 
 import { spawn } from 'node:child_process';
+import { rmSync } from 'node:fs';
 import { setTimeout as sleep } from 'node:timers/promises';
+
+import { doTheTraining } from './training-driver.mjs';
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:4173';
 const CHROME = process.env.CHROME_PATH ?? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+
+/* A clean profile, so the check always starts from a clean day. */
+rmSync(process.env.TEMP + '\\build-chrome-profile', { recursive: true, force: true });
 
 const chrome = spawn(CHROME, [
   '--headless=new',
@@ -244,6 +250,17 @@ try {
   await send('Page.navigate', { url: `${BASE}/#naming` });
   await waitFor(`!!document.getElementById('naming') && !document.getElementById('naming').hidden`);
 
+  /* The training record is written down, so it survives a refresh - which means
+     it also survives the last run of this check, in the same browser profile.
+     The check starts from a clean day, or the work orders would already be
+     open and there would be nothing to lock. The page is reloaded as well:
+     Chrome restores the last session in a profile it has used before, and the
+     restored page still holds the run of that session in memory, which the
+     storage cannot reach. */
+  await evaluate(`(() => { try { localStorage.removeItem('marsHorizon.training.v1'); } catch (e) { /* no storage */ } })()`);
+  await send('Page.reload', {});
+  await waitFor(`!!document.getElementById('naming') && !document.getElementById('naming').hidden`);
+
   // 1. Name the astronaut and get to the outpost.
   const named = await waitFor(`(() => {
     const input = document.querySelector('[data-naming-input]');
@@ -280,6 +297,22 @@ try {
     counts.length > 0 && counts.every((entry) => /\d+\/\d+/.test(entry)),
     counts.join(', '),
   );
+
+  // 2b. The card counts the copy the lander brought (ISS-077). The solar array
+  //     is the clearest one: one array lands with the crew and three can be
+  //     added, so the card reads 1 / 4 before the player spends anything.
+  const solarBefore = await evaluate(`(() => {
+    const card = [...document.querySelectorAll('#base .gl__card')]
+      .find((c) => (c.querySelector('.gl__card-name')?.textContent ?? '') === 'Solar Array');
+    if (!card) return null;
+    return {
+      count: (card.querySelector('.gl__count')?.textContent ?? '').replace(/\\s+/g, ''),
+      lander: card.querySelector('.gl__card-lander')?.textContent ?? '',
+    };
+  })()`);
+
+  note('the solar card counts the lander copy: 1/4', solarBefore?.count === '1/4', solarBefore?.count ?? 'no card');
+  note('and says that copy came with the lander', (solarBefore?.lander ?? '').includes('lander'), solarBefore?.lander ?? '');
 
   // 3. The day-power card, before anything is built.
   const dayPowerBefore = await evaluate(`(() => {
@@ -330,10 +363,48 @@ try {
     };
   })()`);
 
-  note('the solar card reads 3/3', solar?.count.replace(/\s+/g, '') === '3/3', solar?.count ?? 'no card');
+  note('the solar card reads 4/4', solar?.count.replace(/\s+/g, '') === '4/4', solar?.count ?? 'no card');
   note('the add button is dead at the limit', solar?.addDisabled === true);
   note('the card says why the button is dead', (solar?.why ?? '').length > 0, solar?.why ?? '');
   note('the card is marked as at its limit', solar?.max === 'MAX');
+
+  // 4b. A press redraws the panel, and the panel must not jump back to the top
+  //     (ISS-080). Squash the viewport first: the panel is sized in vw, so at
+  //     the default 800x600 it fits and has nothing to scroll.
+  await send('Emulation.setDeviceMetricsOverride', { width: 1100, height: 380, deviceScaleFactor: 1, mobile: false });
+  await sleep(300);
+
+  const scroll = await evaluate(`(() => {
+    const scroller = document.querySelector('#base .gl__scroll');
+    if (!scroller) return { found: false, before: 0, after: 0 };
+    /* Not the very bottom: removing the array deletes the card's "why" line,
+       so the maximum offset shrinks and a bottom-anchored read would be
+       clamped by the content, not by the redraw. */
+    scroller.scrollTop = Math.min(200, scroller.scrollHeight);
+    const before = scroller.scrollTop;
+    const card = [...document.querySelectorAll('#base .gl__card')]
+      .find((c) => (c.querySelector('.gl__card-name')?.textContent ?? '') === 'Solar Array');
+    card?.querySelector('.gl__step:not(.gl__step--add)')?.click();
+    const after = document.querySelector('#base .gl__scroll')?.scrollTop ?? -1;
+    return { found: before > 0, before, after };
+  })()`);
+
+  note(
+    'a press keeps the panel where the player was',
+    scroll.found === true && Math.abs(scroll.after - scroll.before) <= 2,
+    `${scroll.before} then ${scroll.after}`,
+  );
+
+  /* Put the array back: the rest of the pass expects the build it built. */
+  await evaluate(`(() => {
+    const card = [...document.querySelectorAll('#base .gl__card')]
+      .find((c) => (c.querySelector('.gl__card-name')?.textContent ?? '') === 'Solar Array');
+    card?.querySelector('.gl__step--add')?.click();
+  })()`);
+  await sleep(400);
+
+  await send('Emulation.clearDeviceMetricsOverride');
+  await sleep(300);
 
   // 5. The click was announced, and a number moved.
   const toast = await evaluate(`document.querySelector('#base .gl__toast')?.textContent ?? ''`);
@@ -366,32 +437,63 @@ try {
   );
 
   // 7. The guide. It opens by itself the first time the player reaches the
-  //    build screen, and the help button in the header brings it back.
+  //    build screen, and the help button in the header brings it back. It is a
+  //    popup now - a speech bubble with the crewmate in it, one page at a
+  //    time - and it is mounted on the body rather than inside the screen, so
+  //    a redraw behind it cannot throw the reader back to page one.
   const guide = await evaluate(`(() => {
-    const panel = document.querySelector('#base .gl__guide');
+    const panel = document.querySelector('body .guide__bubble');
     return {
       open: !!panel,
-      steps: panel ? panel.querySelectorAll('.gl__guide-step').length : 0,
+      page: panel ? panel.querySelectorAll('.guide__page').length : 0,
+      dots: panel ? panel.querySelectorAll('.guide__dots > *').length : 0,
       button: !!document.querySelector('#base .gl__icon-button[aria-label="How to play"]'),
       book: !!document.querySelector('#base .gl__icon-button[aria-label="Encyclopedia"]'),
     };
   })()`);
 
   note('the guide is open on the first build screen', guide.open === true);
-  note('and it has steps in it', guide.steps >= 8, `${guide.steps} steps`);
+  note('and it shows a page of it', guide.page === 1, `${guide.page} page(s)`);
+  note('with a dot for every page', guide.dots >= 8, `${guide.dots} dots`);
   note('the header has a button to bring it back', guide.button === true);
   note('and the encyclopedia is one click away in the header', guide.book === true);
 
-  await evaluate(`(() => { const b = document.querySelector('#base .gl__guide-close'); if (b) b.click(); })()`);
+  await evaluate(`(() => { const b = document.querySelector('body .guide__close'); if (b) b.click(); })()`);
   await sleep(400);
-  note('and it can be closed', (await evaluate(`!document.querySelector('#base .gl__guide')`)) === true);
+  note('and it can be closed', (await evaluate(`!document.querySelector('body .guide__bubble')`)) === true);
 
   await evaluate(`(() => { const b = document.querySelector('#base .gl__icon-button[aria-label="How to play"]'); if (b) b.click(); })()`);
   await sleep(400);
-  note('and opened again', (await evaluate(`!!document.querySelector('#base .gl__guide')`)) === true);
+  note('and opened again', (await evaluate(`!!document.querySelector('body .guide__bubble')`)) === true);
 
-  await evaluate(`(() => { const b = document.querySelector('#base .gl__guide-close'); if (b) b.click(); })()`);
+  await evaluate(`(() => { const b = document.querySelector('body .guide__close'); if (b) b.click(); })()`);
   await sleep(300);
+
+  // 7b. Put the build back to the lander's own kit.
+  //
+  //     The act checks below need the outpost the game is hardest on: one
+  //     array and one battery, whose batteries really do reach zero after a
+  //     night. It also proves the lander's copy cannot be removed, because the
+  //     minus stops working at 1/4 (ISS-077).
+  for (let i = 0; i < 3; i += 1) {
+    await evaluate(`(() => {
+      const card = [...document.querySelectorAll('#base .gl__card')]
+        .find((c) => (c.querySelector('.gl__card-name')?.textContent ?? '') === 'Solar Array');
+      const remove = card?.querySelector('.gl__step:not(.gl__step--add)');
+      if (!remove || remove.disabled) return false;
+      remove.click();
+      return true;
+    })()`);
+    await sleep(300);
+  }
+
+  const backToOne = await evaluate(`(() => {
+    const card = [...document.querySelectorAll('#base .gl__card')]
+      .find((c) => (c.querySelector('.gl__card-name')?.textContent ?? '') === 'Solar Array');
+    return (card?.querySelector('.gl__count')?.textContent ?? '').replace(/\\s+/g, '');
+  })()`);
+
+  note("the lander's copy cannot be removed, so the count stops at 1/4", backToOne === '1/4', backToOne);
 
   // 8. The desk is a hub: six buttons, each a label and one line of state.
   await clickIn('base', 'Land & start sol 1');
@@ -462,7 +564,38 @@ try {
   note('the sol count is the panel kicker', (hub?.kicker ?? '').startsWith('Sol '), hub?.kicker ?? '');
   note('and the science points are in its corner', /\d+\s*points/.test(hub?.points ?? ''), hub?.points ?? '');
 
-  // 9. The work orders, behind their button.
+  // 9. The crew trains first: today's work orders are locked until two
+  //    training games are done (D-075), so the check has to train before it
+  //    can stamp an order - and the lock is part of what it is checking.
+  const lockedBefore = await evaluate(`(() => {
+    const tile = document.querySelector('#act .act-tile[data-tile="tasks"]');
+    return { locked: tile?.dataset.locked ?? '', status: tile?.querySelector('.act-tile__status')?.textContent ?? '' };
+  })()`);
+
+  note('the work orders are locked until the crew has trained', lockedBefore?.locked === 'true', lockedBefore?.status);
+
+  const lockedSheet = await openTile('tasks');
+
+  note('and the locked tile does not open the orders', lockedSheet === false);
+
+  const training = await doTheTraining(evaluate, sleep, async (name) => {
+    await evaluate(`(() => { const b = document.querySelector('#act .act-tile[data-tile="orders"]'); if (b) b.click(); })()`);
+    await sleep(500);
+    await evaluate(`(() => { const b = [...document.querySelectorAll('#act .trn__card')].find((c) => c.querySelector('.trn__card-name')?.textContent === ${JSON.stringify(name)}); if (b) b.querySelector('.trn__play').click(); })()`);
+    await sleep(700);
+
+    return evaluate(`!!document.querySelector('#act .trn__backdrop')`);
+  });
+
+  note('two training games are played', training?.cargo === true && training?.asteroid === true, `${training?.cargo}, ${training?.asteroid}`);
+
+  const lockedAfter = await evaluate(`(() => {
+    const tile = document.querySelector('#act .act-tile[data-tile="tasks"]');
+    return { locked: tile?.dataset.locked ?? '', status: tile?.querySelector('.act-tile__status')?.textContent ?? '' };
+  })()`);
+
+  note('and the work orders open once they are done', lockedAfter?.locked === 'false', lockedAfter?.status);
+
   const tasksOpen = await openTile('tasks');
   const desk = await evaluate(`(() => ({
     orders: document.querySelectorAll('#act .act-order').length,
@@ -495,7 +628,7 @@ try {
     await sleep(600);
 
     /* The mini game opens in its OWN sheet, over the orders, and it never
-       joins the desk (ISS-077). */
+       joins the desk (ISS-093). */
     const withTool = await sheetsNow();
 
     note('the tool opens in its own sheet', withTool?.count === 2, `${withTool?.count ?? 0} sheets`);
@@ -523,7 +656,7 @@ try {
   }
 
   /* Closing the tool puts the player back on the orders, and the tool does not
-     follow them to the desk (ISS-077). */
+     follow them to the desk (ISS-093). */
   await closeTopSheet();
   const afterTool = await sheetsNow();
 
@@ -532,7 +665,7 @@ try {
   await closeSheet();
 
   /* And the desk is the desk: a tool that outlived its order would be waiting
-     there, which is what the player reported (ISS-077). */
+     there, which is what the player reported (ISS-093). */
   await openTile('desk');
   const deskSheet = await sheetsNow();
 
@@ -590,6 +723,35 @@ try {
   const crisis = await evaluate(`!!document.querySelector('#act .gl__choices')`);
   note('the sol ran', crisis || (await evaluate(`!!document.querySelector('#act .act-tile')`)));
 
+  // 13b. The power card reads the batteries, not the projection (ISS-078). A
+  //      bare outpost needs more than its battery holds to get through a
+  //      night, so after one sol the store - and the card - are at zero, and
+  //      the meter's percentage agrees. The old card was a constant 200 kWh.
+  const powerCard = await evaluate(`(() => {
+    const stat = [...document.querySelectorAll('#act .gl__stat')]
+      .find((s) => (s.querySelector('.gl__stat-label')?.textContent ?? '').startsWith('Power'));
+    return {
+      label: stat?.querySelector('.gl__stat-label')?.textContent ?? '',
+      value: stat?.querySelector('.gl__stat-value')?.textContent ?? '',
+      meter: stat?.querySelector('.gl__stat-bar')?.getAttribute('aria-valuenow') ?? '',
+    };
+  })()`);
+
+  note('the act power card reads the stored kWh', /^\d+ kWh$/.test(powerCard?.value ?? ''), `${powerCard?.label || 'no card'} = ${powerCard?.value || 'nothing'}`);
+  /* The bar and the number have to agree with each other, whatever the
+     balance is: the card says how much is stored, and the bar says how much
+     of the capacity that is. (It used to say a bare outpost reads empty,
+     which stopped being true when the lander's battery was sized to carry a
+     night - ISS-083.) */
+  const stored = Number((powerCard?.value ?? '').replace(/[^\d]/g, ''));
+  const capacity = Number((powerCard?.label.match(/(\d+) kWh max/)?.[1] ?? '0'));
+
+  note(
+    'and the bar agrees with the number on the card',
+    capacity > 0 && powerCard?.meter === String(Math.round((stored / capacity) * 100)),
+    `${stored} of ${capacity} kWh = ${powerCard?.meter ?? '?'}%`,
+  );
+
   /* The forecast's timetable is rolled per page load (D-048), so a crisis
      lands on the next sol some of the time and the hub is not there. The
      player resolves the crisis and the hub comes back, so the check does the
@@ -600,6 +762,17 @@ try {
   }
 
   if (!crisis) {
+    /* The stats sheet says what the last sol did to the power, so the empty
+       batteries are explained rather than looking stuck (ISS-082). */
+    await openTile('stats');
+    const powerLine = await evaluate(`(() => {
+      const notes = [...document.querySelectorAll('#act .sheet__body .gl__note')].map((n) => n.textContent ?? '');
+      return notes.find((text) => text.includes('kWh')) ?? '';
+    })()`);
+
+    note('the stats sheet explains the empty batteries', /ran flat|panels made/.test(powerLine), powerLine);
+    await closeSheet();
+
     const review = await evaluate(`(() => {
       const tile = document.querySelector('#act .act-tile[data-tile="review"]');
       return {

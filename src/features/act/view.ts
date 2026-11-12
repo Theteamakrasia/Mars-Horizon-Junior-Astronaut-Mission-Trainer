@@ -31,9 +31,10 @@ import { makeInspection, type Inspection } from '../../ui/activityPlayer';
 import { guideButton, guidePanel } from '../../ui/guide';
 import { ENGINE_NAME, engineUnlocked, type EngineKind } from '../../sim/minigames';
 import { visibleForecast } from '../../sim/forecast';
-import { siteScore, regionById, SITE_AXES } from '../../sim/regions';
+import { siteScore } from '../../sim/regions';
 import { advanceSol, decide, powerPicture, WIN_SOL } from '../../sim/sol';
-import { gamePanel, gameScreen, gameSection, gameWorld, moduleArt, moduleFigures, type HudStat, type SignalCard } from '../../ui/gameLoop';
+import { gamePanel, gameScreen, gameSection, gameWorld, keepScroll, moduleArt, moduleFigures, type HudStat, type SignalCard } from '../../ui/gameLoop';
+import { dayModel } from '../../ui/dayTracker';
 import { icon, RANK_ICON, RESOURCE_ICON, type IconName } from '../../ui/icons';
 import { nasaCard } from '../../ui/nasaCard';
 import { nasaFeedCard } from '../../ui/nasaFeedCard';
@@ -42,13 +43,14 @@ import { stopReading } from '../../ui/readAloud';
 import { nextStop } from '../../ui/registry';
 import { navigate } from '../../ui/router';
 import { sheet, sheetCloseButton } from '../../ui/sheet';
+import { applyTrainingRecord, openTrainingGame, trainingSection, type TrainingGameScreen } from '../../ui/training';
+import { TRAINING_DAILY_LIMIT, canStartTraining, trainingUnlocked, type TrainingGameId } from '../../sim/training';
 
-import { activityRows, boardRows, changeRows, deskNote, hubTiles, meterRows, missionHeadline, orderChecks, powerSentence, powerToday, roverDocument, scienceSummary, secondsLeft, type HubSection, type HubTile } from './model';
+import { activityRows, boardRows, changeRows, ledgerRows, deskNote, hubTiles, lastPowerLine, meterRows, missionHeadline, orderChecks, powerSentence, powerToday, roverDocument, scienceSummary, secondsLeft, type HubSection, type HubTile } from './model';
 
 import '../../styles/game-loop.css';
 import './act.css';
 
-const AXIS_NAMES: Readonly<Record<string, string>> = { water: 'Water', sun: 'Sun', terrain: 'Terrain', dust: 'Dust', temp: 'Warmth' };
 
 /** What the crew calls each forecast event. */
 const EVENT_NAME: Readonly<Record<Crisis['kind'], string>> = {
@@ -76,6 +78,14 @@ const CRISIS_ART: Readonly<Record<Crisis['kind'], readonly { readonly src?: stri
   storm: [{ src: moduleArt('solar-array') }, { src: moduleArt('greenhouse') }, { icon: 'sparkle' }],
   'supply-pod': [{ src: moduleArt('habitat') }, { icon: 'box' }, { icon: 'pick' }],
 };
+
+/**
+ * How long the day tracker keeps flashing the sol that has just been flown.
+ *
+ * Longer than the flash itself (700ms) so a click straight after the sol ran
+ * does not cut it off halfway.
+ */
+const ADVANCE_FLASH_MS = 1500;
 
 /** The pictogram on each hub button. */
 const TILE_ICON: Readonly<Record<HubSection, IconName>> = {
@@ -132,8 +142,22 @@ export function mountAct(
   let focusToolButton: string | null = null;
   /** Whether the how-to-play guide is open. */
   let guideOpen = false;
+  /**
+   * The mounted popup. It lives on `document.body`, not inside the screen, so
+   * the forecast and the clock can redraw the desk without resetting the page
+   * the child is reading or replaying its entrance.
+   */
+  let guideEl: HTMLElement | null = null;
+  /** The training game that is open over the desk, if any. */
+  let trainingGame: TrainingGameScreen | null = null;
+  /** What the training section says when a game cannot be played. */
+  let trainingNotice = '';
   let clockNodes: { readonly bar: HTMLElement; readonly text: HTMLElement } | null = null;
   let pendingFocus: HTMLElement | null = null;
+  /** The sol that has just been flown, so the day tracker can flash it. */
+  let advancedSol = 0;
+  /** The timer that forgets it again. */
+  let advanceTimer: number | null = null;
   /* NASA's live daily pictures. Empty when NASA did not answer, and the screen
      says so rather than showing a broken card. */
   let dailyFacts: readonly DailyFact[] = [];
@@ -142,6 +166,18 @@ export function mountAct(
      it, but the data sheet shows NASA's own readings (D-071). */
   let loaded: LoadedForecast | null = null;
   const controller = new AbortController();
+
+  /* The training record is written down, so a refresh does not hand the
+     player the same two games again. It goes onto the run before the first
+     draw, so the desk shows what has really been done today. */
+  if (run !== null) {
+    const recorded = applyTrainingRecord(run);
+
+    if (recorded !== run) {
+      run = recorded;
+      setRun(run);
+    }
+  }
 
   function stopTimer(): void {
     if (timer !== null) window.clearInterval(timer);
@@ -154,8 +190,19 @@ export function mountAct(
     /* The day is being committed, so whatever was open is about to be about
        the wrong sol. */
     openSheet = null;
-    run = advanceSol(run);
+    /* A new sol is a new day of training: the record for it is put back on
+       the run, so the two games are available again and the points of the
+       day before are left alone. */
+    run = applyTrainingRecord(advanceSol(run));
     setRun(run);
+
+    /* The sol that has just been flown, so the header's day tracker can flash
+       that one pip. The screen rebuilds its whole DOM on every render, so an
+       animation on its own would replay every time the player picked an
+       activity. Marking the pip is what makes the flash happen on the advance
+       and not on the other renders. */
+    advancedSol = run.sol;
+    scheduleAdvanceClear();
 
     if (run.status !== 'active') {
       navigate(nextStop('act') ?? 'debrief');
@@ -164,6 +211,21 @@ export function mountAct(
     }
 
     render();
+  }
+
+  /**
+   * Forget the sol that was just flown, after the flash has had time to play.
+   *
+   * Held rather than cleared on the next render, so a click a moment after the
+   * sol ran does not cut the flash in half.
+   */
+  function scheduleAdvanceClear(): void {
+    if (advanceTimer !== null) window.clearTimeout(advanceTimer);
+
+    advanceTimer = window.setTimeout(() => {
+      advanceTimer = null;
+      advancedSol = 0;
+    }, ADVANCE_FLASH_MS);
   }
 
   function choose(crisis: Crisis, optionId: string, timedOut: boolean): void {
@@ -223,10 +285,73 @@ export function mountAct(
     render();
   }
 
+  /**
+   * Play a training game.
+   *
+   * The game is opened over the desk, and the rule engine decides whether it
+   * can be played at all: two games a sol, and a game that cannot be paid for
+   * says so rather than opening.
+   */
+  function playTraining(gameId: TrainingGameId): void {
+    if (run === null) return;
+
+    const start = canStartTraining(run, gameId);
+
+    if (!start.ok) {
+      trainingNotice = start.message;
+      render();
+
+      return;
+    }
+
+    trainingNotice = '';
+
+    const screen = openTrainingGame(gameId, {
+      run,
+      onFinished: (next) => {
+        run = next;
+        setRun(run);
+      },
+      onClose: () => {
+        trainingGame = null;
+        render();
+      },
+    });
+
+    if (screen === null) {
+      trainingNotice = 'That training is not available today.';
+      render();
+
+      return;
+    }
+
+    trainingGame = screen;
+    mount.append(screen.element);
+    screen.focus();
+  }
+
   function openSection(section: HubSection): void {
+    /* Today's tasks are locked until the crew has trained. The tile is locked
+       too, but a sheet that opens and does nothing is worse than a sheet
+       that does not open. */
+    if (section === 'tasks' && run !== null && !trainingUnlocked(run)) {
+      trainingNotice = `Complete ${TRAINING_DAILY_LIMIT} training games to unlock today's colony tasks.`;
+      render();
+
+      return;
+    }
+
     openSheet = section;
     guideOpen = false;
     focusSheet = true;
+    render();
+  }
+
+  /** Close the guide, and take the popup off the document. */
+  function closeGuide(): void {
+    guideOpen = false;
+    guideEl?.remove();
+    guideEl = null;
     render();
   }
 
@@ -238,7 +363,7 @@ export function mountAct(
     focusTile = closed;
     /* A mini game belongs to the section it was opened from. Closing that
        section closes the tool with it, or it would still be there next time
-       the player opened the section (ISS-077). */
+       the player opened the section (ISS-093). */
     openTool = null;
     toolScroll = 0;
     render();
@@ -282,18 +407,20 @@ export function mountAct(
     const meters = meterRows(state);
     const power = powerToday(state);
 
-    /* The power card says what the crew can spend today, not what the
-       batteries hold. The batteries are drained through the night, so the
-       level at dawn is near zero even for a healthy outpost — and a card that
-       says "0%" while the player picks a 25 kWh activity reads as a broken
-       game. This is the number the activity prices come out of. */
+    /* The power card says what is in the batteries, because that is the store
+       every other meter stands for and the one that goes to zero. The day's
+       budget - the number the activity prices come out of - is the "For today"
+       mini card, a press away in the stats sheet. Showing the projection here
+       made this card a constant at battery capacity (ISS-078); showing only
+       the level left at dawn made it a constant at zero (ISS-060). */
+    const storedPercent = power.capacity > 0 ? Math.round((state.stores.power / power.capacity) * 100) : 0;
     const rows: HudStat[] = [
       {
         icon: 'bolt',
-        label: 'Power today',
-        value: `${power.available} kWh`,
-        percent: power.capacity > 0 ? Math.round((power.available / power.capacity) * 100) : 0,
-        tone: power.nightCovered ? 'ok' : 'bad',
+        label: `Power · ${power.capacity} kWh max`,
+        value: `${power.stored} kWh`,
+        percent: storedPercent,
+        tone: toneOf(meters[0]?.tone ?? 'ok'),
       },
       ...meters.slice(1).map((row) => ({
         icon: RESOURCE_ICON[row.name],
@@ -428,7 +555,7 @@ export function mountAct(
         );
 
         inspect.addEventListener('click', () => {
-          /* The mini game opens in its OWN sheet, over this one (ISS-077). It
+          /* The mini game opens in its OWN sheet, over this one (ISS-093). It
              used to switch the player to the desk sheet and hang the tool off
              the desk, which merged two unrelated things and left the tool
              there after it was closed. */
@@ -623,7 +750,7 @@ export function mountAct(
    *
    * The desk is the desk: a note from home and the rover's find. The mini game
    * is NOT here — it is worked on an order, so it opens in its own sheet over
-   * the orders (ISS-077).
+   * the orders (ISS-093).
    */
   function deskBody(state: RunState): readonly (Node | false)[] {
     const note = deskNoteCard(state);
@@ -643,6 +770,10 @@ export function mountAct(
    * The rule book, growing two rules a sol. This is where the science is
    * taught: every order is a real operating rule, and the player works to the
    * whole set rather than to the two that are newest.
+   *
+   * The training is at the top of it, because the training is part of the
+   * rule book now: two games a sol, and the day's work orders open when they
+   * are done.
    */
   function ordersBody(state: RunState): readonly (Node | false)[] {
     const rows = boardRows(state);
@@ -667,6 +798,7 @@ export function mountAct(
     const fresh = rows.filter((row) => row.isNew).length;
 
     return [
+      trainingSection(state, { notice: trainingNotice, onPlay: playTraining }),
       list,
       h('p', { class: 'gl__note', text: `${rows.length} orders so far, ${fresh} new today. These are the rules you work to.` }),
     ];
@@ -692,7 +824,7 @@ export function mountAct(
         { class: 'gl__mini' },
         h('span', { class: 'gl__mini-label' }, icon('bolt'), 'For today'),
         h('span', { class: 'gl__mini-value', text: `${today.available} kWh` }),
-        h('span', { class: 'gl__mini-detail', text: `of ${today.capacity} stored` }),
+        h('span', { class: 'gl__mini-detail', text: `after today's sun` }),
       ),
       h(
         'div',
@@ -751,6 +883,7 @@ export function mountAct(
 
     return [
       dayNightStrip(state),
+      lastPowerLine(state) === '' ? false : h('p', { class: 'gl__note', text: lastPowerLine(state) }),
       rows,
       science,
       h('p', { class: 'gl__note', text: powerSentence(power.generatedKw, power.storedKwh, power.nightDrainKw) }),
@@ -921,13 +1054,47 @@ export function mountAct(
       );
     }
 
-    return [list, changes];
+    /* The books for the day: what each store made and what it used. The change
+       strip above says where each store went; this says why. */
+    const ledger = h(
+      'table',
+      { class: 'act-ledger' },
+      h('caption', { class: 'gl__label', text: `Sol ${last.sol}: made and used` }),
+      h(
+        'thead',
+        null,
+        h('tr', null, h('th', { scope: 'col', text: 'Resource' }), h('th', { scope: 'col', text: 'Made' }), h('th', { scope: 'col', text: 'Used' }), h('th', { scope: 'col', text: 'Change' })),
+      ),
+    );
+    const body = h('tbody');
+    const notes: string[] = [];
+
+    for (const row of ledgerRows(last)) {
+      body.append(
+        h(
+          'tr',
+          { 'data-tone': row.tone },
+          h('th', { scope: 'row' }, h('span', { class: 'act-change__label' }, icon(RESOURCE_ICON[row.name]), row.label)),
+          h('td', { class: 'act-ledger__made', text: row.made }),
+          h('td', { class: 'act-ledger__used', text: row.used }),
+          h('td', { class: 'act-ledger__change', text: row.change }),
+        ),
+      );
+
+      if (row.note !== '') notes.push(row.note);
+    }
+
+    ledger.append(body);
+
+    return [list, changes, ledger, ...notes.map((note) => h('p', { class: 'gl__note', text: note }))];
   }
 
   /* ---------------------------------------------------------------- the hub -- */
 
   /** One button on the hub: a pictogram, a label, and one line of state. */
   function tileButton(tile: HubTile): HTMLButtonElement {
+    const locked = tile.locked === true;
+
     const button = h(
       'button',
       {
@@ -935,9 +1102,11 @@ export function mountAct(
         type: 'button',
         'data-tile': tile.id,
         'data-attention': String(tile.attention),
+        'data-locked': String(locked),
         'aria-haspopup': 'dialog',
+        'aria-disabled': locked ? 'true' : 'false',
       },
-      h('span', { class: 'act-tile__icon', 'aria-hidden': 'true' }, icon(TILE_ICON[tile.id])),
+      h('span', { class: 'act-tile__icon', 'aria-hidden': 'true' }, icon(locked ? 'lock' : TILE_ICON[tile.id])),
       h(
         'span',
         { class: 'act-tile__body' },
@@ -958,10 +1127,21 @@ export function mountAct(
               ),
             ),
       ),
-      h('span', { class: 'act-tile__chevron', 'aria-hidden': 'true' }, icon('chevron')),
+      h('span', { class: 'act-tile__chevron', 'aria-hidden': 'true' }, icon(locked ? 'lock' : 'chevron')),
     );
 
-    button.addEventListener('click', () => openSection(tile.id));
+    button.addEventListener('click', () => {
+      if (locked) {
+        /* The orders are behind the training, and the tile says why rather
+           than opening a sheet the player cannot use. */
+        trainingNotice = `Complete ${TRAINING_DAILY_LIMIT} training games to unlock today's colony tasks.`;
+        render();
+
+        return;
+      }
+
+      openSection(tile.id);
+    });
 
     return button;
   }
@@ -974,6 +1154,26 @@ export function mountAct(
     const mustChoose = orders.length > 0 && !orders.some((row) => row.chosen);
 
     const grid = h('div', { class: 'act-hub' }, ...tiles.map(tileButton));
+
+    /* The lock, said out loud on the desk itself: the orders are behind the
+       training, and a player who cannot find out why is stuck. */
+    const lock =
+      trainingUnlocked(state)
+        ? false
+        : h(
+            'div',
+            { class: 'gl__callout', 'data-tone': 'warn' },
+            h('span', { class: 'gl__callout-icon', 'aria-hidden': 'true' }, icon('lock')),
+            h(
+              'div',
+              null,
+              h('p', { class: 'gl__callout-title', text: "Today's tasks are locked" }),
+              h('p', {
+                class: 'gl__callout-detail',
+                text: `Do ${TRAINING_DAILY_LIMIT} training games in the standing orders to open today's work orders.`,
+              }),
+            ),
+          );
 
     const go = h(
       'button',
@@ -990,6 +1190,7 @@ export function mountAct(
       sub: mission.subtitle,
       corner: pointsCorner(state),
       body: [
+        lock,
         gameSection('Today for the outpost', grid),
         forecastSection(state),
       ],
@@ -1029,7 +1230,7 @@ export function mountAct(
    *
    * It is a sheet of its own rather than a part of one: the tool belongs to an
    * order, not to the desk, and a tool that hangs off the desk is a tool that
-   * outlives the order it was for (ISS-077). The section sheet stays behind
+   * outlives the order it was for (ISS-093). The section sheet stays behind
    * it, so closing the tool puts the player back on the order.
    */
   function toolSheetFor(state: RunState): HTMLElement | null {
@@ -1177,8 +1378,6 @@ export function mountAct(
     const state = run;
     const crisis = pendingCrisis(state);
     const last = state.log[state.log.length - 1];
-    const region = regionById(state.regionId);
-    const score = siteScore(state.regionId);
 
     /* Keep the open sheet where the player left it: choosing an order or
        answering a find redraws the screen, and a sheet that jumped to the top
@@ -1187,12 +1386,17 @@ export function mountAct(
 
     if (scrolled !== null) sheetScroll = scrolled.scrollTop;
 
+    /* The panel scrolls too, and `replaceChildren` below destroys that
+       container. Recording the offset here and putting it back at the end of
+       the redraw is what stops the desk jumping to the top on every press,
+       toast and late-arriving forecast (ISS-080). */
+    const restoreScroll = keepScroll(mount);
+
     clockNodes = null;
 
     /* The site's own scores, on the picture where there is room for them.
        They used to be a line of text under the decision, where they read as
        one more paragraph. */
-    const siteHint = `${region ? region.name : 'Your site'}: ${SITE_AXES.map((axis) => `${AXIS_NAMES[axis]} ${score[axis]}/5`).join(' · ')}`;
 
     const world =
       crisis === null
@@ -1202,7 +1406,6 @@ export function mountAct(
             crew: last === undefined ? 'A sol is one Mars day. Ready for our first one?' : `Sol ${last.sol} is done. Ready for the next one?`,
             figures: moduleFigures(state.modules),
             showAstronaut: false,
-            hint: siteHint,
             signals: [scienceSignal(state)],
           })
         : gameWorld({
@@ -1235,12 +1438,13 @@ export function mountAct(
       variant: 'gl--act',
       headerSub: 'RUNNING THE DAY',
       onLeave: () => navigate('naming'),
+      day: dayModel(state, advancedSol),
       help: guideButton(() => {
         guideOpen = true;
         openSheet = null;
         /* The guide is over everything, so the mini game goes with it: a tool
            that is still open behind the guide would be waiting when it closed
-           (ISS-077). */
+           (ISS-093). */
         openTool = null;
         toolScroll = 0;
         render();
@@ -1248,11 +1452,17 @@ export function mountAct(
     });
 
     /* The guide sits over the whole screen, as a dialog: it is read once and
-       dismissed, and the day behind it is untouched. */
-    if (guideOpen) screen.append(guidePanel(() => {
-      guideOpen = false;
-      render();
-    }));
+       dismissed, and the day behind it is untouched. It is mounted on the
+       document so a redraw of the desk cannot reset the page being read. */
+    if (guideOpen && guideEl === null) {
+      guideEl = guidePanel(closeGuide);
+      document.body.append(guideEl);
+    }
+
+    if (!guideOpen && guideEl !== null) {
+      guideEl.remove();
+      guideEl = null;
+    }
 
     const open = guideOpen || crisis !== null ? null : sheetFor(state, tiles);
 
@@ -1265,6 +1475,11 @@ export function mountAct(
     if (tool !== null) screen.append(tool);
 
     mount.replaceChildren(screen);
+
+    /* A training game is open over the desk, so it has to survive the
+       redraw: a redraw replaces the screen, and the game would go with it
+       while its clock kept running. */
+    if (trainingGame !== null) mount.append(trainingGame.element);
 
     if (open !== null) {
       const body = open.querySelector<HTMLElement>('.sheet__body');
@@ -1309,6 +1524,9 @@ export function mountAct(
       pendingFocus.focus();
       pendingFocus = null;
     }
+
+    /* Last, so the focus calls above cannot drag the panel somewhere else. */
+    restoreScroll();
   }
 
   function notice(text: string, label: string, route: 'landing-site' | 'base'): void {
@@ -1359,7 +1577,15 @@ export function mountAct(
     disposed = true;
     controller.abort();
     stopTimer();
+
+    if (advanceTimer !== null) {
+      window.clearTimeout(advanceTimer);
+      advanceTimer = null;
+    }
+
     clockNodes = null;
+    guideEl?.remove();
+    guideEl = null;
     mount.replaceChildren();
   };
 }

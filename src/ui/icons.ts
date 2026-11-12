@@ -25,6 +25,7 @@ export type IconName =
   | 'bolt'
   | 'book'
   | 'box'
+  | 'bulb'
   | 'chart'
   | 'check'
   | 'chevron'
@@ -39,6 +40,7 @@ export type IconName =
   | 'home'
   | 'leaf'
   | 'letter'
+  | 'lock'
   | 'map'
   | 'moon'
   | 'mountain'
@@ -74,6 +76,12 @@ export const ICON_PATHS: Readonly<Record<IconName, readonly Shape[]>> = {
     { d: 'M3 8 12 4l9 4v8l-9 4-9-4Z' },
     { d: 'M3 8l9 4 9-4' },
     { d: 'M12 12v8' },
+  ],
+  /* An idea: the guide's header mark, where the reference uses a lightbulb. */
+  bulb: [
+    { d: 'M9.5 18h5' },
+    { d: 'M10.5 21h3' },
+    { d: 'M12 3a6 6 0 0 0-3.7 10.7c.7.6 1.2 1.4 1.3 2.3h4.8c.1-.9.6-1.7 1.3-2.3A6 6 0 0 0 12 3Z' },
   ],
   chart: [{ d: 'M3 20h18' }, { d: 'M7 20v-7' }, { d: 'M12 20V5' }, { d: 'M17 20v-10' }],
   check: [{ d: 'm4.5 12.5 5 5 10-11' }],
@@ -124,6 +132,8 @@ export const ICON_PATHS: Readonly<Record<IconName, readonly Shape[]>> = {
     { d: 'M3 6.5h18v11H3Z' },
     { d: 'm3 7 9 6.5L21 7' },
   ],
+  /* A padlock: the shape a thing that cannot be opened yet wears. */
+  lock: [{ d: 'M5.5 10.5h13v9h-13Z' }, { d: 'M8.5 10.5v-3a3.5 3.5 0 0 1 7 0v3' }],
   map: [
     { d: 'M9 3 3 5.5v15L9 18l6 3 6-2.5v-15L15 6Z' },
     { d: 'M9 3v15' },
