@@ -54,11 +54,11 @@ export const FOOD_PER_CREW = 2.5;
 
 /** Tuning, in one place. */
 export const SOLAR_KW_PER_ARRAY = 25;
-export const BATTERY_KWH_PER_BANK = 100;
+export const BATTERY_KWH_PER_BANK = 150;
 export const NUCLEAR_KW = 10;
 export const LOAD_KW: Readonly<Record<ModuleKind, number>> = {
-  habitat: 4,
-  'life-support': 8,
+  habitat: 3,
+  'life-support': 5,
   'solar-array': 0,
   batteries: 0,
   greenhouse: 6,
@@ -163,7 +163,7 @@ export const MODULE_CATALOGUE: readonly ModuleSpec[] = [
     cost: 3,
     maxCount: 1,
     gives: 'Grows food',
-    needs: `${LOAD_KW.greenhouse} kW · ${GREENHOUSE_WATER}% water`,
+    needs: `${LOAD_KW.greenhouse} kW · water (recycled)`,
   },
   {
     kind: 'ice-miner',
@@ -173,8 +173,7 @@ export const MODULE_CATALOGUE: readonly ModuleSpec[] = [
     cost: 3,
     maxCount: 1,
     gives: 'Makes water from ice',
-    needs: `${LOAD_KW['ice-miner']} kW · needs ice`,
-    requires: { axis: 'water', min: 3, why: 'There is not enough ice near this site to mine.' },
+    needs: `${LOAD_KW['ice-miner']} kW · less ice = less water`,
   },
   {
     kind: 'regolith-shield',
@@ -206,6 +205,23 @@ export function specOf(kind: ModuleKind): ModuleSpec {
   if (spec === undefined) throw new RangeError(`Unknown module kind: ${kind}`);
 
   return spec;
+}
+
+/**
+ * Whether a site can host this module at all.
+ *
+ * A module's `requires` axis is a property of the ground, not of the player's
+ * build, so the build card and the goals panel both ask this one function. They
+ * used to answer it separately: the card said "there is not enough ice near
+ * this site to mine" while the water goal said "No water source", which reads
+ * as a mistake the player made rather than a rule of the site (ISS-079).
+ */
+export function siteAllows(kind: ModuleKind, regionId: string): boolean {
+  const spec = specOf(kind);
+
+  if (spec.requires === undefined) return true;
+
+  return siteScore(regionId)[spec.requires.axis] >= spec.requires.min;
 }
 
 
@@ -265,7 +281,9 @@ export function systemsFor(modules: readonly ModuleKind[], regionId: string): Sy
     waterRecycling: hasLifeSupport ? WATER_RECYCLING : 0,
     electrolysisWater: hasLifeSupport ? ELECTROLYSIS_WATER : 0,
     foodGrown: greenhouses * GREENHOUSE_FOOD,
-    greenhouseWater: greenhouses * GREENHOUSE_WATER,
+    /* Life support recycles the water the plants breathe out, so a powered
+       greenhouse only loses the share that is not recaptured. */
+    greenhouseWater: greenhouses * GREENHOUSE_WATER * (hasLifeSupport ? 1 - WATER_RECYCLING : 1),
     iceWater: count('ice-miner') * ICE_WATER_PER_WATER_POINT * score.water,
     shieldingStart: SHIELDING_BASE + count('regolith-shield') * SHIELDING_PER_REGOLITH,
     shieldingErosion: SHIELDING_EROSION,

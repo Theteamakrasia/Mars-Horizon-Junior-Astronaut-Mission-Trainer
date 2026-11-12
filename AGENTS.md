@@ -13,7 +13,7 @@ demo **Nov 14-15**.
 **The one invariant: `sim/` and each feature's `model.ts` are pure — no `document`, no
 `window`, no network.**
 
-That is what lets 801 tests run in a few seconds with no browser and no mocks, so the game
+That is what lets 810 tests run in a few seconds with no browser and no mocks, so the game
 can be asserted on rather than eyeballed. Everything else here exists to protect it. If
 you are unsure where code goes: if it touches the DOM it is not pure.
 
@@ -88,7 +88,7 @@ human upholds it and nothing catches you.
 | R-10 | No `on*="..."` inline handlers in markup | **enforced** | `no-inline-handler` |
 | R-11 | A relative import that resolves to nothing is an error | **enforced** | `unresolved-import` |
 | R-12 | Typecheck clean; `strict`, `noUnusedLocals` | **enforced** | `npm run check` |
-| R-13 | Tests pass (801 today) | **enforced** | `npm test`, watch ISS-015 |
+| R-13 | Tests pass (810 today) | **enforced** | `npm test`, watch ISS-015 |
 | R-14 | No `index.ts` barrel files — import concrete paths | convention | nothing |
 | R-15 | Feature CSS is imported by its own `view.ts`, never added to `style.css` | convention | nothing |
 | R-16 | Files are UTF-8, LF, no BOM. Preserve a file's existing endings | convention | **nothing** — ISS-005 |
@@ -128,6 +128,8 @@ loop to leak when you navigate away.
 ```
 act → the hub: five buttons, six once a sol has run       features/act/model.ts
     → today's tasks opens the three work orders for today  sim/activities.ts
+      (locked until the crew has done two training games    sim/training.ts
+       — the six games live on the Standing orders sheet)
     → the player checks the two readings on each and may work one with a tool
       (the stars only multiply the science the order is worth)  sim/minigames.ts
     → advanceSol applies the cost and the gain, deploys the rover if the
@@ -255,7 +257,10 @@ opening its folder — that is the whole point of the layout.
 | **The five science goals and their live state** | `src/sim/goals.ts` — complete, 23 tests |
 | **The standing orders — the rule book the player works to** | `src/sim/standingOrders.ts` — complete, 7 tests |
 | **The six tools, and how they are graded** | `src/sim/minigames.ts` — complete, 23 tests |
+| **The six training games, and the two-a-sol rule that locks today's tasks** | `src/sim/training.ts` — complete, 27 tests; one pure module per game beside it (`trainingMerge`, `trainingMemory`, `trainingRover`, `trainingSolar`, `trainingCargo`, `trainingAsteroid`) |
+| **The training section, the game dialog, and the day's record** | `src/ui/training.ts` — built; the six games are drawn in `src/ui/training*.ts` and the contract is `src/ui/trainingGame.ts` |
 | **The how-to-play guide** | `src/sim/guide.ts` — complete, 6 tests |
+| **The mission-day tracker** (the day in play, the total, twelve pips) | `src/ui/dayTracker.ts` — complete, 10 tests; the CSS in `src/ui/day-tracker.css` |
 | **The patches a run earns** | `src/sim/patches.ts` — complete, 7 tests |
 | **The notes that land on the desk** | `src/sim/deskNotes.ts` — complete, 8 tests |
 | **What a lesson is about** (power, dust, water, food, radiation, missions) | `src/sim/topics.ts` |
@@ -316,7 +321,7 @@ opening its folder — that is the whole point of the layout.
 npm install
 npm run dev        # Vite dev server
 npm run check      # layer + banned-API check, then tsc --noEmit   <- run this
-npm test           # vitest, 801 tests                            <- 40% flaky, ISS-015
+npm test           # vitest, 810 tests                            <- 40% flaky, ISS-015
 npm run build      # to dist/
 npm run preview    # serve the build
 npm run balance    # is the game still winnable?  <- run this after touching sim/

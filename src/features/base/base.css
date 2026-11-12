@@ -78,6 +78,15 @@
   margin-top: 0.15em;
 }
 
+/* The free copy the lander brought, so the card's number explains itself. */
+.gl--base .gl__card-lander {
+  margin: 0;
+  color: var(--gl-green);
+  font-size: clamp(0.5rem, 0.62vw, 0.75rem);
+  font-weight: 800;
+  line-height: 1.2;
+}
+
 /* What this build can do for the five goals. */
 .gl--base .gl__goals {
   display: flex;

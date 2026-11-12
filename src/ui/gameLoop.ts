@@ -17,6 +17,7 @@ import { navigate } from './router';
 import { icon, type IconName } from './icons';
 import type { ModuleKind } from '../sim/modules';
 import { MODULE_POSES, depthFor, poseFor } from './baseLayout';
+import { dayTracker, type DayModel } from './dayTracker';
 
 /* The artwork is bundled by Vite, never fetched: the Figma asset URLs expire. */
 import astronautUrl from '../../Assets/images/interior/sprite/interact-alt.webp';
@@ -197,6 +198,14 @@ export interface ScreenOptions {
    */
   readonly onLeave?: () => void;
   /**
+   * The mission-day tracker for the header.
+   *
+   * A screen with a run in play passes one; a screen without one leaves the
+   * header exactly as it was. The model comes from `ui/dayTracker.ts`, which
+   * reads it off the run — this file only draws it.
+   */
+  readonly day?: DayModel;
+  /**
    * The screen's own help control, drawn beside Menu. It is passed in rather
    * than built here because the guide belongs to the screen: the desk and the
    * build screen each own whether theirs is open.
@@ -207,7 +216,7 @@ export interface ScreenOptions {
 }
 
 /** The header's arguments. */
-export interface HeaderOptions extends Pick<ScreenOptions, 'headerSub' | 'onLeave' | 'help' | 'showEncyclopedia'> {}
+export interface HeaderOptions extends Pick<ScreenOptions, 'headerSub' | 'onLeave' | 'help' | 'showEncyclopedia' | 'day'> {}
 
 /**
  * The header.
@@ -218,6 +227,10 @@ export interface HeaderOptions extends Pick<ScreenOptions, 'headerSub' | 'onLeav
  * before abandoning an unsaved run. Without it, the header keeps the old
  * non-interactive label, because a screen with nothing to leave should not
  * offer a control that does nothing.
+ *
+ * `day` puts the mission-day tracker in the bar, between the brand and the
+ * controls. A screen with a run in play passes one; a screen without one (the
+ * encyclopedia, the landing-site map) passes nothing and its bar is unchanged.
  */
 export function gameHeader(options: HeaderOptions = {}): HTMLElement {
   const subtitle = options.headerSub ?? 'GAME LOOP';
@@ -237,6 +250,8 @@ export function gameHeader(options: HeaderOptions = {}): HTMLElement {
       ),
     ),
   );
+
+  if (options.day !== undefined) header.append(dayTracker(options.day));
 
   if (options.onLeave === undefined) {
     header.append(h('nav', { class: 'gl__nav', 'aria-label': 'Primary', text: 'Mission Control / Main Menu' }));
@@ -468,10 +483,40 @@ export function gameScreen(options: ScreenOptions): HTMLElement {
       onLeave: options.onLeave,
       help: options.help ?? null,
       showEncyclopedia: options.showEncyclopedia,
+      day: options.day,
     }),
     gameHud(options.hud),
     main,
   );
+}
+
+/**
+ * Remember where the player was scrolled to, and get back there after a redraw.
+ *
+ * A game screen is rebuilt from scratch on every change, which destroys its
+ * scroll containers. Which one scrolls depends on the window: on a wide
+ * window it is the panel (`.gl__scroll`), but at 68rem and narrower - a small
+ * window, a tablet, or any browser zoomed in - the panel stops scrolling and
+ * the whole screen (`.gl`) does. Saving only the panel threw the player back
+ * to the top on every press on those windows. This saves all of them.
+ *
+ * Call it before the old tree is replaced, and call the function it returns
+ * once the new tree is in the document.
+ */
+export function keepScroll(mount: HTMLElement): () => void {
+  const root = mount.firstElementChild instanceof HTMLElement ? mount.firstElementChild : null;
+  const rootTop = root?.scrollTop ?? 0;
+  const panelTop = mount.querySelector<HTMLElement>('.gl__scroll')?.scrollTop ?? 0;
+  const pageTop = window.scrollY;
+
+  return () => {
+    const nextRoot = mount.firstElementChild instanceof HTMLElement ? mount.firstElementChild : null;
+    const nextPanel = mount.querySelector<HTMLElement>('.gl__scroll');
+
+    if (nextRoot !== null) nextRoot.scrollTop = rootTop;
+    if (nextPanel !== null) nextPanel.scrollTop = panelTop;
+    if (window.scrollY !== pageTop) window.scrollTo(0, pageTop);
+  };
 }
 
 /** A labelled block: an uppercase heading and its content. */

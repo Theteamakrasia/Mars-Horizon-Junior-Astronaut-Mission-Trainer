@@ -60,6 +60,12 @@
   --gl-muted: #6c7787;
   --gl-orange: #df542b;
   --gl-orange-deep: #cf4726;
+  /* The day in play: the warm gold the mission's own accent sits next to. */
+  --gl-amber: #f0a929;
+  /* The days still to come, and the path between them. */
+  --gl-day-idle: #3b4a68;
+  --gl-day-idle-ring: #5b6b8a;
+  --gl-day-rail: #5b6b8a;
   --gl-green: #246e5b;
   --gl-green-soft: #dcece2;
   --gl-blue: #347ba2;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { CORE_MODULES, SHIELDING_BASE, SHIELDING_PER_REGOLITH } from './modules';
+import { BATTERY_KWH_PER_BANK, CORE_MODULES, SHIELDING_BASE, SHIELDING_PER_REGOLITH } from './modules';
 import { newRun, landAt, startOutpost, withState, type RunState } from './run';
 
 /*
@@ -90,7 +90,7 @@ describe('landing the outpost', () => {
   it('fills the batteries and gives the shielding those modules give', () => {
     const landed = startOutpost(newRun('jezero', 'Tester'), [...CORE_MODULES, 'regolith-shield']);
 
-    expect(landed.stores.power).toBe(100);
+    expect(landed.stores.power).toBe(BATTERY_KWH_PER_BANK);
     expect(landed.stores.shielding).toBe(SHIELDING_BASE + SHIELDING_PER_REGOLITH);
   });
 

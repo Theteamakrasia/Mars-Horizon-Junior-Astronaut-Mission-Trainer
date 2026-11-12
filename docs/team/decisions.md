@@ -8,14 +8,66 @@ under Rejected below, read that entry first.
 
 Format: number · who decided · **Choice** · **Why** · **Rejected** · **Consequence**.
 
-
 ---
 
-**D-073 — agent — 2026-11-12**
+**D-078 — agent — 2026-11-12**
 **Choice:** The how-to-play guide is a **popup with the astronaut doing the talking**. The guide opens over the build screen and the desk as a dimmed backdrop with the crewmate standing on the left and a **speech bubble on the right** — one step per page, a navy "How to play" pill on the bubble's top edge, a tail pointing at the astronaut, **Next**, **Back**, ten page dots, a **Read aloud** button and a close button. The ten steps themselves are unchanged: they are still the ten in `sim/guide.ts`, in the same order, with the same words. The guide is **mounted on `document.body`** rather than inside the screen it explains, and it is **one page at a time** rather than one scrolling list. It opens from the `?` icon already in the header, beside the encyclopedia book and Menu; no new button was added, and the existing `?` keeps its place.
 **Why:** The guide was a list of ten panels stacked in a scroll, and ten panels of two lines each is a wall — a child opening it had to read a page of text before any of it applied to anything. A speech bubble is the shape the game already uses for the crew talking (the world panel's crewmate line, the supply screen's bubble beside the astronaut), so the guide now looks like the game rather than like a manual dropped on top of it. One page at a time is the reason it works for the youngest players: a page is two short sentences and one thing to press, and the astronaut is visibly the one speaking, which is what "someone is explaining this to you" looks like to a seven-year-old. The words did not need changing — the ten steps were already one sentence each, written for a child — so they were left alone and only the *delivery* changed. Mounting the popup on `document.body` is the fix for a real fault found while building it: both the build screen and the desk redraw themselves when the live space weather arrives, and a popup that lived inside the screen was rebuilt from scratch on every redraw, throwing a child reading page three back to page one and replaying the entrance animation. Outside the screen, a redraw behind it changes nothing.
 **Rejected:** (a) Rewriting the ten steps to be shorter — they were already one sentence each, and the problem was how many were on screen at once, not how long each was. (b) A tab per step instead of Next/Back — tabs make the steps siblings, and they are a story with an order; a child would have to guess which tab to open. (c) Keeping the scrolling list and just styling it as a bubble — a bubble that needs scrolling is a list wearing a costume, and the tail would point at nothing. (d) The astronaut **inside** the bubble rather than beside it — the reference image has him standing outside it, and a figure inside the balloon is a sticker, not a person talking. (e) Putting the guide on its own route/screen instead of over the one being explained — the thing the guide describes stays behind the popup; that is the whole point of a dialog here, and a screen would lose it. (f) A new button somewhere else to open it — the `?` already exists in the header, beside the book and Menu, and a second way in is a second thing to explain. (g) **Auto-reading the page aloud with the browser's voice** — it would talk over the game the moment it opened, with no way to stop it before it started; the Read aloud button is there instead, so nothing speaks unless the child asks. (h) Keeping the popup inside the screen element and preserving the page across redraws in JS — the state would have had to be lifted into both feature views and threaded through every redraw, for a problem that mounting it one level up solves outright. (i) A dimmed backdrop over the whole page — considered and kept: the guide is a dialog, and a dialog that leaves the rest of the screen bright is not read as a dialog.
 **Consequence:** `src/ui/guide.ts` is rewritten: `guidePanel(onClose)` now returns the **backdrop** (like `ui/sheet.ts`'s `sheet()`) rather than the panel, the page state lives inside the popup, and the popup owns `Escape`, the backdrop click, a **Tab trap**, `ArrowLeft` / `ArrowRight` to turn pages, and the focus hand-back to the `?` button when it closes. `src/ui/guide.css` is new and is imported by `ui/guide.ts` only (R-15); the `.gl__guide*` rules leave `styles/game-loop.css` and the `.gl__guide` z-index of 100 becomes **120** in the stacking ladder, above the leave-mission dialog. `src/ui/icons.ts` gains a **`bulb`** pictogram for the header pill — the set is now 35 drawings, and `icons.test.ts` still passes because it tests the data, not the count. `src/features/base/view.ts` and `src/features/act/view.ts` each gain a `guideEl` that is mounted on `document.body` and removed on close and on unmount, and `base` keeps opening the guide by itself the first time the player reaches the build screen. `Assets/images/guide/astronaut.png` is new: the cutout that stands beside the bubble. The words are still in `sim/guide.ts` and are still covered by its six tests — **no step was rewritten**. Logged as ISS-077.
+
+---
+
+---
+
+**D-077 — agent — 2026-11-12**
+**Choice:** The mission-day tracker lives in the **shared chrome**, in the navy nav bar between the `MARS HORIZON` brand and the `☰ MENU` button: the day in play as a big number, the total beside it, and **twelve pips** — one per mission day — on a rail. The day in play is `run.sol + 1`, because `run.sol` counts the sols already flown: the first day is day 1, and the day after the first sol is day 2. A **finished run has no day in play** — on the debrief the last day reached stands as the day and no pip pulses, because the run is over and a live pip for a day that never happened would be a lie. The plain `Sol N of 12` text in the mission bar **stays**: it counts the sols flown, the tracker counts the day you are on, and the player reads them as two different facts.
+**Why:** The game is twelve days long and nothing on the screen said so. The mission bar says what the player is *playing*, the HUD says what the outpost *has*, and the only number about time was the sol count buried in a line of progress text — a child could play the whole run without ever being told which day they were on. The tracker lives in the shared chrome rather than in a feature because all five landing regions land on the same outpost screen: one implementation covers every site, and there is no fifth copy to keep in step with the first four. `sol + 1` rather than `sol` because `sol` alone prints "DAY 0" on the build screen and disagrees with the act screen's own "Run sol 2" button. The total is read from `WIN_SOL` rather than typed as 12, so a change to the mission length moves the tracker with it instead of leaving twelve pips on a thirteen-day mission. The plain sol count stays because it answers a different question — how many are behind you — and two numbers that mean different things are better than one number that has to mean both.
+**Rejected:** (a) Putting the tracker in the mission bar instead of the nav bar — the mission bar is one line about the job, and the day is a separate fact that deserves its own place; the nav bar is also the one row that is identical on every game screen. (b) Counting the sols flown as the day — "DAY 0" on the build screen, and the tracker would disagree with the button that runs sol 1. (c) Drawing a current pip on a finished run — it would pulse over a day the crew never lived. (d) Replacing the plain `Sol N of 12` — it counts what is done, the tracker counts where you are, and the player reads both. (e) One pip per sol with the number typed as 12 — a hard-coded total is a second copy of `WIN_SOL`, and it would quietly disagree with the simulation. (f) Per-region copies of the tracker — five copies of the same numbers, five chances to be wrong, and the regions differ only in their artwork. (g) A live region announcing the day — the act screen rebuilds its whole DOM on every render, so a live region inside it would chatter on every click.
+**Consequence:** `ui/dayTracker.ts` exports `dayModel(run, advanced?)`, a pure function that reads the tracker's whole state off a `RunState`, and `dayTracker(model)`, which draws it. `ui/gameLoop.ts`'s `gameHeader(sub?, onLeave?, day?)` takes the model and puts the tracker in the bar; `gameScreen`'s options take `day?: DayModel`. `base`, `act` and `debrief` each pass one line; `encyclopedia` and `landing-site` pass nothing, so their bars are unchanged. `src/ui/day-tracker.css` holds the pips, the rail and the two animations — the day in play breathes, and the day just flown flashes once. The act screen owns that flash: it marks the sol it has just run and holds the mark for 1500 ms, because the screen rebuilds its DOM on every render and a CSS animation on its own would replay every time the player picked an activity. The pips are three different shapes as well as three different colours, so a child who cannot tell orange from gold can still tell them apart, and the count of days done is said in words for a screen reader.
+
+---
+
+---
+
+**D-076 — agent — 2026-11-12**
+**Choice:** The day tracker is **built to the reference strip, not just labelled like it**. Four things are fixed by the reference rather than left to taste: the pips are **filled** circles in slate blue rather than hollow rings; the rail runs behind all twelve of them so the track reads as one path with twelve stations on it; the path is lit in amber **up to the day in play** and dark ahead of it; and the words **DAY** and **OF 12 DAYS** are white and bold, sitting **on the number's baseline** rather than floating beside it. The whole group is lifted half the brand subtitle's height so it lines up with the **MARS HORIZON** word instead of the middle of the two-line brand block. The day in play is a slightly larger gold dot with a ring around it.
+**Why:** The first version was built from the numbers rather than the picture: hollow rings, broken segments between them, pale grey words centred against the number. It was correct and it did not look like the thing the player had been shown, and a child comparing the two would see two different games. The reference earns three decisions in particular. A filled pip is a **station**; a hollow ring is a **hole**, and the track should read as a journey. The lit path is what turns twelve dots into **progress** without the child having to count them. And the words on the number's baseline are what make "DAY 2 OF 12 DAYS" read as one phrase instead of three floating pieces; measured, the number's baseline and MARS HORIZON's now agree to within half a pixel.
+**Rejected:** (a) Keeping hollow rings — they read as holes rather than stops, and the lit path could not be drawn behind them. (b) A single continuous rail with the fill done as a gradient — the fill would have to be computed from the pip positions, and it drifts as the pips resize. (c) Leaving the words centred against the number — they float at half the number's height and the phrase falls apart. (d) Aligning the group to the middle of the two-line brand block — it put DAY 2 level with the gap between MARS HORIZON and its subtitle. (e) Dropping the pips entirely when the bar gets narrow — they are the point of the tracker, so they shrink first and only go below 44rem, which is where the bar really has no room.
+**Consequence:** `src/ui/day-tracker.css` carries the reference treatment, and `src/styles/game-loop.css` gains three tokens for it — `--gl-day-idle`, `--gl-day-idle-ring` and `--gl-day-rail` — so the pips and the path are named rather than repeated.
+
+---
+---
+
+---
+
+**D-075 — agent — 2026-11-12**
+**Choice:** The act desk gets an **ASTRONAUT TRAINING** section at the top of the **Standing orders sheet**, with **six mini-games**: Resource Merge, Memory Match, Rover Parking, Solar Panel Power-Up, Cargo Sorting and Asteroid Defender. The rule is **two games a sol, any two of them, and each game paid for once a sol**; today's work orders stay **locked** until the second game is finished, and the desk says so on the tile and in a callout. The points a game earns are **science points** — the one balance the game already has, the `★ N points` in the panel head — scaled down to **2 / 3 / 4** for a basic, good and excellent run. The day's training is **written down** in `localStorage` under one key, so a refresh does not hand the player the same two games again and the points they earned are still on the score. The games themselves are **pure in `sim/`** (one module each, so every rule can be asserted on) and **drawn in `ui/`** (one module each, behind a shared contract).
+**Why:** The owner asked for six small games inside the Standing orders, worth points, with the day's tasks locked until two of them are done — and asked for the art to match the project rather than the mock-up. The Standing orders sheet is where a rule book lives, so the training belongs there: it is a rule the crew works to, like the other twenty-four. The lock is the whole point of the feature — it is what makes a sol start with something to do — so it is enforced by the rules engine and not by hiding a button, and a player who finds a way past the button is not paid for it. **There is no shop in this game to spend points in**: the colony modules are bought on the build screen with a build-point budget, and that screen is only reachable before sol one, so "points buy colony components" has nothing to plug into. Science points are the only point balance the game has, so they are the currency, and they are scaled down because the science rank ladder was set for a twelve-sol run of work: at ten points a game, the ladder would be climbed by playing rather than by working. **The record is written down because the project has no save at all** (D-003), and a training game the player finished should not be offered again just because the page was reloaded; everything else in the run is still in memory, exactly as it was.
+**Rejected:** (a) A separate screen or route for the training — the games are part of the day, not a destination, and a route would have to carry the run back and forth (R-5). (b) A new spendable currency and a new shop to spend it in — the game has no shop, and building one is an economy change rather than a feature; it would also have been a second currency, which the owner ruled out. (c) Ten, fifteen and twenty points as the brief suggested — the science ladder tops out at fifty, so a player who trains every sol would be a Chief Scientist by sol four and the ladder would stop meaning anything. (d) A real-time or calendar reset for the daily limit — the brief asked for the sol progression, and the sol is the game's own clock: the day resets when the sol advances, and it cannot drift. (e) In-memory only — a refresh would reset the day and the same two games could be farmed for points again, which the brief explicitly forbids. (f) A "skip training" escape hatch on the lock — offered and declined: the owner wants the hard lock, so a player who cannot finish two games cannot run the sol. (g) Emoji for the game tiles — D-070: an emoji is drawn by the operating system and cannot follow the game's ink, so the tiles use the game's own 24×24 line drawings. (h) The reward values hard-coded in the games — they are one table in `sim/training.ts`, and each game is graded by its own rule into the same three bands.
+**Consequence:** `sim/training.ts` is the rules engine — the catalogue of the six games, `TRAINING_DAILY_LIMIT`, `TRAINING_REWARDS`, `trainingDay`, `canStartTraining`, `completeTraining`, `makeRandom` and `trainingSeed`; the six games get `sim/trainingMerge.ts`, `trainingMemory.ts`, `trainingRover.ts`, `trainingSolar.ts`, `trainingCargo.ts` and `trainingAsteroid.ts`, 113 tests in all. `RunState` gains `training`, and `sim/run.ts` is the only file that changes shape. `ui/training.ts` draws the section and the game dialog and owns the `localStorage` record (key `mars-horizon.training.v1`); `ui/trainingGame.ts` is the contract every game keeps; `ui/training*.ts` are the six games on the screen and `ui/training.css` is their styling, in the game's own tokens. `features/act/model.ts` marks the tasks tile locked, `features/act/view.ts` refuses to open it, shows the callout, and hosts the section and the dialog. `ui/icons.ts` gains a padlock. `tools/browser-check-training.mjs` drives the whole thing in headless Chrome — 37 checks, including two games won for points, a third refused, and the record surviving a refresh. **The science rank ladder was not re-based**: a player who trains every sol adds up to about ninety-six points over a run, which is more than the ladder was set for, and the debrief's rank now measures the training as well as the work. That is the owner's call to make, and the numbers to change are the five `min` values in `sim/science.ts`.
+
+---
+
+---
+
+**D-074 — agent — 2026-11-11**
+**Choice:** **Power is reported, not retuned.** The HUD card shows **stored kWh against the battery capacity** (`0 / 100 kWh`) and its bar follows the store; the day's budget — the number the activity prices come out of — moves to the **"For today"** mini card in the stats sheet, worded as what is left after today's sun; `powerToday` subtracts the **chosen activity's draw**, which it had ignored; and the stats sheet carries a **line under the meters** saying what the last sol made, used, or lost to a blackout. **The balance does not move**: the lander's one array and one battery still cannot cover a 180 kWh night, so a bare outpost still ends sol 1 at zero.
+**Why:** The user reported two opposite faults in one week. ISS-060 was a card that read `0%` while the game happily sold a 25 kWh activity; the fix replaced the level with a projection, and by ISS-078 the card read `200 kWh` forever, because the projection saturates at the battery capacity. Both cards were "correct" and both were useless, because they each answered one question and hid the other. A player asking *how much power do I have* means the store; a player asking *can I afford this order* means the budget. The screen now says which is which, on the card and one press away. The zero is not a bug: a bare outpost genuinely spends the night's charge, and the new line under the meters says so in the outpost's own numbers instead of leaving a stuck-looking number unexplained. Retuning the lander was rejected because the first sol's hard lesson — one array is not an outpost — is the game's opening argument (D-064 keeps its balance measured, not assumed), and hiding the zero would have deleted it.
+**Rejected:** (a) Retuning the lander's battery or array so the level never reaches zero — it erases the first sol's lesson and changes a balance four other screens and `npm run balance` are built on. (b) Leaving the projection on the card (the ISS-060 fix) — it is a constant at capacity, which is exactly the complaint. (c) Going back to the level at dawn alone — it is a constant at zero, which is the earlier complaint. (d) A red warning banner whenever the store hits zero — the bare outpost hits zero every sol, so the banner would be permanent furniture and would read as an error the player cannot clear. (e) Letting the day's budget hide the chosen activity's draw — the card would promise power the sol step then refuses. (f) A `Power today` card and no store reading — the five resource cards would then not be five readings of the same five stores, and the stats sheet's meter would disagree with the card beside it.
+**Consequence:** `features/act/model.ts`: `TodayPower` gains `stored`, `powerToday` subtracts `activityById(run.chosenActivity)?.powerCostKwh` and clamps at zero, and `lastPowerLine(run)` reads the last `SolRecord` (`powerGenerated`, `powerUsed`, `blackout` against `POWER_BLACKOUT_FLOOR`) and returns `''` before sol 1. `features/act/view.ts`: the HUD card is `Power stored` with `stored / capacity kWh` and the meter's own percentage; `dayNightStrip`'s middle card is the budget; `statsBody` carries the power line. `features/act/model.test.ts` pins stored-versus-available, the chosen draw, and both wordings of the line. `tools/browser-check-build.mjs` lands a bare outpost and reads `0 / 100 kWh` off the card after one sol.
+
+---
+
+---
+
+**D-073 — agent — 2026-11-11**
+**Choice:** **The build screen counts what the outpost has, and names the cause when it cannot.** The stepper draws **`total / maxCount`** (`1 / 4` for the solar array) and a line marks the copy the lander brought, while `have / limit` still drive the minus so that copy cannot be sold. A site's `requires` rule becomes one shared function, **`siteAllows(kind, regionId)`** in `sim/modules.ts`, and the water goal's sentence is **computed from the build and the site** — naming the greenhouse, the missing ice miner, or the site's lack of ice — instead of the fixed string "No water source".
+**Why:** Three readouts were each individually defensible and together told a child the opposite of the truth. The card said `0 / 3` while the outpost had an array (ISS-054 had made both numbers count extras, which removed the lander's copy from the card entirely). The water goal said "No water source" the moment a greenhouse was added — the greenhouse drinks 3% a sol and nothing refills it, so the sentence was true and named neither the cause nor the cure, and at Olympus the ice miner's dead `+` had no visible connection to it. The maths was right every time; only the words and the denominator were wrong. One function for the site rule is what stops the card ("there is not enough ice near this site to mine") and the goal ("No water source") describing the same ground as two different things, which is the shape of bug that comes back whenever a rule is copied.
+**Rejected:** (a) Keeping `have / limit` and adding a footnote "one came with the lander" — the headline number would still contradict the outpost, and a child reads the big number first. (b) Counting the lander's copy in the number the minus can remove — the player would be able to sell the only battery and strand themselves before sol 1. (c) Showing `have / limit` with a small `+1` badge — that is arithmetic on a button. (d) Making the ice miner buildable everywhere so the goal can be satisfied — the site rules are the landing decision's whole payoff (D-032), and Olympus's water score of 2 is why the chemical-analysis site is a trade-off. (e) Making the greenhouse not drink water — it would erase the one module that makes the water loop a decision rather than a checklist. (f) A hard rule that blocks the greenhouse without an ice miner — the player is allowed to make a losing build, and the screen's job is to say why, not to take the choice away.
+**Consequence:** `sim/modules.ts` gains `siteAllows` (with `specOf` already there); `features/base/model.ts` imports `GREENHOUSE_WATER` and `siteAllows`, `canPlace` asks it, `BuildCard` gains `maxCount` and `fromLander`, `buildCards` fills them, and `goalPreview` computes `waterWhy`. `features/base/view.ts` draws the new numbers, the lander line, the read-aloud text, and adds `base/view.ts`'s scroll-and-focus restore (ISS-080) in the same pass; `base.css` gains `.gl__card-lander`. `sim/modules.test.ts` pins `siteAllows`; `base/model.test.ts` pins `1 / 4`, the lander mark and both water sentences.
+
+---
 
 ---
 
@@ -27,11 +79,15 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+---
+
 **D-071 — agent — 2026-11-11**
 **Choice:** The act screen's **"Real data" sheet is the whole NASA layer**, in one scroll: NASA's live daily picture, the saved NASA card for the sol, **a NASA photograph of the landing region the player chose**, **NASA's own space-weather readings** (the flare class and the day it peaked, strongest first, with the source they came from — DONKI, NOAA, or the game's long-run record), and two NASA facts to take away. The tile's line of state counts what is behind it ("3 pictures · 5 live flares"). "Coming up" — the forecast — **stays on the main panel**, because it is the game's schedule rather than NASA's data, and it is what the player acts on.
 **Why:** The button is called *Real data*, and it held one picture. The game already owned a lot more than that: five region photographs (shown once on the landing screen and never again), the live flare readings (thrown away by `loadForecast`, which kept only the game's reading of them), and forty tagged facts. A section named after real data that shows one picture undersells the whole NASA layer the project is built on, and it does so on the screen a child spends twelve sols in. Putting the layer in one place also makes the honesty rule easy to keep: every block says where it came from, so "saved" and "live" are never confused. The forecast stays on the panel because it answers a different question — *what is coming* — and the player acts on it; a schedule is the game's, a flare reading is NASA's.
 **Rejected:** (a) Leaving the section as one picture — it is what the player complained about, and it leaves the region's photo and the live readings invisible. (b) Putting everything, including the forecast, in the sheet — the panel would lose the one thing worth glancing at while deciding, and the sheet would have to be opened to know what is coming. (c) A gallery of all twelve saved NASA cards — twelve pictures of things that are not this sol is a scrapbook, and it buries the region the player is actually standing on. (d) Listing every live flare — DONKI can return dozens from thirty days, and a list nobody reads is a list that says nothing. The strongest few and a count says the same thing in a line. (e) Moving the region photo to "Colony stats" — it is a NASA photograph, so it belongs with NASA's photographs; the stats sheet is about the five systems. (f) Moving the rover's find here too — the find is the player's to answer, not background data, and it stays on the desk sheet. (g) Shipping local copies of the NASA images — the saved cards have always used NASA's URLs, and a network is the only place these pictures exist.
 **Consequence:** `data/spaceweather.ts` gains `strongestFlares(flares, count)`, a pure ordering by class (A<B<C<M<X, then the number), with six tests. `dom/forecastLoader.ts` gains `LoadedForecast.flares` — the raw readings, unconverted — which `base` ignores and `act` keeps whole. `features/act/view.ts` rewrites `dataBody()` into five blocks and keeps the loaded forecast instead of only its timetable; `features/act/model.ts` gains `HubContext.pictures` and `HubContext.liveFlares` (a model may not import `data/`, so the view counts and passes the numbers in), and the data tile's line of state says what is behind it. `act.css` gains `.act-weather`, `.act-weather__row`, `.act-weather__class`, `.act-weather__when` and `.act-fact`. Logged as ISS-075.
+
+---
 
 ---
 
@@ -43,11 +99,15 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+---
+
 **D-069 — agent — 2026-11-11**
 **Choice:** The outpost has a **fixed stacking order**, and it is a rule in code rather than a number in the layout file. Farthest to nearest: the regolith shields, the ice miner, the solar arrays, the greenhouse, the nuclear unit, the battery banks, the life support, the habitat. The copies of a kind **recede** from the camera as they are added — solar array 1 is the nearest and solar array 4 the furthest back, the same for the battery banks — while the two regolith shields share one depth. `z` is gone from `baseLayout.json`; a pose is now only where it is, how big, and which way round.
 **Why:** One pose per kind could only ever place the first copy of anything, so the game derived the rest — step right, shrink, rise — and every copy of a kind was a smaller echo of the first. That is the hard-coded behaviour the layout file exists to remove, and it also made the stacking order arbitrary: a solar array could end up in front of the habitat that was supposed to be the nearest thing. The order is a property of the outpost rather than of where a module happens to stand, so it belongs in code: a file of fifteen positions cannot be trusted to keep a stacking order straight, and fifteen `z` values would be another thing to keep in step by hand. Deriving it also means the game can never draw the outpost wrong, whatever the file says. The copies recede because the first one the player builds is the one that comes with the lander, standing at the front of the outpost, and each extra goes behind it.
 **Rejected:** (a) Keeping `z` in the file and letting the editor write it — the file stays self-describing, but a hand-edited file can break the order and the numbers still have to be kept in step. (b) A flat list of instances with an explicit `copy` field — it works, but it scatters a module's copies through the file instead of keeping them together. (c) One rule for every kind, copies always receding — simpler, but it puts shield 2 behind shield 1 when the two are meant to be the same distance away. (d) Deriving the order but leaving `z` in the file as a spare — a field that means nothing, which is worse than no field: a developer would think it still did something. (e) Letting the developer choose the depth per pose — an escape hatch, but it is how the order went wrong in the first place.
 **Consequence:** `ui/baseLayout.ts` exports `DEPTH_ORDER` and `depthFor(kind, copy)`. Each kind gets a band of ten levels, and a receding kind fills its band from the top down, so the copies of one kind can never pass the copies of the next. `ModuleSpot` loses its `z`; `readSpot` no longer requires one, and a file that still carries a `z` is told the field is ignored rather than having it dropped silently. `ui/gameLoop.ts`'s `moduleFigures` computes each figure's depth from the rule, and `ui/baseLayoutEditor.ts` stacks its handles the same way, so the editor is a picture of the outpost rather than a different one. The toolbar's depth field stops being editable and shows where a module sits instead — *farthest*, *nearest*, or *3 of 8* — because under a fixed order there is nothing to nudge. The developer's own layout is kept in full: every position, every width, and the mirrored regolith shield; only the `z` values are gone.
+
+---
 
 ---
 
@@ -59,11 +119,15 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+---
+
 **D-067 — agent — 2026-11-11**
 **Choice:** A module can be **mirrored** left to right. The pose gains an optional `flip`, the editor gains a **⇄ Mirror** toggle in the toolbar and the **F** key, and the artwork turns around **in place** — the mirror is about the picture's centre, so flipping a module does not move it. A mirrored module carries a small blue badge on the panel so its state is visible without selecting anything. `flip` is written to the layout file only for a module that is actually mirrored, so the default file is unchanged.
 **Why:** Every module's artwork has a facing direction: the solar panel catches the sun on one side, the ice miner's arm points one way, the battery bank's cabling is on the other. Measured against their own mirror, all eight differ over 30–50% of their pixels, so mirroring is a real change and not a no-op. A row of four solar panels all tilted the same way reads as one machine repeated; turning some of them around reads as an array. Without it, "place the equipment" had no answer for the one question an outpost asks — which way does this panel face?
 **Rejected:** (a) A vertical flip as well — a ground-standing module turned upside down would hang half-buried in the dirt, and the game has no use for it. (b) A second grip on the opposite corner, mirroring the resize grip — a grip is for a drag, and a mirror is an on/off; a tiny target for a discrete action is worse than a button. (c) A checkbox beside the number fields — consistent with the other fields, but one more control to look at rather than one to press. (d) Mirroring about the module's left edge instead of its centre — that would slide the module sideways as you flipped it, which is surprising, and the whole point is that turning a module around is not moving it. (e) Writing `flip: false` on every entry — fifteen lines of noise in a file where almost nothing is mirrored; a missing `flip` already means "not mirrored". (f) Drawing a separate flipped image asset for every module — eight new PNGs to keep in step with the originals, for a transform the browser does in one line.
 **Consequence:** `ModuleSpot` gains an optional `flip`; `readSpot` normalises anything that is not exactly `true` to false, and `describeLayoutProblems` reports a `flip` that is neither true nor false. `WorldFigure` gains the same field, `gameWorld` emits `--gl-flip`, and `.gl__figure` transforms with `scaleX(var(--gl-flip, 1))`. The editor mirrors the **artwork**, never the handle, so the resize grip stays on the bottom-right and the label stays readable. `src/ui/gameLoop.test.ts` is new — the first tests for that file — and covers the copies and the mirror.
+
+---
 
 ---
 
@@ -75,16 +139,23 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+---
+
 **D-065 — agent — 2026-11-11**
 **Choice:** Where each module stands on the outpost panel is **data, not code**. The layout lives in `src/ui/baseLayout.json` — `{left, bottom, width, z}` per kind, in percent — and is loaded and validated by `src/ui/baseLayout.ts`, which falls back to an authored default for any kind the file cannot supply and clamps any number that falls outside the band. A developer produces that file by opening the game with `?editlayout=1`, dragging the modules on the **real** outpost panel, and downloading the JSON. The editor is a developer tool in `src/ui/baseLayoutEditor.ts`: no route, no mount point, no registry entry, and it is compiled out of a production build entirely (`import.meta.env.DEV` plus a dynamic import in `main.ts`). The band a module may be placed in is declared once, in `SPOT_BAND`, and the CSS clamp in `styles/game-loop.css` is verified against it by `check-markup` Rule 11.
 **Why:** The module layout was a literal table inside `ui/gameLoop.ts`. Placing a module meant editing a number in source and reloading, and a whole outpost arrangement was eight numbers in a row with no way to see the result. That is the kind of work a screen should do, not a person should do by arithmetic. Dragging the real modules on the real panel is WYSIWYG by construction: the panel, the artwork, the background and the proportions are the ones the player sees, so what you arrange is what ships. The abandoned `drag-editor` feature (ISS-050) tried this as a *game screen* and was never wired to a route, so it could never be exercised and `npm run check` was the only thing that would have caught it — a tool that is not part of the journey does not belong in the journey's tables, and a tool that ships to players is a tool a player can find.
 **Rejected:** (a) A `features/drag-editor/` screen with its own route and mount — it puts a developer tool into the player-facing app, it needs the four-file feature layout and a registry entry, and `check-markup` Rule 5 then demands its data hooks exist in `index.html`. (b) Editing the layout inside the editor at runtime — the game would need a write path to `src/`, which is a build step pretending to be a feature. (c) `dx`/`dy` offsets from a hardcoded base, as the reference implementation in another project uses — that is right when the base is computed at runtime from a canvas transform, and wrong here, where the numbers are literal. Absolute percentages are what the file means. (d) A `src/data/baseLayout.json` — parity with that other project, but `src/data/` here is documented as the network-quarantine zone, and a static layout file muddies that story. (e) Letting the CSS clamp alone decide the limits, with the editor reading them back from the computed style — a genuinely single source, but it puts the band in the stylesheet where it cannot be unit tested, and the clamping it performs is silent: a position the developer chose is quietly moved somewhere else. (f) The clamp removed entirely — `moduleFigures` already produces duplicates that relied on it, and the safety net is worth having for a hand-edited file. (g) Placing each copy of a module separately — a second solar array steps right on its own today, and the file only needs the slot the copies derive from. (h) Shipping the editor and gating it on the URL alone — a game for children is public; the tool should not be in the bundle at all.
 **Consequence:** `ui/baseLayout.ts` exports `ModuleSpot`, `ModuleSpots`, `SPOT_BAND`, `DEFAULT_SPOTS`, `MODULE_SPOT`, `LAYOUT_PROBLEMS`, `clamp`, `clampSpot`, `roundSpot`, `resolveSpots`, `describeLayoutProblems`, `buildLayoutJson` and `pointToPercent`, with 31 tests. `ui/gameLoop.ts` reads the layout from there instead of declaring it, and `moduleFigures` now clamps its output into the band so the CSS clamp is a safety net rather than something that decides where a module lands. `ui/baseLayoutEditor.ts` exports `startLayoutEditor(root)`; `main.ts` decides when to start it and tears it down with the screen. `tsconfig.json` gains `resolveJsonModule`. `scripts/check-markup.mjs` gains Rule 11. The editor's overlay sits on `document.body` rather than inside the screen, because `features/base` replaces every child of its mount when the live forecast arrives and would otherwise destroy a drag in progress. **Superseded in part by D-066:** the file now holds a pose list per kind rather than one pose per kind, so `ModuleSpots` became `ModulePoses`, `DEFAULT_SPOTS` became `DEFAULT_POSES`, `MODULE_SPOT` became `MODULE_POSES`, `resolveSpots` became `resolvePoses`, and `poseFor` was added. The shape of the decision is unchanged — the layout is still a file, the editor is still a developer tool, and the band is still declared once.
+
+---
+
 **D-064 — agent · 2026-11-11**
 **Choice:** `npm run balance` is a **required check** for any change to `sim/`, and it **fails** the build rather than warning. It plays every legal build at every landing site over several forecast seeds and fails when a site cannot hold all five systems, or when too few builds can win. It lives in `tools/balance-check.mts`.
 **Why:** The game was unwinnable for a long time and **no test said so**. Every unit test passed, the browser checks passed, the screens looked right, and a player who built a sensible outpost at any landing site still lost every run. The balance lived in five constants in `sim/modules.ts`, and nothing in the suite read them against each other — the tests checked that the arithmetic was correct, not that the arithmetic was *playable*. A check that only exists in a human's head is a check that stops being run.
 **Rejected:** (a) A unit test over the balance — a test over the constants only proves the constants still do what they did, which is exactly what was wrong. (b) A "minimum win rate" assertion in the sim suite — it would need the same simulation, so it belongs in one place; two copies of the balance harness would drift. (c) Making it a warning — a balance that has already gone wrong once will go wrong again quietly. (d) Checking only one site — the sites differ in dust, ice and sun, and the bug lived in the difference between them.
 **Consequence:** `npm run balance` joins `npm run check` and `npm test` in the pre-commit list whenever `sim/` is touched, and the current pass line is *"every site can hold all 5 systems, and 43.2% of builds can win on average"*. The win rate is a number in the output, not a rule in the code: the rule is that **every site can hold all five systems**, which is the property that was broken. `tools/balance-check.mts` reports the per-site table so a regression says which site broke.
+
+---
 
 ---
 
@@ -96,11 +167,15 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+---
+
 **D-062 — agent · 2026-11-11**
 **Choice:** **The rover is part of the run, not a widget.** Its state is `RunState.rover`; it is sent out by a work order like any other; it drives on **sol time**, not a wall clock; and it comes back with a **document on the desk** — a real NASA picture, a place from the past, or a rare rock to log, take or leave. It touches **no resource**, so it cannot change how a run is won or lost.
 **Why:** The request was to put the rover *in the game system* rather than "send it and show some facts". A widget on a fifteen-to-sixty-five second real timer was not in the system: it could not be part of a sol, it did not know what the outpost had built, it was destroyed when the screen was rebuilt, and the debrief could not say what it had found. Moving it into `RunState` makes it a thing that happened during the run, on the run's clock, and it can be written about afterwards.
 **Rejected:** (a) Leaving it in `ui/` with a real timer — that is D-059, and it is what "not in the system" looks like. (b) Giving the rover a resource perk — it would change the balance and D-063 says the science is the only thing the extra work buys. (c) A wall clock — a demo player would have to wait for a real find, and the sol clock is the one the player can see. (d) Procedurally generated finds — the finds are real NASA places and rocks, which is the whole point of the feature.
 **Consequence:** `src/sim/rover.ts` holds the rules **and** the catalogue of real finds, which moved out of `data/` because the simulation now owns the whole lifecycle of the rover — `data/` is for things fetched from a network. `RunState.rover` carries `returnsOn` and what it has found. `src/ui/roverWidget.ts` and `src/data/roverFinds.ts` are **deleted**. The debrief can report the finds, and a find that has not been answered is still waiting when the player comes back.
+
+---
 
 ---
 
@@ -112,11 +187,15 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+---
+
 **D-060 — agent · 2026-11-11**
 **Choice:** **The game is a Papers Please game about Mars.** Each sol the player is the duty officer at the outpost: **three work orders** land on the desk, each carries **two readings to check**, some have a **tool** to work them with, and the player **approves one**. The **standing orders** are the rule book that grows two rules a sol until there are twenty-four. The player's job, written on the mission bar: keep the five systems running for twelve sols.
 **Why:** Play testing said the game was fun but hard to follow, and the reason was that nothing ever said what a *day* was. The screens had been built one at a time and each assumed the player had worked out the one before it: a child could play twelve sols and never have been told what they were playing. Papers Please is the shape that already answers this — a queue, a rule book that grows, one decision, a tally — and it is legible to a child without instruction.
 **Rejected:** (a) The old shape — three activities of which one is chosen — it was a menu, not a job, and nothing on screen said so. (b) More than three orders — the desk fills up and the player stops reading. (c) Fewer than two checks per order — one reading cannot be *checked* against anything, and the check is the learning. (d) A status dot on each standing order — it says whether the rule is broken, which is the answer rather than the question. (e) Procedural orders — each sol's three orders are a curriculum that introduces something new; randomising them would break the teaching, and the locked cards teach a lesson of their own ("you have no greenhouse").
 **Consequence:** `sim/activities.ts` holds the day's orders, `sim/standingOrders.ts` the twenty-four rules, `sim/minigames.ts` the six tools and their grading, and `sim/guide.ts` the how-to-play guide. `ui/activityPlayer.ts` draws the work-order player. The goals became the standing orders (D-061) and the science points became the run's score (D-063). The mission bar on every play screen says the job in one line, and the guide opens by itself the first time the player reaches the build screen. **The six tools unlock one a sol for the first six sols**, because the unlock schedule and the sol plan are separate lists and they have to be checked against each other: every sol has to leave at least one order the player can work, or that sol is three buttons and nothing else (ISS-065). The rule is held by a test over the whole plan.
+
+---
 
 ---
 
@@ -128,25 +207,6 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
-**D-050 — agent · 2026-11-10**
-**Choice:** The supply screen answers Enter exactly as NEXT does. The two rules that decide it — "is this a plain Enter?" and "does the focused element deal with Enter itself?" — live in `features/supply/model.ts`, where they are pure and can be tested; the view holds one `window` keydown listener. The screen also resets itself when it mounts, because its markup is static and everything it shows survives a visit.
-**Why:** The screen had no keyboard handler at all: Enter did nothing until NEXT had been clicked with a mouse, and even then it worked only because the click left the focus on the button and the browser activates a focused button on Enter. A key that works only after a click reads as broken (ISS-053). The reset is the same defect's other half: a second visit came back with NEXT hidden, the answers still on screen and eight answer options instead of four, so Enter would have gone quiet again on every revisit.
-**Rejected:** (a) A shared `ui/` helper for the Enter rule — the briefing has the same rule inline, and extracting it would touch a screen that is not part of this fix; it can be done once two screens want it. (b) Enter answering the ration question — a stray press would pick an answer for a child. (c) An auto-advance timer like the briefing's — it would take the beat away while it is still being read. (d) Rebuilding the screen's DOM on every mount to clear the old state — the markup is shared with the rest of the page, and the reset is six lines.
-**Consequence:** `features/supply/model.ts` exports `isPlainEnter` and `focusHandlesEnter`, both pure and covered by tests; `features/supply/view.ts` adds one `window` keydown listener, removes it in its teardown, and resets the screen's state on mount. The other screens' views and models are untouched.
-**D-049 — agent · 2026-11-10**
-**Choice:** The naming screen becomes a full-bleed scene: the stage is the backdrop for the whole window, the astronaut stands on the left, Mars fills the right and runs off the edges, and the menu (title, name field, buttons, trainer card) sits on the right over the planet. The card frame is gone, the typography is the geometric sans already loaded for the site (Outfit), the panels are translucent so the planet shows through, and a radial scrim keeps the menu legible on top of it. The Mars rotation is untouched: `naming-mars-turn` is still 150s, linear, infinite, and `naming-astronaut-float` is still 9s.
-**Why:** The screen was built to an earlier mockup that put the artwork in a bordered card on the right and the menu in a column on the left. The new reference is the opposite: one picture, edge to edge, with the menu on the planet. It is also a better screen for a child — the astronaut is the first thing on it rather than a small picture in a box.
-**Rejected:** Keeping the 1060x677 card and restyling it (the frame is the thing the reference removes); moving the planet or the astronaut with JavaScript (the CSS keyframes already do it, and a JS loop is a leak to clean up on every navigation); rebuilding the scene as one flattened bitmap (it would stop rotating and could not respond to the viewport); a JS-driven starfield (the landing page already owns that, and the scene does not need a second one).
-**Consequence:** `index.html` moves the stage out of `.naming__body` to be the first child of the section, and wraps the title, greeting and form in `.naming__content` so the block can be centred above the trainer card. `naming.css` is rewritten around the new composition; the keyframes are copied over unchanged. `view.ts` and `model.ts` are untouched, so the name rules and their 21 tests stand, and the screen still behaves exactly as before: START MISSION stays disabled until the name is usable. START MISSION is the button that carries the emphasis, with the accent fill every other screen's primary button uses, so the way forward is the bright one and "Start over" stays quiet beside it. Below 720px wide or 480px tall the backdrop is dropped and the panel goes full width, as it did before.
-
----
-
-**D-048 — agent — 2026-11-10**
-**Choice:** Every mission's hazards are rolled from a seed: whether a dust storm happens, how many flares (1–4), whether a supply pod is scheduled, and which sols (2–10, one event at a time). Flare sizes are drawn from the real M and X flares the live feed returned; with no live data they are drawn from the NOAA long-run record (3,791 M to 345 X flares, 1975–2012), marked `approximate`. A dustier landing site gets more storms. The crew sees a pod for the whole run, a storm three sols ahead and a flare only one sol ahead.
-**Why:** The fixed schedule (D-033) meant every replay was the same four decisions in the same order, which undercuts "a living simulation". Real hazards vary: flare activity changes month to month, dust storms are common but not certain, and flares give almost no warning. Seeding rather than `Math.random` keeps a run repeatable in a demo and assertable in a test.
-**Rejected:** (a) `Math.random` in `sim/` — it breaks determinism and is how ISS-015 happened. (b) Inventing flare sizes with no source — sizes come only from real flares or the NOAA mix. (c) Using C-class flares — the Sun makes thousands and they cannot hurt a shielded crew. (d) A Mars dust-season variable on `RunState` — more state for little gain. (e) Longer or variable storms — balance risk for no extra lesson. (f) A fully empty mission — every mission has at least one flare and two decisions, because otherwise there is nothing to play.
-**Consequence:** `sim/forecast.ts` exports `createSeededRandom`, `planEvents`, `randomSolBetween`, `stormChance`, `visibleForecast`, `WARNING_SOLS` and `createForecast(flares, seed?, dustScore?)`; `DEFAULT_SEED` is 6. `dom/forecastLoader.loadForecast(signal?, seed?, dustScore?)` passes `Date.now()` and the site's dust score, so every new mission differs. `data/spaceweather.ts` returns every flare it parsed and `FALLBACK_FLARES` is empty, so an offline run draws typical sizes from the long-run record instead of the same two baked flares. `features/base`'s "read ahead" card and `features/act`'s "Coming up" panel show `visibleForecast`, not the whole timetable. **No two events ever touch** — D-056 adds the quiet sol that keeps a rolled timetable from becoming a pile-up.
-
 ---
 
 **D-058 — agent — 2026-11-11**
@@ -154,6 +214,8 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 **Why:** The numbers were always real and always about these five things — the dust blocking the Sun, the air and water makers, the shielding, the batteries, the greenhouse — but nothing said so. A player saw five bars falling and had to work out for themselves that the dust was what was blocking the Sun. Naming the goals turns a set of falling bars into a set of things a player can think about, and it makes the science legible: "the greenhouse grows 12 food a sol and the crew eat 10" is a fact about the machine they are running, not a number to panic at. It also gives the NASA facts somewhere to belong: one topic per goal, so the dust goal never shows the same fact as the power goal.
 **Rejected:** A separate "mission objectives" screen (another route, another place to keep in step, and D-039 already rejected a new route at freeze); five separate crises, one per goal (that would be four more events in a twelve-sol run, and the schedule is deliberately spaced so the player has a quiet sol between alarms — D-056); showing the goals as another HUD row (the game-loop frame has five resource cards and the goals are not resources); replacing the resource meters with the goals (the meters are what the trades are made of; the goals are what they mean).
 **Consequence:** `src/sim/goals.ts` is a new pure module: `SCIENCE_GOALS`, `goalReadings`, `goalById`. Every reading is worked out from the sim — the storm actually running, the panels' real output, the stores as they stand, the last sol's blackout — so it is a fact about the outpost and not a decoration. `sim/topics.ts` gains a `dust` topic so the five goals file their facts separately, and `ActivitySpec` gains an optional `goal`, so the seven activities that serve a goal say which one and the five pure-science activities do not claim to serve any. `act` shows the five rows under the day's activity; `debrief` reports how each ended.
+
+---
 
 ---
 
@@ -165,11 +227,15 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+---
+
 **D-056 — agent — 2026-11-10**
 **Choice:** **Two forecast events can never happen back to back.** Every event also claims the sol on either side of it, and those sols stay empty, so there is always at least one quiet sol between any two events — including after a two-sol dust storm, which is still dusting the panels when the next alarm arrives.
 **Why:** A crisis on the sol after a crisis gives the player no room to breathe: the dust from one sol is still on the panels the next, and the power they spent on the first is still gone. The rule used to be implied by four typed-in constants that happened to be spaced right, and then D-048 replaced them with a timetable rolled from a seed — at which point the planner could put a flare on the sol after a pod, because `FLARE_CHANCE_AFTER_FLARE` exists to model exactly that. A rule that lives in four numbers, or in a dice roll, is a rule the next person breaks by adding a fifth event. The guarantee has to be a property of the construction, not a promise.
 **Rejected:** Just adding a test over the current constants (that would catch a regression but not prevent the edit that causes one); dropping the burst chance entirely (flares really do come in bursts, because one active sunspot region keeps firing — the burst chance now applies to a flare *two* sols after another, so the model survives the gap); letting the crew see the whole timetable so a pile-up is "fair" (the flare gives one sol of warning at most — D-048 — so the player cannot plan around it anyway); spacing the events further apart (the run is twelve sols and the quiet sols are what make the run readable).
 **Consequence:** `sim/forecast.ts` gains `MIN_CLEAR_SOLS` and `forecastIsSpaced(forecast)`, and `planEvents` keeps a second set of sols — the quiet ones — that no event may land on. Every event claims the sol before and the sol after it, so the rule holds whatever the dice say; `forecastIsSpaced` is exported so a test can say so over many seeds. The planner's `pickFreeSol` now returns `null` when every sol is used, because a storm plus four flares can fill the window, and a run with no cargo pod is a perfectly good run. `src/sim/forecast.test.ts` asserts the rule over 200 seeds, and the test that used to say flares come in bursts on neighbouring sols now says they come in bursts **but never on neighbouring sols**.
+
+---
 
 ---
 
@@ -181,11 +247,15 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+---
+
 **D-054 — agent — 2026-11-10**
 **Choice:** The cosmetic `MISSIONS` array in `features/act/model.ts` is replaced by `SOL_PLANS` in `src/sim/activities.ts`: twelve real sol headlines, each carrying the three activity ids offered on that sol, aligned with the baked crisis sols (3, 5, 7, 10).
 **Why:** `MISSIONS` was ten hard-coded strings with **zero** effect on the simulation, and it disagreed with the forecast — sol 8 read "Mission 7: First Harvest" while the dust storm was actually on sol 7. A plan that drives the simulation cannot be cosmetic, and it cannot live in a feature's model when the rules that use it live in `sim/`.
 **Rejected:** Keeping `MISSIONS` and adding a second parallel table (two sources of truth, and the old one would still be wrong); moving the headlines into `features/act/model.ts` (the sim needs them, and a feature model cannot be imported by `sim/`); inventing a fourteenth and fifteenth mission (the run is twelve sols).
 **Consequence:** `act/model.ts` no longer exports `MISSIONS`; `missionHeadline` reads the plan for the sol. `sim/sol.ts` reads the same plan for the crisis-free sols, so the headline and the activity on screen cannot disagree. ISS-048 records the misalignment this fixes.
+
+---
 
 ---
 
@@ -197,11 +267,15 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+---
+
 **D-052 — agent — 2026-11-10**
 **Choice:** Activities award **science points**. `RunState.science` totals them across the run, and the debrief shows the total and a **rank** earned from it (Explorer → Chief Martian Scientist).
 **Why:** A run whose only question is "did you survive?" is a lesson, not a game. A number to beat and a name to earn give the twelve sols a shape the player can aim at, and the activities in D-051 are the thing that moves the number — so the score and the gameplay are the same system rather than a layer on top of one.
 **Rejected:** Badges and milestones, research levels that gate activities, crew morale, and XP as a second currency — all cut for demo safety and all cheap to add on top of this score later; a score that changes survival (it must not: R-20 and the "losing is informative" half of G-4 mean losing still has to teach, not punish); a random score (a demo must repeat, so every number is derived from the log, never from `Math.random()`).
 **Consequence:** `src/sim/science.ts` holds the ranks and the progress arithmetic, pure and tested. `RunState` gains `science: number`; `SolRecord` gains `activity`. The score is shown in the `act` kicker and in a debrief callout. Badges, levels and morale stay available as later work because the score they would hang off already exists.
+
+---
 
 ---
 
@@ -213,11 +287,33 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
-**D-046 — agent — 2026-11-10**
-**Choice:** The briefing artwork is shown whole, locked to its own aspect ratio as the backdrop (the supply screen's stage approach), with one spoken line at a time over it, each line replacing the one before it; NEXT or Enter advances, and Enter confirms on the last line.
-**Why:** The stacked beat cards filled the screen with a growing wall of text and left the artwork out entirely. One spoken line under the picture keeps the scene and reads as something being said to you; a child who looks away misses one line rather than five.
-**Rejected:** A chat-thread accumulation where every beat stays on screen (the previous build) — it re-created the wall; auto-revealing on a timer — it takes the pace away from the reader.
-**Consequence:** `features/briefing/view.ts` swaps `data-briefing-message` in place and restarts one fade; `model.ts` is unchanged, so the five beats and their tests stand. The YES!! button and the ~2.6 s auto-advance are unchanged. The shared read-aloud control still sits in the actions row and still pauses the closing hand-off.
+---
+
+**D-050 — agent · 2026-11-10**
+**Choice:** The supply screen answers Enter exactly as NEXT does. The two rules that decide it — "is this a plain Enter?" and "does the focused element deal with Enter itself?" — live in `features/supply/model.ts`, where they are pure and can be tested; the view holds one `window` keydown listener. The screen also resets itself when it mounts, because its markup is static and everything it shows survives a visit.
+**Why:** The screen had no keyboard handler at all: Enter did nothing until NEXT had been clicked with a mouse, and even then it worked only because the click left the focus on the button and the browser activates a focused button on Enter. A key that works only after a click reads as broken (ISS-053). The reset is the same defect's other half: a second visit came back with NEXT hidden, the answers still on screen and eight answer options instead of four, so Enter would have gone quiet again on every revisit.
+**Rejected:** (a) A shared `ui/` helper for the Enter rule — the briefing has the same rule inline, and extracting it would touch a screen that is not part of this fix; it can be done once two screens want it. (b) Enter answering the ration question — a stray press would pick an answer for a child. (c) An auto-advance timer like the briefing's — it would take the beat away while it is still being read. (d) Rebuilding the screen's DOM on every mount to clear the old state — the markup is shared with the rest of the page, and the reset is six lines.
+**Consequence:** `features/supply/model.ts` exports `isPlainEnter` and `focusHandlesEnter`, both pure and covered by tests; `features/supply/view.ts` adds one `window` keydown listener, removes it in its teardown, and resets the screen's state on mount. The other screens' views and models are untouched.
+
+---
+
+**D-049 — agent · 2026-11-10**
+**Choice:** The naming screen becomes a full-bleed scene: the stage is the backdrop for the whole window, the astronaut stands on the left, Mars fills the right and runs off the edges, and the menu (title, name field, buttons, trainer card) sits on the right over the planet. The card frame is gone, the typography is the geometric sans already loaded for the site (Outfit), the panels are translucent so the planet shows through, and a radial scrim keeps the menu legible on top of it. The Mars rotation is untouched: `naming-mars-turn` is still 150s, linear, infinite, and `naming-astronaut-float` is still 9s.
+**Why:** The screen was built to an earlier mockup that put the artwork in a bordered card on the right and the menu in a column on the left. The new reference is the opposite: one picture, edge to edge, with the menu on the planet. It is also a better screen for a child — the astronaut is the first thing on it rather than a small picture in a box.
+**Rejected:** Keeping the 1060x677 card and restyling it (the frame is the thing the reference removes); moving the planet or the astronaut with JavaScript (the CSS keyframes already do it, and a JS loop is a leak to clean up on every navigation); rebuilding the scene as one flattened bitmap (it would stop rotating and could not respond to the viewport); a JS-driven starfield (the landing page already owns that, and the scene does not need a second one).
+**Consequence:** `index.html` moves the stage out of `.naming__body` to be the first child of the section, and wraps the title, greeting and form in `.naming__content` so the block can be centred above the trainer card. `naming.css` is rewritten around the new composition; the keyframes are copied over unchanged. `view.ts` and `model.ts` are untouched, so the name rules and their 21 tests stand, and the screen still behaves exactly as before: START MISSION stays disabled until the name is usable. START MISSION is the button that carries the emphasis, with the accent fill every other screen's primary button uses, so the way forward is the bright one and "Start over" stays quiet beside it. Below 720px wide or 480px tall the backdrop is dropped and the panel goes full width, as it did before.
+
+---
+
+---
+
+**D-048 — agent — 2026-11-10**
+**Choice:** Every mission's hazards are rolled from a seed: whether a dust storm happens, how many flares (1–4), whether a supply pod is scheduled, and which sols (2–10, one event at a time). Flare sizes are drawn from the real M and X flares the live feed returned; with no live data they are drawn from the NOAA long-run record (3,791 M to 345 X flares, 1975–2012), marked `approximate`. A dustier landing site gets more storms. The crew sees a pod for the whole run, a storm three sols ahead and a flare only one sol ahead.
+**Why:** The fixed schedule (D-033) meant every replay was the same four decisions in the same order, which undercuts "a living simulation". Real hazards vary: flare activity changes month to month, dust storms are common but not certain, and flares give almost no warning. Seeding rather than `Math.random` keeps a run repeatable in a demo and assertable in a test.
+**Rejected:** (a) `Math.random` in `sim/` — it breaks determinism and is how ISS-015 happened. (b) Inventing flare sizes with no source — sizes come only from real flares or the NOAA mix. (c) Using C-class flares — the Sun makes thousands and they cannot hurt a shielded crew. (d) A Mars dust-season variable on `RunState` — more state for little gain. (e) Longer or variable storms — balance risk for no extra lesson. (f) A fully empty mission — every mission has at least one flare and two decisions, because otherwise there is nothing to play.
+**Consequence:** `sim/forecast.ts` exports `createSeededRandom`, `planEvents`, `randomSolBetween`, `stormChance`, `visibleForecast`, `WARNING_SOLS` and `createForecast(flares, seed?, dustScore?)`; `DEFAULT_SEED` is 6. `dom/forecastLoader.loadForecast(signal?, seed?, dustScore?)` passes `Date.now()` and the site's dust score, so every new mission differs. `data/spaceweather.ts` returns every flare it parsed and `FALLBACK_FLARES` is empty, so an offline run draws typical sizes from the long-run record instead of the same two baked flares. `features/base`'s "read ahead" card and `features/act`'s "Coming up" panel show `visibleForecast`, not the whole timetable. **No two events ever touch** — D-056 adds the quiet sol that keeps a rolled timetable from becoming a pile-up.
+
+---
 
 ---
 
@@ -229,6 +325,18 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+---
+
+**D-046 — agent — 2026-11-10**
+**Choice:** The briefing artwork is shown whole, locked to its own aspect ratio as the backdrop (the supply screen's stage approach), with one spoken line at a time over it, each line replacing the one before it; NEXT or Enter advances, and Enter confirms on the last line.
+**Why:** The stacked beat cards filled the screen with a growing wall of text and left the artwork out entirely. One spoken line under the picture keeps the scene and reads as something being said to you; a child who looks away misses one line rather than five.
+**Rejected:** A chat-thread accumulation where every beat stays on screen (the previous build) — it re-created the wall; auto-revealing on a timer — it takes the pace away from the reader.
+**Consequence:** `features/briefing/view.ts` swaps `data-briefing-message` in place and restarts one fade; `model.ts` is unchanged, so the five beats and their tests stand. The YES!! button and the ~2.6 s auto-advance are unchanged. The shared read-aloud control still sits in the actions row and still pauses the closing hand-off.
+
+---
+
+---
+
 **D-045 — agent — 2026-11-10**
 **Choice:** Add one real NASA photo per landing region to the landing-site panel, and a rotating list of short NASA facts for screens that have no card of their own.
 **Why:** The landing choice was a pin on an authored map. A child can ask "what does that place actually look like?" and five real NASA images answer it, which makes the trade-off between regions concrete instead of abstract. The facts list lets base and debrief add a learning beat without a new card per screen or any invented content.
@@ -236,20 +344,6 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 **Consequence:** `REGION_CARDS` and `FACTS` are pure, tested data. `factFor(seed)` wraps negative and huge seeds, so the same run sees the same fact and a test can pin it. The landing-site photo reuses `nasaCard`, so the credit line, source link and read-aloud come with it.
 
 ---
-
-**D-043 — agent — 2026-11-10**
-**Choice:** Read-aloud uses the browser's own `speechSynthesis`, wrapped in `ui/readAloud.ts` and shared through `ui/readButton.ts`. No audio file, no network request, no dependency, and the control is omitted entirely where the API is missing.
-**Why:** The brief is written for ages 8-16, and a child who cannot yet read the briefing fluently loses the whole mission story if the only route through is the NEXT button. Recorded audio would mean assets, a hosting path and a mute design; speech synthesis is already on the device, works offline on the demo laptop, and costs nothing at runtime. A shared toggle means the NASA cards, the briefing and the crisis prompt cannot drift into three different behaviours.
-**Rejected:** Bundled narration audio files (assets the team cannot supply at freeze, and a licence question for NASA voice/music); a backend TTS service (no backend, D-003); a single global read-aloud that re-reads the whole screen (a crisis re-read must include the choices, not the recap).
-**Consequence:** `readButton` returns null where speech is unavailable, so unsupported browsers simply do not get a dead control. The router calls `stopReading()` on every route change, and screens stop the voice in teardown, so a passage cannot follow the player into the next scene. The briefing pauses its closing hand-off while a passage is playing and resumes it only when the reading finishes naturally.
-
----
-
-**D-042 — agent — 2026-11-10**
-**Choice:** The NASA learning layer is a curated static gallery in `data/nasaGallery.ts`: twelve real images, one per sol, plus a closing artist concept on the debrief, each with a NASA id, alt text, caption, fact, credit and source link.
-**Why:** The pitch promises NASA data, and the space-weather path already proves a live NASA connection; but image search at runtime would add a second network dependency, rate limits and unpredictable licensing mid-demo, and the demo laptop may have no network at all. A fixed set of twelve cards can be checked for length, alt text and attribution in unit tests — which is the same discipline the rest of `sim/` and `data/` already runs under.
-**Rejected:** A runtime NASA image API (a second flaky endpoint, per-image licence review, and a cache story); generic stock Mars photos (the promise is NASA data); decorative artwork with no credit line (the README's attribution terms are explicit).
-**Consequence:** `NASA_CARDS` is pure data with a test that enforces every field, every id and the source link, so a bad card fails `npm test` rather than shipping. The closing card is labelled an artist's concept, not a photograph, because it is the one place a child could mistake an illustration for a real mission.
 
 ---
 
@@ -261,11 +355,35 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+---
+
+**D-043 — agent — 2026-11-10**
+**Choice:** Read-aloud uses the browser's own `speechSynthesis`, wrapped in `ui/readAloud.ts` and shared through `ui/readButton.ts`. No audio file, no network request, no dependency, and the control is omitted entirely where the API is missing.
+**Why:** The brief is written for ages 8-16, and a child who cannot yet read the briefing fluently loses the whole mission story if the only route through is the NEXT button. Recorded audio would mean assets, a hosting path and a mute design; speech synthesis is already on the device, works offline on the demo laptop, and costs nothing at runtime. A shared toggle means the NASA cards, the briefing and the crisis prompt cannot drift into three different behaviours.
+**Rejected:** Bundled narration audio files (assets the team cannot supply at freeze, and a licence question for NASA voice/music); a backend TTS service (no backend, D-003); a single global read-aloud that re-reads the whole screen (a crisis re-read must include the choices, not the recap).
+**Consequence:** `readButton` returns null where speech is unavailable, so unsupported browsers simply do not get a dead control. The router calls `stopReading()` on every route change, and screens stop the voice in teardown, so a passage cannot follow the player into the next scene. The briefing pauses its closing hand-off while a passage is playing and resumes it only when the reading finishes naturally.
+
+---
+
+---
+
+**D-042 — agent — 2026-11-10**
+**Choice:** The NASA learning layer is a curated static gallery in `data/nasaGallery.ts`: twelve real images, one per sol, plus a closing artist concept on the debrief, each with a NASA id, alt text, caption, fact, credit and source link.
+**Why:** The pitch promises NASA data, and the space-weather path already proves a live NASA connection; but image search at runtime would add a second network dependency, rate limits and unpredictable licensing mid-demo, and the demo laptop may have no network at all. A fixed set of twelve cards can be checked for length, alt text and attribution in unit tests — which is the same discipline the rest of `sim/` and `data/` already runs under.
+**Rejected:** A runtime NASA image API (a second flaky endpoint, per-image licence review, and a cache story); generic stock Mars photos (the promise is NASA data); decorative artwork with no credit line (the README's attribution terms are explicit).
+**Consequence:** `NASA_CARDS` is pure data with a test that enforces every field, every id and the source link, so a bad card fails `npm test` rather than shipping. The closing card is labelled an artist's concept, not a photograph, because it is the one place a child could mistake an illustration for a real mission.
+
+---
+
+---
+
 **D-041 — agent · 2026-11-10**
 **Choice:** `README.md` is maintained as the technical front page — status, setup commands, the real `src/` tree and links to every document — and it is updated in the same commit as any change that makes it false.
 **Why:** D-011 left the README untouched so its design, science and attribution writing would survive, and logged the false status as ISS-001. Since then the code grew a complete nine-screen journey, and the README still told every reader there was nothing to run. That is the first file a judge, teacher or new teammate opens. The design sections were kept; only the technical claims were corrected.
 **Rejected:** Keeping the README frozen and pointing readers at `docs/architecture.md` instead (the front page is where a judge starts); rewriting the pitch, science or attribution sections (nothing in them was wrong).
 **Consequence:** ISS-001 is fixed. A setup, structure or status change now updates the README in the same commit, via the doc-update matrix in `AGENTS.md`. D-011 stays in this file as history.
+
+---
 
 ---
 
@@ -277,11 +395,15 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+---
+
 **D-039 — agent · 2026-11-10**
 **Choice:** The journal (`66:50`) is a mode of `debrief`, opened by "View my Mars story", not a new route.
 **Why:** It reads the same finished run and owns no state of its own. A route would need a tenth screen, a registry entry and a way to stop a player deep-linking into a journal for a run that no longer exists.
 **Rejected:** `features/journal/` with its own route (scope at freeze); rendering the journal in place of the debrief with no way back (the frames show a back link).
 **Consequence:** `mountDebrief` toggles a local `mode` and re-renders; focus moves to the control that reverses the switch. The dock shows `journal` active in journal mode and `outpost` otherwise, as the frames do.
+
+---
 
 ---
 
@@ -293,11 +415,15 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+---
+
 **D-037 — agent · 2026-11-09**
 **Choice:** Live space weather tries NASA DONKI first, then NOAA SWPC, then famous past flares marked approximate.
 **Why:** DONKI is the NASA source the pitch promises, but on 2026-11-09 the NASA API portal returned `503 upstream connect error` and then `429 OVER_RATE_LIMIT` for the shared `DEMO_KEY` (ISS-008, ISS-009). One source means one outage turns the live forecast into history. NOAA SWPC's GOES X-ray feed sends `Access-Control-Allow-Origin: *` and is the instrument data DONKI itself mirrors, so it keeps the feature honest and live without inventing numbers.
 **Rejected:** Keeping DONKI-only and shipping baked data on demo night (ISS-043); proxying through a backend (no backend exists, D-003); scraping `ccmc.gsfc.nasa.gov` (unreachable and unverified, ISS-008).
 **Consequence:** `SpaceWeatherSource` gains `'noaa'`, the detail sentence names the agency that answered, and only the flare *size* is live — the sols stay baked in `sim/forecast.ts` (D-033). A personal `VITE_NASA_API_KEY` (ISS-009) restores NASA as the usual source.
+
+---
 
 ---
 
@@ -309,11 +435,15 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+---
+
 **D-035 — agent · 2026-11-08**
 **Choice:** The Final screen is cut as its own route. A win is a panel on `debrief`.
 **Why:** There is no route, task or art for it, and the freeze is today (extended for the loop, but scope is still tight).
 **Rejected:** Building a seventh screen (`features/final/`) with its own route, mount point and tests — adds a screen nobody asked for when the debrief can carry the win panel.
 **Consequence:** `debrief` shows a won-run panel instead of routing to `Final`. `src/ui/routes.ts` has no `final` route.
+
+---
 
 ---
 
@@ -325,11 +455,15 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+---
+
 **D-033 — agent · 2026-11-08**
 **Choice:** Space-weather events are baked-in and labelled `approximate: true`.
 **Why:** DONKI CORS is unverified (ISS-008, D-005). The README promises honesty about estimates.
 **Rejected:** A live fetch (blocked by ISS-008); unlabelled baked data (breaks the honesty promise).
 **Consequence:** `sim/events.ts` carries the baked schedule. Every event has `approximate: true`. The debrief and `act` show the `approximate` tag.
+
+---
 
 ---
 
@@ -341,6 +475,8 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+---
+
 **D-031 — agent · 2026-11-08**
 **Choice:** The loop is `base ⇄ act → debrief`. `act` stays a simulation runner; the player returns to `base` between sols to build.
 **Why:** Keeps D-018 (no plan phase) intact while still giving the player decisions between sols.
@@ -349,11 +485,15 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+---
+
 **D-030 — agent · 2026-11-08**
 **Choice:** Sols are turn-based: one button press resolves one sol.
 **Why:** Unblocks `sim/sol.ts` and `act`. Real-time needs a fake clock and a ticker.
 **Rejected:** Real-time (more code, flakier tests, no time before the demo).
 **Consequence:** `advanceSol` runs on a button press in `act`. No clock abstraction, no ticker in `dom/`.
+
+---
 
 ---
 
@@ -370,6 +510,8 @@ totals-spread invariant would live in three places).
 `REGIONS` and `totalScore`. `features/landing-site/model.ts` re-exports them and adds
 `scoreRegion`, `tradeoffSummary`, `strengthAndWeakness`. `architecture.md` gains a
 `sim/regions.ts` contract row and marks `landing-site` complete.
+
+---
 
 ---
 
@@ -412,6 +554,8 @@ that check is right even mid-crossfade. `supply/model.ts` gains `ANSWER_BLANK` a
 `workingText` helper so they cannot drift apart. The rail is one button taller on the
 right-answer path, because the completed working now stays up next to CONTINUE.
 
+---
+
 **D-027 — agent · 2026-10-21**
 **Choice:** Make the launch reel media-driven, serialise the three films onto the wire,
 and give each a poster frame — rather than re-encoding the footage.
@@ -439,6 +583,8 @@ carries `preload="none"` on the two later clips, and `tools/extract-posters.py` 
 runtime; the real exit is the last clip's `ended`. A real browser check is still outstanding
 — no browser is connected to this session (ISS-008).
 
+---
+
 **D-026 — agent · 2026-10-21**
 **Choice:** Encode the docking clip and the spacecraft tour as H.264 (`libx264`, `yuv420p`,
 CRF 18) rather than the `mp4v` OpenCV's `VideoWriter` writes by default.
@@ -454,6 +600,8 @@ already-compressed `mp4v` files (a second generation of loss on the text).
 and 13.2 MB, with the same frame counts and no audio. Both renderers write through PyAV instead
 of `cv2.VideoWriter`; they still run as `python tools/render-*.py`.
 
+---
+
 **D-025 — agent · 2026-10-21**
 **Choice:** Play the docking clip and the spacecraft tour as the last two beats of the launch
 screen, rather than adding a new route between `launch` and `landing-site`.
@@ -468,6 +616,8 @@ make a pacing edit a full re-render).
 **Consequence:** The launch screen runs 25.25s and owns three video elements. `launch/model.ts`
 carries all three lengths, and the hand-off is still derived from `TOTAL_DURATION_MS`. If the
 tour ever becomes interactive, that is the moment to split it into its own screen.
+
+---
 
 **D-024 — agent · 2026-10-21**
 **Choice:** Render the "meet the spacecraft" segment with a second standalone script,
@@ -485,6 +635,8 @@ cleanly. The overview is a separate render whose baked label cards sit at differ
 positions, so a cross-dissolve ghosts both sets of cards at once — its two transitions
 fade through black instead. The title sits in the lower-third bar rather than centred,
 because centred it covered the habitat module, the busiest part of the overview frame.
+
+---
 
 **D-023 — agent · 2026-10-21**
 **Choice:** Render the 3-second docking clip as a committed MP4 with a standalone Python
@@ -507,6 +659,8 @@ the existing `Assets/images/launch/launch-cinematic.mp4`. The geometry constants
 66.5% / 52.0%, a ~100px closing shift) are recorded in the script and can be ported into a CSS
 cinematic later if docking is ever built in-game.
 
+---
+
 **D-022 — project owner · 2026-10-07**
 **Choice:** Deploy production builds to Vercel from GitHub Actions only after the `Code
 checks` workflow succeeds on the repository's default branch. Disable Vercel's native Git
@@ -520,6 +674,8 @@ unchecked commits or run parallel deployments.
 repository secrets and link the Vercel project to the repository. This supersedes the
 GitHub Pages deployment choice recorded for PR #1.
 
+---
+
 **D-021 — agent · 2026-10-07**
 **Choice:** Use GitHub Pages as the deployment target; deploy only after the `Code checks`
 workflow succeeds on `main`. Validate the repository HTML with html-validate while
@@ -530,6 +686,27 @@ and the completed-check gate prevents failed changes from being published.
 without waiting for code checks.
 **Consequence:** GitHub Pages must be enabled with GitHub Actions as its source. The
 workflow uploads and deploys the built site only after checks pass.
+
+---
+
+**D-021 — project owner · 2026-10-07**
+**Choice:** `naming` is the entry screen. The player names their astronaut and starts
+the journey from there. A login page is intended to sit in front of it later.
+**Why:** Stated by the owner — naming "will work as the menu where one set name and
+start the journey", with a login page in front of it in future. The intent is a
+clear progression: login (later) → naming → the cinematic sequence → landing site.
+**Rejected:** Keeping `landing` as the entry and putting naming after it. Rejected
+because naming *is* the menu; routing a player through a placeholder page before
+letting them start would be an extra click for no benefit. The landing page is not
+deleted — it stays reachable and is what BACK TO MAIN MENU returns to.
+**Consequence:** `DEFAULT_ROUTE` is now `'naming'` and `ROUTE_ORDER[0]` is `naming`.
+`landing` remains a real route, not a dead entry, so nothing that works was retired.
+Supabase is still deferred and unowned (TASK-022), so the login page in front of
+this is blocked on that decision, not on this screen.
+
+---
+
+---
 
 **D-020 — project owner · 2026-10-06**
 **Choice:** `sim/{resources,sol,run}.ts`, `ui/registry.ts`, `data/spaceweather.ts` and all
@@ -555,21 +732,6 @@ broken `npm test`.
 
 ---
 
-**D-021 — project owner · 2026-10-07**
-**Choice:** `naming` is the entry screen. The player names their astronaut and starts
-the journey from there. A login page is intended to sit in front of it later.
-**Why:** Stated by the owner — naming "will work as the menu where one set name and
-start the journey", with a login page in front of it in future. The intent is a
-clear progression: login (later) → naming → the cinematic sequence → landing site.
-**Rejected:** Keeping `landing` as the entry and putting naming after it. Rejected
-because naming *is* the menu; routing a player through a placeholder page before
-letting them start would be an extra click for no benefit. The landing page is not
-deleted — it stays reachable and is what BACK TO MAIN MENU returns to.
-**Consequence:** `DEFAULT_ROUTE` is now `'naming'` and `ROUTE_ORDER[0]` is `naming`.
-`landing` remains a real route, not a dead entry, so nothing that works was retired.
-Supabase is still deferred and unowned (TASK-022), so the login page in front of
-this is blocked on that decision, not on this screen.
-
 ---
 
 **D-020 — project owner · 2026-10-07**
@@ -586,6 +748,8 @@ own axis looks identical, so the animation would appear to do nothing. Both
 animations are disabled outright under `prefers-reduced-motion`, because they are
 continuous and self-triggered. No `requestAnimationFrame` is involved, so there is
 no loop to leak on navigation — which is why the menu needs no teardown for them.
+
+---
 
 ---
 
@@ -614,6 +778,8 @@ the thing being visibly absent.** Absence reads as "nothing happened", not as "d
 
 ---
 
+---
+
 **D-018 — agent, on the owner's confirmation · 2026-10-06**
 **Choice:** The game is built **without a plan phase**. The four in-scope screens are
 `landing-site`, `base`, `act`, `debrief`.
@@ -628,6 +794,8 @@ which is the README's central promise ("a run that ends badly is the most educat
 run in the game"). If debrief is weak, the game has no teaching left. `act` becomes the
 simulation runner rather than a decision screen. `src/ui/routes.ts` deliberately has no
 `plan` route.
+
+---
 
 ---
 
@@ -646,6 +814,8 @@ discoverable at the point of failure.
 
 ---
 
+---
+
 **D-016 — agent, for "whoever is free, task by task" · 2026-10-06**
 **Choice:** No `index.ts` barrel files anywhere. Import concrete paths. Feature CSS is
 imported by that feature's own `view.ts`, never added to a central `style.css`.
@@ -657,6 +827,8 @@ paid by everyone and the conflict cost is paid by everyone.
 **Consequence:** a long import path is the correct trade. Both rules are conventions, not
 enforced — nothing checks for a barrel today. Worth noting `tsc` would not catch one
 either. They live in `AGENTS.md` R-14 and R-15.
+
+---
 
 ---
 
@@ -674,6 +846,8 @@ values.
 self-contained. Purity is enforced by filename (`model.ts`, `types.ts`,
 `constants.ts`, `*.test.ts`), which means an unrecognised pure filename is treated as
 DOM-bearing — conservative, and it prompts a rename rather than a silent hole.
+
+---
 
 ---
 
@@ -695,6 +869,8 @@ DOM half cannot be verified without a browser. It is marked **not wired** in
 
 ---
 
+---
+
 **D-013 — agent, approved by owner · 2026-10-06**
 **Choice:** Rename `src/core/` to `src/sim/`.
 **Why:** "core" described neither of the two things the folder would hold — astronaut
@@ -713,6 +889,8 @@ traces every file. Issue paths in `issues.md` were updated to match.
 
 ---
 
+---
+
 **D-012 — no problem · 2026-10-06**
 **Choice:** No `.gitattributes` and no line-ending normalisation in this pass.
 **Why:** Interview answer was that `AGENTS.md` is readable as-is, which is a statement
@@ -725,6 +903,8 @@ them; nothing about the idea is wrong.
 mid-session that `pointerGrab.ts` will be rewritten to CRLF. All new files from this
 pass are LF, so they are on the correct side of the eventual fix. **This is the single
 cheapest issue on the board to close.**
+
+---
 
 ---
 
@@ -743,6 +923,8 @@ ISS-001 is a judgement call about **timing**, not about whether the README is wr
 
 ---
 
+---
+
 **D-010 — no problem · 2026-10-06**
 **Choice:** The layer fix moves files; the four measured defects stay unfixed.
 **Why:** Moving `floatAstronaut`, `pointerGrab` and `starfield` to `src/dom/` was
@@ -755,6 +937,8 @@ astronaut fails to drift after this lands, the move is the first suspect.
 
 ---
 
+---
+
 **D-009 — no problem · 2026-10-06**
 **Choice:** Measured defects are logged, not fixed.
 **Why:** Explicit instruction: "Just log all four."
@@ -764,6 +948,8 @@ documentation pass that silently also edits product code is harder to review tha
 that only adds documentation.
 **Consequence:** ISS-001 through ISS-004 and ISS-006 through ISS-014 are all open and
 unowned. Several are one-line fixes that nobody has claimed.
+
+---
 
 ---
 
@@ -782,6 +968,8 @@ team wants a runtime toggle instead, that is a change to record here.
 
 ---
 
+---
+
 **D-007 — project owner · 2026-10-06**
 **Choice:** Feature freeze Nov 8 2026; demo Nov 14-15 2026.
 **Why:** Confirmed by the project owner. Six people, ~39 days from the documentation
@@ -790,6 +978,8 @@ pass.
 discovering breakage on Nov 13 leaves no working day to fix it.
 **Consequence:** Roughly 33 working days of build time. Data-layer work that depends on
 ISS-008 must be resolved well before Nov 8 or it gets cut.
+
+---
 
 ---
 
@@ -803,6 +993,8 @@ Storing a key in the repo would be a disclosure (ISS-006).
 **Consequence:** `DEMO_KEY` is shared and rate-limited, so the data layer must degrade
 to baked-in values rather than showing an empty screen when throttled. Nobody currently
 owns a personal key: ISS-009.
+
+---
 
 ---
 
@@ -820,6 +1012,8 @@ must be revisited, and revisiting it late is expensive.
 
 ---
 
+---
+
 **D-004 — project owner · 2026-10-06**
 **Choice:** When Supabase arrives, only the anon/publishable key ships in the client
 bundle, protected by Row Level Security.
@@ -834,6 +1028,8 @@ are **not yet written** — an unenforced RLS policy is an open database.
 
 ---
 
+---
+
 **D-003 — project owner · 2026-10-06**
 **Choice:** Supabase is out of scope for this sprint.
 **Why:** Stated by the project owner, despite login and save-state being known future
@@ -843,6 +1039,8 @@ and auth is the largest single piece of unstarted work in the project.
 **Consequence:** `@supabase/supabase-js` is **not** a dependency and the project keeps
 zero runtime dependencies. Auth and persistence are unowned and unscheduled against a
 Nov 8 freeze. If they are in the demo, that decision needs revisiting immediately.
+
+---
 
 ---
 
@@ -863,6 +1061,8 @@ three moved files, so no test changed. Runtime effect unverified.
 
 ---
 
+---
+
 **D-001 — project owner · 2026-10-06**
 **Choice:** Keep Vite + TypeScript. Do not migrate to buildless vanilla ES modules.
 **Why:** The original brief described the stack as "vanilla ES modules, plain CSS, no
@@ -876,6 +1076,8 @@ TypeScript while keeping Vite.
 **Consequence:** The docs describe the measured stack. The "no bundler" clause of the
 original brief does not apply to this repository and should not be reintroduced into any
 later brief without re-measuring.
+
+---
 
 ---
 

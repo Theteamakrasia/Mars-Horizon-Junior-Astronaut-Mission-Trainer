@@ -1,0 +1,191 @@
+/* The mission-day tracker: "DAY 2 OF 12 DAYS" and its twelve pips.
+ *
+ * Lives in `ui/` next to the tracker it dresses, the way `nasa-card.css` sits
+ * next to `nasaCard.ts` (R-15). The classes are `gl__day*` because the
+ * tracker is part of the shared game chrome, and the colours come from the
+ * palette in `styles/game-loop.css` so it cannot drift from the rest of the bar.
+ *
+ * Three rules make it read at a glance:
+ *
+ *   - The words sit on the NUMBER's baseline, not floating beside it. "DAY" and
+ *     "OF 12 DAYS" are small and bold; the day itself is the big thing.
+ *   - The pips are FILLED, and the rail runs behind all of them, so the track
+ *     reads as one path with twelve stations on it rather than twelve loose dots.
+ *   - The path is lit in amber up to the day in play and pale ahead of it, and
+ *     the day in play is a gold dot with a ring around it.
+ *
+ * The pips are three different shapes as well as three different colours: a
+ * finished day is a solid dot, the day in play is a solid dot with a ring
+ * around it, and a day still to come is a hollow ring. A child who cannot tell
+ * orange from cream can still tell them apart.
+ */
+
+.gl__day {
+  /*
+   * The tracker lines up with the MARS HORIZON word, not with the middle of the
+   * two-line brand block. The brand's second line is exactly what has to be
+   * climbed to get there, so the shift is that line's own height.
+   */
+  --gl-brand-sub: clamp(0.5rem, 0.62vw, 0.8rem);
+
+  display: flex;
+  align-items: baseline;
+  gap: clamp(4px, 0.42vw, 8px);
+  flex: 0 0 auto;
+  min-width: 0;
+  transform: translateY(calc(var(--gl-brand-sub) * 1.12 / -2));
+}
+
+.gl__day-word,
+.gl__day-total {
+  color: var(--gl-panel);
+  font-family: var(--gl-body);
+  font-weight: 900;
+  font-size: clamp(0.6rem, 0.76vw, 0.94rem);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+/* The day itself: the one number in the bar a child should look for. */
+.gl__day-number {
+  color: var(--gl-amber);
+  font-family: var(--gl-display);
+  font-weight: 900;
+  font-size: clamp(1.15rem, 1.72vw, 2.1rem);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/* The twelve stations, and the path between them. */
+.gl__day-track {
+  --gl-day-pip: clamp(8px, 0.78vw, 15px);
+  --gl-day-gap: clamp(4px, 0.42vw, 8px);
+
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--gl-day-gap);
+  /* Centred on the words' baseline rather than on the tallest box. */
+  align-self: center;
+  margin-left: clamp(2px, 0.21vw, 4px);
+}
+
+/*
+ * The path the mission travels.
+ *
+ * Each pip draws the segment that follows it rather than one long line under
+ * the whole track, because the segment lengths then come from the same flex gap
+ * the pips are spaced by and cannot drift out of step with them. The pips are
+ * filled, so the line reads as continuous behind them.
+ */
+.gl__day-pip {
+  position: relative;
+  width: var(--gl-day-pip);
+  height: var(--gl-day-pip);
+  flex: 0 0 auto;
+  border-radius: 50%;
+  border: 2px solid var(--gl-day-idle-ring);
+  background: var(--gl-day-idle);
+}
+
+.gl__day-pip:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  width: var(--gl-day-gap);
+  height: 2px;
+  margin-top: -1px;
+  background: var(--gl-day-rail);
+  border-radius: 2px;
+}
+
+/* A day flown: a solid Mars-orange dot, and the path behind it lit. */
+.gl__day-pip[data-state='done'] {
+  background: var(--gl-orange);
+  border-color: #ff7a52;
+}
+
+/* The path up to the day in play is lit; ahead of it the road is still dark. */
+.gl__day-pip[data-state='done']:not(:last-child)::after {
+  background: var(--gl-amber);
+}
+
+/*
+ * The day in play: the brightest thing in the bar. A filled gold dot with a
+ * ring around it says "you are here" without a word, and it is a little larger
+ * than the others so it is findable at a glance.
+ */
+.gl__day-pip[data-state='current'] {
+  background: var(--gl-amber);
+  border-color: #ffd479;
+  box-shadow: 0 0 0 3px rgba(240, 169, 41, 0.32);
+  transform: scale(1.18);
+  animation: gl-day-breathe 2.8s ease-in-out infinite;
+}
+
+@keyframes gl-day-breathe {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px rgba(240, 169, 41, 0.32);
+  }
+
+  50% {
+    box-shadow: 0 0 0 7px rgba(240, 169, 41, 0);
+  }
+}
+
+/*
+ * The pip that has just been filled, when the sol has only just been run.
+ *
+ * The act screen rebuilds its whole DOM on every render, so an animation on
+ * its own would replay every time the player picked an activity. The view
+ * therefore marks the one pip that has just changed, and only that one moves.
+ */
+.gl__day-pip[data-advanced='true'] {
+  animation: gl-day-advance 700ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes gl-day-advance {
+  0% {
+    transform: scale(0.6);
+    box-shadow: 0 0 0 0 rgba(240, 169, 41, 0.9);
+  }
+
+  60% {
+    transform: scale(1.45);
+  }
+
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(240, 169, 41, 0);
+  }
+}
+
+/* ------------------------------------------------------------- responsive -- */
+
+/*
+ * The pips shrink before they disappear: the number is the part a child is
+ * looking for, but the twelve stations are the point of the tracker, and they
+ * are small enough to fit well before the bar runs out of room.
+ */
+@media (max-width: 68rem) {
+  .gl__day-track {
+    --gl-day-pip: clamp(7px, 1.5vw, 11px);
+    --gl-day-gap: clamp(3px, 0.7vw, 6px);
+  }
+}
+
+@media (max-width: 44rem) {
+  .gl__day-track {
+    display: none;
+  }
+}
+
+@media (max-width: 34rem) {
+  .gl__day-total {
+    display: none;
+  }
+}

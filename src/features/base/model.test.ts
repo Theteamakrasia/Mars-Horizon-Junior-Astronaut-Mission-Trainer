@@ -33,11 +33,8 @@ describe('base model', () => {
     expect(pointsLeft(removeModule(one, 'greenhouse'))).toBe(BUILD_BUDGET);
   });
 
-  it('refuses an ice miner where there is no ice, and says why', () => {
-    const check = canPlace('ice-miner', [], 'olympus');
-
-    expect(check.ok).toBe(false);
-    expect(check.reason).toContain('ice');
+  it('lets an ice miner be built at every site, even one with little ice', () => {
+    expect(canPlace('ice-miner', [], 'olympus').ok).toBe(true);
     expect(canPlace('ice-miner', [], 'arcadia').ok).toBe(true);
   });
 
@@ -92,25 +89,32 @@ describe('base model', () => {
     expect(fill('olympus')).toBeLessThan(fill('arcadia'));
   });
 
-  it('shows that a bare outpost cannot cover a night, and an expanded one can', () => {
+  it('counts the lander\'s own battery and panel, and shows that a loaded outpost needs more', () => {
     const bare = upkeepFor([], 'jezero');
-    const bigger = upkeepFor(['batteries', 'batteries', 'solar-array', 'solar-array'], 'jezero');
+    const loaded = upkeepFor(['greenhouse', 'ice-miner'], 'jezero');
+    const bigger = upkeepFor(['greenhouse', 'ice-miner', 'batteries', 'batteries', 'solar-array', 'solar-array'], 'jezero');
 
-    expect(bare.nightHoursCovered).toBeLessThan(12);
-    expect(bigger.nightHoursCovered).toBeGreaterThan(bare.nightHoursCovered);
-    expect(bigger.dayGeneration).toBeGreaterThan(bare.dayGeneration);
+    /* The lander's one battery and one array are counted without buying anything. */
+    expect(bare.batteryKwh).toBeGreaterThan(0);
+    expect(bare.dayGeneration).toBeGreaterThan(0);
+    expect(bare.nightHoursCovered).toBe(12);
+    expect(loaded.nightHoursCovered).toBeLessThan(12);
+    expect(bigger.nightHoursCovered).toBeGreaterThan(loaded.nightHoursCovered);
+    expect(bigger.dayGeneration).toBeGreaterThan(loaded.dayGeneration);
   });
 
   it('counts a nuclear unit as covering the whole night by itself', () => {
     const upkeep = upkeepFor(['nuclear-unit', 'nuclear-unit' as ModuleKind], 'jezero');
 
-    expect(upkeep.nightHoursCovered).toBeGreaterThan(upkeepFor([], 'jezero').nightHoursCovered);
+    expect(upkeep.nightHoursCovered).toBeGreaterThan(upkeepFor(['greenhouse', 'ice-miner'], 'jezero').nightHoursCovered);
   });
 
-  it('warns about power and food on a bare outpost', () => {
+  it('warns about food on a bare outpost, and about power on an overloaded one', () => {
     const lines = previewFor([], 'jezero');
+    const loaded = previewFor(['greenhouse', 'ice-miner'], 'jezero');
 
-    expect(lines.find((line) => line.label === 'Power')?.tone).toBe('bad');
+    expect(lines.find((line) => line.label === 'Power')?.tone).not.toBe('bad');
+    expect(loaded.find((line) => line.label === 'Power')?.tone).not.toBe('ok');
     expect(lines.find((line) => line.label === 'Food')?.tone).toBe('bad');
   });
 
@@ -181,6 +185,17 @@ describe('the build cards', () => {
     expect(solar?.total).toBe(1);
   });
 
+  it('draws the number the outpost has, over the catalogue maximum', () => {
+    /* ISS-077: `have` over `limit` made a solar array read 0 / 3 while the
+       outpost had one. The card's number is `total` over `maxCount`, and the
+       lander's copy is marked so the count explains itself. */
+    const solar = buildCards([], 'arcadia').find((card) => card.kind === 'solar-array');
+
+    expect(solar?.total).toBe(1);
+    expect(solar?.maxCount).toBe(4);
+    expect(solar?.fromLander).toBe(1);
+  });
+
   it('says why the add button is dead, once the player owns some', () => {
     const cards = buildCards(['solar-array', 'solar-array', 'solar-array'], 'arcadia');
     const solar = cards.find((card) => card.kind === 'solar-array');
@@ -211,10 +226,12 @@ describe('the goals a build can earn', () => {
     'regolith-shield',
   ];
 
-  it('says a bare outpost can hold almost none of them', () => {
+  it('says a bare outpost still lacks food and shielding', () => {
     const goals = goalPreview([], 'arcadia');
+    const missing = goals.filter((goal) => !goal.ok).map((goal) => goal.id);
 
-    expect(goals.filter((goal) => goal.ok).map((goal) => goal.id)).toEqual(['dust-storm']);
+    expect(missing).toContain('food');
+    expect(missing).toContain('radiation');
   });
 
   it('says a build that closes the loop can hold all five', () => {
@@ -231,5 +248,21 @@ describe('the goals a build can earn', () => {
     expect(food?.ok).toBe(false);
     expect(food?.why).toContain('greenhouse');
     expect(radiation?.why).toContain('shielding');
+  });
+
+  it('blames the flat batteries, and names the fix, when a greenhouse overloads the lander', () => {
+    /* ISS-079: the sentence used to be the fixed string "No water source",
+       which named neither the cause nor the cure. */
+    const life = goalPreview(['greenhouse'], 'arcadia').find((goal) => goal.id === 'life-support');
+
+    expect(life?.ok).toBe(false);
+    expect(life?.why).toContain('batteries');
+    expect(life?.why).toContain('battery bank');
+  });
+
+  it('does not fail the water goal for a greenhouse, because life support recycles its water', () => {
+    const life = goalPreview(['greenhouse', 'batteries'], 'olympus').find((goal) => goal.id === 'life-support');
+
+    expect(life?.ok).toBe(true);
   });
 });

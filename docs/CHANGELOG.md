@@ -35,6 +35,7 @@ Versions will be assigned when the project begins publishing releases.
 
 ### Added
 
+- **A mission-day tracker in the header.** The nav bar now says which day of the twelve the player is on, and carries twelve pips — one per mission day — on a path that lights up behind them as the mission goes on, so the days already flown, the day in play and the days still to come are visible at a glance. The pips are filled stations on one rail rather than loose dots, the day in play is a gold dot with a ring around it, and the whole thing sits on the same line as the MARS HORIZON word. It is on every screen with a run in play, at all five landing regions, the day in play breathes quietly, and the day just flown flashes once.
 - **A how-to-play guide.** Ten steps, each one saying where it happens and what to do about it. It opens by itself the first time the player reaches the build screen, and a `?` button in the mission bar brings it back on any later sol.
 - The guide's own cutout: the astronaut who stands beside the speech bubble, and a lightbulb pictogram for the header pill.
 - **A mission bar** on every play screen, saying in one line what the player is playing.
