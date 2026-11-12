@@ -1,0 +1,84 @@
+/* ==========================================================================
+   TOUCH
+
+   The game is played with fingers as often as with a mouse, and it is drawn
+   at a fixed size and scaled down to fit a phone, so two things have to be
+   true of every control:
+
+     1. a tap is a tap - no half-second wait, no double-tap zoom, no long
+        press menu, and no page pan when a finger lands on a button;
+     2. a field the player types into is big enough for a thumb, and big
+        enough that the browser does not zoom the page under their hands.
+
+   Nothing here changes the desktop: the rules are about input behaviour, and
+   the one rule that does change the look (the type in a frame) is scoped to
+   `html.is-frame`, which only a phone ever sets.
+   ========================================================================== */
+
+/*
+  `manipulation` says the browser may handle the touch, but must not wait for
+  a double tap to find out whether the press was a zoom. Without it every
+  button on a phone has a delay before it answers, and a double tap on one
+  zooms the page instead of pressing it twice.
+*/
+button,
+a,
+[role='button'],
+label {
+  touch-action: manipulation;
+}
+
+/*
+  The grey flash a phone draws over a thing as it is pressed. The game has its
+  own pressed styles, and two flashes at once look like a mistake.
+*/
+button,
+a,
+[role='button'] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/*
+  A long press on the game's words offers "copy" and "add to home screen",
+  which is never what a player means. The body already refuses to select
+  text; this refuses the callout as well.
+*/
+body {
+  -webkit-touch-callout: none;
+}
+
+/*
+  Momentum scrolling inside the two scrollable panels. iOS needs to be told.
+*/
+.gl__scroll,
+.sheet__body {
+  -webkit-overflow-scrolling: touch;
+}
+
+/*
+  IN A FRAME.
+
+  The game is scaled down to fit the phone, so everything in it is smaller -
+  including the text. A field the player types into has to be big enough to
+  hit with a thumb, and iOS zooms the page by itself when a focused field is
+  under 16 pixels, which would throw the whole layout out from under them.
+
+  This only applies inside the frame, so the computer is untouched.
+*/
+html.is-frame input,
+html.is-frame textarea,
+html.is-frame select {
+  font-size: 24px;
+}
+
+/*
+  The same for the buttons in a frame: a finger is wider than a mouse
+  cursor, so the target has to be wider too. The minimum is set by the
+  platform's own guidance (44 pixels) before the frame's scale is applied.
+*/
+html.is-frame .gl__btn,
+html.is-frame .act-tile,
+html.is-frame .act-order,
+html.is-frame .trn__card {
+  min-height: 48px;
+}
