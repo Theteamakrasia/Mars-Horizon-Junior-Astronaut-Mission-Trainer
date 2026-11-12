@@ -84,7 +84,7 @@ export function powerToday(run: RunState): TodayPower {
     capacity: Math.round(capacity),
     demand: Math.round(systems.loadKw * (SUN_HOURS + NIGHT_HOURS)),
     nightNeed: Math.round(nightNeed),
-    nightCovered: level >= nightNeed,
+    nightCovered: level - chosenDraw >= nightNeed,
   };
 }
 

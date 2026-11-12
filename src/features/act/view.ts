@@ -116,6 +116,33 @@ const ORDER_ICON: Readonly<Record<string, IconName>> = {
 /** The pictogram for an order the catalogue does not name. */
 const ORDER_ICON_FALLBACK: IconName = 'clipboard';
 
+/**
+ * The order the day's tasks are shown in.
+ *
+ * Kept outside the screen so leaving the desk and coming back during the same
+ * sol does not deal the tasks again; a new sol (or a new run) draws a new order.
+ */
+let taskOrderSol = -1;
+let taskOrderIds: string[] = [];
+
+function shuffleForSol<T extends { readonly id: string }>(rows: readonly T[], sol: number): readonly T[] {
+  const same = taskOrderSol === sol && taskOrderIds.length === rows.length && rows.every((row) => taskOrderIds.includes(row.id));
+
+  if (!same) {
+    const ids = rows.map((row) => row.id);
+
+    for (let i = ids.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [ids[i], ids[j]] = [ids[j] as string, ids[i] as string];
+    }
+
+    taskOrderSol = sol;
+    taskOrderIds = ids;
+  }
+
+  return [...rows].sort((a, b) => taskOrderIds.indexOf(a.id) - taskOrderIds.indexOf(b.id));
+}
+
 export function mountAct(
   mount: HTMLElement,
   initial: RunState | null,
@@ -193,7 +220,7 @@ export function mountAct(
     /* A new sol is a new day of training: the record for it is put back on
        the run, so the two games are available again and the points of the
        day before are left alone. */
-    run = applyTrainingRecord(advanceSol(run));
+    run = applyTrainingRecord(advanceSol(run, Math.random()));
     setRun(run);
 
     /* The sol that has just been flown, so the header's day tracker can flash
@@ -479,6 +506,11 @@ export function mountAct(
 
   /* ------------------------------------------------------------- sections -- */
 
+  /** Today's work orders in a random order that stays put for the whole sol. */
+  function shuffledRows(state: RunState): ReturnType<typeof activityRows> {
+    return shuffleForSol(activityRows(state, state.sol + 1), state.sol + 1);
+  }
+
   /**
    * The work orders for today.
    *
@@ -488,7 +520,7 @@ export function mountAct(
    * a menu with three buttons on it.
    */
   function orderList(state: RunState): HTMLElement {
-    const rows = activityRows(state, state.sol + 1);
+    const rows = shuffledRows(state);
     const list = h('div', { class: 'act-orders' });
 
     for (const row of rows) {
@@ -575,7 +607,7 @@ export function mountAct(
 
   /** What today's tasks say under the orders, and the fact behind the subject. */
   function tasksBody(state: RunState): readonly (Node | false)[] {
-    const rows = activityRows(state, state.sol + 1);
+    const rows = shuffledRows(state);
     const picked = rows.some((row) => row.chosen);
 
     const note =

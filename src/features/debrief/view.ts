@@ -30,6 +30,7 @@ function topicOf(goal: ScienceGoal): ScienceTopic {
   return found?.topic ?? SCIENCE_TOPICS[0];
 }
 import { navigate } from '../../ui/router';
+import { clearTrainingRecord } from '../../ui/training';
 
 import '../../styles/game-loop.css';
 import './debrief.css';
@@ -115,6 +116,7 @@ export function mountDebrief(
   let mode: 'debrief' | 'journal' = 'debrief';
 
   function again(): void {
+    clearTrainingRecord();
     setRun(newRun('', run?.astronautName ?? 'Astronaut'));
     navigate('landing-site');
   }

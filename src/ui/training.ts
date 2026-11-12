@@ -25,7 +25,6 @@ import {
   trainingDay,
   trainingDayFor,
   trainingDayRecord,
-  trainingSeed,
   trainingSol,
   withTrainingDay,
   EMPTY_TRAINING_RECORD,
@@ -144,6 +143,21 @@ export function writeTrainingDay(sol: number, state: TrainingState): void {
     store()?.setItem(STORAGE_KEY, JSON.stringify(record));
   } catch {
     /* A browser that will not let us write is a browser that loses the record. */
+  }
+}
+
+/**
+ * Forget every written-down training day.
+ *
+ * The record is keyed by sol, not by run, so without this a new run on sol 1
+ * would inherit the games a previous run finished (and their points). It is
+ * called whenever a new run begins.
+ */
+export function clearTrainingRecord(): void {
+  try {
+    store()?.removeItem(STORAGE_KEY);
+  } catch {
+    /* Nothing to clear if the browser will not let us near it. */
   }
 }
 
@@ -339,7 +353,9 @@ export function openTrainingGame(
     handle?.destroy();
     area.replaceChildren();
 
-    const random = makeRandom(trainingSeed(trainingSol(options.run), gameId) + round);
+    /* A fresh seed every time a game opens, so the cards, crates, rocks and
+       asteroids are never dealt the same way twice. */
+    const random = makeRandom((Math.random() * 0xffffffff) >>> 0);
 
     handle = GAME_MOUNT[gameId](area, {
       setStatus: (text) => {

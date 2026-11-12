@@ -95,6 +95,40 @@ const SPRITE_URLS: Record<SpriteAnimation, string> = {
 };
 
 /**
+ * Load and decode every sprite strip before the player is shown.
+ *
+ * The strips are CSS background images, so the browser only fetched each one
+ * the first time it was used: the first step flashed an empty or half-drawn
+ * frame. Holding the Image objects keeps them in the cache, and decode() means
+ * the first frame is ready to paint.
+ */
+const spriteImages: HTMLImageElement[] = [];
+let spritesReady: Promise<void> | null = null;
+
+export function preloadInteriorSprites(): Promise<void> {
+  if (spritesReady !== null) return spritesReady;
+
+  spritesReady = Promise.all(
+    Object.values(SPRITE_URLS).map(async (url) => {
+      const image = new Image();
+      image.decoding = 'async';
+      image.src = url;
+      spriteImages.push(image);
+
+      try {
+        await image.decode();
+      } catch {
+        /* A failed decode must not block the room: it just loads on use. */
+      }
+    }),
+  ).then(() => undefined);
+
+  return spritesReady;
+}
+
+if (typeof window !== 'undefined') void preloadInteriorSprites();
+
+/**
  * How long a keyboard activation of an on-screen pad moves the player.
  *
  * A click on a pad button is a step, not a hold. 140 ms is long enough to show
@@ -189,6 +223,21 @@ export function mountInterior(
   // frame on a slow connection.
   roomImages.forEach((image, index) => {
     image.src = ROOM_IMAGES[ROOMS[index].id];
+  });
+
+  // Keep the player hidden until the sprites are decoded, so the first walk
+  // frames never glitch. A timeout means a slow network cannot hide him forever.
+  player.style.visibility = 'hidden';
+
+  let spritesTimer: number | null = window.setTimeout(() => {
+    player.style.visibility = '';
+    spritesTimer = null;
+  }, 2500);
+
+  void preloadInteriorSprites().then(() => {
+    if (spritesTimer !== null) window.clearTimeout(spritesTimer);
+    spritesTimer = null;
+    player.style.visibility = '';
   });
 
   speaker.textContent = speakerName(run?.astronautName);
