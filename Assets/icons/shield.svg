@@ -1,0 +1,9 @@
+<svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="shield">
+<g id="shield artwork">
+<path id="Vector" d="M48 19.5L72 27.75V44.25C72 60 59.25 69.75 48 76.5C36.75 69.75 24 60 24 44.25V27.75L48 19.5Z" fill="#78B6AE" stroke-width="2.25" stroke-linejoin="round" stroke="#293A49"/>
+<path id="Vector_2" d="M48 27.75L64.5 33.75V44.25C64.5 55.5 56.25 63.75 48 69C39.75 63.75 31.5 55.5 31.5 44.25V33.75L48 27.75Z" fill="#FFF4DB" stroke-width="2.25" stroke-linejoin="round" stroke="#293A49"/>
+<path id="Vector_3" d="M31.5 39.75H64.5V48.75H31.5V39.75Z" fill="#D66B46" stroke-width="2.25" stroke-linejoin="round" stroke="#293A49"/>
+</g>
+</g>
+</svg>
