@@ -75,6 +75,28 @@ class, so the same rules draw them — not a second design, and not a copy to dr
 checked against a clean `origin/main` and **fails there in the same way** — it drives the
 act screen, which this PR does not touch. It is not fixed here.
 
+**Also pre-existing on `main`, and not touched here:** `tools/browser-check-save.mjs`
+reports 7/15. It is main's own new check, and it fails the same way on a clean
+`origin/main` — the run is not being written down where the check looks. It is left for
+whoever owns the save feature.
+
+## Merged main
+
+`main` moved while this branch was open (the save feature, the power economy, the
+training fixes), so `main` is merged in here. Three conflicts, all resolved by keeping
+both sides:
+
+- the build panel: the supply cards leave the panel for the window, and main's new power
+  dials stay on the panel;
+- the decision, issue, task and progress-log entries: main allocated the same ids, so
+  ours move up — **D-082, ISS-097, TASK-105** — and both entries are kept in each file;
+- the window's cards now draw main's new **card note** (the line that says what a second
+  solar array would do with the sunlight it makes), so that feature survives the move.
+
+Everything below is re-verified **after** the merge: `npm run check`, `npm test`
+(1046 tests, 49 files), `npm run build`, `npm run balance`, and the browser checks —
+setup-popup 141/141, build 69/69, day 29/29, rover 10/10, journey no errors.
+
 ## Review checklist
 
 - [x] Work is on a feature branch; `main` is unchanged.
