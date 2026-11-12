@@ -1197,6 +1197,16 @@ export function mountAct(
 
     ledger.append(body);
 
+    const jobPower = Math.round(last.powerExtra);
+
+    if (jobPower > 0 && last.blackout <= 0.01) {
+      notes.unshift(
+        last.powerWasted > 0
+          ? `The day’s work used ${jobPower} kWh from today’s sunlight instead of the battery, so less power was wasted. The battery can end the same.`
+          : `The day’s work used ${jobPower} kWh of today’s power.`,
+      );
+    }
+
     return [list, changes, ledger, ...notes.map((note) => h('p', { class: 'gl__note', text: note }))];
   }
 
