@@ -117,6 +117,11 @@ function haltVoice(voice: HTMLAudioElement): void {
 
   try {
     voice.pause();
+  } catch {
+    /* Some browsers refuse a pause in an odd state. Not an error. */
+  }
+
+  try {
     voice.currentTime = 0;
   } catch {
     /* Some browsers refuse a seek before the file is buffered. Not an error. */
@@ -314,12 +319,13 @@ export function toggleSfx(): boolean {
   const next = !muted;
 
   if (next) {
-    setSfxMuted(false);
-    playSfx('ui-toggle-on', { force: true });
-  } else {
-    /* Play the confirmation before silence takes effect for future cues. */
+    /* Mute: play confirmation before silence takes effect for future cues. */
     playSfx('ui-toggle-off', { force: true });
     setSfxMuted(true);
+  } else {
+    /* Unmute: restore audio, then play confirmation. */
+    setSfxMuted(false);
+    playSfx('ui-toggle-on', { force: true });
   }
 
   return next;

@@ -29,7 +29,7 @@ import { oneWayMinutes, roundTripMinutes } from '../../sim/comms';
 import { answerRoverFind, hasReachedOutpost, recordInspection, withState, type RunState } from '../../sim/run';
 import { makeInspection, type Inspection } from '../../ui/activityPlayer';
 import { guideButton, guidePanel } from '../../ui/guide';
-import { playSfx } from '../../ui/sfx';
+import { playSfx, stopSfx } from '../../ui/sfx';
 import { ENGINE_NAME, engineUnlocked, type EngineKind } from '../../sim/minigames';
 import { visibleForecast } from '../../sim/forecast';
 import { siteScore } from '../../sim/regions';
@@ -308,6 +308,7 @@ export function mountAct(
   function stopTimer(): void {
     if (timer !== null) window.clearInterval(timer);
     timer = null;
+    stopSfx('countdown-tick');
   }
 
   function step(): void {
@@ -362,6 +363,7 @@ export function mountAct(
     if (run === null) return;
 
     stopTimer();
+    stopSfx('countdown-tick');
     if (timedOut) playSfx('countdown-expire');
     else playSfx('shelter-confirm');
     run = decide(run, crisis.id, optionId, timedOut);

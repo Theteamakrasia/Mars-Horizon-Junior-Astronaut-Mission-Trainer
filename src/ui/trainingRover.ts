@@ -167,6 +167,7 @@ export const mountRover: TrainingGameMount = (root, context) => {
     if (direction === undefined) return;
 
     event.preventDefault();
+    if (event.isTrusted && !event.repeat) playSfx('ui-click');
     drive(direction);
   };
 

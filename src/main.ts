@@ -11,6 +11,7 @@ import { startRouter } from './ui/router';
 import type { Route } from './ui/routes';
 import { clearSave, readSave, writeSave } from './ui/save';
 import { playSfx, startSfx } from './ui/sfx';
+import { setBgmForRoute, startBgm, stopBgm } from './ui/bgm';
 
 /**
  * Resolves an element by id, throwing a clear error if the markup and the
@@ -253,6 +254,7 @@ function bootstrap(): void {
    * gesture, which is exactly when the first cue is asked for.
    */
   startSfx();
+  startBgm();
 
   /**
    * Continue from an earlier visit.
@@ -322,6 +324,7 @@ function mountScreen(route: Route): void {
   // the router must be able to fall through rather than take the page down.
   if (selector === null || factory === null) {
     showLanding();
+    setBgmForRoute(route);
     return;
   }
 
@@ -343,6 +346,8 @@ function mountScreen(route: Route): void {
   if (run !== null) {
     writeSave(run, route);
   }
+
+  setBgmForRoute(route);
 
   /*
    * The placement editor, once its module has loaded.
@@ -375,6 +380,7 @@ function startScreenRouter(): void {
   // Unmount on unload so nothing is left attached to a document going away.
   window.addEventListener('pagehide', () => {
     stopRouter();
+    stopBgm();
     layoutTeardown?.();
     layoutTeardown = null;
     activeScreen?.();
