@@ -44,6 +44,7 @@ Two rules are conventions, not enforced — do not forget them:
 | `launch/` | launch reel and parts tour | built |
 | `interior/` | exploration rooms | built |
 | `landing-site/` | choose a landing region | built (TASK-028) |
+| `landing-cinematic/` | the landing film, between the map and the outpost | built (TASK-108) |
 | `base/` | establish the outpost | built (TASK-029) |
 | `act/` | advance a sol, resolve a crisis | built (TASK-030) |
 | `debrief/` | explain the outcome | built (TASK-031) |

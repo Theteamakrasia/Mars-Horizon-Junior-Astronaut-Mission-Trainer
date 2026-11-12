@@ -262,7 +262,7 @@ export const ICON_PATHS: Readonly<Record<IconName, readonly Shape[]>> = {
 
 /** The pictogram for one of the five stores. */
 export const RESOURCE_ICON: Readonly<Record<ResourceName, IconName>> = {
-  power: 'power',
+  power: 'bolt',
   oxygen: 'oxygen',
   water: 'water',
   food: 'food',

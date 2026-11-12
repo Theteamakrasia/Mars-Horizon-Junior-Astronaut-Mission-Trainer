@@ -44,6 +44,14 @@ const SRC = join(ROOT, 'src');
  */
 const ICON_DIR = join(ROOT, 'Assets', 'icons');
 
+/**
+ * The shipped sound effects.
+ *
+ * Every file in this tree is meant to be played by the game through the SFX
+ * map, so a file nobody references is a file that shipped and was forgotten.
+ */
+const AUDIO_SFX_DIR = join(ROOT, 'Assets', 'audio', 'sfx');
+
 /** Every zone, for documentation and validation. */
 const ZONES = ['sim', 'data', 'dom', 'ui', 'feature-model', 'feature-view', 'entry'];
 
@@ -239,15 +247,15 @@ function isLocalCode(fromFile, specifier) {
 }
 
 /**
- * Resolve a relative import of an asset — CSS, PNG, SVG — to a file.
+ * Resolve a relative import of an asset — CSS, PNG, SVG, audio — to a file.
  *
  * The bundler owns these, so the layer rules do not apply to them, but a
  * mistyped path is still a mistyped path: without this it fails at build time
  * with a message nobody reads. The query is stripped first, because `?raw` and
  * `?url` are part of the request and not part of the name.
  *
- * An import of a file in the supplied icon set is also noted, so the set on
- * disk and the set the game draws can be compared at the end.
+ * An import of a file in the supplied icon set, or in the shipped SFX set, is
+ * also noted so the assets on disk and the ones the game uses can be compared.
  */
 function isLocalAsset(fromFile, specifier) {
   if (!specifier.startsWith('.')) return null; // bare specifier: external package
@@ -259,14 +267,18 @@ function isLocalAsset(fromFile, specifier) {
 
   const target = resolve(dirname(fromFile), path);
   const icon = target.startsWith(ICON_DIR + sep) ? basename(target) : null;
+  const audioSfx = target.startsWith(AUDIO_SFX_DIR + sep) ? target : null;
 
-  return { target, isFile: existsSync(target), icon };
+  return { target, isFile: existsSync(target), icon, audioSfx };
 }
 
 const violations = [];
 
 /** The drawings in the supplied set that the code actually draws. */
 const drawnIcons = new Set();
+
+/** The shipped SFX files that the code actually references. */
+const usedAudioSfx = new Set();
 
 function report(file, line, ruleId, message) {
   violations.push({ where: `${rel(file)}:${line}`, ruleId, message });
@@ -312,6 +324,7 @@ for (const file of files) {
         }
 
         if (asset.icon !== null) drawnIcons.add(asset.icon);
+        if (asset.audioSfx !== null && asset.isFile) usedAudioSfx.add(asset.audioSfx);
 
         continue;
       }
@@ -451,6 +464,35 @@ if (existsSync(ICON_DIR)) {
         1,
         'undrawn-asset',
         `"Assets/icons/${name}" is not drawn by the game — draw it in src/ui/icons.ts or take it out of the folder`,
+      );
+    }
+  }
+}
+
+// --- The shipped SFX set ----------------------------------------------------
+// Every audio file in Assets/audio/sfx is meant to be played through the SFX
+// map. A file nobody references is a file that shipped and was forgotten.
+function walkAssets(dir) {
+  const found = [];
+
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+
+    if (entry.isDirectory()) found.push(...walkAssets(full));
+    else if (/\.(wav|mp3|ogg)$/i.test(entry.name)) found.push(full);
+  }
+
+  return found;
+}
+
+if (existsSync(AUDIO_SFX_DIR)) {
+  for (const file of walkAssets(AUDIO_SFX_DIR)) {
+    if (!usedAudioSfx.has(file)) {
+      report(
+        file,
+        1,
+        'unplayed-audio',
+        `"${rel(file)}" is not referenced by the game — add it to src/ui/sfxMap.ts or remove it from Assets/audio/sfx`,
       );
     }
   }

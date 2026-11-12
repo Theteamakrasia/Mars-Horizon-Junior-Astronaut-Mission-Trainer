@@ -14,6 +14,7 @@ import { newRun, type RunState } from '../../sim/run';
 import { navigate } from '../../ui/router';
 import { stopReading } from '../../ui/readAloud';
 import { clearTrainingRecord } from '../../ui/training';
+import { playSfx } from '../../ui/sfx';
 
 import './debrief.css';
 

@@ -20,6 +20,7 @@ export type Route =
   | 'interior'
   | 'landing'
   | 'landing-site'
+  | 'landing-cinematic'
   | 'base'
   | 'act'
   | 'debrief'
@@ -38,6 +39,10 @@ export type Route =
  * `landing-site -> landing -> landing-site` forever. Making the interstitial a
  * computed step rather than a listed one removes the possibility entirely.
  *
+ * `landing-cinematic` sits between the landing-site map and the outpost:
+ * the player presses Land here, the film plays, and the outpost is what is
+ * waiting at the end of it.
+ *
  * `naming` is first because it is the entry screen: the player names their
  * astronaut and starts the journey from there. A login page is intended to sit
  * in front of it later, but it is not built â€” Supabase is deferred (D-003).
@@ -49,6 +54,7 @@ export const ROUTE_ORDER: readonly Route[] = [
   'launch',
   'interior',
   'landing-site',
+  'landing-cinematic',
   'base',
   'act',
   'debrief',

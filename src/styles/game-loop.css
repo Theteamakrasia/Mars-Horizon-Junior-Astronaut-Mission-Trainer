@@ -216,6 +216,16 @@
   color: #fff;
 }
 
+.gl__icon-button[aria-pressed='true'] {
+  opacity: 0.85;
+}
+
+.sfx-toggle__icon {
+  display: block;
+  width: 1.1em;
+  height: 1.1em;
+}
+
 /* The real Menu control. Everything below is the leave-the-run dialog. */
 .gl__menu-button {
   padding: 0.45rem 0.75rem;

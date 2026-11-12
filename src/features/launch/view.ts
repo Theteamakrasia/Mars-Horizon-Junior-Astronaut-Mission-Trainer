@@ -39,6 +39,7 @@ import { navigate } from '../../ui/router';
 import type { RunState } from '../../sim/run';
 import { factFor } from '../../data/nasaGallery';
 import { focusHandlesEnter, isPlainEnter } from '../../dom/keys';
+import { playSfx, stopSfx } from '../../ui/sfx';
 
 import './launch.css';
 
@@ -287,6 +288,7 @@ export function mountLaunch(
    */
   const mountedAt = performance.now();
   const now = (): number => performance.now() - mountedAt;
+  const timers: number[] = [];
 
   const filmBegins = FILMS_BEGIN_MS;
   const dockingBegins = filmBegins + VIDEO_DURATION_MS;
@@ -341,6 +343,8 @@ export function mountLaunch(
   let handOffTimer: number | null = null;
   /** The skip button's own timer, so the teardown can cancel it. */
   let skipTimer: number | null = null;
+  /** The docking sound, played a beat after contact so it lands with the latch. */
+  let dockingTimer: number | null = null;
   /**
    * True once the player has skipped the reel.
    *
@@ -391,6 +395,12 @@ export function mountLaunch(
    */
   const stopReel = (): void => {
     skipped = true;
+    stopSfx('launch-rumble-liftoff');
+
+    if (dockingTimer !== null) {
+      window.clearTimeout(dockingTimer);
+      dockingTimer = null;
+    }
 
     for (const beat of beats) {
       if (beat.timer !== null) {
@@ -464,6 +474,18 @@ export function mountLaunch(
     // screen rather than a black rectangle.
     if (index > 0) beats[index - 1].el.pause();
     beat.el.classList.add('launch__on');
+
+    if (index === 0) playSfx('launch-rumble-liftoff');
+    if (index === 1) {
+      stopSfx('launch-rumble-liftoff');
+
+      if (dockingTimer !== null) window.clearTimeout(dockingTimer);
+
+      dockingTimer = window.setTimeout(() => {
+        dockingTimer = null;
+        if (!skipped) playSfx('docking-clunk');
+      }, 2000);
+    }
 
     if (reduced && beat.holdSeconds !== null) {
       // A held clip is already parked on its frame by the seek in `onLoaded`.
@@ -589,6 +611,7 @@ export function mountLaunch(
       if (partsIndex > 0) {
         partsIndex -= 1;
         renderPart(partsIndex);
+        playSfx('tour-turn');
       }
     };
 
@@ -599,6 +622,7 @@ export function mountLaunch(
       if (partsIndex < PARTS.length - 1) {
         partsIndex += 1;
         renderPart(partsIndex);
+        playSfx('tour-turn');
       }
     };
 
@@ -656,6 +680,7 @@ export function mountLaunch(
    */
   const onSkip = (): void => {
     if (skipped || partsOpen) return;
+    playSfx('skip-whoosh');
     stopReel();
     openPartsPanel();
   };
@@ -758,6 +783,15 @@ export function mountLaunch(
    * it starts then or later is decided by `begin` against its readiness.
    */
   if (destination !== null) {
+    playSfx('launch-title');
+
+    const pressStart = TITLE_DURATION_MS;
+    const pressDur = SHOTS[0]?.durationMs ?? 2050;
+    for (const pct of [12, 33, 59]) {
+      const when = Math.max(0, pressStart + (pressDur * pct) / 100 - now());
+      timers.push(window.setTimeout(() => playSfx('camera-flash'), when));
+    }
+
     loadFilm(beats[0]);
     begin(0);
 
@@ -787,8 +821,11 @@ export function mountLaunch(
       beat.el.classList.remove('launch__on');
     }
 
+    stopSfx('launch-rumble-liftoff');
+    if (dockingTimer !== null) window.clearTimeout(dockingTimer);
     if (handOffTimer !== null) window.clearTimeout(handOffTimer);
     if (skipTimer !== null) window.clearTimeout(skipTimer);
+    for (const timer of timers) window.clearTimeout(timer);
 
     if (partsPrevHandler !== null) partsPrev.removeEventListener('click', partsPrevHandler);
     if (partsNextHandler !== null) partsNext.removeEventListener('click', partsNextHandler);

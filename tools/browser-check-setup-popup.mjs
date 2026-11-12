@@ -242,6 +242,10 @@ try {
     await sleep(500);
 
     const landed = await clickIn('landing-site', 'Land here');
+    /* The landing film plays between the map and the outpost. Its own Skip
+       button is the way past it, and it is the path a player takes. */
+    await waitFor(`!!document.getElementById('landing-cinematic') && !document.getElementById('landing-cinematic').hidden`);
+    await clickIn('landing-cinematic', 'Skip');
     await waitFor(`!!document.getElementById('base') && !document.getElementById('base').hidden`);
     await sleep(700);
 
@@ -285,6 +289,7 @@ try {
     note(
       `the costs at ${region.name} are the catalogue's`,
       (popup?.cards ?? []).every((c, index) => c.cost.trim() === (SUPPLIES[index]?.cost ?? '')),
+
       (popup?.cards ?? []).map((c) => c.cost).join(' '),
     );
     note(

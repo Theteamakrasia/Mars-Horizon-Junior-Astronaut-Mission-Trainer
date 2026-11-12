@@ -8,6 +8,7 @@
 
 import { h } from '../dom/h';
 import { icon, RESOURCE_ICON, type IconName } from './icons';
+import { playSfx } from './sfx';
 import {
   MERGE_LEVEL_NAMES,
   MERGE_SIZE,
@@ -63,10 +64,10 @@ export const mountMerge: TrainingGameMount = (root, context) => {
   const board = h('div', { class: 'trn__merge' });
   const hint = h('p', { class: 'trn__hint' });
 
-  const up = h('button', { class: 'trn__pad-key', type: 'button', 'aria-label': 'Slide up' }, '▲');
-  const left = h('button', { class: 'trn__pad-key', type: 'button', 'aria-label': 'Slide left' }, '◀');
-  const down = h('button', { class: 'trn__pad-key', type: 'button', 'aria-label': 'Slide down' }, '▼');
-  const right = h('button', { class: 'trn__pad-key', type: 'button', 'aria-label': 'Slide right' }, '▶');
+  const up = h('button', { class: 'trn__pad-key', type: 'button', 'aria-label': 'Slide up', 'data-sfx-hover': 'off' }, '▲');
+  const left = h('button', { class: 'trn__pad-key', type: 'button', 'aria-label': 'Slide left', 'data-sfx-hover': 'off' }, '◀');
+  const down = h('button', { class: 'trn__pad-key', type: 'button', 'aria-label': 'Slide down', 'data-sfx-hover': 'off' }, '▼');
+  const right = h('button', { class: 'trn__pad-key', type: 'button', 'aria-label': 'Slide right', 'data-sfx-hover': 'off' }, '▶');
 
   up.addEventListener('click', () => slide('up'));
   left.addEventListener('click', () => slide('left'));
@@ -97,6 +98,11 @@ export const mountMerge: TrainingGameMount = (root, context) => {
     const moved = moveMerge(grid, direction);
 
     if (!moved.moved) return;
+
+    playSfx('merge-slide');
+
+    const combined = moved.grid.filter((value) => value > 0).length < grid.filter((value) => value > 0).length;
+    if (combined) playSfx('merge-combine');
 
     grid = spawnMerge(moved.grid, context.random);
     moves += 1;

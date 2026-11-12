@@ -12,6 +12,7 @@
 
 import { h } from '../../dom/h';
 import { navigate } from '../../ui/router';
+import { playSfx } from '../../ui/sfx';
 import { gameScreen, gamePanel, moduleArt } from '../../ui/gameLoop';
 import { icon } from '../../ui/icons';
 import { entries, type EncyclopediaEntry } from './model';
@@ -106,6 +107,8 @@ export function mountEncyclopedia(
 
     const toggle = (): void => {
       openKey = open ? null : entry.kind;
+      if (openKey === null) playSfx('ui-close-sheet');
+      else playSfx('ui-open-sheet');
       render();
     };
 
@@ -156,6 +159,7 @@ export function mountEncyclopedia(
 
     const close = () => {
       openKey = null;
+      playSfx('ui-close-sheet');
       overlay.remove();
     };
 

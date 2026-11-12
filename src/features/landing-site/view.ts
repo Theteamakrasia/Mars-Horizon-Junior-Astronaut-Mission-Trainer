@@ -26,6 +26,7 @@ import { icon } from '../../ui/icons';
 import { nasaCard } from '../../ui/nasaCard';
 import { h } from '../../dom/h';
 import { regionCard } from '../../data/nasaGallery';
+import { playSfx } from '../../ui/sfx';
 
 import { REGIONS, SITE_AXES, scoreRegion, tradeoffSummary } from './model';
 
@@ -313,6 +314,7 @@ export function mountLandingSite(
   function onNasaDataClick(): void {
     if (nasaDataOpen) return;
     nasaDataOpen = true;
+    playSfx('nasa-data-open');
     nasaDataOverlay = buildNasaDataModal();
     root.appendChild(nasaDataOverlay);
     (nasaDataOverlay.querySelector('.landing-site__nasa-modal-close') as HTMLElement).focus();
@@ -334,6 +336,7 @@ export function mountLandingSite(
     pin.setAttribute('aria-pressed', 'true');
     pin.focus();
     setRovingTabStop(pins.indexOf(pin));
+    playSfx('map-pin-select');
 
     const region = REGIONS.find((r) => r.id === regionId);
 
@@ -415,6 +418,7 @@ export function mountLandingSite(
     }
     landButton.disabled = true;
     setHint('Landing...');
+    playSfx('land-confirm');
 
     // The push-in lands on the chosen pin.
     const pin = selectedPin!;
@@ -426,6 +430,16 @@ export function mountLandingSite(
     stage.style.setProperty('--land-origin-x', `${originX}%`);
     stage.style.setProperty('--land-origin-y', `${originY}%`);
     stage.classList.add('is-landing');
+
+    /*
+      The whole screen fades to black while the push-in runs.
+
+      The landing cinematic starts on black, so this is the other half of one
+      transition: the map and the Site Analysis panel go out, and the film
+      comes up out of the dark. Without it the two screens met at a hard cut,
+      and the map was still on screen for the frame the film appeared on.
+    */
+    root.classList.add('is-leaving');
 
     const timer = window.setTimeout(() => {
       commitLanding(regionId);
@@ -512,6 +526,10 @@ export function mountLandingSite(
     stage.classList.remove('is-landing');
     stage.style.removeProperty('--land-origin-x');
     stage.style.removeProperty('--land-origin-y');
+
+    /* The fade to black belongs to one visit. Coming back to the map has to
+       show the map. */
+    root.classList.remove('is-leaving');
 
     for (const cleanup of cleanups) {
       cleanup();

@@ -18,6 +18,8 @@ import { icon, type IconName } from './icons';
 import type { ModuleKind } from '../sim/modules';
 import { MODULE_POSES, depthFor, poseFor } from './baseLayout';
 import { dayTracker, type DayModel } from './dayTracker';
+import { soundButton } from './soundButton';
+import { playSfx } from './sfx';
 
 /* The artwork is bundled by Vite, never fetched: the Figma asset URLs expire. */
 import astronautUrl from '../../Assets/images/interior/sprite/interact-alt.webp';
@@ -262,7 +264,14 @@ export function gameHeader(options: HeaderOptions = {}): HTMLElement {
   if (options.day !== undefined) header.append(dayTracker(options.day));
 
   if (options.onLeave === undefined) {
-    header.append(h('nav', { class: 'gl__nav', 'aria-label': 'Primary', text: 'Mission Control / Main Menu' }));
+    header.append(
+      h(
+        'div',
+        { class: 'gl__actions', 'aria-label': 'Screen controls' },
+        soundButton('gl__icon-button'),
+        h('nav', { class: 'gl__nav', 'aria-label': 'Primary', text: 'Mission Control / Main Menu' }),
+      ),
+    );
 
     return header;
   }
@@ -286,6 +295,7 @@ export function gameHeader(options: HeaderOptions = {}): HTMLElement {
   const actions = h(
     'nav',
     { class: 'gl__actions', 'aria-label': 'Screen controls' },
+    soundButton('gl__icon-button'),
     options.showEncyclopedia === true ? book : null,
     options.help ?? null,
     button,
@@ -320,6 +330,7 @@ export function gameHeader(options: HeaderOptions = {}): HTMLElement {
   button.addEventListener('click', open);
   keep.addEventListener('click', close);
   leave.addEventListener('click', () => {
+    playSfx('mission-leave');
     close();
     options.onLeave?.();
   });

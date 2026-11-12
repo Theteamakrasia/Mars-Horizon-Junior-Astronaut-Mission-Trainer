@@ -4,7 +4,16 @@
 falls back to famous past flares, labelled approximate, when neither answers.
 `nasaDaily.ts` reads NASA's Astronomy Picture of the Day and falls back to the saved
 gallery when NASA is busy. `nasaGallery.ts` holds the saved gallery: it makes no
-request at all.
+request at all. `landingFacts.ts` holds the NASA facts the landing cinematic
+teaches, each with the NASA page it came from, and the one fact about each
+landing region: it makes no request at all either.
+
+**A fact that could not be confirmed is dropped, not softened.** `landingFacts.ts`
+was written against NASA's own pages, and where the number usually quoted and
+NASA's number differ, NASA's is the one in the file - the distance from Earth,
+the depth of Valles Marineris, the height of Olympus Mons and the size of the
+Argyre basin are all NASA's. A fact with no NASA page behind it is not in the
+file at all.
 
 **What is *not* here any more.** The rover's catalogue of real NASA finds used to live in
 `data/roverFinds.ts`. It is now in `src/sim/rover.ts`, because the simulation owns the

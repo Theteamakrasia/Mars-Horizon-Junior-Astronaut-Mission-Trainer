@@ -9,6 +9,7 @@
 
 import { h } from '../dom/h';
 import { icon, RESOURCE_ICON, type IconName } from './icons';
+import { playSfx } from './sfx';
 import { cargoDifficulty, cargoPerformance, dealCargoRound } from '../sim/trainingCargo';
 import type { TrainingGameMount } from './trainingGame';
 
@@ -76,7 +77,7 @@ export const mountCargo: TrainingGameMount = (root, context) => {
     const content = h('div', { class: 'trn__store-items' });
     const node = h(
       'button',
-      { class: 'trn__store', type: 'button', 'data-store': box.id, 'aria-label': `The ${box.label} store` },
+      { class: 'trn__store', type: 'button', 'data-store': box.id, 'aria-label': `The ${box.label} store`, 'data-sfx-hover': 'off' },
       h('span', { class: 'trn__store-title' }, icon(BOX_ICON[box.id] ?? 'box'), box.label),
       content,
     );
@@ -116,6 +117,7 @@ export const mountCargo: TrainingGameMount = (root, context) => {
 
     if (item.box !== boxId) {
       mistakes += 1;
+      playSfx('crate-drop-wrong');
 
       /* Read the layout again so the shake starts from the beginning. */
       node.classList.remove('trn__crate--wrong');
@@ -143,6 +145,7 @@ export const mountCargo: TrainingGameMount = (root, context) => {
       return;
     }
 
+    playSfx('crate-drop-right');
     node.remove();
     crates.delete(id);
     placed += 1;
@@ -249,12 +252,15 @@ export const mountCargo: TrainingGameMount = (root, context) => {
   for (const item of round.items) {
     const node = h(
       'button',
-      { class: 'trn__crate', type: 'button', 'aria-label': item.label },
+      { class: 'trn__crate', type: 'button', 'aria-label': item.label, 'data-sfx-hover': 'off' },
       icon(ITEM_ICON[item.id] ?? 'box'),
       h('span', { class: 'trn__crate-name', text: item.label }),
     );
 
-    node.addEventListener('pointerdown', (event) => onDown(event, item.id));
+    node.addEventListener('pointerdown', (event) => {
+      if (!finished && round.items.some((entry) => entry.id === item.id)) playSfx('crate-pickup');
+      onDown(event, item.id);
+    });
 
     /* The tap. A plain click picks the crate up, and the next click on a
        store puts it down — which is also how a keyboard player does it,
@@ -265,7 +271,9 @@ export const mountCargo: TrainingGameMount = (root, context) => {
       /* A crate that was just dragged is not also a tap. */
       if (Date.now() - droppedAt < 400) return;
 
-      selected = selected === item.id ? null : item.id;
+      const next = selected === item.id ? null : item.id;
+      selected = next;
+      if (next === item.id) playSfx('crate-pickup');
       hint.textContent = selected === null ? 'Put each crate in the store it belongs to.' : 'Now tap the store for it.';
       paint();
     });

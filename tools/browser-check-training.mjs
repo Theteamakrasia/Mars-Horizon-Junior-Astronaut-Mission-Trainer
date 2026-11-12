@@ -118,6 +118,10 @@ async function toAct() {
   await ev(`(() => { const p = document.querySelector("#landing-site .landing-site__pin"); if (p) p.click(); })()`);
   await sleep(800);
   await tap("#landing-site [data-landing-land]");
+  /* The landing film plays between the map and the outpost. Its own Skip
+     button is the way past it, and it is the path a player takes. */
+  await waitFor(`!!document.getElementById("landing-cinematic") && !document.getElementById("landing-cinematic").hidden`);
+  await tap("#landing-cinematic .landing-cinematic__skip");
   await sleep(1500);
   await ev(`(() => { const b = [...document.querySelectorAll("#base button")].find((n) => n.textContent.includes("Land & start sol 1")); if (b) b.click(); })()`);
   await waitFor(`!!document.getElementById("act") && !document.getElementById("act").hidden`);

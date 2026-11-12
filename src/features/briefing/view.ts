@@ -32,6 +32,7 @@ import { stopReading } from '../../ui/readAloud';
 import { nextStop } from '../../ui/registry';
 import { navigate } from '../../ui/router';
 import type { RunState } from '../../sim/run';
+import { playSfx } from '../../ui/sfx';
 
 import './briefing.css';
 
@@ -117,6 +118,7 @@ export function mountBriefing(
    */
   const goOn = (): void => {
     stopReading();
+    playSfx('yes-confirm');
     for (const timer of timers) window.clearTimeout(timer);
     timers = [];
 
@@ -162,6 +164,7 @@ export function mountBriefing(
     message.classList.remove('is-revealed');
     void message.offsetWidth;
     message.classList.add('is-revealed');
+    playSfx('dialogue-pop');
   };
 
   /**
@@ -174,6 +177,7 @@ export function mountBriefing(
   const revealNext = (): void => {
     if (index >= BEATS.length - 1) return;
 
+    playSfx('dialogue-next');
     index += 1;
     showBeat(index);
 

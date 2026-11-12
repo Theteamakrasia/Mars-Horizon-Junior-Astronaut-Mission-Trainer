@@ -507,7 +507,7 @@
            tabindex="-1" on the panel below is for the same reason the button
            needs one: pressing SKIP makes the button disappear, so the focus has
            to land somewhere real. -->
-      <button class="launch__skip" type="button" data-launch-skip hidden>
+      <button class="launch__skip" type="button" data-launch-skip data-sfx-hover="off" hidden>
         Skip
       </button>
 
@@ -707,6 +707,8 @@
               class="interior__pad interior__pad--left"
               type="button"
               data-interior-move="left"
+              data-sfx="none"
+              data-sfx-hover="off"
               aria-label="Walk left"
             >
               ◀
@@ -715,6 +717,8 @@
               class="interior__pad interior__pad--right"
               type="button"
               data-interior-move="right"
+              data-sfx="none"
+              data-sfx-hover="off"
               aria-label="Walk right"
             >
               ▶
@@ -975,6 +979,23 @@
         </div>
       </div>
     </section>
+
+    <!-- The landing cinematic. The film that plays between the landing-site map
+         and the outpost: the approach to Mars, the parachute coming down, and
+         the landing. It builds its own DOM, so this mount point is empty on
+         purpose, and it hands itself to the next stop when it is over.
+
+         One control: a Skip button, which cuts the film short and goes
+         straight to the outpost. Escape and Enter do the same.
+
+         Every element landing-cinematic/view.ts queries carries a data hook
+         below. It queries none: the film draws itself. -->
+    <section
+      id="landing-cinematic"
+      class="landing-cinematic"
+      aria-label="Landing sequence"
+      hidden
+    ></section>
 
     <!-- Post-landing screens. NASA's base/act/debrief views build their own DOM
          from scratch, so these mount points are empty on purpose. Reached from

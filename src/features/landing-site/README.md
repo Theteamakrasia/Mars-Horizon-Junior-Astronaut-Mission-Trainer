@@ -7,6 +7,12 @@ not have to reconstruct it. See `../README.md` for the layout rules and
 Task: **TASK-028**. Goal: **G-4**. The best first task in the project — no dependency on
 the resource model.
 
+**The screen hands over to the landing film.** Pressing **Land here** fades the
+whole map and panel to black over half a second, and the landing cinematic
+(`../landing-cinematic/`) plays before the outpost arrives. The region is
+already in the run by then — `landAt` sets it — so the film knows where the
+crew is going (D-085).
+
 ## What the screen does
 
 The player's first real decision. A rocket is in orbit and five regions are marked on

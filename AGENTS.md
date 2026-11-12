@@ -288,6 +288,7 @@ opening its folder — that is the whole point of the layout.
 | **The save: writing the run down, and reading it back** | `src/ui/save.ts` — the key, the reads, `resumeScreen`; the only file that touches `localStorage`. The format itself is `src/sim/save.ts` — pure, versioned, 19 tests (D-081) |
 | **The returning player's two lines** ("Welcome back, …") | `returningMenu` in `src/features/naming/model.ts`; CONTINUE and START OVER are wired in `src/features/naming/view.ts` (D-081) |
 | **Choosing where to land on Mars** | `src/features/landing-site/` — **built** (TASK-028 done) |
+| **The landing film, between the map and the outpost** | `src/features/landing-cinematic/` — **built** (TASK-108). The whole timeline is one config object in `model.ts` (pure, 48 tests); the view plays it from one `requestAnimationFrame` loop and writes only `transform` and `opacity`. The NASA facts are in `src/data/landingFacts.ts`, each with its NASA page. The frames are WebP, fetched at startup by `src/ui/landingFrames.ts`, and the black curtain the outpost comes up through is `src/ui/handoffFade.ts` (D-085) |
 | **Building the outpost between sols** | `src/features/base/` — **built**, 23 tests |
 | **The landing window, where the supplies are bought** | `src/features/base/setupPopup.ts` — built; the popup over the build screen, mounted on `document.body` (D-082). The CSS in `src/features/base/setupPopup.css` |
 | **Advancing a sol, and picking the day's activity** | `src/features/act/` — **built**, 38 tests |

@@ -18,6 +18,7 @@ const ALL: readonly Route[] = [
   'interior',
   'landing',
   'landing-site',
+  'landing-cinematic',
   'base',
   'act',
   'debrief',
@@ -72,11 +73,18 @@ describe('nextStop', () => {
     expect(nextStop('interior')).toBe('landing-site');
   });
 
-  it('walks from the landing site into the outpost, which is now built', () => {
-    // base is registered, so choosing a landing site opens the outpost rather
+  it('walks from the landing site into the landing film, which is built', () => {
+    // The film is registered, so choosing a landing site plays the landing
+    // sequence rather than falling back to the placeholder.
+    expect(resolveScreen('landing-cinematic')).not.toBeNull();
+    expect(nextStop('landing-site')).toBe('landing-cinematic');
+  });
+
+  it('walks out of the landing film into the outpost, which is now built', () => {
+    // base is registered, so the film hands straight into the outpost rather
     // than falling back to the placeholder.
     expect(resolveScreen('base')).not.toBeNull();
-    expect(nextStop('landing-site')).toBe('base');
+    expect(nextStop('landing-cinematic')).toBe('base');
   });
 
   it('walks the outpost into sol control and then the debrief', () => {
@@ -123,6 +131,7 @@ function nextRouteOf(route: Route): Route {
     'launch',
     'interior',
     'landing-site',
+    'landing-cinematic',
     'base',
     'act',
     'debrief',

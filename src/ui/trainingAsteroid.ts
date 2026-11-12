@@ -8,6 +8,7 @@
 
 import { h } from '../dom/h';
 import { icon } from './icons';
+import { playSfx } from './sfx';
 import {
   asteroidAccuracy,
   asteroidDelay,
@@ -68,12 +69,15 @@ export const mountAsteroid: TrainingGameMount = (root, context) => {
         class: `trn__target${decoy ? ' trn__target--friendly' : ''}`,
         type: 'button',
         'aria-label': decoy ? 'A friendly satellite' : 'An asteroid',
+        'data-sfx-hover': 'off',
         style: `left:${8 + context.random() * 78}%;top:${10 + context.random() * 70}%`,
       },
       icon(decoy ? 'dish' : 'rock', decoy ? 'A friendly satellite' : 'An asteroid'),
     );
 
     let gone = false;
+
+    playSfx('asteroid-spawn');
 
     node.addEventListener('click', (event) => {
       event.preventDefault();
@@ -85,9 +89,11 @@ export const mountAsteroid: TrainingGameMount = (root, context) => {
       if (decoy) {
         mistakes += 1;
         hint.textContent = 'That one was friendly. Leave it alone!';
+        playSfx('satellite-oops');
       } else {
         cleared += 1;
         node.classList.add('trn__target--cleared');
+        playSfx('asteroid-clear');
         status();
       }
 
@@ -130,6 +136,7 @@ export const mountAsteroid: TrainingGameMount = (root, context) => {
       finished = true;
       arena.replaceChildren();
       hint.textContent = 'Time is up.';
+      playSfx('time-up');
 
       const accuracy = asteroidAccuracy(cleared, mistakes, missed);
 

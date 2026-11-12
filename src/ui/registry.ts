@@ -9,6 +9,7 @@
 import { mountBriefing } from '../features/briefing/view';
 import { mountInterior } from '../features/interior/view';
 import { mountLandingSite } from '../features/landing-site/view';
+import { mountLandingCinematic } from '../features/landing-cinematic/view';
 import { mountLaunch } from '../features/launch/view';
 import { mountNaming } from '../features/naming/view';
 import { mountSupply } from '../features/supply/view';
@@ -46,6 +47,7 @@ const SCREEN_MOUNTS: Readonly<Partial<Record<Route, string>>> = {
   launch: '#launch',
   interior: '#interior',
   'landing-site': '#landing-site',
+  'landing-cinematic': '#landing-cinematic',
   base: '#base',
   // The encyclopedia: reference details for each piece of equipment.
   encyclopedia: '#encyclopedia',
@@ -63,6 +65,8 @@ const SCREENS: Readonly<Partial<Record<Route, ScreenFactory>>> = {
   // Registered so the interior hands into the landing-site choice instead of
   // the interstitial.
   'landing-site': mountLandingSite,
+  // The landing sequence: the film that plays between the map and the outpost.
+  'landing-cinematic': mountLandingCinematic,
   // The outpost: build modules between sols.
   base: mountBase,
   // The encyclopedia: reference details for each piece of equipment.

@@ -5,10 +5,12 @@ import { startFloatingAstronaut } from './dom/floatAstronaut';
 import { createStarfield } from './dom/starfield';
 import type { RunState } from './sim/run';
 import { LAYOUT_PROBLEMS } from './ui/baseLayout';
+import { preloadLandingFrames } from './ui/landingFrames';
 import { allScreenMounts, resolveScreen, screenMount } from './ui/registry';
 import { startRouter } from './ui/router';
 import type { Route } from './ui/routes';
 import { clearSave, readSave, writeSave } from './ui/save';
+import { playSfx, startSfx } from './ui/sfx';
 
 /**
  * Resolves an element by id, throwing a clear error if the markup and the
@@ -174,6 +176,8 @@ function bootstrap(): void {
     stopFloating = startFloatingAstronaut(astronaut, {
       deformLayer: astronautDeform,
       reducedMotion: motionOverride ?? motionQuery.matches,
+      onGrab: () => playSfx('astronaut-grab'),
+      onToss: () => playSfx('astronaut-toss'),
     });
   };
 
@@ -241,6 +245,16 @@ function bootstrap(): void {
   }
 
   /**
+   * Start the sound, before the first screen is mounted.
+   *
+   * The listeners it installs are on `document`, not on any screen, so they
+   * survive the desk being rebuilt on every change and the player moving
+   * between scenes. The browser will not play anything until the first
+   * gesture, which is exactly when the first cue is asked for.
+   */
+  startSfx();
+
+  /**
    * Continue from an earlier visit.
    *
    * Loaded before the router mounts anything, so a browser that restored a tab
@@ -250,6 +264,17 @@ function bootstrap(): void {
    * memory before any screen asks for it (D-081).
    */
   run = readSave()?.run ?? null;
+
+  /*
+    The landing sequence's five frames, fetched now.
+
+    The film is a moment the player waits for, and five pictures is real
+    weight. Fetching them here means they are in the cache, and decoded,
+    before the player is anywhere near the map - so the film can start on its
+    first frame instead of on a download. The film still waits for the frames
+    when it mounts; this only means there is nothing left to wait for.
+  */
+  preloadLandingFrames();
 
   startScreenRouter();
 }

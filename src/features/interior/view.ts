@@ -27,6 +27,7 @@
 import { nextStop } from '../../ui/registry';
 import { navigate } from '../../ui/router';
 import type { RunState } from '../../sim/run';
+import { playSfx, stopSfx } from '../../ui/sfx';
 
 import './interior.css';
 
@@ -274,6 +275,7 @@ export function mountInterior(
   let phasing = false;
   /** The phase-out or phase-in timer. Kept apart from the brief timers. */
   let phaseTimer: number | null = null;
+  let stepsOn = false;
 
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -337,6 +339,10 @@ export function mountInterior(
     walker = stepWalker(walker, readInput(), delta);
     applyWalker();
 
+    if (!anyHeld() || !walker.moving) {
+      stopSteps();
+    }
+
     // Walking into a room's exit wall starts the phase. This is checked only
     // while a direction is held, so stopping at the wall does not teleport.
     if (anyHeld() && isAtExit(currentRoom, walker)) {
@@ -346,6 +352,8 @@ export function mountInterior(
 
     if (anyHeld()) {
       rafId = requestAnimationFrame(tick);
+    } else {
+      stopSteps();
     }
   }
 
@@ -353,6 +361,7 @@ export function mountInterior(
   function settle(): void {
     if (anyHeld()) return;
 
+    stopSteps();
     stopLoop();
     walker = stepWalker(walker, readInput(), 0);
     applyWalker();
@@ -371,6 +380,7 @@ export function mountInterior(
     if (phasing) return;
 
     phasing = true;
+    stopSteps();
     stopLoop();
     keyHeld.clear();
     buttonHeld.clear();
@@ -385,6 +395,8 @@ export function mountInterior(
       window.clearTimeout(phaseTimer);
       phaseTimer = null;
     }
+
+    playSfx('airlock-phase');
 
     if (!reduced) {
       player.classList.remove('is-materialising');
@@ -414,6 +426,7 @@ export function mountInterior(
 
   function pressKey(direction: Direction): void {
     keyHeld.add(direction);
+    startSteps();
     startLoop();
   }
 
@@ -427,6 +440,7 @@ export function mountInterior(
     if (phasing) return;
 
     buttonHeld.add(direction);
+    startSteps();
     startLoop();
   }
 
@@ -434,6 +448,21 @@ export function mountInterior(
     if (buttonHeld.delete(direction)) {
       settle();
     }
+  }
+
+
+  function startSteps(): void {
+    if (stepsOn || phasing || !currentRoom.walkable) return;
+
+    stepsOn = true;
+    playSfx('footstep-metal');
+  }
+
+  function stopSteps(): void {
+    if (!stepsOn) return;
+
+    stepsOn = false;
+    stopSfx('footstep-metal');
   }
 
   function clearTimers(): void {
@@ -498,6 +527,7 @@ export function mountInterior(
     landingNote.textContent = '';
     landingPanel.hidden = false;
     landingGo.focus();
+    playSfx('tour-complete');
   }
 
   function closeLanding(focusNext: boolean): void {
@@ -615,6 +645,8 @@ export function mountInterior(
       window.clearTimeout(nudgeTimer);
     }
 
+    startSteps();
+
     walker = stepWalker(
       walker,
       {
@@ -631,6 +663,7 @@ export function mountInterior(
 
       if (anyHeld()) return;
 
+      stopSteps();
       walker = stepWalker(walker, readInput(), 0);
       applyWalker();
     }, NUDGE_MS + 80);
@@ -685,12 +718,14 @@ export function mountInterior(
   function onBlur(): void {
     keyHeld.clear();
     buttonHeld.clear();
+    stopSteps();
     settle();
   }
 
   function onVisibilityChange(): void {
     if (!document.hidden) return;
 
+    stopSteps();
     keyHeld.clear();
     buttonHeld.clear();
     settle();
@@ -700,6 +735,7 @@ export function mountInterior(
   function onPointerUp(): void {
     if (buttonHeld.size === 0) return;
 
+    stopSteps();
     buttonHeld.clear();
     settle();
   }
@@ -771,6 +807,7 @@ export function mountInterior(
   enterRoom(0);
 
   return () => {
+    stopSteps();
     stopLoop();
     clearTimers();
 
