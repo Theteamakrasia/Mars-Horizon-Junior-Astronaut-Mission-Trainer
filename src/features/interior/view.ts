@@ -28,6 +28,10 @@ import { nextStop } from '../../ui/registry';
 import { navigate } from '../../ui/router';
 import type { RunState } from '../../sim/run';
 import { playSfx, stopSfx } from '../../ui/sfx';
+import {
+  INTERIOR_SPRITE_URLS,
+  preloadInteriorSprites,
+} from '../../dom/interiorSprites';
 
 import './interior.css';
 
@@ -39,12 +43,8 @@ import havenUrl from '../../../Assets/images/interior/rooms/haven.webp';
 import labUrl from '../../../Assets/images/interior/rooms/lab.webp';
 import logisticsUrl from '../../../Assets/images/interior/rooms/logistics.webp';
 import sleepUrl from '../../../Assets/images/interior/rooms/sleep.webp';
-import interactAltUrl from '../../../Assets/images/interior/sprite/interact-alt.webp';
-import interactUrl from '../../../Assets/images/interior/sprite/interact.webp';
-import pointLeftUrl from '../../../Assets/images/interior/sprite/point-left.webp';
-import pointRightUrl from '../../../Assets/images/interior/sprite/point-right.webp';
-import walkLeftUrl from '../../../Assets/images/interior/sprite/walk-left.webp';
-import walkRightUrl from '../../../Assets/images/interior/sprite/walk-right.webp';
+
+export { preloadInteriorSprites };
 
 import {
   GREET_MS,
@@ -86,48 +86,7 @@ const ROOM_IMAGES: Record<RoomId, string> = {
 };
 
 /** One animation strip, keyed by the name the model returns. */
-const SPRITE_URLS: Record<SpriteAnimation, string> = {
-  'walk-left': walkLeftUrl,
-  'walk-right': walkRightUrl,
-  interact: interactUrl,
-  'interact-alt': interactAltUrl,
-  'point-left': pointLeftUrl,
-  'point-right': pointRightUrl,
-};
-
-/**
- * Load and decode every sprite strip before the player is shown.
- *
- * The strips are CSS background images, so the browser only fetched each one
- * the first time it was used: the first step flashed an empty or half-drawn
- * frame. Holding the Image objects keeps them in the cache, and decode() means
- * the first frame is ready to paint.
- */
-const spriteImages: HTMLImageElement[] = [];
-let spritesReady: Promise<void> | null = null;
-
-export function preloadInteriorSprites(): Promise<void> {
-  if (spritesReady !== null) return spritesReady;
-
-  spritesReady = Promise.all(
-    Object.values(SPRITE_URLS).map(async (url) => {
-      const image = new Image();
-      image.decoding = 'async';
-      image.src = url;
-      spriteImages.push(image);
-
-      try {
-        await image.decode();
-      } catch {
-        /* A failed decode must not block the room: it just loads on use. */
-      }
-    }),
-  ).then(() => undefined);
-
-  return spritesReady;
-}
-
-if (typeof window !== 'undefined') void preloadInteriorSprites();
+const SPRITE_URLS: Record<SpriteAnimation, string> = INTERIOR_SPRITE_URLS;
 
 /**
  * How long a keyboard activation of an on-screen pad moves the player.
@@ -226,14 +185,17 @@ export function mountInterior(
     image.src = ROOM_IMAGES[ROOMS[index].id];
   });
 
-  // Keep the player hidden until the sprites are decoded, so the first walk
-  // frames never glitch. A timeout means a slow network cannot hide him forever.
+  // Keep the player hidden until every sprite strip is decoded, so the first
+  // walk and gesture frames never paint half-loaded. Preloading starts at boot
+  // and again during the launch screen, but a slow device can still arrive here
+  // early; the fallback only reveals after a long wait so the room is never
+  // permanently hidden if a decode stalls.
   player.style.visibility = 'hidden';
 
   let spritesTimer: number | null = window.setTimeout(() => {
     player.style.visibility = '';
     spritesTimer = null;
-  }, 2500);
+  }, 4000);
 
   void preloadInteriorSprites().then(() => {
     if (spritesTimer !== null) window.clearTimeout(spritesTimer);

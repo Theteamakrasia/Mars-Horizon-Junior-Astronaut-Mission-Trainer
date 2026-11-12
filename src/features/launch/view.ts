@@ -39,6 +39,7 @@ import { navigate } from '../../ui/router';
 import type { RunState } from '../../sim/run';
 import { factFor } from '../../data/nasaGallery';
 import { focusHandlesEnter, isPlainEnter } from '../../dom/keys';
+import { preloadInteriorSprites } from '../../dom/interiorSprites';
 import { playSfx, stopSfx } from '../../ui/sfx';
 
 import './launch.css';
@@ -174,6 +175,11 @@ export function mountLaunch(
   _run: RunState | null,
   _setRun: (next: RunState | null) => void,
 ): () => void {
+  // Room exploration comes straight after this cinematic. Start decoding the
+  // interior sprite strips now so the player never sees a half-loaded frame on
+  // the first walk.
+  void preloadInteriorSprites();
+
   const stage = require<HTMLDivElement>(root, '[data-launch-stage]');
   const title = require<HTMLParagraphElement>(root, '[data-launch-title]');
   const flash = require<HTMLDivElement>(root, '[data-launch-flash]');
