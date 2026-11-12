@@ -146,6 +146,15 @@ export const mountCargo: TrainingGameMount = (root, context) => {
     if (!round.items.some((entry) => entry.id === id)) return;
 
     drag = { id, x: event.clientX, y: event.clientY, moved: false, ghost: null };
+
+    /* The move and release listeners belong to THIS drag.
+     *
+     * They used to be registered once, when the round was dealt, and the first
+     * drag took them away with it when it ended - so the first crate could be
+     * dragged and every crate after it could not (ISS-086). */
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onCancel);
   };
 
   const onMove = (event: PointerEvent): void => {
@@ -168,8 +177,7 @@ export const mountCargo: TrainingGameMount = (root, context) => {
   };
 
   const onUp = (event: PointerEvent): void => {
-    window.removeEventListener('pointermove', onMove);
-    window.removeEventListener('pointerup', onUp);
+    stopListening();
 
     const held = drag;
 
@@ -187,9 +195,31 @@ export const mountCargo: TrainingGameMount = (root, context) => {
       droppedAt = Date.now();
 
       if (store instanceof HTMLElement) place(held.id, store.dataset.store ?? '');
-
-      return;
     }
+  };
+
+  /*
+    A drag that was cancelled - a finger that slid into a scroll, a call
+    arriving - puts the crate back where it was. It is not a drop, so nothing
+    is stored.
+  */
+  const onCancel = (): void => {
+    stopListening();
+
+    const held = drag;
+
+    drag = null;
+
+    if (held === null) return;
+
+    crates.get(held.id)?.classList.remove('trn__crate--dragging');
+    held.ghost?.remove();
+  };
+
+  const stopListening = (): void => {
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+    window.removeEventListener('pointercancel', onCancel);
   };
 
   for (const item of round.items) {
@@ -220,15 +250,11 @@ export const mountCargo: TrainingGameMount = (root, context) => {
     tray.append(node);
   }
 
-  window.addEventListener('pointermove', onMove);
-  window.addEventListener('pointerup', onUp);
-
   status();
 
   return {
     destroy(): void {
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
+      stopListening();
       drag?.ghost?.remove();
       root.replaceChildren();
     },

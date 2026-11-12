@@ -146,12 +146,64 @@ async function playCard(name) {
   return await ev(`!!document.querySelector("#act .trn__backdrop")`);
 }
 
+/**
+ * Drag a crate into its store with the pointer.
+ *
+ * The cargo round can be played by tapping, and the check used to tap every
+ * crate - so the drag was never exercised, and a drag that only worked for the
+ * first crate went unnoticed (ISS-086). This drags, and the pointer events are
+ * the same ones a finger makes.
+ */
+async function dragCrate(label, store) {
+  await ev(`(() => {
+    const crate = [...document.querySelectorAll("#act .trn__crate")].find((n) => n.getAttribute("aria-label") === ${JSON.stringify(label)});
+    const shop = [...document.querySelectorAll("#act .trn__store")].find((n) => n.getAttribute("aria-label") === ${JSON.stringify(store)});
+    if (!crate || !shop) return false;
+
+    const from = crate.getBoundingClientRect();
+    const to = shop.getBoundingClientRect();
+
+    const point = (x, y) => ({ clientX: x, clientY: y, pointerId: 1, pointerType: 'mouse', bubbles: true, cancelable: true });
+
+    crate.dispatchEvent(new PointerEvent('pointerdown', point(from.left + from.width / 2, from.top + from.height / 2)));
+    window.dispatchEvent(new PointerEvent('pointermove', point(from.left + from.width / 2 + 30, from.top + from.height / 2)));
+    window.dispatchEvent(new PointerEvent('pointermove', point(to.left + to.width / 2, to.top + to.height / 2)));
+    window.dispatchEvent(new PointerEvent('pointerup', point(to.left + to.width / 2, to.top + to.height / 2)));
+
+    return true;
+  })()`);
+  await sleep(200);
+}
+
 /** Play the cargo round honestly: every crate into the store it names. */
 async function playCargo() {
-  for (let round = 0; round < 12; round += 1) {
-    const left = await ev(`document.querySelectorAll("#act .trn__crate").length`);
+  /* The first two crates are dragged and the rest are tapped, so both ways of
+     playing are covered - and so a drag that only worked for the first crate
+     would fail (ISS-086). */
+  const first = await ev(`[...document.querySelectorAll("#act .trn__crate")].map((n) => n.getAttribute("aria-label"))`);
+  let dragged = 0;
 
-    if (left === 0) break;
+  for (const label of first.slice(0, 2)) {
+    const store = STORE_OF[label];
+
+    if (store === undefined) continue;
+
+    await dragCrate(label, store);
+    dragged += 1;
+  }
+
+  const left = await ev(`document.querySelectorAll("#act .trn__crate").length`);
+
+  note(
+    'the second crate can be dragged as well as the first',
+    dragged === 2 && left === first.length - 2,
+    `${first.length - left} crates dragged away, ${left} left in the tray`,
+  );
+
+  for (let round = 0; round < 12; round += 1) {
+    const remaining = await ev(`document.querySelectorAll("#act .trn__crate").length`);
+
+    if (remaining === 0) break;
 
     const labels = await ev(`[...document.querySelectorAll("#act .trn__crate")].map((n) => n.getAttribute("aria-label"))`);
 
