@@ -11,6 +11,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
+| ISS-077 | The mini game merged with the desk sheet, and stayed there after it closed | medium | agent | fixed | this branch |
 | ISS-076 | The sheet squashed what was inside it, so a NASA picture covered its own caption | medium | agent | fixed | this branch |
 | ISS-075 | The "Real data" section showed one picture, so the game looked like it owned one NASA picture | low | agent | fixed | this branch |
 | ISS-074 | The journey check never found the naming screen, so it could not fail and could not pass | medium | agent | fixed | this branch |
@@ -84,6 +85,34 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | ISS-012 | No CI; nothing runs checks on push | low | agent | fixed | adc5767 |
 | ISS-013 | Vitest runs node-env, no jsdom, so DOM is untestable | low | unassigned | open | — |
 | ISS-014 | `base.css` calls the page non-interactive while draggable | low | agent | fixed | this branch |
+
+---
+
+## ISS-077 — The mini game merged with the desk sheet, and stayed there after it closed
+
+- **Reported by:** the player, 2026-11-12: *"when opening a mini game from daily task it's
+  getting merged with view desk. then opening view desk is also showing the mini game
+  under desk content. it should not get merged with desk."*
+- **Where:** `src/features/act/view.ts` — the "inspect" button in `orderList`, and
+  `deskBody`.
+- **Problem:** two symptoms, one cause. Opening a mini game from **Today's tasks**
+  **replaced** the tasks sheet with the **desk** sheet, and the tool was rendered inside
+  the desk sheet, under the desk's own content. And because `openTool` was cleared in
+  exactly one place — the second press of the tool's Finish button — closing the sheet
+  any other way (the ✕, Escape, the guide) left it set, so **the next time the desk sheet
+  opened, the mini game was there again**, under the desk content.
+- **Cause:** the hub refactor (D-070) moved the act screen's sections into sheets but
+  left the mini game where it had always been — part of the desk. The "inspect" button
+  was made to reach it by switching the player to the desk sheet, which worked and merged
+  two unrelated things in the same breath: a tool belongs to an *order*, and the desk is
+  the note from home and the rover's find.
+- **Fix:** the mini game opens in **its own sheet**, over the sheet it came from, and
+  closes with it. The desk sheet no longer contains the tool in any form, and the tool
+  cannot outlive its section: closing the section, or opening the guide, closes the tool
+  too (D-072). The stacking ladder gains a rung for it — 108, the tool sheet over the
+  section sheet at 105.
+- **Pre-existing:** yes; it arrived with the hub in D-070 and was found by the player on
+  the first day of playing it.
 
 ---
 
@@ -1412,7 +1441,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-**Next free id: ISS-077.**
+**Next free id: ISS-078.**
 
 
 ---

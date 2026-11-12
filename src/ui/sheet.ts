@@ -32,6 +32,15 @@ export interface SheetOptions {
   readonly footer?: readonly (Node | null | false)[];
   /** The label on the button that closes it. Defaults to "Got it". */
   readonly doneLabel?: string;
+  /**
+   * Which rung of the stacking ladder this sheet sits on.
+   *
+   * `section` is the ordinary one, over the panel. `tool` is a sheet opened
+   * **over** a section sheet — the mini game over the sheet it came from — so
+   * it needs to be above it, and the order is written down rather than left to
+   * the order the two happen to be mounted in.
+   */
+  readonly layer?: 'section' | 'tool';
   /** Called for the close button, the backdrop, `Escape` and the done button. */
   readonly onClose: () => void;
 }
@@ -55,6 +64,7 @@ function focusable(card: HTMLElement): readonly HTMLElement[] {
  */
 export function sheet(options: SheetOptions): HTMLElement {
   const titleId = `sheet-title-${(NEXT_ID += 1)}`;
+  const layer = options.layer ?? 'section';
 
   const close = h('button', { class: 'sheet__close', type: 'button', 'aria-label': 'Close' }, icon('close'));
 
@@ -81,7 +91,7 @@ export function sheet(options: SheetOptions): HTMLElement {
     h('footer', { class: 'sheet__foot' }, ...(options.footer ?? []), done),
   );
 
-  const backdrop = h('div', { class: 'sheet__backdrop' }, card);
+  const backdrop = h('div', { class: `sheet__backdrop sheet__backdrop--${layer}` }, card);
 
   const shut = (): void => options.onClose();
 

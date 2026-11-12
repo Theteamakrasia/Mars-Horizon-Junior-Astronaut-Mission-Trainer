@@ -54,6 +54,11 @@ came from — and two NASA facts. The tile says what is behind it ("3 pictures �
 flares"), and the forecast stays on the main panel, because a schedule is the game's and
 a flare reading is NASA's.
 
+**The mini game opens in its own sheet** (D-072). It is worked on an *order*, so it opens
+in a sheet over **Today's tasks**, not inside the desk — and the desk sheet is the note
+from home and the rover's find, in any state. Closing the tool puts the player back on
+the order they were working, and a tool cannot outlive the section it was opened from.
+
 ## The trade-off, shown with a picture instead of a paragraph
 
 The README's Power Surplus mission is the clearest statement of the game's thesis, and

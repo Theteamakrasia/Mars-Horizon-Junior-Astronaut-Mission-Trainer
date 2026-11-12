@@ -31,6 +31,7 @@
      98       the bubbles over the panel: the place, the weather, the speech.
     100       the how-to-play panel.
     105       a section sheet, over the panel.
+    108       the mini game's sheet, over the section sheet it came from.
     110       the leave-mission dialog, over everything.
 
    The gap at 80 is deliberate. A module may reach 79, and nothing the

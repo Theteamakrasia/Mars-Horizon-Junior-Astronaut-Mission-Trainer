@@ -8,6 +8,60 @@ than a documented one.
 
 ---
 
+## 2026-11-12 — The mini game gets its own sheet, and stops merging with the desk
+
+**Did**
+
+- **Gave the mini game its own sheet**, layered over the sheet it came from (D-072,
+  ISS-077). Pressing "inspect" on an order no longer replaces **Today's tasks** with the
+  desk sheet: the tool opens in a sheet of its own, on top, and the orders stay behind it.
+- **The desk sheet is the desk again** — a note from home and the rover's find, and
+  nothing else, in any state. The tool was never the desk's; it belongs to an order.
+- **A tool can no longer outlive its section.** It used to be cleared in one place only,
+  so closing the sheet with the ✕, pressing Escape, or opening the guide left it set and
+  it was waiting on the desk the next time that opened.
+- **Closing the tool puts the player back on the order** they were working — the focus
+  lands on that order's inspect button, not on the hub and not on the top of a list.
+- **The stacking ladder has its rung written down**: 108, the tool sheet, over the
+  section sheet at 105, so the order of the two is a rule and not an accident.
+
+**Files**
+
+- `src/features/act/view.ts` — the tool's own sheet, `closeTool()`, the leak closed, the
+  focus, and the desk sheet's new contents
+- `src/ui/sheet.ts`, `src/ui/sheet.css` — the `layer` option and the `--tool` backdrop
+- `src/styles/game-loop.css` — the ladder's new rung
+- `tools/browser-check-build.mjs` — five new assertions
+- `docs/architecture.md`, `docs/team/decisions.md`, `docs/team/issues.md`,
+  `docs/team/progress-log.md`, `docs/team/tasks.md`, `src/features/act/README.md`
+
+**Problems**
+
+- **The bug was two symptoms and one cause**, and the cause was a shortcut that looked
+  like it worked: the "inspect" button reached the tool by switching the player to the
+  desk sheet. Git merges and type checks were both happy with it; only a child playing it
+  noticed that the desk had a mini game in it.
+- **`openTool` was cleared in exactly one place** — the second press of the tool's Finish
+  button. Every other way out of the sheet (the ✕, Escape, the guide, opening another
+  section) left it set, which is why the tool was waiting on the desk later.
+- **Two buttons said "Done"** once the tool had a sheet of its own: the tool's own
+  Finish/Done button and the sheet's footer button. The footer's is now "Back to the
+  orders", so the two say different things.
+- **The browser check passed with the bug in place.** It opened the tool and worked it,
+  which worked — the tool was simply in the wrong sheet. The check now asserts *where*
+  the tool is, not just that it can be worked.
+- **The first run of the browser check failed wholesale** because the preview server was
+  not running: every assertion after the base screen failed, and the output looked like
+  a broken game. It was a dead server, not a broken build.
+
+**Next**
+
+- The tool's sheet has a **Back to the orders** button in its footer and the tool's own
+  Finish button in the body. Two ways out of one dialog is fine, but worth a look in a
+  browser to see whether a child reads both as the same button.
+
+---
+
 ## 2026-11-11 — Merge main's navigation bar and launch tour, and keep both sides' issues
 
 **Did**
