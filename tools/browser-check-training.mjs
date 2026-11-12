@@ -19,6 +19,8 @@ import { spawn } from "node:child_process";
 import { rmSync } from "node:fs";
 import { setTimeout as sleep } from "node:timers/promises";
 
+import { doTheTraining } from './training-driver.mjs';
+
 /* A clean profile, so the check always starts from a clean day. */
 rmSync(process.env.TEMP + '\\training-chrome-profile', { recursive: true, force: true });
 
@@ -144,6 +146,14 @@ async function playCard(name) {
   await sleep(700);
 
   return await ev(`!!document.querySelector("#act .trn__backdrop")`);
+}
+
+/** Open a training game from the standing orders sheet, for the driver. */
+async function openGame(name) {
+  await tap('#act .act-tile[data-tile="orders"]');
+  await sleep(700);
+
+  return await playCard(name);
 }
 
 /**
@@ -473,20 +483,30 @@ try {
   console.log("9 the same game again, on the next sol");
   /* The day's training starts again with the sol, so the replay is tested on
      a clean day: the same game twice, and the board has to be a new one - the
-     crew is playing again, so the game deals again (ISS-085). */
+     crew is playing again, so the game deals again (ISS-085).
+
+     The crew has to train before the sol can run - the work orders are shut
+     until they have - so the training comes first, and then the order and
+     the sol. */
+  const trained = await doTheTraining(ev, sleep, openGame);
+  note("the crew trains for the new sol", trained?.cargo === true && trained?.asteroid === true);
+
   await tap('#act .act-tile[data-tile="tasks"]');
   await sleep(700);
   await ev(`(() => { const card = [...document.querySelectorAll("#act .act-order")].find((c) => !c.disabled); if (card) card.click(); })()`);
   await sleep(600);
   /* The button is disabled while the space weather is loading, and a crisis
-     replaces the hub on the sol. */
-  for (let attempt = 0; attempt < 30; attempt += 1) {
+     replaces the hub on the sol. The sol has to be *run* before the next part
+     of the check, so the loop waits until it has. */
+  const solBefore = await ev(`document.querySelector('#act .gl__kicker')?.textContent ?? ''`);
+
+  for (let attempt = 0; attempt < 40; attempt += 1) {
     const crisis = await ev(`!!document.querySelector("#act .gl__choices")`);
 
     if (crisis) {
-      await ev(`(() => { const c = document.querySelector("#act .gl__choice"); if (c) c.click(); })()`);
+      await ev(`(() => { const c = document.querySelector('#act .gl__choice:not([disabled])'); if (c) c.click(); })()`);
       await sleep(1400);
-      break;
+      continue;
     }
 
     const outcome = await ev(`(() => {
@@ -498,12 +518,11 @@ try {
       return "clicked";
     })()`);
 
-    if (outcome === "clicked") {
-      await sleep(1600);
-      break;
-    }
+    await sleep(outcome === "clicked" ? 1600 : 600);
 
-    await sleep(600);
+    const solAfter = await ev(`document.querySelector('#act .gl__kicker')?.textContent ?? ''`);
+
+    if (solAfter !== solBefore) break;
   }
 
   await tap('#act .act-tile[data-tile="orders"]');
@@ -531,6 +550,26 @@ try {
   const replayed = await trainingState();
   note("the day is two games on", replayed.count.includes("2/2"), replayed.count);
   note("the tasks are open", replayed.tasksLocked === "false", replayed.tasks);
+
+  /* The counter of how hard each game has become. It is never shown to the
+     player - it is written down beside the days, and the game asks for a
+     bigger job in its own words. The cargo round has been played three times
+     in this pass, so it is level 4, and the other games are still level 1. */
+  const levels = await ev(`(() => {
+    try {
+      const raw = localStorage.getItem('mars-horizon.training.v1');
+      return raw ? JSON.parse(raw).levels : null;
+    } catch (e) {
+      return null;
+    }
+  })()`);
+
+  note(
+    "the game that has been played has got harder, and the ones that have not have not",
+    typeof levels?.['cargo-sorting'] === 'number' && levels['cargo-sorting'] >= 4 && levels['rover-parking'] === undefined,
+    JSON.stringify(levels),
+  );
+
   const card = await ev(`(() => { const c = [...document.querySelectorAll("#act .trn__card")].find((x) => x.querySelector(".trn__card-name")?.textContent === "Cargo Sorting"); return (c?.textContent ?? "").replace(/\\s+/g, " "); })()`);
   note("the card says it was played twice", card.includes("2×"), card.trim());
 
