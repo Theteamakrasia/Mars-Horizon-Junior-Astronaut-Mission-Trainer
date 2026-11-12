@@ -27,6 +27,7 @@ import { regionById } from '../../sim/regions';
 import { icon } from '../../ui/icons';
 import { moduleArt, type HudStat } from '../../ui/gameLoop';
 import { readButton } from '../../ui/readButton';
+import { playSfx } from '../../ui/sfx';
 
 import {
   addModule,
@@ -334,8 +335,12 @@ export function createSetupPopup(options: SetupPopupOptions): SetupPopup {
     add.addEventListener('click', () => {
       const next = addModule(extras, entry.kind, options.regionId);
 
-      if (next === extras) return;
+      if (next === extras) {
+        playSfx('module-limit');
+        return;
+      }
 
+      playSfx('module-add');
       flash = entry.kind;
       focusKey = `add-${entry.kind}`;
       fallbackKey = `remove-${entry.kind}`;
@@ -347,6 +352,7 @@ export function createSetupPopup(options: SetupPopupOptions): SetupPopup {
 
       if (next === extras) return;
 
+      playSfx('module-remove');
       flash = entry.kind;
       focusKey = `remove-${entry.kind}`;
       fallbackKey = `add-${entry.kind}`;
@@ -501,6 +507,7 @@ export function createSetupPopup(options: SetupPopupOptions): SetupPopup {
   close.addEventListener('click', shut);
 
   launch.addEventListener('click', () => {
+    playSfx('outpost-land');
     options.onLaunch();
   });
 

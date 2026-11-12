@@ -26,6 +26,7 @@ import { icon } from '../../ui/icons';
 import { nasaCard } from '../../ui/nasaCard';
 import { h } from '../../dom/h';
 import { regionCard } from '../../data/nasaGallery';
+import { playSfx } from '../../ui/sfx';
 
 import { REGIONS, SITE_AXES, scoreRegion, tradeoffSummary } from './model';
 
@@ -313,6 +314,7 @@ export function mountLandingSite(
   function onNasaDataClick(): void {
     if (nasaDataOpen) return;
     nasaDataOpen = true;
+    playSfx('nasa-data-open');
     nasaDataOverlay = buildNasaDataModal();
     root.appendChild(nasaDataOverlay);
     (nasaDataOverlay.querySelector('.landing-site__nasa-modal-close') as HTMLElement).focus();
@@ -334,6 +336,7 @@ export function mountLandingSite(
     pin.setAttribute('aria-pressed', 'true');
     pin.focus();
     setRovingTabStop(pins.indexOf(pin));
+    playSfx('map-pin-select');
 
     const region = REGIONS.find((r) => r.id === regionId);
 
@@ -415,6 +418,7 @@ export function mountLandingSite(
     }
     landButton.disabled = true;
     setHint('Landing...');
+    playSfx('land-confirm');
 
     // The push-in lands on the chosen pin.
     const pin = selectedPin!;

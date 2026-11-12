@@ -17,6 +17,7 @@
 
 import { h } from '../dom/h';
 import { icon, type IconName } from './icons';
+import { playSfx } from './sfx';
 
 import './sheet.css';
 
@@ -93,7 +94,10 @@ export function sheet(options: SheetOptions): HTMLElement {
 
   const backdrop = h('div', { class: `sheet__backdrop sheet__backdrop--${layer}` }, card);
 
-  const shut = (): void => options.onClose();
+  const shut = (): void => {
+    playSfx('ui-close-sheet');
+    options.onClose();
+  };
 
   close.addEventListener('click', shut);
   done.addEventListener('click', shut);
@@ -128,6 +132,8 @@ export function sheet(options: SheetOptions): HTMLElement {
       first.focus();
     }
   });
+
+  playSfx('ui-open-sheet');
 
   return backdrop;
 }

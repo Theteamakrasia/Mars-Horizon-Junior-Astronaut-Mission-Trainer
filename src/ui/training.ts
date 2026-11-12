@@ -15,6 +15,7 @@
 
 import { h } from '../dom/h';
 import { icon, type IconName } from './icons';
+import { playSfx } from './sfx';
 import { isThumbDevice, mountArrowPad } from './arrowPad';
 import {
   TRAINING_GAMES,
@@ -336,13 +337,13 @@ export function trainingSection(
       const status = row?.status ?? 'available';
       const plays = row?.plays ?? 0;
       const points = row?.points ?? 0;
-      const button = h('button', { class: 'trn__play', type: 'button', text: buttonText(status, plays) });
+      const button = h('button', { class: 'trn__play', type: 'button', text: buttonText(status, plays), 'data-sfx-hover': 'on' });
 
       button.addEventListener('click', () => options.onPlay(game.id));
 
       return h(
         'article',
-        { class: `trn__card trn__card--${status}` },
+        { class: `trn__card trn__card--${status}`, 'data-sfx-hover': 'off' },
         h('span', { class: 'trn__card-icon', 'aria-hidden': 'true' }, icon(GAME_ICON[game.id])),
         h('h3', { class: 'trn__card-name', text: game.name }),
         h('p', { class: 'trn__card-text', text: game.description }),
@@ -540,7 +541,7 @@ export function openTrainingGame(
     } | null,
     refusal: string | null,
   ): void {
-    const again = h('button', { class: 'trn__btn trn__btn--primary', type: 'button', text: 'Continue' });
+    const again = h('button', { class: 'trn__btn trn__btn--primary', type: 'button', text: 'Continue', 'data-sfx': 'none' });
 
     again.addEventListener('click', shut);
 
@@ -553,6 +554,9 @@ export function openTrainingGame(
 
       return;
     }
+
+    playSfx('training-complete');
+    if (outcome.tasksUnlocked) playSfx('training-unlock');
 
     const done: HTMLElement[] = [
       h('div', { class: 'trn__done-icon', 'aria-hidden': 'true' }, icon('star')),
@@ -576,7 +580,7 @@ export function openTrainingGame(
     /* The same game can be played again while the day has a slot left: it is
        the day's other play, and it pays again. The board is dealt afresh. */
     const replay = canStartTraining(current, gameId).ok
-      ? h('button', { class: 'trn__btn', type: 'button', text: 'Play again' })
+      ? h('button', { class: 'trn__btn', type: 'button', text: 'Play again', 'data-sfx': 'none' })
       : null;
 
     if (replay !== null) {

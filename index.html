@@ -507,7 +507,7 @@
            tabindex="-1" on the panel below is for the same reason the button
            needs one: pressing SKIP makes the button disappear, so the focus has
            to land somewhere real. -->
-      <button class="launch__skip" type="button" data-launch-skip hidden>
+      <button class="launch__skip" type="button" data-launch-skip data-sfx-hover="off" hidden>
         Skip
       </button>
 
@@ -707,6 +707,8 @@
               class="interior__pad interior__pad--left"
               type="button"
               data-interior-move="left"
+              data-sfx="none"
+              data-sfx-hover="off"
               aria-label="Walk left"
             >
               ◀
@@ -715,6 +717,8 @@
               class="interior__pad interior__pad--right"
               type="button"
               data-interior-move="right"
+              data-sfx="none"
+              data-sfx-hover="off"
               aria-label="Walk right"
             >
               ▶

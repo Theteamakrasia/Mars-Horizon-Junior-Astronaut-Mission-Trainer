@@ -421,3 +421,27 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+/* The speaker control floats in the corner of the menu. */
+.naming__sound {
+  position: absolute;
+  top: clamp(0.75rem, 2.4vmin, 1.25rem);
+  right: clamp(0.75rem, 2.4vmin, 1.25rem);
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: clamp(34px, 4vmin, 44px);
+  height: clamp(34px, 4vmin, 44px);
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(252, 252, 252, 0.18);
+  background: rgba(19, 29, 36, 0.6);
+  color: rgba(252, 252, 252, 0.9);
+  cursor: pointer;
+}
+
+.naming__sound:hover {
+  background: rgba(250, 98, 0, 0.9);
+  border-color: rgba(250, 98, 0, 0.9);
+  color: #fff;
+}

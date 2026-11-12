@@ -32,6 +32,7 @@ import { readButton } from '../../ui/readButton';
 import { guideButton, guidePanel } from '../../ui/guide';
 import { nextStop } from '../../ui/registry';
 import { navigate } from '../../ui/router';
+import { playSfx } from '../../ui/sfx';
 
 import {
   BUDGET_NONE,
@@ -202,6 +203,7 @@ export function mountBase(
     if (setup !== null) return;
 
     setupShown = true;
+    playSfx('ui-open-sheet');
 
     setup = createSetupPopup({
       regionId,
@@ -228,6 +230,7 @@ export function mountBase(
   function closeSetup(): void {
     setup?.element.remove();
     setup = null;
+    playSfx('ui-close-sheet');
 
     window.requestAnimationFrame(() => {
       document.querySelector<HTMLElement>('[data-focus="open-setup"]')?.focus();

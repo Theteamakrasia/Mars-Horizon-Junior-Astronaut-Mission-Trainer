@@ -10,6 +10,7 @@ import { allScreenMounts, resolveScreen, screenMount } from './ui/registry';
 import { startRouter } from './ui/router';
 import type { Route } from './ui/routes';
 import { clearSave, readSave, writeSave } from './ui/save';
+import { playSfx, startSfx } from './ui/sfx';
 
 /**
  * Resolves an element by id, throwing a clear error if the markup and the
@@ -175,6 +176,8 @@ function bootstrap(): void {
     stopFloating = startFloatingAstronaut(astronaut, {
       deformLayer: astronautDeform,
       reducedMotion: motionOverride ?? motionQuery.matches,
+      onGrab: () => playSfx('astronaut-grab'),
+      onToss: () => playSfx('astronaut-toss'),
     });
   };
 
@@ -240,6 +243,16 @@ function bootstrap(): void {
       ...LAYOUT_PROBLEMS,
     );
   }
+
+  /**
+   * Start the sound, before the first screen is mounted.
+   *
+   * The listeners it installs are on `document`, not on any screen, so they
+   * survive the desk being rebuilt on every change and the player moving
+   * between scenes. The browser will not play anything until the first
+   * gesture, which is exactly when the first cue is asked for.
+   */
+  startSfx();
 
   /**
    * Continue from an earlier visit.

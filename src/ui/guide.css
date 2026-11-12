@@ -73,7 +73,7 @@
 /* A soft shadow under the boots, so the cutout stands on the ground rather
    than floating in front of the dimmed screen. */
 .guide__astro-wrap::after {
-  content: '';
+  content: "";
   position: absolute;
   right: 12%;
   bottom: 1.5%;
@@ -88,7 +88,7 @@
   position: relative;
   z-index: 1;
   display: block;
-  width: 100%;
+  width: 80%;
   max-height: min(64vh, 34rem);
   object-fit: contain;
   object-position: bottom center;
@@ -106,10 +106,15 @@
   flex-direction: column;
   min-width: 0;
   max-height: min(84vh, 42rem);
-  padding: clamp(24px, 2.4vw, 38px) clamp(18px, 2.2vw, 38px) clamp(14px, 1.5vw, 22px);
+  padding: clamp(24px, 2.4vw, 38px) clamp(18px, 2.2vw, 38px)
+    clamp(14px, 1.5vw, 22px);
   border: clamp(2px, 0.2vw, 3px) solid var(--guide-navy);
   border-radius: clamp(18px, 2vw, 32px);
-  background: linear-gradient(180deg, var(--guide-paper-top), var(--guide-paper));
+  background: linear-gradient(
+    180deg,
+    var(--guide-paper-top),
+    var(--guide-paper)
+  );
   color: var(--gl-ink);
   box-shadow:
     0 26px 60px rgba(5, 12, 22, 0.46),
@@ -121,7 +126,7 @@
    the same weight as the bubble's border. It points left, at the astronaut. */
 .guide__bubble::before,
 .guide__bubble::after {
-  content: '';
+  content: "";
   position: absolute;
   width: 0;
   height: 0;
@@ -186,7 +191,9 @@
   color: var(--guide-navy);
   font-size: clamp(0.72rem, 0.88vw, 1rem);
   cursor: pointer;
-  transition: background 120ms ease, color 120ms ease;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
 }
 
 .guide__close:hover {
@@ -269,14 +276,16 @@
   font-weight: 800;
   line-height: 1.1;
   cursor: pointer;
-  transition: background 120ms ease, color 120ms ease;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
 }
 
 .guide__read:hover {
   background: var(--gl-card-strong);
 }
 
-.guide__read[aria-pressed='true'] {
+.guide__read[aria-pressed="true"] {
   background: var(--gl-peach);
   color: var(--gl-orange-deep);
 }
@@ -301,7 +310,10 @@
   height: clamp(5px, 0.42vw, 7px);
   border-radius: 999px;
   background: var(--gl-card-strong);
-  transition: width 180ms ease, background 180ms ease, opacity 180ms ease;
+  transition:
+    width 180ms ease,
+    background 180ms ease,
+    opacity 180ms ease;
 }
 
 .guide__dot--done {
@@ -339,7 +351,9 @@
   font-size: clamp(0.64rem, 0.78vw, 0.88rem);
   font-weight: 800;
   cursor: pointer;
-  transition: background 120ms ease, color 120ms ease;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
 }
 
 .guide__back:hover:not(:disabled) {
@@ -369,7 +383,9 @@
   font-weight: 900;
   line-height: 1.1;
   cursor: pointer;
-  transition: transform 120ms ease, box-shadow 120ms ease;
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease;
 }
 
 .guide__next:hover {

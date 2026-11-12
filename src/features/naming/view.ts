@@ -18,6 +18,8 @@ import { nextStop } from '../../ui/registry';
 import { navigate } from '../../ui/router';
 import { clearSave, readSave, resumeScreen } from '../../ui/save';
 import { clearTrainingRecord } from '../../ui/training';
+import { soundButton } from '../../ui/soundButton';
+import { playSfx } from '../../ui/sfx';
 
 import './naming.css';
 
@@ -90,8 +92,12 @@ export function mountNaming(
     submit.disabled = !ok;
 
     if (problem === 'empty') setHint('');
-    else if (problem === 'too-long') setHint(`Keep it under ${MAX_NAME_LENGTH} characters.`);
-    else setHint('');
+    else if (problem === 'too-long') {
+      setHint(`Keep it under ${MAX_NAME_LENGTH} characters.`);
+      playSfx('ui-error');
+    } else setHint('');
+
+    if (input.value.length > 0 && problem !== 'too-long') playSfx('type-key');
   };
 
   const onSubmit = (event: SubmitEvent): void => {
@@ -101,6 +107,7 @@ export function mountNaming(
 
     if (!ok) {
       onInput();
+      playSfx('ui-error');
       return;
     }
 
@@ -116,6 +123,8 @@ export function mountNaming(
     root.dataset.namingStarted = 'true';
     input.readOnly = true;
     submit.disabled = true;
+
+    playSfx('mission-start');
 
     // nextStop inserts the under-construction interstitial when the next scene
     // is not built yet, so there is nothing to special-case here or later.
@@ -155,6 +164,7 @@ export function mountNaming(
     // button says START OVER, and a save left behind would contradict it.
     setRun(null);
     greeting.textContent = '';
+    playSfx('ui-confirm');
     restartForm();
   };
 
@@ -168,6 +178,7 @@ export function mountNaming(
   const onContinue = (): void => {
     if (saved === null) return;
 
+    playSfx('ui-confirm');
     setRun(saved.run);
     navigate(resumeScreen(saved));
   };
@@ -177,6 +188,7 @@ export function mountNaming(
     clearSave();
     setRun(null);
     greeting.textContent = '';
+    playSfx('ui-confirm');
     restartForm();
   };
 
@@ -185,6 +197,18 @@ export function mountNaming(
   back.addEventListener('click', onBack);
   resumeContinue.addEventListener('click', onContinue);
   resumeRestart.addEventListener('click', onRestart);
+
+  /*
+   * The speaker, on the menu itself.
+   *
+   * A teacher can silence the game before the first click, which means the
+   * naming screen cannot wait for the game-loop header that the journey
+   * screens share. It floats in the corner, above the planet, and stays put
+   * whatever the menu is showing.
+   */
+  const speaker = soundButton('naming__sound');
+
+  root.append(speaker);
 
   if (saved !== null) {
     /*
@@ -216,6 +240,7 @@ export function mountNaming(
   }
 
   return () => {
+    speaker.remove();
     form.removeEventListener('submit', onSubmit);
     input.removeEventListener('input', onInput);
     back.removeEventListener('click', onBack);

@@ -15,6 +15,7 @@
  */
 
 import { h } from '../dom/h';
+import { playSfx, stopSfx } from './sfx';
 import {
   ENGINE_NAME,
   gradeMatch,
@@ -50,6 +51,8 @@ export interface Inspection {
   readonly done: () => boolean;
   /** The result, once it is done. */
   readonly result: () => Grade;
+  /** Optional cleanup when the inspection is abandoned. */
+  readonly destroy?: () => void;
 }
 
 /** The steps of the checklist, in the order they happen. */
@@ -123,6 +126,7 @@ function sequenceInspection(): Inspection {
           if (pressed.includes(step)) return;
 
           pressed.push(step);
+          playSfx('checklist-press');
           paint();
         });
 
@@ -153,16 +157,31 @@ function timingInspection(sol: number): Inspection {
   let position = 0;
   let stopped: number | null = null;
   let direction = 1;
+  let ticking = false;
 
   const marker = h('span', { class: 'insp__marker' });
   const band = h('span', { class: 'insp__band', style: `left:${bandStart * 100}%;width:${(bandEnd - bandStart) * 100}%` });
   const track = h('div', { class: 'insp__track' }, band, marker);
   const button = h('button', { class: 'gl__btn gl__btn--navy insp__stop', type: 'button' }, 'Stop it');
 
+  const stopTick = (): void => {
+    if (!ticking) return;
+
+    ticking = false;
+    stopSfx('timing-tick');
+  };
+
+  const finish = (): void => {
+    window.clearInterval(timer);
+    stopTick();
+  };
+
   button.addEventListener('click', () => {
     if (stopped !== null) return;
 
     stopped = position;
+    finish();
+    playSfx('timing-stop');
     button.disabled = true;
     marker.style.left = `${position * 100}%`;
   });
@@ -183,9 +202,12 @@ function timingInspection(sol: number): Inspection {
     }
 
     marker.style.left = `${position * 100}%`;
-  }, 40);
 
-  const finish = (): void => window.clearInterval(timer);
+    if (!ticking) {
+      ticking = true;
+      playSfx('timing-tick');
+    }
+  }, 40);
 
   return {
     name: ENGINE_NAME.timing,
@@ -196,6 +218,7 @@ function timingInspection(sol: number): Inspection {
 
       return gradeTiming(stopped ?? 0, bandStart, bandEnd);
     },
+    destroy: finish,
   };
 }
 
@@ -222,10 +245,12 @@ function radarInspection(sol: number): Inspection {
           if (pings.includes(index)) return;
 
           pings.push(index);
+          playSfx('radar-ping');
           const distance = Math.abs(index - target);
           hint = distance === 0 ? 'Hot. That is the one.' : distance <= 2 ? 'Warm. Closer.' : 'Cold. Further away.';
           button.textContent = distance === 0 ? '★' : distance <= 2 ? '▲' : '·';
           button.dataset.pinged = 'true';
+          playSfx(distance === 0 ? 'radar-hot' : distance <= 2 ? 'radar-warm' : 'radar-cold');
         });
 
         return button;
@@ -260,6 +285,7 @@ function sortInspection(): Inspection {
           if (at >= 0) chosen.splice(at, 1);
           else chosen.push(item.id);
 
+          playSfx('sort-toggle');
           paint();
         });
 
@@ -301,6 +327,7 @@ function matchInspection(): Inspection {
         select.value = answers[pair.left] ?? '';
         select.addEventListener('change', () => {
           answers[pair.left] = select.value;
+          playSfx('match-select');
         });
 
         return h('div', { class: 'insp__pair' }, h('span', { class: 'insp__pair-left', text: pair.left }), select);
@@ -334,7 +361,15 @@ function packInspection(sol: number): Inspection {
           const at = chosen.indexOf(item.id);
 
           if (at >= 0) chosen.splice(at, 1);
-          else chosen.push(item.id);
+          else {
+            const mass = chosen.reduce((sum, id) => sum + (items.find((it) => it.id === id)?.mass ?? 0), 0);
+            if (mass + item.mass > budget) {
+              playSfx('pack-overweight');
+              return;
+            }
+            chosen.push(item.id);
+            playSfx('pack-add');
+          }
 
           paint();
         });

@@ -31,6 +31,22 @@ import { ROUTE_ORDER, type Route } from './routes';
  */
 const STORAGE_KEY = 'mars-horizon.save.v1';
 
+/**
+ * Where the sound setting is written.
+ *
+ * Separate from the run on purpose: a teacher who turns the game down for a
+ * classroom should not have to do it again because the next child pressed
+ * START OVER, and a run that is cleared or finished must leave the speaker the
+ * way the player set it. Same shape as the training record's key in
+ * `ui/training.ts`.
+ */
+const AUDIO_KEY = 'mars-horizon.audio.v1';
+
+/** The saved sound setting. */
+export interface AudioSettings {
+  readonly muted: boolean;
+}
+
 /** A run, and the screen the player left it on. */
 export interface SavedGame {
   readonly run: RunState;
@@ -150,4 +166,34 @@ export function resumeScreen(save: SavedGame): Route {
   if (save.run.status !== 'active') return 'debrief';
 
   return hasReachedOutpost(save.run) ? 'act' : 'briefing';
+}
+
+/* -------------------------------------------------------------- sound -- */
+
+/** The saved sound setting, or a quiet default. */
+export function readAudioSettings(): AudioSettings {
+  try {
+    const raw = store()?.getItem(AUDIO_KEY);
+
+    if (raw === null || raw === undefined) return { muted: false };
+
+    const parsed = JSON.parse(raw) as unknown;
+
+    if (typeof parsed !== 'object' || parsed === null) return { muted: false };
+
+    const { muted } = parsed as { muted?: unknown };
+
+    return { muted: muted === true };
+  } catch {
+    return { muted: false };
+  }
+}
+
+/** Remember the sound setting. A full or blocked store fails silently. */
+export function writeAudioSettings(settings: AudioSettings): void {
+  try {
+    store()?.setItem(AUDIO_KEY, JSON.stringify(settings));
+  } catch {
+    /* Nothing to do: the sound still works for this visit. */
+  }
 }

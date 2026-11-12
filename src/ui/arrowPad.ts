@@ -64,7 +64,7 @@ export function mountArrowPad(root: HTMLElement): ArrowPad {
   for (const { key, glyph, place } of KEYS) {
     const button = h(
       'button',
-      { class: `pad__btn pad__btn--${place}`, type: 'button', 'aria-label': key },
+      { class: `pad__btn pad__btn--${place}`, type: 'button', 'aria-label': key, 'data-sfx-hover': 'off' },
       glyph,
     );
 

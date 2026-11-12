@@ -29,9 +29,11 @@ import { oneWayMinutes, roundTripMinutes } from '../../sim/comms';
 import { answerRoverFind, hasReachedOutpost, recordInspection, withState, type RunState } from '../../sim/run';
 import { makeInspection, type Inspection } from '../../ui/activityPlayer';
 import { guideButton, guidePanel } from '../../ui/guide';
+import { playSfx } from '../../ui/sfx';
 import { ENGINE_NAME, engineUnlocked, type EngineKind } from '../../sim/minigames';
 import { visibleForecast } from '../../sim/forecast';
 import { siteScore } from '../../sim/regions';
+import { scienceSummary as scienceSummaryNow } from './model';
 import { advanceSol, decide, powerPicture, WIN_SOL } from '../../sim/sol';
 import { gamePanel, gameScreen, gameSection, gameWorld, keepScroll, moduleArt, moduleFigures, type HudStat, type SignalCard } from '../../ui/gameLoop';
 import { dayModel } from '../../ui/dayTracker';
@@ -206,6 +208,103 @@ export function mountAct(
     }
   }
 
+  /** The last state we reacted to, so sounds follow transitions and not redraws. */
+  let seenRank = run === null ? '' : scienceSummaryNow(run).rank.id;
+  let seenCrisisId: string | null = null;
+  let seenBoardCount = run === null ? 0 : boardRows(run).length;
+  let seenNoteSol = -1;
+  const seenLowStores = new Set<string>();
+  const seenCriticalStores = new Set<string>();
+  let seenBlackout = false;
+  let countdownStartedFor: string | null = null;
+  let lastTickSecond = -1;
+
+  function crisisSfxFor(id: string): 'crisis-flare' | 'crisis-storm' | 'crisis-supply' {
+    if (id.includes('flare')) return 'crisis-flare';
+    if (id.includes('storm')) return 'crisis-storm';
+    return 'crisis-supply';
+  }
+
+  function syncTransitionSfx(next: RunState, previous: RunState | null): void {
+    const crisis = pendingCrisis(next);
+    if (crisis === null) {
+      seenCrisisId = null;
+      countdownStartedFor = null;
+      lastTickSecond = -1;
+    } else if (crisis.id !== seenCrisisId) {
+      seenCrisisId = crisis.id;
+      playSfx(crisisSfxFor(crisis.id));
+    }
+
+    const note = deskNote(next.sol + 1);
+    if (note !== null && next.sol !== seenNoteSol) {
+      seenNoteSol = next.sol;
+      if (previous !== null) playSfx('note-arrive');
+    }
+
+    const boardCount = boardRows(next).length;
+    if (boardCount > seenBoardCount) {
+      if (previous !== null && seenBoardCount > 0) playSfx('standing-order-new');
+      seenBoardCount = boardCount;
+    } else {
+      seenBoardCount = boardCount;
+    }
+
+    const unlocked = trainingUnlocked(next);
+    if (unlocked && !seenTrainingUnlocked && previous !== null) playSfx('training-unlock');
+    seenTrainingUnlocked = unlocked;
+
+    if (previous !== null) {
+      if (next.sol > previous.sol) playSfx('sol-advance');
+      if (next.science > previous.science) playSfx('science-up');
+      const rank = scienceSummaryNow(next).rank.id;
+      if (rank !== seenRank) {
+        if (seenRank !== '') playSfx('rank-up');
+        seenRank = rank;
+      }
+
+      if (previous.rover.phase !== 'exploring' && next.rover.phase === 'exploring') playSfx('rover-deploy');
+      if (previous.rover.phase === 'exploring' && next.rover.phase !== 'exploring') playSfx('rover-return');
+    } else {
+      seenRank = scienceSummaryNow(next).rank.id;
+    }
+
+    for (const meter of meterRows(next)) {
+      if (meter.name === 'power') continue;
+      if (meter.tone === 'critical') {
+        if (!seenCriticalStores.has(meter.name)) {
+          seenCriticalStores.add(meter.name);
+          if (previous !== null) playSfx('store-critical');
+        }
+        seenLowStores.add(meter.name);
+      } else if (meter.tone === 'low') {
+        seenCriticalStores.delete(meter.name);
+        if (!seenLowStores.has(meter.name)) {
+          seenLowStores.add(meter.name);
+          if (previous !== null) playSfx('store-low');
+        }
+      } else {
+        seenLowStores.delete(meter.name);
+        seenCriticalStores.delete(meter.name);
+      }
+    }
+
+    const blackout = powerToday(next).reserve < 0 || (powerToday(next).spendable <= 0 && powerToday(next).generated === 0);
+    if (blackout !== seenBlackout) {
+      if (blackout) {
+        if (previous !== null) playSfx('power-blackout');
+      } else if (previous !== null) {
+        playSfx('power-restore');
+      }
+      seenBlackout = blackout;
+    }
+
+    // State snapshot for one-shot transitions is handled by lastSeenState/seen* flags above.
+  }
+
+  let lastSeenState: RunState | null = run;
+  let seenTrainingUnlocked = run === null ? false : trainingUnlocked(run);
+
   function stopTimer(): void {
     if (timer !== null) window.clearInterval(timer);
     timer = null;
@@ -217,6 +316,10 @@ export function mountAct(
     /* The day is being committed, so whatever was open is about to be about
        the wrong sol. */
     openSheet = null;
+    openTool?.tool.destroy?.();
+    openTool = null;
+    toolScroll = 0;
+    sheetScroll = 0;
     /* A new sol is a new day of training: the record for it is put back on
        the run, so the two games are available again and the points of the
        day before are left alone. */
@@ -259,6 +362,8 @@ export function mountAct(
     if (run === null) return;
 
     stopTimer();
+    if (timedOut) playSfx('countdown-expire');
+    else playSfx('shelter-confirm');
     run = decide(run, crisis.id, optionId, timedOut);
     setRun(run);
     step();
@@ -272,13 +377,25 @@ export function mountAct(
     const total = crisis.countdownSeconds;
     const began = performance.now();
 
+    if (countdownStartedFor !== crisis.id) {
+      countdownStartedFor = crisis.id;
+      lastTickSecond = -1;
+      playSfx('countdown-start');
+    }
+
     timer = window.setInterval(() => {
       if (clockNodes === null || run === null) return;
 
       const elapsed = performance.now() - began;
+      const left = secondsLeft(total, elapsed);
 
       clockNodes.bar.style.width = `${Math.max(0, 100 - (elapsed / (total * 1000)) * 100)}%`;
-      clockNodes.text.textContent = `${secondsLeft(total, elapsed)} seconds left. If the clock runs out, nothing is done.`;
+      clockNodes.text.textContent = `${left} seconds left. If the clock runs out, nothing is done.`;
+
+      if (left !== lastTickSecond) {
+        lastTickSecond = left;
+        if (left > 0 && left <= total) playSfx('countdown-tick');
+      }
 
       if (elapsed >= total * 1000) choose(crisis, fallbackOption(run, crisis).id, true);
     }, 100);
@@ -308,6 +425,7 @@ export function mountAct(
       trainingNotice = !trainingUnlocked(run)
         ? `Complete ${TRAINING_DAILY_LIMIT} training games to unlock today's colony tasks.`
         : "Choose today's activity before running the sol.";
+      playSfx('order-locked');
       render();
 
       return;
@@ -330,8 +448,10 @@ export function mountAct(
 
     if (row === undefined || !row.available) return;
 
+    const wasChosen = run.chosenActivity === id;
     run = withState(run, { chosenActivity: id });
     setRun(run);
+    if (!wasChosen) playSfx('order-stamp');
     render();
   }
 
@@ -386,6 +506,7 @@ export function mountAct(
        that does not open. */
     if (section === 'tasks' && run !== null && !trainingUnlocked(run)) {
       trainingNotice = `Complete ${TRAINING_DAILY_LIMIT} training games to unlock today's colony tasks.`;
+      playSfx('order-locked');
       render();
 
       return;
@@ -394,6 +515,7 @@ export function mountAct(
     openSheet = section;
     guideOpen = false;
     focusSheet = true;
+    playSfx('desk-tile-open');
     render();
   }
 
@@ -414,6 +536,7 @@ export function mountAct(
     /* A mini game belongs to the section it was opened from. Closing that
        section closes the tool with it, or it would still be there next time
        the player opened the section (ISS-093). */
+    openTool?.tool.destroy?.();
     openTool = null;
     toolScroll = 0;
     render();
@@ -428,6 +551,7 @@ export function mountAct(
   function closeTool(): void {
     const worked = openTool?.activityId ?? null;
 
+    openTool?.tool.destroy?.();
     openTool = null;
     toolScroll = 0;
     focusToolButton = worked;
@@ -622,8 +746,10 @@ export function mountAct(
              used to switch the player to the desk sheet and hang the tool off
              the desk, which merged two unrelated things and left the tool
              there after it was closed. */
+          openTool?.tool.destroy?.();
           openTool = { activityId: row.id, tool: makeInspection(row.engine as EngineKind, state.sol + 1) };
           focusSheet = true;
+          playSfx('tool-start');
           render();
         });
 
@@ -701,6 +827,9 @@ export function mountAct(
 
         run = recordInspection(run, state.sol + 1, activityId, grade.stars);
         setRun(run);
+        playSfx('tool-finish');
+        if (grade.stars <= 0) playSfx('stars-zero');
+        else playSfx(`star-${grade.stars}` as 'star-1' | 'star-2' | 'star-3');
         render();
 
         return;
@@ -795,6 +924,10 @@ export function mountAct(
               const answered = answerRoverFind(run, answer.id);
 
               if (answered === run) return;
+
+              if (answer.id === 'log') playSfx('find-site-log');
+              else if (answer.id === 'collect') playSfx('find-rock-collect');
+              else if (answer.id === 'leave') playSfx('find-rock-leave');
 
               run = answered;
               setRun(run);
@@ -1256,6 +1389,7 @@ export function mountAct(
         /* The orders are behind the training, and the tile says why rather
            than opening a sheet the player cannot use. */
         trainingNotice = `Complete ${TRAINING_DAILY_LIMIT} training games to unlock today's colony tasks.`;
+        playSfx('order-locked');
         render();
 
         return;
@@ -1473,18 +1607,20 @@ export function mountAct(
       earthBox.hidden = false;
 
       if (!inTime) {
+        playSfx('earth-too-late');
         earthBox.textContent = `Earth is ${oneWayMinutes(sol)} minutes away each way. A reply would take ${roundTripMinutes(sol)} minutes, and this problem arrives in ${crisis.windowMinutes}. You are on your own: the crew has to decide.`;
 
         return;
       }
 
+      playSfx('earth-reply');
       const advice = earthAdvice(state, crisis);
       const label = optionOf(crisis, advice.optionId)?.label ?? advice.optionId;
 
       earthBox.textContent = `Mission Control, ${roundTripMinutes(sol)} minutes later: ${advice.text} (They suggest: ${label}.)`;
     });
 
-    const calm = h('button', { class: 'gl__calm', type: 'button', 'aria-pressed': String(calmMode) });
+    const calm = h('button', { class: 'gl__calm', type: 'button', 'aria-pressed': String(calmMode), 'data-sfx-hover': 'off' });
 
     calm.textContent = 'Take your time · no countdown';
     calm.addEventListener('click', () => {
@@ -1558,6 +1694,8 @@ export function mountAct(
       return;
     }
 
+    syncTransitionSfx(run, lastSeenState);
+    lastSeenState = run;
     const state = run;
     const crisis = pendingCrisis(state);
     const last = state.log[state.log.length - 1];
@@ -1629,6 +1767,7 @@ export function mountAct(
         /* The guide is over everything, so the mini game goes with it: a tool
            that is still open behind the guide would be waiting when it closed
            (ISS-093). */
+        openTool?.tool.destroy?.();
         openTool = null;
         toolScroll = 0;
         render();
@@ -1761,6 +1900,8 @@ export function mountAct(
     disposed = true;
     controller.abort();
     stopTimer();
+    openTool?.tool.destroy?.();
+    openTool = null;
 
     if (advanceTimer !== null) {
       window.clearTimeout(advanceTimer);
