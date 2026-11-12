@@ -16,10 +16,16 @@
  */
 
 import { spawn } from 'node:child_process';
+import { rmSync } from 'node:fs';
 import { setTimeout as sleep } from 'node:timers/promises';
+
+import { doTheTraining } from './training-driver.mjs';
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:4173';
 const CHROME = process.env.CHROME_PATH ?? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+
+/* A clean profile, so the check always starts from a clean day. */
+rmSync(process.env.TEMP + '\\build-chrome-profile', { recursive: true, force: true });
 
 const chrome = spawn(CHROME, [
   '--headless=new',
@@ -242,6 +248,17 @@ try {
   await send('Runtime.enable');
   await send('Page.enable');
   await send('Page.navigate', { url: `${BASE}/#naming` });
+  await waitFor(`!!document.getElementById('naming') && !document.getElementById('naming').hidden`);
+
+  /* The training record is written down, so it survives a refresh - which means
+     it also survives the last run of this check, in the same browser profile.
+     The check starts from a clean day, or the work orders would already be
+     open and there would be nothing to lock. The page is reloaded as well:
+     Chrome restores the last session in a profile it has used before, and the
+     restored page still holds the run of that session in memory, which the
+     storage cannot reach. */
+  await evaluate(`(() => { try { localStorage.removeItem('marsHorizon.training.v1'); } catch (e) { /* no storage */ } })()`);
+  await send('Page.reload', {});
   await waitFor(`!!document.getElementById('naming') && !document.getElementById('naming').hidden`);
 
   // 1. Name the astronaut and get to the outpost.
@@ -521,7 +538,38 @@ try {
   note('the sol count is the panel kicker', (hub?.kicker ?? '').startsWith('Sol '), hub?.kicker ?? '');
   note('and the science points are in its corner', /\d+\s*points/.test(hub?.points ?? ''), hub?.points ?? '');
 
-  // 9. The work orders, behind their button.
+  // 9. The crew trains first: today's work orders are locked until two
+  //    training games are done (D-075), so the check has to train before it
+  //    can stamp an order - and the lock is part of what it is checking.
+  const lockedBefore = await evaluate(`(() => {
+    const tile = document.querySelector('#act .act-tile[data-tile="tasks"]');
+    return { locked: tile?.dataset.locked ?? '', status: tile?.querySelector('.act-tile__status')?.textContent ?? '' };
+  })()`);
+
+  note('the work orders are locked until the crew has trained', lockedBefore?.locked === 'true', lockedBefore?.status);
+
+  const lockedSheet = await openTile('tasks');
+
+  note('and the locked tile does not open the orders', lockedSheet === false);
+
+  const training = await doTheTraining(evaluate, sleep, async (name) => {
+    await evaluate(`(() => { const b = document.querySelector('#act .act-tile[data-tile="orders"]'); if (b) b.click(); })()`);
+    await sleep(500);
+    await evaluate(`(() => { const b = [...document.querySelectorAll('#act .trn__card')].find((c) => c.querySelector('.trn__card-name')?.textContent === ${JSON.stringify(name)}); if (b) b.querySelector('.trn__play').click(); })()`);
+    await sleep(700);
+
+    return evaluate(`!!document.querySelector('#act .trn__backdrop')`);
+  });
+
+  note('two training games are played', training?.cargo === true && training?.asteroid === true, `${training?.cargo}, ${training?.asteroid}`);
+
+  const lockedAfter = await evaluate(`(() => {
+    const tile = document.querySelector('#act .act-tile[data-tile="tasks"]');
+    return { locked: tile?.dataset.locked ?? '', status: tile?.querySelector('.act-tile__status')?.textContent ?? '' };
+  })()`);
+
+  note('and the work orders open once they are done', lockedAfter?.locked === 'false', lockedAfter?.status);
+
   const tasksOpen = await openTile('tasks');
   const desk = await evaluate(`(() => ({
     orders: document.querySelectorAll('#act .act-order').length,
@@ -631,7 +679,7 @@ try {
   //      the meter's percentage agrees. The old card was a constant 200 kWh.
   const powerCard = await evaluate(`(() => {
     const stat = [...document.querySelectorAll('#act .gl__stat')]
-      .find((s) => s.querySelector('.gl__stat-label')?.textContent === 'Power stored');
+      .find((s) => (s.querySelector('.gl__stat-label')?.textContent ?? '').startsWith('Power'));
     return {
       label: stat?.querySelector('.gl__stat-label')?.textContent ?? '',
       value: stat?.querySelector('.gl__stat-value')?.textContent ?? '',
@@ -639,8 +687,20 @@ try {
     };
   })()`);
 
-  note('the act power card reads stored kWh against capacity', /^\d+ \/ 100 kWh$/.test(powerCard?.value ?? ''), `${powerCard?.label || 'no card'} = ${powerCard?.value || 'nothing'}`);
-  note('and the bar follows the store, so a bare outpost reads empty', powerCard?.meter === '0', `meter ${powerCard?.meter ?? '?'}`);
+  note('the act power card reads the stored kWh', /^\d+ kWh$/.test(powerCard?.value ?? ''), `${powerCard?.label || 'no card'} = ${powerCard?.value || 'nothing'}`);
+  /* The bar and the number have to agree with each other, whatever the
+     balance is: the card says how much is stored, and the bar says how much
+     of the capacity that is. (It used to say a bare outpost reads empty,
+     which stopped being true when the lander's battery was sized to carry a
+     night - ISS-083.) */
+  const stored = Number((powerCard?.value ?? '').replace(/[^\d]/g, ''));
+  const capacity = Number((powerCard?.label.match(/(\d+) kWh max/)?.[1] ?? '0'));
+
+  note(
+    'and the bar agrees with the number on the card',
+    capacity > 0 && powerCard?.meter === String(Math.round((stored / capacity) * 100)),
+    `${stored} of ${capacity} kWh = ${powerCard?.meter ?? '?'}%`,
+  );
 
   /* The forecast's timetable is rolled per page load (D-048), so a crisis
      lands on the next sol some of the time and the hub is not there. The

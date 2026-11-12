@@ -654,6 +654,17 @@
   background: var(--gl-peach);
 }
 
+/* A section that cannot be opened yet. The tile is dimmed and wears a
+   padlock, and it still takes the click so the player can be told why. */
+.act-tile[data-locked='true'] {
+  opacity: 0.62;
+  filter: grayscale(0.5);
+}
+
+.act-tile[data-locked='true'] .act-tile__icon {
+  color: var(--gl-muted);
+}
+
 .act-tile__icon {
   display: grid;
   place-items: center;

@@ -11,6 +11,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
+| ISS-089 | The memory game compared the wrong two cards, so a matching pair was never a pair | high | agent | fixed | this branch |
 | ISS-088 | The sol record kept only the net change per store, so the review could not say what a day made or used | medium | agent | fixed | this branch |
 | ISS-087 | The act screen's power card put the battery capacity first ("0 / 200 kWh"), so the number read as a constant | medium | agent | fixed | this branch |
 | ISS-086 | A redraw reset the scroll of the whole screen on narrow windows and zoomed browsers, because only the panel's scroll was kept | high | agent | fixed | this branch |
@@ -96,6 +97,33 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | ISS-012 | No CI; nothing runs checks on push | low | agent | fixed | adc5767 |
 | ISS-013 | Vitest runs node-env, no jsdom, so DOM is untestable | low | unassigned | open | — |
 | ISS-014 | `base.css` calls the page non-interactive while draggable | low | agent | fixed | this branch |
+
+---
+
+## ISS-089 - The memory game compared the wrong two cards, so a matching pair was never a pair
+
+- **Reported by:** the owner, 2026-11-12, playing the training on the local host. The
+  screenshot showed two **identical** cards turned over and the score still reading
+  `Pairs: 0/6`.
+- **Where:** `src/sim/trainingMemory.ts` (the deal) and `src/ui/trainingMemory.ts` (the
+  comparison).
+- **Problem:** the cards were numbered **before** the deck was shuffled, so a card's
+  number was not the place it sat in the deck. The screen turned a card over by its
+  number and then compared `deck[number]` — which was a **different card entirely** — so
+  the game asked "are these two cards the same?" about two cards the player had never
+  touched. Two identical cards were almost never seen as a pair, and a pair that was
+  not a pair was sometimes taken off the table instead.
+- **Why nothing caught it:** the browser check only asked whether *a* pair came off the
+  table, and with the wrong comparison a pair came off the table roughly one time in
+  six — so the check passed, and the game was broken. The unit tests checked that the
+  numbers were **unique**; nothing checked that a number was its card's **place**.
+- **Fix:** the deck is shuffled first and the numbers are handed out afterwards, so a
+  card's number is the place it sits in the deck. The rule itself moved into
+  `sim/trainingMemory.ts` as `memoryMatch(deck, first, second)`, where a test can hold
+  it: the deck pairs up into exactly its six real pairs, and no card is in two of them.
+  The browser check now reads the face of both cards of the pair the game takes away
+  and asserts they are **the same face** — the check that would have failed.
+- **Status:** fixed.
 
 ---
 
@@ -1532,7 +1560,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-**Next free id: ISS-077.**
+**Next free id: ISS-089.**
 
 
 ---

@@ -15,6 +15,7 @@ import { noteForSol } from '../../sim/deskNotes';
 import type { FindAnswer, FindKind } from '../../sim/rover';
 import type { EngineKind } from '../../sim/minigames';
 import { ordersThrough, type StandingOrder } from '../../sim/standingOrders';
+import { TRAINING_DAILY_LIMIT, trainingUnlocked } from '../../sim/training';
 import { RESOURCE_NAMES, percentOf, type ResourceName, type ResourceStores } from '../../sim/resources';
 import type { RunState, SolRecord } from '../../sim/run';
 import { NIGHT_HOURS, SUN_HOURS, systemsFor } from '../../sim/modules';
@@ -620,6 +621,13 @@ export interface HubTile {
    * hide — what the last sol did — is printed on the button itself.
    */
   readonly chips: readonly ChangeRow[];
+  /**
+   * True when the section cannot be opened yet.
+   *
+   * Today's tasks are locked until the crew has done two training games, so
+   * the tile says so rather than opening a sheet the player cannot use.
+   */
+  readonly locked?: boolean;
 }
 
 /**
@@ -655,18 +663,23 @@ export function hubTiles(run: RunState, context: HubContext): readonly HubTile[]
 
   const orders = activityRows(run, sol);
   const chosen = orders.find((row) => row.chosen);
+  /* Today's work orders are behind the training: two games a sol, and the
+     orders open once they are done. */
+  const ready = trainingUnlocked(run);
 
   tiles.push({
     id: 'tasks',
     label: "Today's tasks",
-    status:
-      orders.length === 0
+    status: ready
+      ? orders.length === 0
         ? 'Nothing to decide today'
         : chosen === undefined
           ? `${plural(orders.length, 'order')} · choose one`
-          : `${plural(orders.length, 'order')} · one stamped`,
-    attention: orders.length > 0 && chosen === undefined,
+          : `${plural(orders.length, 'order')} · one stamped`
+      : `Locked · ${TRAINING_DAILY_LIMIT} training games first`,
+    attention: ready && orders.length > 0 && chosen === undefined,
     chips: [],
+    locked: !ready,
   });
 
   const note = deskNote(sol);

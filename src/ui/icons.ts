@@ -39,6 +39,7 @@ export type IconName =
   | 'home'
   | 'leaf'
   | 'letter'
+  | 'lock'
   | 'map'
   | 'moon'
   | 'mountain'
@@ -124,6 +125,8 @@ export const ICON_PATHS: Readonly<Record<IconName, readonly Shape[]>> = {
     { d: 'M3 6.5h18v11H3Z' },
     { d: 'm3 7 9 6.5L21 7' },
   ],
+  /* A padlock: the shape a thing that cannot be opened yet wears. */
+  lock: [{ d: 'M5.5 10.5h13v9h-13Z' }, { d: 'M8.5 10.5v-3a3.5 3.5 0 0 1 7 0v3' }],
   map: [
     { d: 'M9 3 3 5.5v15L9 18l6 3 6-2.5v-15L15 6Z' },
     { d: 'M9 3v15' },

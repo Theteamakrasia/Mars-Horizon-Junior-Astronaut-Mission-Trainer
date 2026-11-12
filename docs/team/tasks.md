@@ -7,6 +7,7 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 
 | id | task | goal | owner | status | blocked by | notes |
 | --- | --- | --- | --- | --- | --- | --- |
+| TASK-097 | Six astronaut training mini-games in the Standing orders, with a two-a-sol rule that locks today's tasks until they are done | G-7 | agent | done | - | D-075. `sim/training.ts` plus six pure game modules, `ui/training.ts` plus six drawing modules; the points are science points scaled to 2/3/4; the day's record is written to localStorage so a refresh cannot farm it; 113 new tests and `tools/browser-check-training.mjs` (37 checks) |
 | TASK-096 | Fix five play-test bugs: the build card's count, the power card, the water goal's words, the panel's scroll jump and the unexplained zero | G-7 | agent | done | - | ISS-077–ISS-082, D-073, D-074. `siteAllows`; `BuildCard.total/maxCount/fromLander`; `TodayPower.stored` and `lastPowerLine`; scroll and focus restored on `base` and `act`; no balance change; 810 tests |
 | TASK-095 | Give the launch reel a skip, so a player can cut the films and get on with the mission | G-7 | agent | done | - | D-072; the button appears 2.6s in, halfway through the departure, and opens the parts tour; the reel stops properly and the tour takes the focus |
 | TASK-094 | Make the "Real data" section the whole NASA layer, and stop the sheet squashing what is inside it | G-5 | agent | done | - | D-071, ISS-075, ISS-076. The region's own photo, NASA's live flare readings and two facts; `strongestFlares`; 795 tests |

@@ -150,6 +150,11 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   ├── browser-check-journey.mjs      complete   Node only. Drives the whole journey from the
     │   │                                             naming screen to the outpost and asserts that no
     │   │                                             console error appears on the way.
+    │   ├── browser-check-training.mjs  complete  Node only. Drives the real game in headless Chrome: the
+    │   │                                         training section on the standing orders, all six games opening
+    │   │                                         and drawing themselves, two games won for points, the day's
+    │   │                                         two-game limit refusing a third, and the record surviving a
+    │   │                                         refresh. 37 checks.
     │   └── browser-check-rover.mjs         complete   ~230 lines. Node only. Drives the real game in
 │                                                 headless Chrome over the DevTools Protocol: names the
 │                                                 astronaut, walks to the outpost, deploys the rover
@@ -158,7 +163,7 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
 │                                                 not a test - `npm test` stays free of a browser.
 │                                                 Needs `npm run build && npm run preview`.
 │
-│   All eight are dev tools: not scanned by `npm run check`, and they add no runtime dependency.
+│   All ten are dev tools: not scanned by `npm run check`, and they add no runtime dependency.
 │
 ├── scripts/
 │   └── check-imports.mjs               complete   Zone + banned-API checker, 9 rule ids.
@@ -304,6 +309,47 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   ├── standingOrders.test.ts      complete   7 tests
     │   ├── minigames.test.ts           complete   25 tests, including the rule that every sol has
     │   │                                         an order the player can work
+    │   ├── training.ts                 complete  TrainingGameId, TrainingPerformance, TRAINING_GAMES,
+    │   │                                         TRAINING_DAILY_LIMIT, TRAINING_REWARDS, TrainingState,
+    │   │                                         TrainingCompletion, TrainingDay, TrainingGameRow,
+    │   │                                         TrainingStart, TrainingOutcome, emptyTraining, trainingSol,
+    │   │                                         trainingDay, trainingUnlocked, trainingTier, canStartTraining,
+    │   │                                         completeTraining, makeRandom, trainingSeed, TrainingRecord,
+    │   │                                         EMPTY_TRAINING_RECORD, trainingDayFor, withTrainingDay,
+    │   │                                         trainingDayRecord. The daily rule: two games a sol, each game
+    │   │                                         once a sol, and what a finished game is worth. The games are
+    │   │                                         handed a generator instead of Math.random, so a sol always
+    │   │                                         deals the same cards (D-075). 27 tests.
+    │   ├── trainingMerge.ts            complete  MERGE_SIZE, MERGE_TARGET, MERGE_LEVEL_NAMES, slideMergeLine,
+    │   │                                         moveMerge, spawnMerge, canMerge, mergeBest, mergePerformance.
+    │   │                                         The merge board: sixteen crates, and two of a kind make one of
+    │   │                                         the next kind. 23 tests.
+    │   ├── trainingMemory.ts           complete  MEMORY_FACES, MEMORY_PAIRS, dealMemoryDeck, memoryPerformance.
+    │   │                                         The deck of twelve cards, six pairs. 9 tests.
+    │   ├── trainingRover.ts            complete  ROVER_SIZE, ROVER_MAPS, ROVER_EXTRA_MOVES, ROVER_STEPS,
+    │   │                                         roverCell, roverOpen, roverRoute, roverMovesAllowed,
+    │   │                                         roverPerformance. The ground the rover crosses, and the
+    │   │                                         shortest route over it. 20 tests.
+    │   ├── trainingSolar.ts            complete  SOLAR_SIZE, SolarTile, SolarPuzzle, solarOpens,
+    │   │                                         rotateSolarTile, solarFlow, solarTapsNeeded,
+    │   │                                         generateSolarPuzzle, SOLAR_EXTRA_TAPS, solarPerformance. The
+    │   │                                         power board, generated so it is always winnable and never
+    │   │                                         starts solved. 16 tests.
+    │   ├── trainingCargo.ts            complete  CARGO_BOXES, CARGO_ITEMS, CARGO_ROUND, dealCargoRound,
+    │   │                                         cargoPerformance. The supplies that land and the stores they
+    │   │                                         belong in. 9 tests.
+    │   ├── trainingAsteroid.ts         complete  ASTEROID_SECONDS, ASTEROID_GOAL, asteroidDelay, asteroidLife,
+    │   │                                         asteroidIsDecoy, asteroidAccuracy, asteroidPerformance. The
+    │   │                                         round outside the outpost. 13 tests.
+    │   ├── training.test.ts            complete  27 tests over the daily rule: two games a sol, one reward
+    │   │                                         each, the reset on a new sol, and a claim that is paid for
+    │   │                                         twice.
+    │   ├── trainingMerge.test.ts       complete  23 tests
+    │   ├── trainingMemory.test.ts      complete  9 tests
+    │   ├── trainingRover.test.ts       complete  20 tests
+    │   ├── trainingSolar.test.ts       complete  16 tests
+    │   ├── trainingCargo.test.ts       complete  9 tests
+    │   ├── trainingAsteroid.test.ts    complete  13 tests
     │   ├── guide.test.ts               complete   6 tests
     │   ├── patches.test.ts             complete   7 tests
     │   ├── deskNotes.test.ts           complete   8 tests
@@ -426,6 +472,33 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         scroll or its one-column collapse. The body
     │   │                                         scrolls, so its children are told not to
     │   │                                         shrink (ISS-076).
+    │   ├── training.ts                 complete  trainingSection(run, options) -> HTMLElement,
+    │   │                                         openTrainingGame(id, options) -> TrainingGameScreen | null,
+    │   │                                         readTrainingRecord, writeTrainingDay, applyTrainingRecord. The
+    │   │                                         ASTRONAUT TRAINING section at the top of the Standing orders
+    │   │                                         sheet, the dialog a game is played in, and the one thing the
+    │   │                                         browser is good at: the record of the day's training, which
+    │   │                                         survives a refresh (D-075).
+    │   ├── trainingGame.ts             complete  TrainingGameContext, TrainingGameHandle, TrainingGameMount.
+    │   │                                         The contract every training game keeps: a status line, a
+    │   │                                         completion callback, a generator, and a destroy that stops
+    │   │                                         every timer the game started.
+    │   ├── trainingMerge.ts            complete  mountMerge. The merge board on the screen: a swipe, the arrow
+    │   │                                         keys, and the keypad for a touch screen.
+    │   ├── trainingMemory.ts           complete  mountMemory. Twelve cards face down, and the clock beside the
+    │   │                                         tries.
+    │   ├── trainingRover.ts            complete  mountRover. The rover on the ground, driven by the keys or the
+    │   │                                         keypad. Bumping a rock costs no move.
+    │   ├── trainingSolar.ts            complete  mountSolar. The power board, with the power that reaches the
+    │   │                                         battery drawn in the sun's colour.
+    │   ├── trainingCargo.ts            complete  mountCargo. The crates and the stores. A crate can be dragged
+    │   │                                         in, or tapped and then tapped in, because a tablet and a
+    │   │                                         laptop are both being used to play this.
+    │   ├── trainingAsteroid.ts         complete  mountAsteroid. What drifts past the outpost, and what the
+    │   │                                         player cleared, missed and should have left alone.
+    │   ├── training.css                complete  the training section and the game dialog, in the game's own
+    │   │                                         colours: cream paper, navy ink, one orange. Imported by
+    │   │                                         training.ts only.
     │   ├── registry.ts                 complete   the one composition seam. Exports ScreenFactory,
     │   │                                         screenMount, resolveScreen, nextStop,
     │   │                                         allScreenMounts. Maps all nine built routes onto
@@ -808,6 +881,8 @@ point and no registry entry, and `main.ts` loads it with a dynamic import behind
 ```
 act → the hub: five buttons, or six once a sol has run     features/act/model.ts
     → today's tasks opens the three work orders for today    sim/activities.ts
+      (locked until the crew has done two training games     sim/training.ts
+       — the standing orders sheet holds the six games)
     → the player checks the two readings on each and may work one with a tool
       (the stars only multiply the science the order is worth)  sim/minigames.ts
     → advanceSol applies the cost and the gain, deploys the rover if the
@@ -998,6 +1073,22 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `engineUnlocked` | `(engine, sol) => boolean` |
 | | `gradeSequence`, `gradeRadar`, `gradeTiming`, `gradeSort`, `gradePack`, `gradeMatch` | how each tool is graded, and how many stars it won. The stars multiply the science an order is worth and never touch a store (D-063) |
 | `sim/guide` | `GuideWhere`, `GuideStep`, `GUIDE_STEPS`, `guideStep` | the how-to-play guide: ten steps, each saying where it happens and what to do about it. The words live here so they can be read and tested without a browser (D-060) |
+| `sim/training` | `TrainingGameId`, `TrainingPerformance`, `TRAINING_GAMES`, `TRAINING_DAILY_LIMIT`, `TRAINING_REWARDS` | the six training games and the daily rule: **two games a sol, each game once a sol, and today's work orders open once they are done**. The rule is enforced here rather than by hiding a button, so a player who finds a way past the button is not paid for it (D-075) |
+| | `TrainingState`, `TrainingCompletion`, `TrainingDay`, `TrainingGameRow` | what the crew has done in training today, and where each of the six games stands |
+| | `trainingDay`, `trainingUnlocked`, `trainingSol` | `(run) => TrainingDay`; today's training read off the run. A new sol starts a new day, and that is the daily reset — it is derived from the sol rather than from a timer, so it happens exactly once per sol (D-075) |
+| | `canStartTraining` | `(run, gameId) => TrainingStart`; may this game be played right now, and if not, the sentence the player reads. A game finished today can be played again for practice; finishing it pays nothing |
+| | `completeTraining` | `(run, gameId, performance) => TrainingOutcome`; records the game and pays for it. The points go onto the science score, the one balance the game already has, and a second claim for the same game is refused (D-075) |
+| | `makeRandom`, `trainingSeed` | the generator the games are handed instead of `Math.random`, so a sol always deals the same cards and a test can pin its input |
+| | `TrainingRecord`, `EMPTY_TRAINING_RECORD`, `trainingDayFor`, `withTrainingDay`, `trainingDayRecord` | the shape of the record as it is written down. Pure: the storage itself is in `ui/training.ts`, which is the only layer that is allowed to know a browser exists (D-075) |
+| `sim/trainingMerge` | `MERGE_SIZE`, `MERGE_TARGET`, `slideMergeLine`, `moveMerge`, `spawnMerge`, `canMerge`, `mergeBest`, `mergePerformance` | the merge board: sixteen crates, and two of a kind make one of the next kind. The colony pod is the top of the ladder (D-075) |
+| `sim/trainingMemory` | `MEMORY_FACES`, `dealMemoryDeck`, `memoryMatch`, `memoryPerformance` | the deck of twelve cards, six pairs, dealt from the generator, and the rule that says whether two cards match (D-075) |
+| `sim/trainingRover` | `ROVER_MAPS`, `roverRoute`, `roverMovesAllowed`, `roverPerformance` | the ground the rover crosses and the shortest route over it, found by a breadth-first search. The move budget is that route plus a few moves, so every map is winnable by construction (D-075) |
+| `sim/trainingSolar` | `generateSolarPuzzle`, `solarFlow`, `rotateSolarTile`, `solarTapsNeeded`, `solarPerformance` | the power board, generated rather than written down: a route is carved and every tile on it is turned away from its answer, so the game is always winnable and never starts solved (D-075) |
+| `sim/trainingCargo` | `CARGO_BOXES`, `CARGO_ITEMS`, `dealCargoRound`, `cargoPerformance` | the supplies that land and the stores they belong in. Every store gets at least one crate (D-075) |
+| `sim/trainingAsteroid` | `ASTEROID_GOAL`, `ASTEROID_SECONDS`, `asteroidDelay`, `asteroidLife`, `asteroidIsDecoy`, `asteroidAccuracy`, `asteroidPerformance` | the round outside the outpost: what drifts past, how fast, and what a friendly satellite costs the player (D-075) |
+| `ui/training` | `trainingSection`, `openTrainingGame`, `readTrainingRecord`, `writeTrainingDay`, `applyTrainingRecord` | the ASTRONAUT TRAINING section at the top of the Standing orders sheet, the dialog a game is played in, and the record of the day's training. The record is written to `localStorage` under one key, so a refresh does not hand the player the same two games again; everything else in the run is still in memory (D-075) |
+| | `applyTrainingRecord` | `(run) => RunState`; puts the written-down training back onto a run that has not trained yet today. A run that has already trained keeps what it did — the session is the truer record, and a browser that refused to write must not take points away (D-075) |
+| `ui/trainingGame` | `TrainingGameContext`, `TrainingGameHandle`, `TrainingGameMount` | the contract every training game keeps: a status line, a completion callback, a generator, and a `destroy` that stops every timer the game started (D-075) |
 | `sim/patches` | `Patch`, `patchesFor`, `PATCH_COUNT` | the ten badges a run earns, worked out from the run itself; the debrief prints the ones that were earned (D-060). No `icon`: `features/debrief/view.ts` maps a patch id to an `IconName` (D-070) |
 | `sim/deskNotes` | `NoteFrom`, `DeskNote`, `DESK_NOTES`, `noteForSol` | the notes from home and the crew that land on the desk; one per sol, and none twice |
 | `sim/comms` | `REAL_MIN_ONE_WAY_MINUTES`, `REAL_MAX_ONE_WAY_MINUTES` | the real 3-22 minute range, for the approximation note |
@@ -1053,11 +1144,11 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `gameScreen` | `(options: ScreenOptions) -> section`; `help` carries the guide's `?` icon button in the header (D-060, D-070), and `panel.corner` puts the panel head's one right-hand fact in place (the science points, on `act`). There is no mission bar: it was removed in D-070, so the panel's own kicker names the day. The rover button is gone: the rover is part of the run now, not a widget on the wall (D-062) |
 | | `moduleFigures`, `moduleArt`, `MODULE_ART`, `WORLD_BACKGROUND`, `ASTRONAUT_SPRITE` | artwork placement and the bundled asset URLs; the only import site for the figures base, act and debrief share |
 | `features/base/model` | `BUILDABLE`, `canPlace`, `addModule`, `removeModule`, `pointsLeft` | build rules over the `sim/modules.ts` catalogue (D-032). `canPlace` asks `siteAllows`, so the card and the goals panel cannot disagree about a site (ISS-079) |
-| | `buildCards`, `BuildCard` | the catalogue as cards. `have`/`limit` drive the minus button; `total`/`maxCount` are the number on the card and its maximum, and `fromLander` marks the free copy the lander brought (ISS-077, ISS-054) |
+| | `buildCards`, `BuildCard` | the catalogue as cards. `have`/`limit` drive the minus button; `total`/`maxCount` are the number on the card and its maximum, and `fromLander` marks the free copy the lander brought (ISS-089, ISS-054) |
 | | `goalPreview`, `GoalPreview` | whether the build holds each of the five goals, and a sentence naming the cause when it does not. The water sentence is computed from the build and the site, not a fixed string (ISS-079) |
 | | `RESTART_NOTE` | what the launch button says when the outpost has already landed and pressing it starts the run over (ISS-081) |
 | | `previewFor`, `previewSummary`, `upkeepFor`, `upcomingWarnings` | the calm-sol projection. `previewSummary` gives the five resource cards one number each, from the same projection as the sentences |
-| `features/base/view` | `mountBase` | `(root, run, setRun) -> teardown`; the outpost on Mars, the catalogue steppers, and Land & start sol 1 → `startOutpost` then `act`. Holds a mutable local `extras` so a second build is not applied to stale data; it also shows a rotating NASA fact beside the build panel from `factFor`. Each card says why its button is dead and draws the outpost's total against the catalogue maximum, marking the lander's copy (ISS-054, ISS-055, ISS-077), the HUD carries a Day power card that moves as the panels go in (ISS-056), and the guide opens here the first time the player arrives (D-060). A redraw records the panel's scroll offset and the focused control and restores both, and the toast removes its own node instead of redrawing (ISS-080). Once the outpost has landed the button reads "Land again from sol 1" and the note under it says the run resets (ISS-081) |
+| `features/base/view` | `mountBase` | `(root, run, setRun) -> teardown`; the outpost on Mars, the catalogue steppers, and Land & start sol 1 → `startOutpost` then `act`. Holds a mutable local `extras` so a second build is not applied to stale data; it also shows a rotating NASA fact beside the build panel from `factFor`. Each card says why its button is dead and draws the outpost's total against the catalogue maximum, marking the lander's copy (ISS-054, ISS-055, ISS-089), the HUD carries a Day power card that moves as the panels go in (ISS-056), and the guide opens here the first time the player arrives (D-060). A redraw records the panel's scroll offset and the focused control and restores both, and the toast removes its own node instead of redrawing (ISS-080). Once the outpost has landed the button reads "Land again from sol 1" and the note under it says the run resets (ISS-081) |
 | `features/supply/model` | `SUPPLY_BEATS`, `packsFor`, `judge`, `hintFor`, `workingSentence`, `approximateTotalKg` | the ration check over `sim/modules.ts`; the crew size is read from the sim, not typed in, so it agrees with the briefing (ISS-044) |
 | | `seedFrom`, `questionFor`, `choicesFor`, `promptFor`, `puzzleFor` | the question and its four options for one run. The mission length, the answer and the button order all vary, seeded from the astronaut name so a demo repeats and a test can pin it (D-057) |
 | `features/act/model` | `missionHeadline`, `meterRows`, `changeRows`, `toneFor`, `secondsLeft`, `powerSentence` | presentation helpers over `sim/sol`; `meterRows` carries `percent` and `tone` for the stats sheet |

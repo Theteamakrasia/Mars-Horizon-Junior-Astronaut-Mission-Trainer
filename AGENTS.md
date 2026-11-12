@@ -128,6 +128,8 @@ loop to leak when you navigate away.
 ```
 act → the hub: five buttons, six once a sol has run       features/act/model.ts
     → today's tasks opens the three work orders for today  sim/activities.ts
+      (locked until the crew has done two training games    sim/training.ts
+       — the six games live on the Standing orders sheet)
     → the player checks the two readings on each and may work one with a tool
       (the stars only multiply the science the order is worth)  sim/minigames.ts
     → advanceSol applies the cost and the gain, deploys the rover if the
@@ -249,6 +251,8 @@ opening its folder — that is the whole point of the layout.
 | **The five science goals and their live state** | `src/sim/goals.ts` — complete, 23 tests |
 | **The standing orders — the rule book the player works to** | `src/sim/standingOrders.ts` — complete, 7 tests |
 | **The six tools, and how they are graded** | `src/sim/minigames.ts` — complete, 23 tests |
+| **The six training games, and the two-a-sol rule that locks today's tasks** | `src/sim/training.ts` — complete, 27 tests; one pure module per game beside it (`trainingMerge`, `trainingMemory`, `trainingRover`, `trainingSolar`, `trainingCargo`, `trainingAsteroid`) |
+| **The training section, the game dialog, and the day's record** | `src/ui/training.ts` — built; the six games are drawn in `src/ui/training*.ts` and the contract is `src/ui/trainingGame.ts` |
 | **The how-to-play guide** | `src/sim/guide.ts` — complete, 6 tests |
 | **The patches a run earns** | `src/sim/patches.ts` — complete, 7 tests |
 | **The notes that land on the desk** | `src/sim/deskNotes.ts` — complete, 8 tests |
