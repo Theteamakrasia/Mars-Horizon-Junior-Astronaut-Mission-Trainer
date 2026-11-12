@@ -16,7 +16,11 @@
  * an asteroid.
  */
 import { spawn } from "node:child_process";
+import { rmSync } from "node:fs";
 import { setTimeout as sleep } from "node:timers/promises";
+
+/* A clean profile, so the check always starts from a clean day. */
+rmSync(process.env.TEMP + '\\training-chrome-profile', { recursive: true, force: true });
 
 const chrome = spawn("C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe", ["--headless=new", "--remote-debugging-port=9251", "--disable-gpu", "--no-first-run", "--no-default-browser-check", "--window-size=1600,1000", "--user-data-dir=" + process.env.TEMP + "\\training-chrome-profile", "about:blank"], { stdio: "ignore" });
 
@@ -75,12 +79,15 @@ async function toAct() {
   await sleep(500);
 
   /* The check starts from a clean record: the training is written down, and
-     the last run of this check would otherwise be waiting in the profile.
-     The refresh later in the check keeps what it has, so the record is only
-     cleared once. */
+     the last run of this check would otherwise be waiting in the profile. The
+     page is reloaded as well, because Chrome restores the last session in a
+     profile it has used before, and that restored page still holds the run of
+     the last session in its memory - which the storage cannot reach. */
   if (fresh) {
     fresh = false;
     await ev(`(() => { localStorage.clear(); })()`);
+    await send("Page.reload", {});
+    await sleep(1500);
   }
 
   await waitFor(`!!document.getElementById("naming") && !document.getElementById("naming").hidden`);
