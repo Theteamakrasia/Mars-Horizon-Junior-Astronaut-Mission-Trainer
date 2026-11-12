@@ -749,13 +749,27 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │   ├── model.test.ts            complete   23 literal-input tests
     │   │   ├── view.ts                  complete   mountBase(root, run, setRun) -> teardown.
     │   │   │                                     Rebuilt on the game-loop shell (D-038): the
-    │   │   │                                     outpost on Mars, the catalogue, five cards. Each
-    │   │   │                                     card says what it does and why the button is
-    │   │   │                                     dead, and counts the extras against the same
-    │   │   │                                     limit the game uses (ISS-054, ISS-055). The HUD
-    │   │   │                                     carries a Day power card that moves as the panels
-    │   │   │                                     go in (ISS-056). The guide opens here the first
+    │   │   │                                     outpost on Mars, the build panel, five cards.
+    │   │   │                                     The supply list is NOT here: it is in the
+    │   │   │                                     setup popup, and the panel opens that window
+    │   │   │                                     (D-081). Each card says what it does and
+    │   │   │                                     why the button is dead, and counts the extras
+    │   │   │                                     against the same limit the game uses
+    │   │   │                                     (ISS-054, ISS-055). The HUD carries a Day
+    │   │   │                                     power card that moves as the panels go in
+    │   │   │                                     (ISS-056). The guide opens here the first
     │   │   │                                     time the player arrives (D-060).
+    │   │   ├── setupPopup.ts            complete   createSetupPopup(options) -> SetupPopup,
+    │   │   │                                     siteGoals(goals, options). The landing window:
+    │   │   │                                     the site, the five goals, the supply depot and
+    │   │   │                                     the points. Mounted on document.body, so a
+    │   │   │                                     redraw behind it cannot reset the page
+    │   │   │                                     (ISS-090). One state: the build is the
+    │   │   │                                     caller's `extras`, and every rule comes from
+    │   │   │                                     ./model (D-081).
+    │   │   ├── setupPopup.css           complete   the window: backdrop, head, progress row,
+    │   │   │                                     the six numbers, the two columns, the footer.
+    │   │   │                                     Imported by setupPopup.ts only.
     │   │   └── base.css                 complete   the budget line and card reasons only
     │   ├── act/                        COMPLETE   TASK-030. Turn-based sol control (D-030).
     │   │   ├── README.md                           the contract
@@ -1195,7 +1209,8 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `goalPreview`, `GoalPreview` | whether the build holds each of the five goals, and a sentence naming the cause when it does not. The water sentence is computed from the build and the site, not a fixed string (ISS-079) |
 | | `RESTART_NOTE` | what the launch button says when the outpost has already landed and pressing it starts the run over (ISS-081) |
 | | `previewFor`, `previewSummary`, `upkeepFor`, `upcomingWarnings` | the calm-sol projection. `previewSummary` gives the five resource cards one number each, from the same projection as the sentences |
-| `features/base/view` | `mountBase` | `(root, run, setRun) -> teardown`; the outpost on Mars, the catalogue steppers, and Land & start sol 1 → `startOutpost` then `act`. Holds a mutable local `extras` so a second build is not applied to stale data; it also shows a rotating NASA fact beside the build panel from `factFor`. Each card says why its button is dead and draws the outpost's total against the catalogue maximum, marking the lander's copy (ISS-054, ISS-055, ISS-089), the HUD carries a Day power card that moves as the panels go in (ISS-056), and the guide opens here the first time the player arrives (D-060). A redraw records the panel's scroll offset and the focused control and restores both, and the toast removes its own node instead of redrawing (ISS-080). Once the outpost has landed the button reads "Land again from sol 1" and the note under it says the run resets (ISS-081) |
+| `features/base/view` | `mountBase` | `(root, run, setRun) -> teardown`; the outpost on Mars, the build panel, and Land & start sol 1 → `startOutpost` then `act`. Holds a mutable local `extras` so a second build is not applied to stale data; it also shows a rotating NASA fact beside the build panel from `factFor`. The HUD carries a Day power card that moves as the panels go in (ISS-056), and the guide opens here the first time the player arrives (D-060). A redraw records the panel's scroll offset and the focused control and restores both, and the toast removes its own node instead of redrawing (ISS-080). Once the outpost has landed the button reads "Land again from sol 1" and the note under it says the run resets (ISS-081). **The supply list is not here**: it is in the setup popup, and the panel's "Choose your extras" button opens that window, so the supplies are never on screen twice (D-081). The popup's button and the panel's button call the same `land()` |
+| `features/base/setupPopup` | `createSetupPopup`, `siteGoals` | `createSetupPopup(options) -> SetupPopup`: the landing window — the site, the five goals, the six supplies and the points. The returned `element` is the **backdrop**, so the caller mounts it on `document.body` and a redraw behind it cannot reset the page (ISS-090). It owns `Escape`, the backdrop click and a Tab trap. The build is the caller's: `onChange(extras, message)` hands the new build back, `onLaunch` lands the outpost and `onClose` closes the window, so there is one state and one set of rules (D-081). `update(extras)` redraws it. `siteGoals(goals, options)` draws the five goals as the game's own rows, with the panel's rows and the window's |
 | `features/supply/model` | `SUPPLY_BEATS`, `packsFor`, `judge`, `hintFor`, `workingSentence`, `approximateTotalKg` | the ration check over `sim/modules.ts`; the crew size is read from the sim, not typed in, so it agrees with the briefing (ISS-044) |
 | | `seedFrom`, `questionFor`, `choicesFor`, `promptFor`, `puzzleFor` | the question and its four options for one run. The mission length, the answer and the button order all vary, seeded from the astronaut name so a demo repeats and a test can pin it (D-057) |
 | `features/act/model` | `missionHeadline`, `meterRows`, `changeRows`, `toneFor`, `secondsLeft`, `powerSentence` | presentation helpers over `sim/sol`; `meterRows` carries `percent` and `tone` for the stats sheet |

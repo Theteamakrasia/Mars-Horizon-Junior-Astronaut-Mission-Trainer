@@ -6,6 +6,58 @@ Newest entry on top. Four bullets: **Did**, **Files**, **Problems**, **Next**.
 say so and say why - a clean change with an unexplained problem underneath is worse
 than a documented one.
 
+## 2026-11-12 — The supplies are bought in the landing window
+
+**Did**
+
+- **Built the landing window.** It opens by itself when the crew lands, over the build
+  screen, and it holds the whole decision: the site and its picture, the five site goals
+  with what is still missing, **all six supplies** with their art, cost, count and both
+  steppers, the points and the extras, and the six numbers of the outpost. The build
+  panel keeps the state of the build — the points bar, the goals, the NASA fact — and a
+  **"Choose your extras"** button that opens the window (D-081).
+- **Moved the supply list out of the panel, not a copy of it.** The cards in the window
+  are the game's own cards: the window carries the `gl--base` class, so the same rules
+  draw them. There is one list of modules, one `extras`, and the window calls the same
+  `addModule`, `removeModule` and `canPlace` the panel used to call.
+- **One way to land.** The window's "Land & start sol 1" and the panel's call the same
+  `land()`, so starting the twelve sols behaves exactly as it did.
+- **Changed no rule.** No price, no budget, no goal, no survival condition. The window's
+  footer says how many goals are ready and never says the run is locked, because the game
+  still lets a crew land with a goal unmet on purpose.
+
+**Files**
+
+- `src/features/base/setupPopup.ts` — the window, and `siteGoals()`, the five goal rows
+  the panel and the window share
+- `src/features/base/setupPopup.css` — the window, in the game's own tokens
+- `src/features/base/view.ts` — the card loop is gone; `land()`, `openSetup()`,
+  `closeSetup()` and the panel's button are new
+- `src/styles/game-loop.css` — one rung in the stacking ladder: 130, the window
+- `tools/browser-check-setup-popup.mjs` — 141 checks over the five landing regions
+- `tools/browser-check-build.mjs` — follows the cards into the window
+- `docs/team/{decisions,issues,tasks,progress-log}.md`, `docs/architecture.md`, `AGENTS.md`,
+  `src/features/base/README.md`
+
+**Problems**
+
+- **The reference image wanted a lock, and the game has no lock.** The mock showed
+  "12-SOL SURVIVAL IS LOCKED" and a dead button until all five goals were ready. The game
+  says the opposite on purpose — "You can land with nothing extra. It is allowed, and you
+  will see why it is hard." — so the lock was a new mechanic and was left out; the footer
+  reports the goal count instead and the button always works (D-081).
+- **A circle crop of the site's own picture showed nothing.** The landing site's
+  illustration is a wide one — sky above, landing pads below — so a round thumbnail of it
+  was an empty circle of sky. It is now the same 16:9 frame the map uses, which shows the
+  place the player chose.
+- **The build check pinned where the cards were, not what they did** (ISS-095). It now
+  reads them in the window, and it asserts the panel behind it has no cards at all.
+
+**Next**
+
+- The freeze is Nov 8. Nothing here is owed to another screen: the supplies are bought in
+  one place, and the five regions share the window.
+
 ## 2026-11-12 — The encyclopedia is earned at the outpost
 
 **Did**

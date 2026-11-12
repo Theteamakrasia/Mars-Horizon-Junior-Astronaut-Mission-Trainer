@@ -7,6 +7,7 @@ Status: `open` · `in progress` · `blocked` · `done` · `cut`
 
 | id | task | goal | owner | status | blocked by | notes |
 | --- | --- | --- | --- | --- | --- | --- |
+| TASK-104 | Move the supply list into the landing window, so the whole build decision is in one place | G-4 | agent | done | - | D-081, ISS-095. `features/base/setupPopup.ts` + `setupPopup.css`; the window opens by itself when the crew lands, holds the site, the goals, all six supplies and the points, and the panel keeps the build state and a button that opens it. One state, one set of rules, one `land()`. 141 browser checks over the five regions |
 | TASK-103 | Only offer the encyclopedia once the player has reached the outpost | G-4 | agent | done | - | D-080, ISS-094. `hasReachedOutpost(run)` in `sim/run.ts`; `showEncyclopedia` is off unless asked, and `base`, `act` and `debrief` ask. The browser check asserts the map has no book and the build screen has one |
 | TASK-102 | Let the landing-site NASA dialog be dismissed, and stop the map leaving bands above and below it | G-4 | agent | done | - | ISS-091, ISS-092. One modal for both states, with the ✕ and the backdrop wired before the branch; the stage fills its cell and the picture crops |
 | TASK-101 | Give the mini game its own sheet, so it never merges with the desk | G-4 | agent | done | - | D-079, ISS-093. The tool opens over the orders; the desk sheet holds no tool; the tool cannot outlive its section. 50 browser checks |

@@ -276,6 +276,7 @@ opening its folder — that is the whole point of the layout.
 | The rotating Mars-behind-astronaut stage | `src/features/naming/naming.css` |
 | **Choosing where to land on Mars** | `src/features/landing-site/` — **built** (TASK-028 done) |
 | **Building the outpost between sols** | `src/features/base/` — **built**, 23 tests |
+| **The landing window, where the supplies are bought** | `src/features/base/setupPopup.ts` — built; the popup over the build screen, mounted on `document.body` (D-081). The CSS in `src/features/base/setupPopup.css` |
 | **Advancing a sol, and picking the day's activity** | `src/features/act/` — **built**, 38 tests |
 | **The desk as a hub of buttons, and what each one says** | `src/features/act/model.ts` — `hubTiles`; pure words, no icons (D-070) |
 | **The NASA layer on the act screen** (pictures, live space weather, facts) | `src/features/act/view.ts` — the "Real data" sheet (D-071) |
