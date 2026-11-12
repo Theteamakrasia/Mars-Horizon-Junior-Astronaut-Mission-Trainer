@@ -163,7 +163,7 @@ async function playCargo() {
 
 /** Play the asteroid round honestly: click the rocks, leave the satellites. */
 async function playAsteroids() {
-  for (let tick = 0; tick < 320; tick += 1) {
+  for (let tick = 0; tick < 900; tick += 1) {
     const done = await ev(`!!document.querySelector("#act .trn__done-points")`);
 
     if (done) return true;
@@ -173,6 +173,35 @@ async function playAsteroids() {
   }
 
   return false;
+}
+
+/**
+ * Find a pair of matching cards, and check that it is taken off the table.
+ *
+ * The faces are not in the markup until a card is turned over, so the check
+ * turns cards over the way a player does and watches what the table does.
+ */
+async function findAMemoryPair() {
+  const count = async () => await ev(`document.querySelectorAll("#act .trn__face").length`);
+  const before = await count();
+
+  for (let i = 0; i < before; i += 1) {
+    for (let j = i + 1; j < before; j += 1) {
+      await ev(`(() => { const c = document.querySelectorAll("#act .trn__face")[${i}]; if (c) c.click(); })()`);
+      await sleep(120);
+      await ev(`(() => { const c = document.querySelectorAll("#act .trn__face")[${j}]; if (c) c.click(); })()`);
+      await sleep(500);
+
+      const after = await count();
+
+      if (after < before) return { matched: true, before, after };
+
+      /* Not a pair: wait for them to turn back down and try another two. */
+      await sleep(600);
+    }
+  }
+
+  return { matched: false, before, after: await count() };
 }
 
 /** Make sure the Standing orders sheet is open, so the training can be read. */
@@ -270,6 +299,13 @@ try {
 
     note(`${name} opens`, opened === true);
     note(`${name} draws itself`, count > 0, `${count} drawn`);
+
+    if (name === "Memory Match") {
+      const pair = await findAMemoryPair();
+
+      note("a matched pair is taken off the table", pair.matched === true, `${pair.before} cards, then ${pair.after}`);
+    }
+
     await tap("#act .trn__close");
     await sleep(300);
   }
