@@ -235,6 +235,11 @@
   margin-bottom: calc(4.5rem + 0.75rem);
 }
 
+/* Nothing in the rail yet (the astronaut is still talking): no empty box. */
+.supply__rail:not(:has(> :not([hidden]))) {
+  display: none;
+}
+
 @keyframes supply-rise {
   from {
     opacity: 0;

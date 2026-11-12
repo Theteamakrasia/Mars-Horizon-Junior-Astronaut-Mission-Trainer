@@ -14,6 +14,7 @@ import marsUrl from '../../../Assets/images/naming/mars.webp';
 import { newRun, type RunState } from '../../sim/run';
 import { nextStop } from '../../ui/registry';
 import { navigate } from '../../ui/router';
+import { clearTrainingRecord } from '../../ui/training';
 
 import './naming.css';
 
@@ -91,6 +92,7 @@ export function mountNaming(
     // The name is the first real piece of run state, so the run is created here
     // and handed up to the shell rather than kept in this screen. Every later
     // scene reads it from there, which is why screens never import each other.
+    clearTrainingRecord();
     setRun(newRun('', value));
 
     greeting.textContent = `Welcome aboard, ${value}.`;
