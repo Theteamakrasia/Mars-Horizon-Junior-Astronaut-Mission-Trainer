@@ -722,8 +722,6 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
 ├── index.html                   ← page shell and every screen mount point
 ├── package.json                 ← scripts; devDependencies only
 ├── tsconfig.json · vite.config.ts · vercel.json
-├── GAME_LOOP_PLAN.md            ← gameplay design plan
-├── Landing_site_selection_implementation_plan.md
 ├── .github/workflows/           ← ci.yml (checks) and deploy.yml (Vercel)
 ├── Assets/
 │   ├── images/                  ← landing page, screens, interior sprites

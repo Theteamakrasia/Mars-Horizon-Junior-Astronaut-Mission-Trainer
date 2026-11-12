@@ -90,7 +90,7 @@ than a documented one.
 - `src/ui/{gameLoop,training,trainingCargo,trainingMerge,readButton,nasaCard,nasaFeedCard}.ts` — the last emoji
 - `scripts/check-imports.mjs` — relative asset imports resolve, and a drawing nobody draws fails the check
 - `docs/team/{decisions,issues,tasks,progress-log}.md` — D-083, ISS-099, TASK-106
-- `docs/architecture.md`, `AGENTS.md`, `icons-list.md` — the icon set is described as it is
+- `docs/architecture.md`, `AGENTS.md`, `docs/icons-list.md` — the icon set is described as it is
 
 **Problems**
 
@@ -109,7 +109,7 @@ than a documented one.
   and the game drew 35 of its own; nothing would have said so. `check-imports.mjs` now
   fails a drawing in `Assets/icons/` that the game does not draw, and it resolves relative
   asset imports as well, so a mistyped asset path fails the check instead of the build.
-- **The icons-list.md that came with the set was out of date**: it named `habitat.svg`
+- **The `docs/icons-list.md` that came with the set was out of date**: it named `habitat.svg`
   where the file is `habitat-module.svg`, and it listed no `close`. It is rewritten to
   match the files on disk.
 
