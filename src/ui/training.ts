@@ -15,6 +15,7 @@
 
 import { h } from '../dom/h';
 import { icon, type IconName } from './icons';
+import { isThumbDevice, mountArrowPad } from './arrowPad';
 import {
   TRAINING_GAMES,
   TRAINING_REWARDS,
@@ -402,9 +403,21 @@ export function openTrainingGame(
   const panel = h('div', { class: 'trn__panel', role: 'dialog', 'aria-modal': 'true', 'aria-label': gameName });
   const backdrop = h('div', { class: 'trn__backdrop' }, panel);
 
+  /*
+    The arrow pad.
+
+    The rover game is played with the arrow keys and nothing else, so on a
+    phone it cannot be played at all. The pad is a keyboard made of buttons:
+    it sends the same key events the game already listens for, so the game
+    does not change. It sits in the corner of the screen, out of the way of
+    the board, and only on a device that has no keyboard.
+  */
+  const pad = gameId === 'rover-parking' && isThumbDevice() ? mountArrowPad(backdrop) : null;
+
   function shut(): void {
     handle?.destroy();
     handle = null;
+    pad?.destroy();
     backdrop.remove();
     document.removeEventListener('keydown', onKey, true);
     options.onClose();
