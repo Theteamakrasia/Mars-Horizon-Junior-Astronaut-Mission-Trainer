@@ -18,6 +18,11 @@ The day's training is **written down** in `localStorage` under one key, so a ref
 not hand the player the same two games again and the points they earned are still on the
 score. Everything else in the run is still in memory, exactly as it was (D-003).
 
+This branch has **merged `origin/main`**, so it carries main's own play-test fixes with
+it: the lander's battery sized to carry a night, the power card reading the store instead
+of the projection, the water goal naming its cause, the scroll kept on a redraw, and the
+obsolete rover widget taken out.
+
 ## Why it is shaped this way
 
 - **In the Standing orders, not on a screen of its own.** That sheet is where a rule
@@ -53,26 +58,67 @@ score. Everything else in the run is still in memory, exactly as it was (D-003).
 - `src/features/act/model.ts`, `view.ts`, `act.css` — the lock on the tasks tile, the
   callout on the desk, and the section in the Standing orders sheet.
 - `src/ui/icons.ts` — a padlock.
-- `tools/browser-check-training.mjs` — the check.
+- `tools/training-driver.mjs` — the training, played for real, for the checks.
+- `tools/browser-check-training.mjs` — the check for the whole feature.
+- `tools/browser-check-build.mjs` — taught the new rule: it trains before it stamps an
+  order, and it checks the lock on the way.
 - Docs: `AGENTS.md`, `README.md`, `docs/architecture.md`, `docs/game-flow.md`, and the team
-  record (D-075, TASK-097, and the progress log).
+  record (D-075, TASK-097, ISS-089, and the progress log).
+
+## The merge, and what it needed
+
+`origin/main` has moved on since this branch was cut, and it carries the play-test fixes
+from PR #31. The **code merged on its own** — the training touches different parts of
+`features/act/` than the power card and the scroll do.
+
+The four **team documents** did conflict: both branches add entries at the top of the same
+newest-first lists. Both sides are kept, and our ids are **renumbered**, because main has
+taken them:
+
+| | was | is now |
+| --- | --- | --- |
+| the training decision | D-073 | **D-075** |
+| the memory game bug | ISS-077 | **ISS-089** |
+| the training task | TASK-096 | **TASK-097** |
+
+Three things had to be fixed for the repo's own checks to pass on the merged code, and
+they are worth reading, because two of them were already broken on `main`:
+
+1. **The desk's work orders are locked until the crew has trained**, so the build check
+   could no longer stamp an order. It now plays two training games first — for real, in
+   `tools/training-driver.mjs` — and checks the lock on the way.
+2. **The power card assertions were stale against main's own fixes.** The card is now
+   `Power · 150 kWh max` with the stored kWh on it, and a bare outpost no longer ends its
+   first sol at zero (the lander's battery now carries the night). The check no longer
+   asserts a balance that moved; it asserts that **the bar and the number on the card
+   agree with each other**, which is true whatever the balance is. This was failing on
+   `main` too (50/52 there).
+3. **Both checks started from a stale browser profile.** Chrome restores the last session
+   in a profile it has used before, and that restored page still holds the run of the last
+   session in memory — which no amount of clearing the storage reaches. The profile is now
+   deleted before Chrome starts, so a check that can only be run once is not a check.
 
 ## Validation
 
 - `npm run check` — passed (no layer or banned-API violations; typecheck clean).
-- `npm test` — passed (915 tests, 113 of them new).
+- `npm test` — passed (**948 tests**, 113 of them new).
 - `npm run build` — passed.
-- `node tools/browser-check-training.mjs` — 37 checks passed, against a served build in
-  headless Chrome: the section on the standing orders, all six games opening and drawing
-  themselves, the cargo round and the asteroid round played honestly for points, the
-  day's two-game limit refusing a third with a message, and the record surviving a
-  refresh with the points still on the score.
-- The screen was looked at, not only asserted on: the desk with the lock callout, the
+- `npm run balance` — passed (45.7% of builds can win; every site holds all five systems).
+- `node tools/browser-check-training.mjs` — **40/40**, against a served build in headless
+  Chrome: the section on the standing orders, all six games opening and drawing
+  themselves, a matched pair being taken off the table with **both cards the same face**,
+  the cargo round and the asteroid round played honestly for points, the day's two-game
+  limit refusing a third with a message, and the record surviving a refresh with the
+  points still on the score.
+- `node tools/browser-check-build.mjs` — **51/51** (it was 50/52 on `main`).
+- `node tools/browser-check-journey.mjs` — no console errors.
+- The screens were looked at, not only asserted on: the desk with the lock callout, the
   training section, and all six games.
 
 ## Review checklist
 
-- [x] Work is on a feature branch based on `origin/main`; `main` is unchanged.
+- [x] Work is on a feature branch; `main` is unchanged.
+- [x] `origin/main` is merged in, and its fixes come with it.
 - [x] `npm run check` and `npm test` pass.
 - [x] No new runtime dependency; no `index.ts` barrel; no feature importing another.
 - [x] The six games are pure in `sim/` and drawn in `ui/`, one module each.
