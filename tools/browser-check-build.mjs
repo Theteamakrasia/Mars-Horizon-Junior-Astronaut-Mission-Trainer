@@ -275,6 +275,13 @@ try {
 
   await evaluate(`location.hash = '#landing-site'`);
   await waitFor(`(() => { const s = document.getElementById('landing-site'); return !!s && !s.hidden; })()`);
+
+  /* The encyclopedia is a reference to equipment, so it is earned by reaching
+     the outpost: the map carries the same bar and no book (D-080). The other end
+     of the same rule is asserted on the build screen, in step 7. */
+  const mapBook = await evaluate(`!!document.querySelector('#landing-site .gl__icon-button[aria-label="Encyclopedia"]')`);
+  note('no encyclopedia before the outpost exists', mapBook === false, mapBook ? 'the book is on the map' : 'no book');
+
   await evaluate(`(() => {
     const pin = document.querySelector('#landing-site .landing-site__pin');
     if (pin) pin.click();
