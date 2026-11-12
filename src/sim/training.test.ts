@@ -4,19 +4,23 @@ import { newRun, withState, type RunState } from './run';
 import {
   TRAINING_DAILY_LIMIT,
   TRAINING_GAMES,
+  TRAINING_MAX_LEVEL,
   TRAINING_REWARDS,
   TRAINING_YIELDS,
   canStartTraining,
   completeTraining,
   emptyTraining,
   makeRandom,
+  raisedLevels,
   trainingDay,
   trainingDayFor,
   trainingDayRecord,
+  trainingLevel,
   trainingSeed,
   trainingTier,
   trainingUnlocked,
   trainingYield,
+  withRaisedLevel,
   withTrainingDay,
   EMPTY_TRAINING_RECORD,
 } from './training';
@@ -284,6 +288,51 @@ describe('the day as it is written down', () => {
 
   it('has nothing for a sol that was never played', () => {
     expect(trainingDayFor(EMPTY_TRAINING_RECORD, 4)).toBeNull();
+  });
+});
+
+/*
+ * The levels.
+ *
+ * Every game keeps its own counter, and finishing a game makes the next play
+ * of it a little harder. The counter is not a day - it belongs to the game -
+ * and it stops at twelve.
+ */
+describe('how hard a game has become', () => {
+  it('starts every game at level 1', () => {
+    expect(trainingLevel({}, 'cargo-sorting')).toBe(1);
+    expect(trainingLevel(EMPTY_TRAINING_RECORD.levels, 'rover-parking')).toBe(1);
+  });
+
+  it('goes up by one when a game is finished', () => {
+    const raised = raisedLevels({}, 'cargo-sorting');
+
+    expect(trainingLevel(raised, 'cargo-sorting')).toBe(2);
+    /* And the other games are left where they were. */
+    expect(trainingLevel(raised, 'rover-parking')).toBe(1);
+  });
+
+  it('stops at twelve', () => {
+    let levels = EMPTY_TRAINING_RECORD.levels;
+
+    for (let count = 0; count < 30; count += 1) levels = raisedLevels(levels, 'memory-match');
+
+    expect(trainingLevel(levels, 'memory-match')).toBe(TRAINING_MAX_LEVEL);
+  });
+
+  it('is not a day: it survives one being written down', () => {
+    const record = withRaisedLevel(EMPTY_TRAINING_RECORD, 'solar-power-up');
+    const withADay = withTrainingDay(record, 3, { completed: [], pointsToday: 0 });
+
+    expect(trainingLevel(withADay.levels, 'solar-power-up')).toBe(2);
+  });
+
+  it('reads a level that was written down', () => {
+    const record = withRaisedLevel(withRaisedLevel(EMPTY_TRAINING_RECORD, 'cargo-sorting'), 'cargo-sorting');
+
+    expect(trainingLevel(record.levels, 'cargo-sorting')).toBe(3);
+    /* A game that was never played is still level 1. */
+    expect(trainingLevel(record.levels, 'asteroid-defender')).toBe(1);
   });
 });
 

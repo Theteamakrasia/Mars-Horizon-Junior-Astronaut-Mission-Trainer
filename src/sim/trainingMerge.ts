@@ -26,6 +26,8 @@ export const MERGE_LEVEL_NAMES: readonly string[] = [
   'Energy cell',
   'Oxygen tank',
   'Colony pod',
+  'Habitat',
+  'Dome',
 ];
 
 /** A game finished in this many moves or fewer is an excellent one. */
@@ -33,6 +35,64 @@ export const MERGE_EXCELLENT_MOVES = 90;
 
 /** A game finished in this many moves or fewer is a good one. */
 export const MERGE_GOOD_MOVES = 170;
+
+/**
+ * How the merge round goes at a level.
+ *
+ * The goal grows for the first three levels: the Colony pod, then the Habitat
+ * that holds it, then the Dome over that. From the fourth level on the goal
+ * stays and the allowance shrinks - the moves the round allows - so each level
+ * is the same build with less room to shuffle.
+ *
+ * The goal cannot keep growing: every step up doubles the amount of supply it
+ * takes, so the move limit is what has to move from then on.
+ */
+export interface MergeDifficulty {
+  /** The supply the player has to build. */
+  readonly target: number;
+  /** The moves the round allows, or null when it allows as many as it takes. */
+  readonly moveLimit: number | null;
+  /** The moves an excellent round allows. */
+  readonly excellent: number;
+  /** The moves a good round allows. */
+  readonly good: number;
+}
+
+/**
+ * One row per level. The first is the game as it always was.
+ *
+ * The move limits are measured, not guessed: a player who keeps the biggest
+ * supply in a corner needs about 30 moves for the Colony pod, 55 for the
+ * Habitat and 100 for the Dome, and a human needs rather more than that. The
+ * limit at level 4 is therefore generous, and each level after it takes a few
+ * moves away.
+ */
+const MERGE_DIFFICULTY: readonly MergeDifficulty[] = [
+  { target: 5, moveLimit: null, excellent: 90, good: 170 },
+  { target: 6, moveLimit: null, excellent: 200, good: 380 },
+  { target: 7, moveLimit: null, excellent: 300, good: 560 },
+  { target: 7, moveLimit: 300, excellent: 300, good: 560 },
+  { target: 7, moveLimit: 280, excellent: 300, good: 560 },
+  { target: 7, moveLimit: 260, excellent: 300, good: 560 },
+  { target: 7, moveLimit: 240, excellent: 300, good: 560 },
+  { target: 7, moveLimit: 225, excellent: 300, good: 560 },
+  { target: 7, moveLimit: 210, excellent: 300, good: 560 },
+  { target: 7, moveLimit: 195, excellent: 300, good: 560 },
+  { target: 7, moveLimit: 180, excellent: 300, good: 560 },
+  { target: 7, moveLimit: 170, excellent: 300, good: 560 },
+];
+
+/**
+ * The round at a level.
+ *
+ * Level 1 is the game as it always was. A level past the last one stays at
+ * the last one: the counter stops, and so does the game.
+ */
+export function mergeDifficulty(level: number): MergeDifficulty {
+  const step = Math.min(MERGE_DIFFICULTY.length, Math.max(1, Math.floor(level)));
+
+  return MERGE_DIFFICULTY[step - 1] as MergeDifficulty;
+}
 
 /** Which way the board slides. */
 export type MergeDirection = 'left' | 'right' | 'up' | 'down';
@@ -150,9 +210,9 @@ export function mergeBest(grid: readonly number[]): number {
  * Fewer moves is better, but there is no move limit: a player who cannot
  * finish quickly can still finish, and a slow win is still a win.
  */
-export function mergePerformance(moves: number): TrainingPerformance {
-  if (moves <= MERGE_EXCELLENT_MOVES) return 'excellent';
-  if (moves <= MERGE_GOOD_MOVES) return 'good';
+export function mergePerformance(moves: number, difficulty: MergeDifficulty = mergeDifficulty(1)): TrainingPerformance {
+  if (moves <= difficulty.excellent) return 'excellent';
+  if (moves <= difficulty.good) return 'good';
 
   return 'basic';
 }

@@ -21,9 +21,22 @@ describe('the deck', () => {
   it('has two cards for every face', () => {
     const deck = dealMemoryDeck(makeRandom(1));
 
-    expect(deck).toHaveLength(MEMORY_FACES.length * 2);
+    /* The default round is the game as it always was: six pairs, twelve
+       cards. The face list is longer than that, because the harder rounds put
+       more pairs on the table. */
+    expect(deck).toHaveLength(MEMORY_PAIRS * 2);
 
-    for (const face of MEMORY_FACES) {
+    for (const face of MEMORY_FACES.slice(0, MEMORY_PAIRS)) {
+      expect(deck.filter((card) => card.face === face)).toHaveLength(2);
+    }
+  });
+
+  it('can deal more pairs than the first round has', () => {
+    const deck = dealMemoryDeck(makeRandom(1), 8);
+
+    expect(deck).toHaveLength(16);
+
+    for (const face of MEMORY_FACES.slice(0, 8)) {
       expect(deck.filter((card) => card.face === face)).toHaveLength(2);
     }
   });
@@ -125,7 +138,7 @@ describe('whether two cards match', () => {
     /* Six pairs, twelve cards, and no card in two of them. */
     const cards = pairs.flat();
 
-    expect(cards).toHaveLength(MEMORY_FACES.length * 2);
+    expect(cards).toHaveLength(MEMORY_PAIRS * 2);
     expect(new Set(cards).size).toBe(cards.length);
   });
 });

@@ -166,18 +166,19 @@ const REGIONS = [
   { id: 'argyre', name: 'Argyre Basin' },
 ];
 
-/** The six supplies, and what each one costs in build points.
+/**
+ * The six supplies, and what each one costs.
  *
- * The cost is the number. The sparkle in front of it is a drawn icon now
- * (D-083), and an icon carries no text, so the card's text is the number on
- * its own - which is what the check reads (ISS-100). */
+ * The cost is a number with the build-point picture beside it, and the picture
+ * is an icon rather than a character, so only the number is compared.
+ */
 const SUPPLIES = [
-  { name: 'Solar Array', cost: 2 },
-  { name: 'Battery Bank', cost: 2 },
-  { name: 'Greenhouse', cost: 3 },
-  { name: 'Ice Miner', cost: 3 },
-  { name: 'Regolith Shield', cost: 2 },
-  { name: 'Nuclear Power Unit', cost: 4 },
+  { name: 'Solar Array', cost: '2' },
+  { name: 'Battery Bank', cost: '2' },
+  { name: 'Greenhouse', cost: '3' },
+  { name: 'Ice Miner', cost: '3' },
+  { name: 'Regolith Shield', cost: '2' },
+  { name: 'Nuclear Power Unit', cost: '4' },
 ];
 
 try {
@@ -287,7 +288,8 @@ try {
     );
     note(
       `the costs at ${region.name} are the catalogue's`,
-      (popup?.cards ?? []).every((c, index) => c.cost.trim() === String(SUPPLIES[index]?.cost ?? '')),
+      (popup?.cards ?? []).every((c, index) => c.cost.trim() === (SUPPLIES[index]?.cost ?? '')),
+
       (popup?.cards ?? []).map((c) => c.cost).join(' '),
     );
     note(

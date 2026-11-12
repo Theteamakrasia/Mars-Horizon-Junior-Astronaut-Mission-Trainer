@@ -510,13 +510,45 @@ export interface TrainingDayRecord {
   readonly pointsToday: number;
 }
 
+/**
+ * How hard each game has become.
+ *
+ * Every game keeps its own counter: finishing a game makes the next play of
+ * it a little harder. The counter is not a day - it belongs to the game, not
+ * to the sol - and it is never shown to the player. The game simply asks for a
+ * bigger job, in its own words.
+ */
+export type TrainingLevels = Readonly<Partial<Record<TrainingGameId, number>>>;
+
+/** The highest a game goes. Past this it stays where it is. */
+export const TRAINING_MAX_LEVEL = 12;
+
+/**
+ * The level a game is at.
+ *
+ * A game that has never been finished is level 1, which is the game as it
+ * always was.
+ */
+export function trainingLevel(levels: TrainingLevels, gameId: TrainingGameId): number {
+  const level = levels[gameId] ?? 1;
+
+  return Math.min(TRAINING_MAX_LEVEL, Math.max(1, Math.floor(level)));
+}
+
+/** The levels, with one game raised by one. */
+export function raisedLevels(levels: TrainingLevels, gameId: TrainingGameId): TrainingLevels {
+  return { ...levels, [gameId]: Math.min(TRAINING_MAX_LEVEL, trainingLevel(levels, gameId) + 1) };
+}
+
 /** Every sol's training, as it is written down. */
 export interface TrainingRecord {
   readonly days: Readonly<Record<string, TrainingDayRecord>>;
+  /** How hard each game has become. Not a day, and not for the player to see. */
+  readonly levels: TrainingLevels;
 }
 
 /** A record with nothing in it. */
-export const EMPTY_TRAINING_RECORD: TrainingRecord = { days: {} };
+export const EMPTY_TRAINING_RECORD: TrainingRecord = { days: {}, levels: {} };
 
 /** One sol's record, or null when that sol has none. */
 export function trainingDayFor(record: TrainingRecord, sol: number): TrainingDayRecord | null {
@@ -529,7 +561,12 @@ export function withTrainingDay(
   sol: number,
   day: TrainingDayRecord,
 ): TrainingRecord {
-  return { days: { ...record.days, [String(sol)]: day } };
+  return { days: { ...record.days, [String(sol)]: day }, levels: record.levels };
+}
+
+/** A record with one game's level raised. */
+export function withRaisedLevel(record: TrainingRecord, gameId: TrainingGameId): TrainingRecord {
+  return { days: record.days, levels: raisedLevels(record.levels, gameId) };
 }
 
 /** A run's training as it is written down. */

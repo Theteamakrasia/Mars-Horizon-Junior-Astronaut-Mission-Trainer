@@ -9,10 +9,10 @@
 import { h } from '../dom/h';
 import { icon } from './icons';
 import {
-  SOLAR_EXTRA_TAPS,
   SOLAR_SIZE,
   generateSolarPuzzle,
   rotateSolarTile,
+  solarDifficulty,
   solarFlow,
   solarOpens,
   solarPerformance,
@@ -31,8 +31,11 @@ const SIDES = ['up', 'right', 'down', 'left'] as const;
  * join them with one unbroken line.
  */
 export const mountSolar: TrainingGameMount = (root, context) => {
+  /* How hard this round is: fewer spare turns over the answer. */
+  const difficulty = solarDifficulty(context.level);
+
   const puzzle = generateSolarPuzzle(context.random);
-  const limit = puzzle.needed + SOLAR_EXTRA_TAPS;
+  const limit = puzzle.needed + difficulty.spare;
 
   let tiles: readonly (readonly SolarTile[])[] = puzzle.tiles;
   let used = 0;
@@ -99,14 +102,18 @@ export const mountSolar: TrainingGameMount = (root, context) => {
       finished = true;
       hint.textContent = 'The battery is charging!';
 
-      window.setTimeout(() => context.onComplete(solarPerformance(used, puzzle.needed)), 600);
+      window.setTimeout(() => context.onComplete(solarPerformance(used, puzzle.needed, difficulty)), 600);
 
       return;
     }
 
+    /* Out of turns is not a punishment: the round still counts as a finished
+       game, and the player is paid for the attempt. */
     if (used >= limit) {
-      over = true;
-      hint.textContent = 'Out of turns. Press Restart to try again.';
+      finished = true;
+      hint.textContent = 'Out of turns.';
+
+      window.setTimeout(() => context.onComplete(solarPerformance(used, puzzle.needed, difficulty)), 600);
     }
   }
 

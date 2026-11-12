@@ -12,7 +12,8 @@ import {
   ROVER_MAPS,
   ROVER_STEPS,
   roverCell,
-  roverMovesAllowed,
+  roverDeliveryRoute,
+  roverDifficulty,
   roverPerformance,
   roverRoute,
   type RoverDirection,
@@ -27,19 +28,32 @@ import type { TrainingGameMount } from './trainingGame';
  * than the shortest way there.
  */
 export const mountRover: TrainingGameMount = (root, context) => {
-  const map = ROVER_MAPS[Math.floor(context.random() * ROVER_MAPS.length)] ?? (ROVER_MAPS[0] as readonly string[]);
-  const route = roverRoute(map);
+  /* How hard this round is: which piece of ground, whether a sample has to be
+     brought home as well, and how many moves there are over the shortest
+     route. */
+  const difficulty = roverDifficulty(context.level);
+  const map = ROVER_MAPS[difficulty.map] ?? (ROVER_MAPS[0] as readonly string[]);
+  /* The move budget is built from the journey the player has to make: to the
+     outpost, or to the sample and then to the outpost. */
+  const route = difficulty.deliver ? roverDeliveryRoute(map) : roverRoute(map);
   const goal = roverCell(map, 'P') ?? [map.length - 1, map.length - 1];
   const start = roverCell(map, 'R') ?? [0, 0];
+  const sample = roverCell(map, 'S');
 
   let row = start[0];
   let column = start[1];
-  let movesLeft = roverMovesAllowed(map);
+  let carrying = false;
+  let movesLeft = route <= 0 ? 0 : route + difficulty.spare;
   let finished = false;
   let over = false;
 
   const board = h('div', { class: 'trn__rover' });
-  const hint = h('p', { class: 'trn__hint', text: 'Drive the rover to the outpost.' });
+  const hint = h('p', {
+    class: 'trn__hint',
+    text: difficulty.deliver
+      ? 'Pick up the sample and bring it to the outpost.'
+      : 'Drive the rover to the outpost.',
+  });
 
   const up = h('button', { class: 'trn__pad-key', type: 'button', 'aria-label': 'Drive up' }, '▲');
   const left = h('button', { class: 'trn__pad-key', type: 'button', 'aria-label': 'Drive left' }, '◀');
@@ -63,10 +77,16 @@ export const mountRover: TrainingGameMount = (root, context) => {
         const ground = map[line]?.[place] ?? '.';
         const isRover = line === row && place === column;
         const isOutpost = line === goal[0] && place === goal[1];
+        /* The sample is only on the ground while it is on the ground. Once the
+           rover has it, the cell is empty - and the cell keeps to one picture,
+           because a grid column is as wide as the widest thing in it and a
+           second picture made the whole board grow (ISS-086). */
+        const isSample = sample !== null && !carrying && line === sample[0] && place === sample[1];
         const cell = h('div', { class: `trn__ground${ground === '#' ? ' trn__ground--rock' : ''}${isRover && bumped ? ' trn__ground--bump' : ''}` });
 
         if (isRover) cell.append(icon('rover', 'The rover'));
         else if (ground === '#') cell.append(icon('rock', 'A rock'));
+        else if (isSample) cell.append(icon('box', 'A sample to bring home'));
         else if (isOutpost) cell.append(icon('home', 'The outpost'));
 
         cells.push(cell);
@@ -74,7 +94,7 @@ export const mountRover: TrainingGameMount = (root, context) => {
     }
 
     board.replaceChildren(...cells);
-    context.setStatus(`Moves left: ${movesLeft}`);
+    context.setStatus(`Moves left: ${movesLeft}${carrying ? ' · Carrying the sample' : ''}`);
   }
 
   function drive(direction: RoverDirection): void {
@@ -95,14 +115,33 @@ export const mountRover: TrainingGameMount = (root, context) => {
     row = newRow;
     column = newColumn;
     movesLeft -= 1;
-    hint.textContent = 'Drive the rover to the outpost.';
+
+    /* Driving over the sample picks it up. */
+    if (sample !== null && row === sample[0] && column === sample[1] && !carrying) {
+      carrying = true;
+      hint.textContent = 'The sample is on board. Bring it to the outpost.';
+      paint(false);
+
+      return;
+    }
+
+    hint.textContent = difficulty.deliver
+      ? 'Pick up the sample and bring it to the outpost.'
+      : 'Drive the rover to the outpost.';
     paint(false);
 
     if (row === goal[0] && column === goal[1]) {
-      finished = true;
-      hint.textContent = 'The rover is home!';
+      /* The outpost without the sample is not home yet. */
+      if (difficulty.deliver && !carrying) {
+        hint.textContent = 'You are at the outpost, but the sample is still out there.';
 
-      window.setTimeout(() => context.onComplete(roverPerformance(movesLeft, route)), 400);
+        return;
+      }
+
+      finished = true;
+      hint.textContent = carrying ? 'The rover is home, with the sample!' : 'The rover is home!';
+
+      window.setTimeout(() => context.onComplete(roverPerformance(movesLeft, route, difficulty)), 400);
 
       return;
     }

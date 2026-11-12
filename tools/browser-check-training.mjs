@@ -19,6 +19,8 @@ import { spawn } from "node:child_process";
 import { rmSync } from "node:fs";
 import { setTimeout as sleep } from "node:timers/promises";
 
+import { doTheTraining } from './training-driver.mjs';
+
 /* A clean profile, so the check always starts from a clean day. */
 rmSync(process.env.TEMP + '\\training-chrome-profile', { recursive: true, force: true });
 
@@ -150,12 +152,72 @@ async function playCard(name) {
   return await ev(`!!document.querySelector("#act .trn__backdrop")`);
 }
 
+/** Open a training game from the standing orders sheet, for the driver. */
+async function openGame(name) {
+  await tap('#act .act-tile[data-tile="orders"]');
+  await sleep(700);
+
+  return await playCard(name);
+}
+
+/**
+ * Drag a crate into its store with the pointer.
+ *
+ * The cargo round can be played by tapping, and the check used to tap every
+ * crate - so the drag was never exercised, and a drag that only worked for the
+ * first crate went unnoticed (ISS-086). This drags, and the pointer events are
+ * the same ones a finger makes.
+ */
+async function dragCrate(label, store) {
+  await ev(`(() => {
+    const crate = [...document.querySelectorAll("#act .trn__crate")].find((n) => n.getAttribute("aria-label") === ${JSON.stringify(label)});
+    const shop = [...document.querySelectorAll("#act .trn__store")].find((n) => n.getAttribute("aria-label") === ${JSON.stringify(store)});
+    if (!crate || !shop) return false;
+
+    const from = crate.getBoundingClientRect();
+    const to = shop.getBoundingClientRect();
+
+    const point = (x, y) => ({ clientX: x, clientY: y, pointerId: 1, pointerType: 'mouse', bubbles: true, cancelable: true });
+
+    crate.dispatchEvent(new PointerEvent('pointerdown', point(from.left + from.width / 2, from.top + from.height / 2)));
+    window.dispatchEvent(new PointerEvent('pointermove', point(from.left + from.width / 2 + 30, from.top + from.height / 2)));
+    window.dispatchEvent(new PointerEvent('pointermove', point(to.left + to.width / 2, to.top + to.height / 2)));
+    window.dispatchEvent(new PointerEvent('pointerup', point(to.left + to.width / 2, to.top + to.height / 2)));
+
+    return true;
+  })()`);
+  await sleep(200);
+}
+
 /** Play the cargo round honestly: every crate into the store it names. */
 async function playCargo() {
-  for (let round = 0; round < 12; round += 1) {
-    const left = await ev(`document.querySelectorAll("#act .trn__crate").length`);
+  /* The first two crates are dragged and the rest are tapped, so both ways of
+     playing are covered - and so a drag that only worked for the first crate
+     would fail (ISS-086). */
+  const first = await ev(`[...document.querySelectorAll("#act .trn__crate")].map((n) => n.getAttribute("aria-label"))`);
+  let dragged = 0;
 
-    if (left === 0) break;
+  for (const label of first.slice(0, 2)) {
+    const store = STORE_OF[label];
+
+    if (store === undefined) continue;
+
+    await dragCrate(label, store);
+    dragged += 1;
+  }
+
+  const left = await ev(`document.querySelectorAll("#act .trn__crate").length`);
+
+  note(
+    'the second crate can be dragged as well as the first',
+    dragged === 2 && left === first.length - 2,
+    `${first.length - left} crates dragged away, ${left} left in the tray`,
+  );
+
+  for (let round = 0; round < 12; round += 1) {
+    const remaining = await ev(`document.querySelectorAll("#act .trn__crate").length`);
+
+    if (remaining === 0) break;
 
     const labels = await ev(`[...document.querySelectorAll("#act .trn__crate")].map((n) => n.getAttribute("aria-label"))`);
 
@@ -425,18 +487,28 @@ try {
   console.log("9 the same game again, on the next sol");
   /* The day's training starts again with the sol, so the replay is tested on
      a clean day: the same game twice, and the board has to be a new one - the
-     crew is playing again, so the game deals again (ISS-085). */
+     crew is playing again, so the game deals again (ISS-085).
+
+     The crew has to train before the sol can run - the work orders are shut
+     until they have - so the training comes first, and then the order and
+     the sol. */
+  const trained = await doTheTraining(ev, sleep, openGame);
+  note("the crew trains for the new sol", trained?.cargo === true && trained?.asteroid === true);
+
   await tap('#act .act-tile[data-tile="tasks"]');
   await sleep(700);
   await ev(`(() => { const card = [...document.querySelectorAll("#act .act-order")].find((c) => !c.disabled); if (card) card.click(); })()`);
   await sleep(600);
   /* The button is disabled while the space weather is loading, and a crisis
-     replaces the hub on the sol. */
+     replaces the hub on the sol. The sol has to be *run* before the next part
+     of the check, so the loop waits until it has. */
+  const solBefore = await ev(`document.querySelector('#act .gl__kicker')?.textContent ?? ''`);
+
   for (let attempt = 0; attempt < 40; attempt += 1) {
     const crisis = await ev(`!!document.querySelector("#act .gl__choices")`);
 
     if (crisis) {
-      await ev(`(() => { const c = document.querySelector("#act .gl__choice"); if (c) c.click(); })()`);
+      await ev(`(() => { const c = document.querySelector('#act .gl__choice:not([disabled])'); if (c) c.click(); })()`);
       await sleep(1400);
       continue;
     }
@@ -450,29 +522,11 @@ try {
       return "clicked";
     })()`);
 
-    if (outcome === "clicked") {
-      /*
-        The sol is not flown until the crisis on it is answered, and a crisis
-        can replace the hub the moment the sol starts. So the day counter is
-        what says the sol is done, and the loop keeps going until it moves:
-        stopping on the click alone left a crisis unanswered, the sol never
-        completed, and the day's training never started again - which failed
-        every check after it for reasons that had nothing to do with training.
-      */
-      const moved = await waitFor(
-        `document.querySelector("#act .gl__day-number")?.textContent?.trim() === "2"`,
-        20,
-      );
+    await sleep(outcome === "clicked" ? 1600 : 600);
 
-      if (moved) {
-        await sleep(500);
-        break;
-      }
+    const solAfter = await ev(`document.querySelector('#act .gl__kicker')?.textContent ?? ''`);
 
-      continue;
-    }
-
-    await sleep(600);
+    if (solAfter !== solBefore) break;
   }
 
   await tap('#act .act-tile[data-tile="orders"]');
@@ -500,6 +554,26 @@ try {
   const replayed = await trainingState();
   note("the day is two games on", replayed.count.includes("2/2"), replayed.count);
   note("the tasks are open", replayed.tasksLocked === "false", replayed.tasks);
+
+  /* The counter of how hard each game has become. It is never shown to the
+     player - it is written down beside the days, and the game asks for a
+     bigger job in its own words. The cargo round has been played three times
+     in this pass, so it is level 4, and the other games are still level 1. */
+  const levels = await ev(`(() => {
+    try {
+      const raw = localStorage.getItem('mars-horizon.training.v1');
+      return raw ? JSON.parse(raw).levels : null;
+    } catch (e) {
+      return null;
+    }
+  })()`);
+
+  note(
+    "the game that has been played has got harder, and the ones that have not have not",
+    typeof levels?.['cargo-sorting'] === 'number' && levels['cargo-sorting'] >= 4 && levels['rover-parking'] === undefined,
+    JSON.stringify(levels),
+  );
+
   const card = await ev(`(() => { const c = [...document.querySelectorAll("#act .trn__card")].find((x) => x.querySelector(".trn__card-name")?.textContent === "Cargo Sorting"); return (c?.textContent ?? "").replace(/\\s+/g, " "); })()`);
   note("the card says it was played twice", card.includes("2×"), card.trim());
 

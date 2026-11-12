@@ -9,7 +9,7 @@
 
 import { h } from '../dom/h';
 import { icon, RESOURCE_ICON, type IconName } from './icons';
-import { CARGO_ROUND, cargoPerformance, dealCargoRound } from '../sim/trainingCargo';
+import { cargoDifficulty, cargoPerformance, dealCargoRound } from '../sim/trainingCargo';
 import type { TrainingGameMount } from './trainingGame';
 
 /** The picture on each crate. */
@@ -49,7 +49,10 @@ const DRAG_DISTANCE = 8;
  * and lets the player try again.
  */
 export const mountCargo: TrainingGameMount = (root, context) => {
-  const round = dealCargoRound(context.random);
+  /* How hard this round is: more supplies to store, and - once the goal has
+     grown as far as it can - fewer wrong stores to get away with. */
+  const difficulty = cargoDifficulty(context.level);
+  const round = dealCargoRound(context.random, difficulty.crates);
 
   /** Where each crate is drawn, so it can be moved or taken away. */
   const crates = new Map<string, HTMLElement>();
@@ -62,7 +65,12 @@ export const mountCargo: TrainingGameMount = (root, context) => {
 
   const tray = h('div', { class: 'trn__tray' });
   const shelf = h('div', { class: 'trn__stores' });
-  const hint = h('p', { class: 'trn__hint', text: 'Put each crate in the store it belongs to.' });
+  const hint = h('p', {
+    class: 'trn__hint',
+    text: Number.isFinite(difficulty.mistakes)
+      ? `Put every crate in the store it belongs to. ${difficulty.mistakes} wrong ${difficulty.mistakes === 1 ? 'store' : 'stores'} and the round is over.`
+      : 'Put each crate in the store it belongs to.',
+  });
 
   for (const box of round.boxes) {
     const content = h('div', { class: 'trn__store-items' });
@@ -86,7 +94,7 @@ export const mountCargo: TrainingGameMount = (root, context) => {
   root.append(hint, tray, shelf);
 
   function status(): void {
-    context.setStatus(`Sorted: ${placed}/${CARGO_ROUND} · Mistakes: ${mistakes}`);
+    context.setStatus(`Sorted: ${placed}/${round.items.length} · Mistakes: ${mistakes}`);
   }
 
   function paint(): void {
@@ -108,12 +116,28 @@ export const mountCargo: TrainingGameMount = (root, context) => {
 
     if (item.box !== boxId) {
       mistakes += 1;
-      hint.textContent = 'Not that store. Try another one!';
 
       /* Read the layout again so the shake starts from the beginning. */
       node.classList.remove('trn__crate--wrong');
       void node.offsetWidth;
       node.classList.add('trn__crate--wrong');
+
+      /* Too many wrong stores and the round is over. It still counts as a
+         finished game - the player is paid for the attempt, not punished for
+         it. */
+      if (mistakes > difficulty.mistakes) {
+        finished = true;
+        hint.textContent = 'Too many wrong stores. That is the round.';
+
+        window.setTimeout(() => context.onComplete(cargoPerformance(mistakes, difficulty)), 500);
+
+        return;
+      }
+
+      hint.textContent = Number.isFinite(difficulty.mistakes)
+        ? `Not that store. ${difficulty.mistakes - mistakes} wrong ${difficulty.mistakes - mistakes === 1 ? 'store' : 'stores'} left.`
+        : 'Not that store. Try another one!';
+
       status();
 
       return;
@@ -127,11 +151,11 @@ export const mountCargo: TrainingGameMount = (root, context) => {
     hint.replaceChildren(icon('check'), ' That is the right store.');
     status();
 
-    if (placed >= CARGO_ROUND) {
+    if (placed >= round.items.length) {
       finished = true;
       hint.textContent = 'Every crate is stored!';
 
-      window.setTimeout(() => context.onComplete(cargoPerformance(mistakes)), 500);
+      window.setTimeout(() => context.onComplete(cargoPerformance(mistakes, difficulty)), 500);
     }
   }
 
@@ -146,6 +170,15 @@ export const mountCargo: TrainingGameMount = (root, context) => {
     if (!round.items.some((entry) => entry.id === id)) return;
 
     drag = { id, x: event.clientX, y: event.clientY, moved: false, ghost: null };
+
+    /* The move and release listeners belong to THIS drag.
+     *
+     * They used to be registered once, when the round was dealt, and the first
+     * drag took them away with it when it ended - so the first crate could be
+     * dragged and every crate after it could not (ISS-086). */
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onCancel);
   };
 
   const onMove = (event: PointerEvent): void => {
@@ -168,8 +201,7 @@ export const mountCargo: TrainingGameMount = (root, context) => {
   };
 
   const onUp = (event: PointerEvent): void => {
-    window.removeEventListener('pointermove', onMove);
-    window.removeEventListener('pointerup', onUp);
+    stopListening();
 
     const held = drag;
 
@@ -187,9 +219,31 @@ export const mountCargo: TrainingGameMount = (root, context) => {
       droppedAt = Date.now();
 
       if (store instanceof HTMLElement) place(held.id, store.dataset.store ?? '');
-
-      return;
     }
+  };
+
+  /*
+    A drag that was cancelled - a finger that slid into a scroll, a call
+    arriving - puts the crate back where it was. It is not a drop, so nothing
+    is stored.
+  */
+  const onCancel = (): void => {
+    stopListening();
+
+    const held = drag;
+
+    drag = null;
+
+    if (held === null) return;
+
+    crates.get(held.id)?.classList.remove('trn__crate--dragging');
+    held.ghost?.remove();
+  };
+
+  const stopListening = (): void => {
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+    window.removeEventListener('pointercancel', onCancel);
   };
 
   for (const item of round.items) {
@@ -220,15 +274,11 @@ export const mountCargo: TrainingGameMount = (root, context) => {
     tray.append(node);
   }
 
-  window.addEventListener('pointermove', onMove);
-  window.addEventListener('pointerup', onUp);
-
   status();
 
   return {
     destroy(): void {
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
+      stopListening();
       drag?.ghost?.remove();
       root.replaceChildren();
     },

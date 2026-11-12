@@ -9,10 +9,9 @@
 import { h } from '../dom/h';
 import { icon } from './icons';
 import {
-  ASTEROID_GOAL,
-  ASTEROID_SECONDS,
   asteroidAccuracy,
   asteroidDelay,
+  asteroidDifficulty,
   asteroidIsDecoy,
   asteroidLife,
   asteroidPerformance,
@@ -27,10 +26,14 @@ import type { TrainingGameMount } from './trainingGame';
  * is won by clearing twelve rocks before the clock runs out.
  */
 export const mountAsteroid: TrainingGameMount = (root, context) => {
+  /* How hard this round is: more rocks to clear, less time to clear them in,
+     and more satellites drifting past to leave alone. */
+  const difficulty = asteroidDifficulty(context.level);
+
   let cleared = 0;
   let mistakes = 0;
   let missed = 0;
-  let timeLeft = ASTEROID_SECONDS;
+  let timeLeft = difficulty.seconds;
   let finished = false;
   let over = false;
 
@@ -51,14 +54,14 @@ export const mountAsteroid: TrainingGameMount = (root, context) => {
   };
 
   function status(): void {
-    context.setStatus(`Cleared: ${cleared}/${ASTEROID_GOAL} · Time: ${timeLeft}s`);
+    context.setStatus(`Cleared: ${cleared}/${difficulty.goal} · Time: ${timeLeft}s`);
   }
 
   function spawn(): void {
     if (finished || over) return;
 
-    const elapsed = ASTEROID_SECONDS - timeLeft;
-    const decoy = asteroidIsDecoy(context.random);
+    const elapsed = difficulty.seconds - timeLeft;
+    const decoy = asteroidIsDecoy(context.random, difficulty.decoys);
     const node = h(
       'button',
       {
@@ -90,13 +93,13 @@ export const mountAsteroid: TrainingGameMount = (root, context) => {
 
       later(() => node.remove(), 150);
 
-      if (cleared >= ASTEROID_GOAL && !finished) {
+      if (cleared >= difficulty.goal && !finished) {
         finished = true;
         hint.textContent = 'The colony is safe!';
 
         const accuracy = asteroidAccuracy(cleared, mistakes, missed);
 
-        later(() => context.onComplete(asteroidPerformance(accuracy)), 500);
+        later(() => context.onComplete(asteroidPerformance(accuracy, difficulty)), 500);
       }
     });
 
@@ -122,9 +125,15 @@ export const mountAsteroid: TrainingGameMount = (root, context) => {
     status();
 
     if (timeLeft <= 0) {
-      over = true;
+      /* Time is up is not a punishment: the round still counts as a finished
+         game, and the player is paid for the attempt. */
+      finished = true;
       arena.replaceChildren();
-      hint.textContent = 'Time is up. Press Restart to try again.';
+      hint.textContent = 'Time is up.';
+
+      const accuracy = asteroidAccuracy(cleared, mistakes, missed);
+
+      later(() => context.onComplete(asteroidPerformance(accuracy, difficulty)), 500);
     }
   }, 1000);
 
