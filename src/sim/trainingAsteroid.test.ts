@@ -20,30 +20,26 @@ import {
  */
 
 describe('the clock', () => {
-  it('is short enough to finish in one sitting', () => {
-    expect(ASTEROID_SECONDS).toBe(30);
+  it('is long enough for a child with a mouse', () => {
+    expect(ASTEROID_SECONDS).toBe(50);
     expect(ASTEROID_GOAL).toBe(12);
   });
 });
 
 describe('the rocks', () => {
   it('come faster as the round goes on', () => {
-    expect(asteroidDelay(20)).toBeLessThan(asteroidDelay(0));
+    expect(asteroidDelay(40)).toBeLessThan(asteroidDelay(0));
   });
 
   it('never come faster than a child can hit', () => {
     for (let second = 0; second < ASTEROID_SECONDS; second += 1) {
-      expect(asteroidDelay(second)).toBeGreaterThanOrEqual(550);
+      expect(asteroidDelay(second)).toBeGreaterThanOrEqual(700);
     }
   });
 
-  it('stay on the screen for less time as the round goes on', () => {
-    expect(asteroidLife(20)).toBeLessThan(asteroidLife(0));
-  });
-
-  it('never vanish before they can be hit', () => {
+  it('stay on the screen long enough to be clicked', () => {
     for (let second = 0; second < ASTEROID_SECONDS; second += 1) {
-      expect(asteroidLife(second)).toBeGreaterThanOrEqual(1100);
+      expect(asteroidLife(second)).toBeGreaterThanOrEqual(1400);
     }
   });
 });

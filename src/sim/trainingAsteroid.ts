@@ -12,8 +12,14 @@
 
 import type { TrainingPerformance } from './training';
 
-/** How long a round lasts, in seconds. */
-export const ASTEROID_SECONDS = 30;
+/**
+ * How long a round lasts, in seconds.
+ *
+ * Fifty. The round is a reaction game and the player is a child with a
+ * mouse: half a minute was long enough to feel the clock rather than the
+ * rocks, and the game was lost on the timer rather than on the aim.
+ */
+export const ASTEROID_SECONDS = 50;
 
 /** How many asteroids have to be cleared to win. */
 export const ASTEROID_GOAL = 12;
@@ -31,15 +37,21 @@ export const ASTEROID_GOOD_ACCURACY = 0.65;
  * How long until the next rock appears, in milliseconds.
  *
  * The round gets faster as it goes on, so the last ten seconds are the
- * busy ones.
+ * busy ones — but it starts gently, because the first rock of a round is
+ * the one a player is still finding their feet on.
  */
 export function asteroidDelay(elapsedSeconds: number): number {
-  return Math.max(550, 1100 - elapsedSeconds * 14);
+  return Math.max(700, 1200 - elapsedSeconds * 10);
 }
 
-/** How long a rock stays on the screen, in milliseconds. */
+/**
+ * How long a rock stays on the screen, in milliseconds.
+ *
+ * Long enough to turn round and click it, which is what a seven-year-old
+ * with a mouse needs.
+ */
 export function asteroidLife(elapsedSeconds: number): number {
-  return Math.max(1100, 2000 - elapsedSeconds * 22);
+  return Math.max(1400, 2200 - elapsedSeconds * 16);
 }
 
 /** Is what just drifted past a friendly satellite? */
