@@ -189,7 +189,7 @@ over the desk, so the day is readable at a glance and the player opens only the 
 came for.
 
 ### 3a. The day's training
-Today's work orders are **locked until the crew has done two training games** (D-073).
+Today's work orders are **locked until the crew has done two training games** (D-075).
 The six games — Resource Merge, Memory Match, Rover Parking, Solar Panel Power-Up,
 Cargo Sorting and Asteroid Defender — live at the top of the **Standing orders sheet**,
 because that is where a rule book lives and the training is now a rule the crew works

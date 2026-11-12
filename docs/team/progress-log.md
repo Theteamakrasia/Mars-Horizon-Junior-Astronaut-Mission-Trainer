@@ -16,7 +16,7 @@ than a documented one.
   sits at the top of the rule book, with the day's progress, the six cards and a
   progress bar. Resource Merge, Memory Match, Rover Parking, Solar Panel Power-Up,
   Cargo Sorting and Asteroid Defender are six real games, not six pictures of games
-  (D-073).
+  (D-075).
 - **Made the rule a rule, not a button.** Two games a sol, any two of them, and each
   game paid for once a sol. The rules engine refuses a third game and says why, so a
   player who finds a way past the button is not paid for it. Today's work orders are
@@ -75,12 +75,12 @@ than a documented one.
   about ninety-six points over a run, and the ladder tops out at fifty, so the debrief's
   rank now measures the training as well as the work. The reward values were scaled
   down rather than the ladder changed, and the five numbers are the owner's to move
-  (D-073).
+  (D-075).
 - **The memory game nearly lost its own win condition.** The win was "every card is in
   the matched set", and the pairs now leave the table and leave that set behind — so
   the count is a counter of pairs found, not the size of a set. Caught by reading the
   code back after the change, before it was played.
-- **The memory game compared the wrong two cards (ISS-077).** The cards were numbered
+- **The memory game compared the wrong two cards (ISS-089).** The cards were numbered
   before the deck was shuffled, so a card's number was not its place, and the game
   compared `deck[number]` — a card the player had never touched. Two identical cards
   were therefore almost never a pair, and the browser check passed anyway because it
@@ -95,6 +95,106 @@ than a documented one.
 - The owner to decide what the points are spent on: there is no shop in the game to
   spend them in, and the build screen's budget is reached before sol one.
 - The owner's eyes on the training in the real game, on a laptop and on a tablet.
+
+---
+
+## 2026-11-12 — The five play-test bugs again, fixed at the cause
+
+**Did**
+
+- Rebalanced the lander's power so its one solar array and one battery carry a night
+  (battery 150 kWh, habitat 3 kW, life support 5 kW). Power now recovers each sol (ISS-083, ISS-084).
+- Ice miner buildable at every site; the greenhouse's water is recycled by life support; the
+  water goal blames flat batteries when that is the cause (ISS-085).
+- `keepScroll` keeps every scroll position across a redraw, so narrow and zoomed windows no longer jump to the top (ISS-086).
+- The act screen's power card leads with the stored kWh (ISS-087).
+
+**Files**
+
+`src/sim/modules.ts`, `src/ui/gameLoop.ts`, `src/features/base/{model,view}.ts`,
+`src/features/act/view.ts`, and the tests that pinned the old numbers.
+
+**Problems**
+
+19 tests pinned the old balance, including "a bare outpost cannot cover a night". They now use
+an overloaded outpost (greenhouse and ice miner on one battery) where they need a blackout.
+`npm run balance` passes at all five sites. The toast still shifts the panel by its own height
+when it goes away; that is layout, not a reset.
+
+**Next**
+
+Watch the balance numbers in a real play-through, and consider the ice miner's yield at
+Olympus Mons (2 water gives 6% a sol).
+
+---
+
+## 2026-11-11 — Five play-test bugs on the build screen and the desk
+
+**Did**
+
+- **Made the build card count what the outpost has.** The solar array read `0 / 3` while one
+  landed with the crew, because the card drew the extras the player added over the extras
+  they may add. It now draws `total / maxCount` (`1 / 4`), and a line says one came with the
+  lander. `have / limit` still drive the minus, so the lander's copy cannot be sold (ISS-077,
+  D-073).
+- **Told the truth about water.** The water goal said "No water source" the moment a
+  greenhouse went in, naming neither the module that drinks 3% a sol nor the ice miner that
+  would refill it — and at Olympus, where the ice miner cannot be built, nothing connected
+  the dead `+` to the failing goal. The sentence is computed from the build and the site now,
+  and the site rule is one shared function, `siteAllows`, so the card and the goal cannot
+  describe the same ground differently (ISS-079).
+- **Split the power card into the two numbers it was conflating.** The HUD reads stored kWh
+  against capacity, with the meter's percentage; the day's budget moved to the "For today"
+  mini card, and `powerToday` now subtracts the chosen activity's draw, which it ignored. The
+  level at zero is real, so the stats sheet carries the last sol's generated/used figures (or
+  its blackout) underneath the meters (ISS-078, ISS-082, D-074). The balance is untouched:
+  `npm run balance` still passes at 43.2% of builds.
+- **Stopped the panel jumping to the top.** Every redraw destroyed `.gl__scroll`, so each
+  `+` press, the four-second toast timer and the late-arriving forecast threw the player back
+  to the top. Both screens now record the offset and the focused control and restore both;
+  the toast removes its own node instead of redrawing. `#/base` reached after the landing no
+  longer offers a silent run wipe: the button reads "Land again from sol 1" and says what it
+  resets (ISS-080, ISS-081).
+
+**Files**
+
+- `src/sim/modules.ts` — `siteAllows`
+- `src/features/base/model.ts` — `siteAllows` in `canPlace`; `BuildCard.maxCount` and
+  `fromLander`; the computed water `why`; `RESTART_NOTE`
+- `src/features/base/view.ts` — the new card numbers, the lander line, the read-aloud text,
+  the restart wording, and the scroll/focus restore
+- `src/features/base/base.css` — `.gl__card-lander`
+- `src/features/act/model.ts` — `TodayPower.stored`, the chosen activity's draw, `lastPowerLine`
+- `src/features/act/view.ts` — `Power stored`, the budget mini card, the power line, and the
+  panel-scroll restore
+- `src/sim/modules.test.ts`, `src/features/base/model.test.ts`,
+  `src/features/act/model.test.ts` — nine new tests, 810 in total
+- `tools/browser-check-build.mjs` — the lander copy on the card, a press that keeps the
+  panel's scroll, and a bare outpost reading `0 / 100 kWh`
+- `docs/architecture.md`, `docs/team/decisions.md` (D-073, D-074), `docs/team/issues.md`,
+  `docs/team/progress-log.md`, `docs/team/tasks.md`, `AGENTS.md`, `README.md`
+
+**Problems**
+
+- **The zero was never a maths bug.** A bare outpost needs 180 kWh to get through a night and
+  stores 100, so it ends every sol at zero by design. Retuning the lander would have erased
+  the game's opening lesson, so the fix is reporting only — the card says which number is
+  which, and the stats sheet says what the last sol made and used. Recorded because the
+  obvious next report will be the same zero.
+- **The scroll fix is per screen, which is how it went stale the first time.** ISS-062 fixed
+  the sheet's scroll and left the panel's; the same class of bug had to be fixed twice. Both
+  `base` and `act` now restore the panel offset in their own `render`, and the browser check
+  measures it rather than trusting it.
+- **The act card is checked on a bare outpost only.** `browser-check-build.mjs` removes the
+  three solar arrays before landing so the battery really does reach zero; a built outpost
+  saturates and would not prove the reading moves.
+- **No DOM test for the scroll or the focus restore.** Vitest runs without a DOM (ISS-013),
+  so the behaviour is covered in the headless-Chrome check.
+
+**Next**
+
+- Nothing open from this pass. The debrief still reports the per-sol ledger, which is where
+  the same power figures appear for the whole run.
 
 ---
 

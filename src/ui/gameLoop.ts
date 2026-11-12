@@ -474,6 +474,35 @@ export function gameScreen(options: ScreenOptions): HTMLElement {
   );
 }
 
+/**
+ * Remember where the player was scrolled to, and get back there after a redraw.
+ *
+ * A game screen is rebuilt from scratch on every change, which destroys its
+ * scroll containers. Which one scrolls depends on the window: on a wide
+ * window it is the panel (`.gl__scroll`), but at 68rem and narrower - a small
+ * window, a tablet, or any browser zoomed in - the panel stops scrolling and
+ * the whole screen (`.gl`) does. Saving only the panel threw the player back
+ * to the top on every press on those windows. This saves all of them.
+ *
+ * Call it before the old tree is replaced, and call the function it returns
+ * once the new tree is in the document.
+ */
+export function keepScroll(mount: HTMLElement): () => void {
+  const root = mount.firstElementChild instanceof HTMLElement ? mount.firstElementChild : null;
+  const rootTop = root?.scrollTop ?? 0;
+  const panelTop = mount.querySelector<HTMLElement>('.gl__scroll')?.scrollTop ?? 0;
+  const pageTop = window.scrollY;
+
+  return () => {
+    const nextRoot = mount.firstElementChild instanceof HTMLElement ? mount.firstElementChild : null;
+    const nextPanel = mount.querySelector<HTMLElement>('.gl__scroll');
+
+    if (nextRoot !== null) nextRoot.scrollTop = rootTop;
+    if (nextPanel !== null) nextPanel.scrollTop = panelTop;
+    if (window.scrollY !== pageTop) window.scrollTo(0, pageTop);
+  };
+}
+
 /** A labelled block: an uppercase heading and its content. */
 export function gameSection(label: string, ...content: (Node | null | false)[]): HTMLElement {
   return h('section', null, h('p', { class: 'gl__label', text: label }), ...content);

@@ -24,7 +24,7 @@ than eyeballed, and it is what `npm run check` protects.
 
 ## The invariant, and why it is enforced
 
-801 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
+810 tests run in a few seconds with no browser, no jsdom, and no mocks. If `sim/` grew a DOM
 reference it would still work, and the cost would surface later as an untestable bug.
 Enforced as `no-dom-in-pure-zone`.
 
@@ -319,7 +319,7 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         trainingDayRecord. The daily rule: two games a sol, each game
     │   │                                         once a sol, and what a finished game is worth. The games are
     │   │                                         handed a generator instead of Math.random, so a sol always
-    │   │                                         deals the same cards (D-073). 27 tests.
+    │   │                                         deals the same cards (D-075). 27 tests.
     │   ├── trainingMerge.ts            complete  MERGE_SIZE, MERGE_TARGET, MERGE_LEVEL_NAMES, slideMergeLine,
     │   │                                         moveMerge, spawnMerge, canMerge, mergeBest, mergePerformance.
     │   │                                         The merge board: sixteen crates, and two of a kind make one of
@@ -478,7 +478,7 @@ Mars-Horizon-Junior-Astronaut-Mission-Trainer/
     │   │                                         ASTRONAUT TRAINING section at the top of the Standing orders
     │   │                                         sheet, the dialog a game is played in, and the one thing the
     │   │                                         browser is good at: the record of the day's training, which
-    │   │                                         survives a refresh (D-073).
+    │   │                                         survives a refresh (D-075).
     │   ├── trainingGame.ts             complete  TrainingGameContext, TrainingGameHandle, TrainingGameMount.
     │   │                                         The contract every training game keeps: a status line, a
     │   │                                         completion callback, a generator, and a destroy that stops
@@ -1034,6 +1034,7 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `ModuleSpec`, `MODULE_CATALOGUE` | every spec: name, cost, max count, what it gives, what it needs, and any build gate |
 | | `CORE_MODULES` | the four the lander brings: habitat, life-support, solar-array, batteries |
 | | `specOf` | `(kind) -> ModuleSpec`; throws a `RangeError` on an unknown kind |
+| | `siteAllows` | `(kind, regionId) -> boolean`; whether the ground can host the module at all, so the build card and the water goal ask one function instead of answering the same `requires` rule twice (ISS-079) |
 | | `countOf` | `(modules, kind) -> number` |
 | | `systemsFor` | `(modules, regionId) -> Systems`; the whole outpost as one object: solar, battery, load, what the crew gets and what it costs |
 | | `extrasOf`, `pointsSpent`, `extraSlots`, `extraModuleCount` | what the player built beyond the core, what it cost, and how many more would fit |
@@ -1072,22 +1073,22 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `engineUnlocked` | `(engine, sol) => boolean` |
 | | `gradeSequence`, `gradeRadar`, `gradeTiming`, `gradeSort`, `gradePack`, `gradeMatch` | how each tool is graded, and how many stars it won. The stars multiply the science an order is worth and never touch a store (D-063) |
 | `sim/guide` | `GuideWhere`, `GuideStep`, `GUIDE_STEPS`, `guideStep` | the how-to-play guide: ten steps, each saying where it happens and what to do about it. The words live here so they can be read and tested without a browser (D-060) |
-| `sim/training` | `TrainingGameId`, `TrainingPerformance`, `TRAINING_GAMES`, `TRAINING_DAILY_LIMIT`, `TRAINING_REWARDS` | the six training games and the daily rule: **two games a sol, each game once a sol, and today's work orders open once they are done**. The rule is enforced here rather than by hiding a button, so a player who finds a way past the button is not paid for it (D-073) |
+| `sim/training` | `TrainingGameId`, `TrainingPerformance`, `TRAINING_GAMES`, `TRAINING_DAILY_LIMIT`, `TRAINING_REWARDS` | the six training games and the daily rule: **two games a sol, each game once a sol, and today's work orders open once they are done**. The rule is enforced here rather than by hiding a button, so a player who finds a way past the button is not paid for it (D-075) |
 | | `TrainingState`, `TrainingCompletion`, `TrainingDay`, `TrainingGameRow` | what the crew has done in training today, and where each of the six games stands |
-| | `trainingDay`, `trainingUnlocked`, `trainingSol` | `(run) => TrainingDay`; today's training read off the run. A new sol starts a new day, and that is the daily reset — it is derived from the sol rather than from a timer, so it happens exactly once per sol (D-073) |
+| | `trainingDay`, `trainingUnlocked`, `trainingSol` | `(run) => TrainingDay`; today's training read off the run. A new sol starts a new day, and that is the daily reset — it is derived from the sol rather than from a timer, so it happens exactly once per sol (D-075) |
 | | `canStartTraining` | `(run, gameId) => TrainingStart`; may this game be played right now, and if not, the sentence the player reads. A game finished today can be played again for practice; finishing it pays nothing |
-| | `completeTraining` | `(run, gameId, performance) => TrainingOutcome`; records the game and pays for it. The points go onto the science score, the one balance the game already has, and a second claim for the same game is refused (D-073) |
+| | `completeTraining` | `(run, gameId, performance) => TrainingOutcome`; records the game and pays for it. The points go onto the science score, the one balance the game already has, and a second claim for the same game is refused (D-075) |
 | | `makeRandom`, `trainingSeed` | the generator the games are handed instead of `Math.random`, so a sol always deals the same cards and a test can pin its input |
-| | `TrainingRecord`, `EMPTY_TRAINING_RECORD`, `trainingDayFor`, `withTrainingDay`, `trainingDayRecord` | the shape of the record as it is written down. Pure: the storage itself is in `ui/training.ts`, which is the only layer that is allowed to know a browser exists (D-073) |
-| `sim/trainingMerge` | `MERGE_SIZE`, `MERGE_TARGET`, `slideMergeLine`, `moveMerge`, `spawnMerge`, `canMerge`, `mergeBest`, `mergePerformance` | the merge board: sixteen crates, and two of a kind make one of the next kind. The colony pod is the top of the ladder (D-073) |
-| `sim/trainingMemory` | `MEMORY_FACES`, `dealMemoryDeck`, `memoryPerformance` | the deck of twelve cards, six pairs, dealt from the generator (D-073) |
-| `sim/trainingRover` | `ROVER_MAPS`, `roverRoute`, `roverMovesAllowed`, `roverPerformance` | the ground the rover crosses and the shortest route over it, found by a breadth-first search. The move budget is that route plus a few moves, so every map is winnable by construction (D-073) |
-| `sim/trainingSolar` | `generateSolarPuzzle`, `solarFlow`, `rotateSolarTile`, `solarTapsNeeded`, `solarPerformance` | the power board, generated rather than written down: a route is carved and every tile on it is turned away from its answer, so the game is always winnable and never starts solved (D-073) |
-| `sim/trainingCargo` | `CARGO_BOXES`, `CARGO_ITEMS`, `dealCargoRound`, `cargoPerformance` | the supplies that land and the stores they belong in. Every store gets at least one crate (D-073) |
-| `sim/trainingAsteroid` | `ASTEROID_GOAL`, `ASTEROID_SECONDS`, `asteroidDelay`, `asteroidLife`, `asteroidIsDecoy`, `asteroidAccuracy`, `asteroidPerformance` | the round outside the outpost: what drifts past, how fast, and what a friendly satellite costs the player (D-073) |
-| `ui/training` | `trainingSection`, `openTrainingGame`, `readTrainingRecord`, `writeTrainingDay`, `applyTrainingRecord` | the ASTRONAUT TRAINING section at the top of the Standing orders sheet, the dialog a game is played in, and the record of the day's training. The record is written to `localStorage` under one key, so a refresh does not hand the player the same two games again; everything else in the run is still in memory (D-073) |
-| | `applyTrainingRecord` | `(run) => RunState`; puts the written-down training back onto a run that has not trained yet today. A run that has already trained keeps what it did — the session is the truer record, and a browser that refused to write must not take points away (D-073) |
-| `ui/trainingGame` | `TrainingGameContext`, `TrainingGameHandle`, `TrainingGameMount` | the contract every training game keeps: a status line, a completion callback, a generator, and a `destroy` that stops every timer the game started (D-073) |
+| | `TrainingRecord`, `EMPTY_TRAINING_RECORD`, `trainingDayFor`, `withTrainingDay`, `trainingDayRecord` | the shape of the record as it is written down. Pure: the storage itself is in `ui/training.ts`, which is the only layer that is allowed to know a browser exists (D-075) |
+| `sim/trainingMerge` | `MERGE_SIZE`, `MERGE_TARGET`, `slideMergeLine`, `moveMerge`, `spawnMerge`, `canMerge`, `mergeBest`, `mergePerformance` | the merge board: sixteen crates, and two of a kind make one of the next kind. The colony pod is the top of the ladder (D-075) |
+| `sim/trainingMemory` | `MEMORY_FACES`, `dealMemoryDeck`, `memoryMatch`, `memoryPerformance` | the deck of twelve cards, six pairs, dealt from the generator, and the rule that says whether two cards match (D-075) |
+| `sim/trainingRover` | `ROVER_MAPS`, `roverRoute`, `roverMovesAllowed`, `roverPerformance` | the ground the rover crosses and the shortest route over it, found by a breadth-first search. The move budget is that route plus a few moves, so every map is winnable by construction (D-075) |
+| `sim/trainingSolar` | `generateSolarPuzzle`, `solarFlow`, `rotateSolarTile`, `solarTapsNeeded`, `solarPerformance` | the power board, generated rather than written down: a route is carved and every tile on it is turned away from its answer, so the game is always winnable and never starts solved (D-075) |
+| `sim/trainingCargo` | `CARGO_BOXES`, `CARGO_ITEMS`, `dealCargoRound`, `cargoPerformance` | the supplies that land and the stores they belong in. Every store gets at least one crate (D-075) |
+| `sim/trainingAsteroid` | `ASTEROID_GOAL`, `ASTEROID_SECONDS`, `asteroidDelay`, `asteroidLife`, `asteroidIsDecoy`, `asteroidAccuracy`, `asteroidPerformance` | the round outside the outpost: what drifts past, how fast, and what a friendly satellite costs the player (D-075) |
+| `ui/training` | `trainingSection`, `openTrainingGame`, `readTrainingRecord`, `writeTrainingDay`, `applyTrainingRecord` | the ASTRONAUT TRAINING section at the top of the Standing orders sheet, the dialog a game is played in, and the record of the day's training. The record is written to `localStorage` under one key, so a refresh does not hand the player the same two games again; everything else in the run is still in memory (D-075) |
+| | `applyTrainingRecord` | `(run) => RunState`; puts the written-down training back onto a run that has not trained yet today. A run that has already trained keeps what it did — the session is the truer record, and a browser that refused to write must not take points away (D-075) |
+| `ui/trainingGame` | `TrainingGameContext`, `TrainingGameHandle`, `TrainingGameMount` | the contract every training game keeps: a status line, a completion callback, a generator, and a `destroy` that stops every timer the game started (D-075) |
 | `sim/patches` | `Patch`, `patchesFor`, `PATCH_COUNT` | the ten badges a run earns, worked out from the run itself; the debrief prints the ones that were earned (D-060). No `icon`: `features/debrief/view.ts` maps a patch id to an `IconName` (D-070) |
 | `sim/deskNotes` | `NoteFrom`, `DeskNote`, `DESK_NOTES`, `noteForSol` | the notes from home and the crew that land on the desk; one per sol, and none twice |
 | `sim/comms` | `REAL_MIN_ONE_WAY_MINUTES`, `REAL_MAX_ONE_WAY_MINUTES` | the real 3-22 minute range, for the approximation note |
@@ -1142,12 +1143,17 @@ returns to `landing`, which keeps running behind the mounted screen.
 | | `gameSection` | `(label, ...content) -> section`; an uppercase label and its body |
 | | `gameScreen` | `(options: ScreenOptions) -> section`; `help` carries the guide's `?` icon button in the header (D-060, D-070), and `panel.corner` puts the panel head's one right-hand fact in place (the science points, on `act`). There is no mission bar: it was removed in D-070, so the panel's own kicker names the day. The rover button is gone: the rover is part of the run now, not a widget on the wall (D-062) |
 | | `moduleFigures`, `moduleArt`, `MODULE_ART`, `WORLD_BACKGROUND`, `ASTRONAUT_SPRITE` | artwork placement and the bundled asset URLs; the only import site for the figures base, act and debrief share |
-| `features/base/model` | `BUILDABLE`, `canPlace`, `addModule`, `removeModule`, `pointsLeft` | build rules over the `sim/modules.ts` catalogue (D-032) |
+| `features/base/model` | `BUILDABLE`, `canPlace`, `addModule`, `removeModule`, `pointsLeft` | build rules over the `sim/modules.ts` catalogue (D-032). `canPlace` asks `siteAllows`, so the card and the goals panel cannot disagree about a site (ISS-079) |
+| | `buildCards`, `BuildCard` | the catalogue as cards. `have`/`limit` drive the minus button; `total`/`maxCount` are the number on the card and its maximum, and `fromLander` marks the free copy the lander brought (ISS-089, ISS-054) |
+| | `goalPreview`, `GoalPreview` | whether the build holds each of the five goals, and a sentence naming the cause when it does not. The water sentence is computed from the build and the site, not a fixed string (ISS-079) |
+| | `RESTART_NOTE` | what the launch button says when the outpost has already landed and pressing it starts the run over (ISS-081) |
 | | `previewFor`, `previewSummary`, `upkeepFor`, `upcomingWarnings` | the calm-sol projection. `previewSummary` gives the five resource cards one number each, from the same projection as the sentences |
-| `features/base/view` | `mountBase` | `(root, run, setRun) -> teardown`; the outpost on Mars, the catalogue steppers, and Land & start sol 1 → `startOutpost` then `act`. Holds a mutable local `extras` so a second build is not applied to stale data; it also shows a rotating NASA fact beside the build panel from `factFor`. Each card says why its button is dead and counts the extras against the same limit the game uses (ISS-054, ISS-055), the HUD carries a Day power card that moves as the panels go in (ISS-056), and the guide opens here the first time the player arrives (D-060) |
+| `features/base/view` | `mountBase` | `(root, run, setRun) -> teardown`; the outpost on Mars, the catalogue steppers, and Land & start sol 1 → `startOutpost` then `act`. Holds a mutable local `extras` so a second build is not applied to stale data; it also shows a rotating NASA fact beside the build panel from `factFor`. Each card says why its button is dead and draws the outpost's total against the catalogue maximum, marking the lander's copy (ISS-054, ISS-055, ISS-089), the HUD carries a Day power card that moves as the panels go in (ISS-056), and the guide opens here the first time the player arrives (D-060). A redraw records the panel's scroll offset and the focused control and restores both, and the toast removes its own node instead of redrawing (ISS-080). Once the outpost has landed the button reads "Land again from sol 1" and the note under it says the run resets (ISS-081) |
 | `features/supply/model` | `SUPPLY_BEATS`, `packsFor`, `judge`, `hintFor`, `workingSentence`, `approximateTotalKg` | the ration check over `sim/modules.ts`; the crew size is read from the sim, not typed in, so it agrees with the briefing (ISS-044) |
 | | `seedFrom`, `questionFor`, `choicesFor`, `promptFor`, `puzzleFor` | the question and its four options for one run. The mission length, the answer and the button order all vary, seeded from the astronaut name so a demo repeats and a test can pin it (D-057) |
 | `features/act/model` | `missionHeadline`, `meterRows`, `changeRows`, `toneFor`, `secondsLeft`, `powerSentence` | presentation helpers over `sim/sol`; `meterRows` carries `percent` and `tone` for the stats sheet |
+| | `powerToday`, `TodayPower` | the sol's power picture: `stored` is the level in the batteries (the HUD meter), `available` is the day's budget after the chosen activity's draw (the "For today" mini card), and `nightCovered` says whether the bank covers the night (ISS-060, ISS-078) |
+| | `lastPowerLine` | the last sol's generated/used figures, or its blackout percentage, as one sentence under the meters. Empty before the first sol (ISS-082) |
 | | `activityRows`, `activityCosts` | the three work orders offered on a sol, and what each costs and gives |
 | | `hubTiles(run, context)`, `HubSection`, `HubTile`, `HubContext` | the desk as five buttons, or six once a sol has run: each a label, one line of state, a `chips` list for the review, and whether it `attention`s. Pure words — no icon, because a model may not import `ui/` (D-070) |
 | | `scienceSummary`, `scienceSentence` | the score, the rank, and the road to the next one |

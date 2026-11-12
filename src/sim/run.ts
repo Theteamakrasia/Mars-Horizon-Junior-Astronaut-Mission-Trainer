@@ -69,6 +69,23 @@ export interface SolRecord {
   /** 0-1: how clean the panels were at the end of the sol. Dust only ever goes down. */
   readonly panelHealth: number;
   readonly greenhousePaused: boolean;
+  /**
+   * What each store gained this sol, before anything was taken out.
+   *
+   * Power is what the panels and the nuclear unit made. Air, water and food are
+   * what life support, the recycler, the ice miner, the greenhouse and any
+   * supply or activity gain added. Shielding is what spares and activities
+   * restored. Never negative.
+   */
+  readonly produced: ResourceStores;
+  /**
+   * What each store lost this sol: the crew, the plants, the heating, the
+   * erosion, a flare, an activity's cost. Never negative. For air, water, food
+   * and shielding `produced - consumed` is exactly `net`; for power the
+   * difference is `net` plus `powerWasted`, because sunlight the batteries had
+   * no room for is neither stored nor used.
+   */
+  readonly consumed: ResourceStores;
   /** What the crew breathed, drank and ate this sol. */
   readonly used: { readonly oxygen: number; readonly water: number; readonly food: number };
   /** The main activity for this sol, or null when the sol was spent on a crisis. */

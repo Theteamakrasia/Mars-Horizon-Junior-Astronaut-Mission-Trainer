@@ -31,9 +31,9 @@ import { makeInspection, type Inspection } from '../../ui/activityPlayer';
 import { guideButton, guidePanel } from '../../ui/guide';
 import { ENGINE_NAME, engineUnlocked, type EngineKind } from '../../sim/minigames';
 import { visibleForecast } from '../../sim/forecast';
-import { siteScore, regionById, SITE_AXES } from '../../sim/regions';
+import { siteScore } from '../../sim/regions';
 import { advanceSol, decide, powerPicture, WIN_SOL } from '../../sim/sol';
-import { gamePanel, gameScreen, gameSection, gameWorld, moduleArt, moduleFigures, type HudStat, type SignalCard } from '../../ui/gameLoop';
+import { gamePanel, gameScreen, gameSection, gameWorld, keepScroll, moduleArt, moduleFigures, type HudStat, type SignalCard } from '../../ui/gameLoop';
 import { icon, RANK_ICON, RESOURCE_ICON, type IconName } from '../../ui/icons';
 import { nasaCard } from '../../ui/nasaCard';
 import { nasaFeedCard } from '../../ui/nasaFeedCard';
@@ -45,12 +45,11 @@ import { sheet, sheetCloseButton } from '../../ui/sheet';
 import { applyTrainingRecord, openTrainingGame, trainingSection, type TrainingGameScreen } from '../../ui/training';
 import { TRAINING_DAILY_LIMIT, canStartTraining, trainingUnlocked, type TrainingGameId } from '../../sim/training';
 
-import { activityRows, boardRows, changeRows, deskNote, hubTiles, meterRows, missionHeadline, orderChecks, powerSentence, powerToday, roverDocument, scienceSummary, secondsLeft, type HubSection, type HubTile } from './model';
+import { activityRows, boardRows, changeRows, ledgerRows, deskNote, hubTiles, lastPowerLine, meterRows, missionHeadline, orderChecks, powerSentence, powerToday, roverDocument, scienceSummary, secondsLeft, type HubSection, type HubTile } from './model';
 
 import '../../styles/game-loop.css';
 import './act.css';
 
-const AXIS_NAMES: Readonly<Record<string, string>> = { water: 'Water', sun: 'Sun', terrain: 'Terrain', dust: 'Dust', temp: 'Warmth' };
 
 /** What the crew calls each forecast event. */
 const EVENT_NAME: Readonly<Record<Crisis['kind'], string>> = {
@@ -334,18 +333,20 @@ export function mountAct(
     const meters = meterRows(state);
     const power = powerToday(state);
 
-    /* The power card says what the crew can spend today, not what the
-       batteries hold. The batteries are drained through the night, so the
-       level at dawn is near zero even for a healthy outpost — and a card that
-       says "0%" while the player picks a 25 kWh activity reads as a broken
-       game. This is the number the activity prices come out of. */
+    /* The power card says what is in the batteries, because that is the store
+       every other meter stands for and the one that goes to zero. The day's
+       budget - the number the activity prices come out of - is the "For today"
+       mini card, a press away in the stats sheet. Showing the projection here
+       made this card a constant at battery capacity (ISS-078); showing only
+       the level left at dawn made it a constant at zero (ISS-060). */
+    const storedPercent = power.capacity > 0 ? Math.round((state.stores.power / power.capacity) * 100) : 0;
     const rows: HudStat[] = [
       {
         icon: 'bolt',
-        label: 'Power today',
-        value: `${power.available} kWh`,
-        percent: power.capacity > 0 ? Math.round((power.available / power.capacity) * 100) : 0,
-        tone: power.nightCovered ? 'ok' : 'bad',
+        label: `Power · ${power.capacity} kWh max`,
+        value: `${power.stored} kWh`,
+        percent: storedPercent,
+        tone: toneOf(meters[0]?.tone ?? 'ok'),
       },
       ...meters.slice(1).map((row) => ({
         icon: RESOURCE_ICON[row.name],
@@ -737,7 +738,7 @@ export function mountAct(
         { class: 'gl__mini' },
         h('span', { class: 'gl__mini-label' }, icon('bolt'), 'For today'),
         h('span', { class: 'gl__mini-value', text: `${today.available} kWh` }),
-        h('span', { class: 'gl__mini-detail', text: `of ${today.capacity} stored` }),
+        h('span', { class: 'gl__mini-detail', text: `after today's sun` }),
       ),
       h(
         'div',
@@ -796,6 +797,7 @@ export function mountAct(
 
     return [
       dayNightStrip(state),
+      lastPowerLine(state) === '' ? false : h('p', { class: 'gl__note', text: lastPowerLine(state) }),
       rows,
       science,
       h('p', { class: 'gl__note', text: powerSentence(power.generatedKw, power.storedKwh, power.nightDrainKw) }),
@@ -966,7 +968,39 @@ export function mountAct(
       );
     }
 
-    return [list, changes];
+    /* The books for the day: what each store made and what it used. The change
+       strip above says where each store went; this says why. */
+    const ledger = h(
+      'table',
+      { class: 'act-ledger' },
+      h('caption', { class: 'gl__label', text: `Sol ${last.sol}: made and used` }),
+      h(
+        'thead',
+        null,
+        h('tr', null, h('th', { scope: 'col', text: 'Resource' }), h('th', { scope: 'col', text: 'Made' }), h('th', { scope: 'col', text: 'Used' }), h('th', { scope: 'col', text: 'Change' })),
+      ),
+    );
+    const body = h('tbody');
+    const notes: string[] = [];
+
+    for (const row of ledgerRows(last)) {
+      body.append(
+        h(
+          'tr',
+          { 'data-tone': row.tone },
+          h('th', { scope: 'row' }, h('span', { class: 'act-change__label' }, icon(RESOURCE_ICON[row.name]), row.label)),
+          h('td', { class: 'act-ledger__made', text: row.made }),
+          h('td', { class: 'act-ledger__used', text: row.used }),
+          h('td', { class: 'act-ledger__change', text: row.change }),
+        ),
+      );
+
+      if (row.note !== '') notes.push(row.note);
+    }
+
+    ledger.append(body);
+
+    return [list, changes, ledger, ...notes.map((note) => h('p', { class: 'gl__note', text: note }))];
   }
 
   /* ---------------------------------------------------------------- the hub -- */
@@ -1236,8 +1270,6 @@ export function mountAct(
     const state = run;
     const crisis = pendingCrisis(state);
     const last = state.log[state.log.length - 1];
-    const region = regionById(state.regionId);
-    const score = siteScore(state.regionId);
 
     /* Keep the open sheet where the player left it: choosing an order or
        answering a find redraws the screen, and a sheet that jumped to the top
@@ -1246,12 +1278,17 @@ export function mountAct(
 
     if (scrolled !== null) sheetScroll = scrolled.scrollTop;
 
+    /* The panel scrolls too, and `replaceChildren` below destroys that
+       container. Recording the offset here and putting it back at the end of
+       the redraw is what stops the desk jumping to the top on every press,
+       toast and late-arriving forecast (ISS-080). */
+    const restoreScroll = keepScroll(mount);
+
     clockNodes = null;
 
     /* The site's own scores, on the picture where there is room for them.
        They used to be a line of text under the decision, where they read as
        one more paragraph. */
-    const siteHint = `${region ? region.name : 'Your site'}: ${SITE_AXES.map((axis) => `${AXIS_NAMES[axis]} ${score[axis]}/5`).join(' · ')}`;
 
     const world =
       crisis === null
@@ -1261,7 +1298,6 @@ export function mountAct(
             crew: last === undefined ? 'A sol is one Mars day. Ready for our first one?' : `Sol ${last.sol} is done. Ready for the next one?`,
             figures: moduleFigures(state.modules),
             showAstronaut: false,
-            hint: siteHint,
             signals: [scienceSignal(state)],
           })
         : gameWorld({
@@ -1347,6 +1383,9 @@ export function mountAct(
       pendingFocus.focus();
       pendingFocus = null;
     }
+
+    /* Last, so the focus calls above cannot drag the panel somewhere else. */
+    restoreScroll();
   }
 
   function notice(text: string, label: string, route: 'landing-site' | 'base'): void {

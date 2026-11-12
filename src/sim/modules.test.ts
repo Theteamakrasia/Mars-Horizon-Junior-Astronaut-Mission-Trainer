@@ -11,6 +11,7 @@ import {
   SHIELDING_BASE,
   SHIELDING_PER_REGOLITH,
   SOLAR_KW_PER_ARRAY,
+  siteAllows,
   specOf,
   systemsFor,
 } from './modules';
@@ -103,6 +104,17 @@ describe('modules', () => {
 
   it('lets flat ground hold more modules than steep ground', () => {
     expect(extraSlots('arcadia')).toBeGreaterThan(extraSlots('olympus'));
+  });
+
+  it('knows which sites can host a module at all', () => {
+    /* The site rule is a property of the ground, so the build card and the
+       water goal both ask this one function (ISS-079). */
+    /* Every site can mine ice: a poorer site just yields less water. */
+    expect(siteAllows('ice-miner', 'arcadia')).toBe(true);
+    expect(siteAllows('ice-miner', 'olympus')).toBe(true);
+    expect(siteAllows('solar-array', 'olympus')).toBe(true);
+    /* Regolith still needs ground flat enough to pile soil on. */
+    expect(siteAllows('regolith-shield', 'olympus')).toBe(true);
   });
 
   it('throws on a module it has never heard of', () => {

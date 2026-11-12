@@ -55,7 +55,7 @@ score. Everything else in the run is still in memory, exactly as it was (D-003).
 - `src/ui/icons.ts` — a padlock.
 - `tools/browser-check-training.mjs` — the check.
 - Docs: `AGENTS.md`, `README.md`, `docs/architecture.md`, `docs/game-flow.md`, and the team
-  record (D-073, TASK-096, and the progress log).
+  record (D-075, TASK-097, and the progress log).
 
 ## Validation
 

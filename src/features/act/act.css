@@ -882,6 +882,53 @@
   color: var(--gl-orange-deep);
 }
 
+/* ----------------------------------------------------------------- the ledger -- */
+
+.act-ledger {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: clamp(0.62rem, 0.8vw, 0.95rem);
+  font-weight: 800;
+}
+
+.act-ledger caption {
+  text-align: left;
+  padding-bottom: 0.3rem;
+}
+
+.act-ledger th,
+.act-ledger td {
+  padding: 0.3rem 0.5rem;
+  text-align: right;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--gl-line);
+}
+
+.act-ledger th:first-child {
+  text-align: left;
+}
+
+.act-ledger thead th {
+  color: var(--gl-muted);
+  font-size: 0.85em;
+}
+
+.act-ledger__made {
+  color: var(--gl-green);
+}
+
+.act-ledger__used {
+  color: var(--gl-orange-deep);
+}
+
+.act-ledger tr[data-tone='gain'] .act-ledger__change {
+  color: var(--gl-green);
+}
+
+.act-ledger tr[data-tone='cost'] .act-ledger__change {
+  color: var(--gl-orange-deep);
+}
+
 /* ------------------------------------------------------------------- the tool -- */
 
 /* The stars an inspection won. The empty ones stay, greyed, so three stars

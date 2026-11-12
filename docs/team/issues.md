@@ -11,7 +11,19 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
-| ISS-077 | The memory game compared the wrong two cards, so a matching pair was never a pair | high | agent | fixed | this branch |
+| ISS-089 | The memory game compared the wrong two cards, so a matching pair was never a pair | high | agent | fixed | this branch |
+| ISS-088 | The sol record kept only the net change per store, so the review could not say what a day made or used | medium | agent | fixed | this branch |
+| ISS-087 | The act screen's power card put the battery capacity first ("0 / 200 kWh"), so the number read as a constant | medium | agent | fixed | this branch |
+| ISS-086 | A redraw reset the scroll of the whole screen on narrow windows and zoomed browsers, because only the panel's scroll was kept | high | agent | fixed | this branch |
+| ISS-085 | The ice miner could not be built at Olympus Mons, and a greenhouse without one failed the water goal at every site | high | agent | fixed | this branch |
+| ISS-084 | One battery could not carry the lander's own load through a night, so power sat at 0 from sol 1 and never recovered | high | agent | fixed | this branch |
+| ISS-083 | The lander's solar array and battery bank were counted, but could not carry the outpost, so they looked uncounted | high | agent | fixed | this branch |
+| ISS-082 | The act screen never said why power sat at zero, so a bare outpost looked like a broken model | medium | agent | fixed | this branch |
+| ISS-081 | The build screen offered "Land & start sol 1" after the outpost had landed, and pressing it wiped the run | high | agent | fixed | this branch |
+| ISS-080 | The build screen rebuilt itself on every press, toast and forecast arrival, throwing the player back to the top | high | agent | fixed | this branch |
+| ISS-079 | The water goal said "No water source" whenever it failed, and never named the greenhouse or the ice miner | medium | agent | fixed | this branch |
+| ISS-078 | The power card saturated at battery capacity, so it read 200 kWh while the batteries were empty | high | agent | fixed | this branch |
+| ISS-077 | The build card hid the lander's solar array and battery, so it read 0 of 3 while the outpost had one | medium | agent | fixed | this branch |
 | ISS-076 | The sheet squashed what was inside it, so a NASA picture covered its own caption | medium | agent | fixed | this branch |
 | ISS-075 | The "Real data" section showed one picture, so the game looked like it owned one NASA picture | low | agent | fixed | this branch |
 | ISS-074 | The journey check never found the naming screen, so it could not fail and could not pass | medium | agent | fixed | this branch |
@@ -88,7 +100,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-## ISS-077 - The memory game compared the wrong two cards, so a matching pair was never a pair
+## ISS-089 - The memory game compared the wrong two cards, so a matching pair was never a pair
 
 - **Reported by:** the owner, 2026-11-12, playing the training on the local host. The
   screenshot showed two **identical** cards turned over and the score still reading
@@ -112,6 +124,116 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
   The browser check now reads the face of both cards of the pair the game takes away
   and asserts they are **the same face** — the check that would have failed.
 - **Status:** fixed.
+
+---
+
+## ISS-082 - The act screen never said why power sat at zero, so a bare outpost looked like a broken model
+
+- **Reported by:** user, 2026-11-11: "power sometimes drops to 0% right after Day 1. It doesn't
+  regenerate afterward either."
+- **Where:** `src/features/act/model.ts`, `src/features/act/view.ts`.
+- **Problem:** with the lander's one array and one battery the outpost needs 180 kWh to get
+  through a night and stores 100, so every sol ended with the batteries at zero. The screen
+  never said why: the sol's blackout and its generated-versus-used figures lived in the review
+  ledger, behind a tile the player had no reason to open.
+- **Cause:** the power model is right (ISS-061's balance is unchanged) and the reporting was
+  thin. A number that stays at zero with no explanation is indistinguishable from a bug.
+- **Fix:** the stats panel carries the last sol's power line - the blackout percentage when
+  there was one, the generated/used pair otherwise - so the day after sol 1 says what happened.
+- **Pre-existing:** yes, since the sol loop was built.
+
+---
+
+## ISS-081 - The build screen offered "Land & start sol 1" after the outpost had landed, and pressing it wiped the run
+
+- **Reported by:** user, 2026-11-11, as part of "the #/base page keeps refreshing or behaving
+  as if it's reloading".
+- **Where:** `src/features/base/view.ts`.
+- **Problem:** `#/base` can be reached again after the outpost has landed. The footer still said
+  "Land & start sol 1", and pressing it called `startOutpost`, which resets the sol, the stores,
+  the science and the log. A player who went back to look at the build lost the run with no
+  warning.
+- **Cause:** the screen assumed it was only ever reached before the landing.
+- **Fix:** when a run has already landed the button reads "Land again from sol 1" and the note
+  under it says the run resets. No confirmation dialog: `confirm` is banned (R-9).
+- **Pre-existing:** yes.
+
+---
+
+## ISS-080 - The build screen rebuilt itself on every press, toast and forecast arrival, throwing the player back to the top
+
+- **Reported by:** user, 2026-11-11: "the #/base page keeps refreshing... automatically
+  scrolling back to the top. This also happens after clicking certain elements."
+- **Where:** `src/features/base/view.ts` (`render`), `src/features/act/view.ts` (`render`).
+- **Problem:** every `render()` ended in `mount.replaceChildren(screen)`, which destroys
+  `.gl__scroll` - the only scroll container - so the panel returned to the top. That ran on
+  every `+`/`-` press, four seconds later when the toast timer fired, and again when the live
+  space-weather request landed. The act screen had the same rebuild and only preserved the
+  sheet's scroll, not the panel's.
+- **Cause:** the screen is drawn as one big tree and state changes are handled by drawing it
+  again. Correct output, wrong interaction.
+- **Fix:** `render()` records the scroll position and the focused control before replacing the
+  tree and restores both afterwards; the toast timer clears the toast node instead of
+  re-rendering. Same treatment on `act`. The same class as ISS-062, which was only fixed on the
+  screen it was reported against.
+- **Pre-existing:** yes.
+
+---
+
+## ISS-079 - The water goal said "No water source" whenever it failed, and never named the greenhouse or the ice miner
+
+- **Reported by:** user, 2026-11-11: "adding a greenhouse suggests that I need a water source,
+  but the water source doesn't count directly unless I have an Ice Miner. Also, in some
+  locations, I'm unable to select the Ice Miner at all."
+- **Where:** `src/features/base/model.ts` (`goalPreview`), `src/sim/modules.ts` (`siteAllows`).
+- **Problem:** the water goal's `why` was the fixed string "No water source". A greenhouse
+  drinks 3% of a tank a sol and only the ice miner refills it, so adding one turned the goal
+  from a tick to that sentence - which named neither the module that caused it nor the one that
+  would fix it. At Olympus the ice miner is unobtainable (water 2, the gate is 3) and nothing
+  connected the dead `+` to the failing goal.
+- **Cause:** one sentence for five different situations.
+- **Fix:** the goal computes its sentence from the build and the site: a greenhouse without a
+  miner names both, a site with no ice says so, and everything else quotes the sols left. The
+  site rule moved into `sim/modules.ts` as `siteAllows`, so the card and the goal cannot
+  disagree again.
+- **Pre-existing:** yes.
+
+---
+
+## ISS-078 - The power card saturated at battery capacity, so it read 200 kWh while the batteries were empty
+
+- **Reported by:** user, 2026-11-11: "the power value displayed at the top... is always fixed at
+  200 kWh. It doesn't update even when the actual power decreases."
+- **Where:** `src/features/act/model.ts` (`powerToday`), `src/features/act/view.ts` (`hudFor`).
+- **Problem:** the card showed `available`, a projection capped at `capacity`. On any calm sol
+  the panels refill the bank past capacity, so the number was the capacity - a constant - and
+  its bar was 100%. The true level was computed in `meterRows` and shown only inside the stats
+  sheet, so the two readings of the same store disagreed.
+- **Cause:** the fix for ISS-060 replaced the level with the projection rather than adding it.
+  The projection is what the activity prices come out of and belongs on the screen, but it is
+  not what is in the batteries.
+- **Fix:** the HUD card shows stored kWh against capacity, with the meter's percentage; the
+  projection stays on the "For today" mini card, worded as a maximum. `powerToday` also subtracts
+  the chosen activity's draw, which it had ignored, so the projection matches the sol step.
+- **Pre-existing:** yes, since ISS-060.
+
+---
+
+## ISS-077 - The build card hid the lander's solar array and battery, so it read 0 of 3 while the outpost had one
+
+- **Reported by:** user, 2026-11-11: "it already shows that I have one battery and one solar
+  array, but the game logic doesn't count them unless I purchase additional ones."
+- **Where:** `src/features/base/model.ts` (`buildCards`), `src/features/base/view.ts`.
+- **Problem:** the card drew `have / limit` - the extras the player added over the extras they
+  may add - so a solar array read `0 / 3` while the outpost had one. `total` was computed and
+  never drawn. The maths counted everything; the card denied it.
+- **Cause:** ISS-054 fixed a genuine limit mismatch by making both numbers count extras, which
+  left the lander's free copy represented nowhere on the card.
+- **Fix:** the stepper draws `total / maxCount` (`1 / 4`) and marks the copy that came with the
+  lander. `have` still drives `-`, so the lander's copy still cannot be removed.
+- **Pre-existing:** yes, since ISS-054.
+
+---
 
 ## ISS-076 - The sheet squashed what was inside it, so a NASA picture covered its own caption
 
@@ -1438,7 +1560,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 ---
 
-**Next free id: ISS-077.**
+**Next free id: ISS-089.**
 
 
 ---
@@ -1669,3 +1791,33 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
   unlocked tool and no build gate. That test is what stops it happening again.
 - **Pre-existing:** yes; the tools arrived with the desk loop and the schedule was never
   checked against the plan.
+
+## ISS-083 to ISS-087 - The same five play-test bugs, still there after ISS-077 to ISS-081
+
+The player reported five bugs that earlier entries said were fixed. Those fixes were real
+but reached only part of the cause.
+
+- **ISS-083 / ISS-084 (lander kit, power at 0).** The lander's solar array and battery were
+  counted, but life support plus the habitat drew 12 kW plus heating, which is 156 to 180 kWh
+  a night, against one 100 kWh bank. Every site ended sol 1 at 0 kWh and stayed there, so the
+  kit looked uncounted. `LOAD_KW` habitat 4 to 3 and life support 8 to 5, and
+  `BATTERY_KWH_PER_BANK` 100 to 150: the lander alone now carries a night at every site.
+- **ISS-085 (greenhouse and ice miner).** The ice miner required water 3 or more, so it was
+  dead at Olympus Mons. It is now buildable everywhere and yields by the site's ice. A
+  greenhouse drank 3% a sol with nothing refilling it, so life support now recycles most of
+  it. The water goal also blamed the greenhouse when the real cause was a blackout; it now
+  says which.
+- **ISS-086 (scroll to top).** At 68rem and narrower the panel stops scrolling and `.gl`
+  scrolls instead. `render()` saved only `.gl__scroll`. `keepScroll` in `ui/gameLoop.ts`
+  saves the screen, the panel and the page. Used by `base` and `act`.
+- **ISS-087 (power card).** The card read `stored / capacity kWh`. It now leads with the
+  stored kWh and puts the capacity in the label.
+
+## ISS-088 - The review showed the net change but not what each store made and used
+
+Audit: the sol arithmetic was correct, but `SolRecord` kept only `net` for four of the five
+stores, and `used.water` left out the greenhouse and electrolysis. `SolRecord` now carries
+`produced` and `consumed` for all five stores. Air, water, food and shielding satisfy
+`produced - consumed = net`; power satisfies `produced - consumed - powerWasted = net`. A test
+checks that on every sol at every site and several builds. The act screen's review sheet
+shows it as a Made / Used / Change table (`ledgerRows` in `features/act/model.ts`).
