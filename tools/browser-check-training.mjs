@@ -176,32 +176,60 @@ async function playAsteroids() {
 }
 
 /**
- * Find a pair of matching cards, and check that it is taken off the table.
+ * Find one pair of matching cards, and check that it is taken off the table.
  *
  * The faces are not in the markup until a card is turned over, so the check
- * turns cards over the way a player does and watches what the table does.
+ * turns cards over the way a player does and reads what each one is. The two
+ * faces of a pair the game takes away must be the **same face**: a game that
+ * compared the wrong cards would take away two cards that look different.
  */
 async function findAMemoryPair() {
   const count = async () => await ev(`document.querySelectorAll("#act .trn__face").length`);
-  const before = await count();
 
-  for (let i = 0; i < before; i += 1) {
-    for (let j = i + 1; j < before; j += 1) {
-      await ev(`(() => { const c = document.querySelectorAll("#act .trn__face")[${i}]; if (c) c.click(); })()`);
+  /* The pair is lit up for a moment and then taken off the table, so the
+     check waits longer than that before it counts the cards. */
+  const SETTLE_MS = 700;
+
+  for (let i = 0; i < 12; i += 1) {
+    for (let j = i + 1; j < 12; j += 1) {
+      const before = await count();
+
+      if (j >= before) continue;
+
+      /* Turn the first card over and read what it is. The board is drawn again
+         after the click, so the card is read from the new board. */
+      const first = await ev(`(() => {
+        const card = document.querySelectorAll("#act .trn__face")[${i}];
+        if (!card) return "";
+        card.click();
+        const after = document.querySelectorAll("#act .trn__face")[${i}];
+        return after ? after.getAttribute("aria-label") : "";
+      })()`);
       await sleep(120);
-      await ev(`(() => { const c = document.querySelectorAll("#act .trn__face")[${j}]; if (c) c.click(); })()`);
-      await sleep(500);
+
+      const second = await ev(`(() => {
+        const card = document.querySelectorAll("#act .trn__face")[${j}];
+        if (!card) return "";
+        card.click();
+        const after = document.querySelectorAll("#act .trn__face")[${j}];
+        return after ? after.getAttribute("aria-label") : "";
+      })()`);
+      await sleep(SETTLE_MS);
 
       const after = await count();
 
-      if (after < before) return { matched: true, before, after };
+      if (after < before) {
+        const hint = await ev(`document.querySelector("#act .trn__hint")?.textContent ?? ""`);
 
-      /* Not a pair: wait for them to turn back down and try another two. */
-      await sleep(600);
+        return { matched: true, before, after, first, second, hint };
+      }
+
+      /* Not a pair: they turn back down, and the check tries another two. */
+      await sleep(250);
     }
   }
 
-  return { matched: false, before, after: await count() };
+  return { matched: false, before: await count(), after: await count(), first: "", second: "", hint: "" };
 }
 
 /** Make sure the Standing orders sheet is open, so the training can be read. */
@@ -304,6 +332,8 @@ try {
       const pair = await findAMemoryPair();
 
       note("a matched pair is taken off the table", pair.matched === true, `${pair.before} cards, then ${pair.after}`);
+      note("and the two cards were the same face", pair.first === pair.second, `${pair.first} and ${pair.second}`);
+      note("and the player is told", pair.hint.includes("pair"), pair.hint);
     }
 
     await tap("#act .trn__close");
