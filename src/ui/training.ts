@@ -366,7 +366,12 @@ export function openTrainingGame(
   let current = options.run;
   let handle: TrainingGameHandle | null = null;
   let finished = false;
-  let round = 0;
+  /* Which play of the day this is. The board has to be a different one every
+     time: the crew is playing again, so the game deals again. The seed used
+     to be the sol and the game alone, so every play of the same game on the
+     same sol dealt the very same board and the game looked like it had not
+     reset (ISS-085). */
+  let round = trainingDay(current).games.find((row) => row.id === gameId)?.plays ?? 0;
 
   const status = h('span', { class: 'trn__status' });
   const area = h('div', { class: 'trn__area' });
@@ -467,7 +472,26 @@ export function openTrainingGame(
       done.push(h('p', { class: 'trn__done-unlocked', text: "Today's colony tasks are unlocked!" }));
     }
 
-    done.push(h('div', { class: 'trn__foot' }, again));
+    /* The same game can be played again while the day has a slot left: it is
+       the day's other play, and it pays again. The board is dealt afresh. */
+    const replay = canStartTraining(current, gameId).ok
+      ? h('button', { class: 'trn__btn', type: 'button', text: 'Play again' })
+      : null;
+
+    if (replay !== null) {
+      replay.addEventListener('click', () => {
+        round += 1;
+        finished = false;
+        body.replaceChildren(
+          h('p', { class: 'trn__instructions', text: instructions }),
+          area,
+          h('div', { class: 'trn__foot' }, restart, leave),
+        );
+        play();
+      });
+    }
+
+    done.push(h('div', { class: 'trn__foot' }, replay, again));
 
     body.replaceChildren(...done);
   }

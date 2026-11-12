@@ -423,20 +423,34 @@ describe('the main activity', () => {
     expect(busy.log[0]?.notes.join(' ')).toContain('not enough power');
   });
 
-  it('starts a job the panels will pay for, even with an empty bank', () => {
-    /* The complaint the player brought: the bank is empty at dawn because the
-       night took it, and the job was refused even though the Sun was about to
-       make 258 kWh. The job is paid for out of the day, not out of the dark
-       (ISS-083). */
+  it('pays for the day\'s work out of the daylight, not out of the reserve', () => {
+    /* The bug the player reported: the job was charged after the batteries
+       had filled, so the surplus had already spilled and every kWh the crew
+       spent came straight out of the night's reserve. The bank fell a little
+       further every sol until it was zero, and the electricity went nowhere
+       (ISS-084). */
     const bare = outpost('jezero', []);
-    const empty = withState(bare, { stores: { ...bare.stores, power: 0 } });
+    const quiet = advanceSol(bare);
+    const worked = advanceSol(withState(bare, { chosenActivity: 'mend-suits' }));
 
-    const busy = advanceSol(withState(empty, { chosenActivity: 'survey' }));
+    /* Both sols end with the same bank: the job was paid for by the
+       daylight, which was surplus anyway. */
+    expect(worked.stores.power).toBe(quiet.stores.power);
+    expect(quiet.stores.power).toBeGreaterThan(0);
+  });
 
-    expect(busy.log[0]?.activity?.id).toBe('survey');
-    /* The bank was empty at dawn, so the night was a little short - but the
-       job ran, which is the whole point. */
-    expect(busy.log[0]?.blackout ?? 1).toBeLessThan(0.05);
+  it('does not lose the reserve sol after sol', () => {
+    /* A calm run: the forecast rolled for the test seed has a storm in it,
+       and two sols with the panels folded are meant to drain the bank. */
+    let state = withState(outpost('jezero', []), { forecast: [] });
+
+    for (let sol = 0; sol < 5; sol += 1) {
+      state = advanceSol(withState(state, { chosenActivity: 'mend-suits' }));
+    }
+
+    /* The bank settles at what the night needs and stays there. */
+    expect(state.stores.power).toBe(30);
+    expect(state.log.every((record) => record.blackout === 0)).toBe(true);
   });
 
   it('spends the activity power when the batteries can afford it', () => {

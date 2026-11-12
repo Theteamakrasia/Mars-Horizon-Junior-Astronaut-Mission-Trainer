@@ -383,20 +383,25 @@ export function mountAct(
     const meters = meterRows(state);
     const power = powerToday(state);
 
-    /* The power card says what is in the batteries, because that is the store
-       every other meter stands for and the one that goes to zero. The day's
-       budget - the number the activity prices come out of - is the "For today"
-       mini card, a press away in the stats sheet. Showing the projection here
-       made this card a constant at battery capacity (ISS-078); showing only
-       the level left at dawn made it a constant at zero (ISS-060). */
-    const storedPercent = power.capacity > 0 ? Math.round((state.stores.power / power.capacity) * 100) : 0;
+    /*
+     * The power card is the odd one out, and it used to be the one card that
+     * lied. The batteries are drained overnight and refilled by the Sun, so
+     * the level in the bank is at its lowest at dawn: a card that showed it
+     * read "18 of 150 kWh, 12%" every single morning of the run, and the
+     * player was right to say the electricity was always nearly gone (ISS-084).
+     *
+     * So the card shows the day instead: what the Sun makes, and what is
+     * spare over what the outpost needs. The level in the bank is in the
+     * stats sheet, where it belongs.
+     */
     const rows: HudStat[] = [
       {
         icon: 'bolt',
-        label: `Power · ${power.capacity} kWh max`,
-        value: `${power.stored} kWh`,
-        percent: storedPercent,
-        tone: toneOf(meters[0]?.tone ?? 'ok'),
+        label: `Power · ${power.generated} kWh today`,
+        value: power.spare >= 0 ? `+${power.spare} kWh spare` : `${Math.abs(power.spare)} kWh short`,
+        percent:
+          power.demand > 0 ? Math.min(100, Math.round((power.generated / power.demand) * 100)) : 0,
+        tone: power.spare < 0 ? 'bad' : power.nightCovered ? 'ok' : 'warn',
       },
       ...meters.slice(1).map((row) => ({
         icon: RESOURCE_ICON[row.name],
@@ -806,7 +811,7 @@ export function mountAct(
       row(
         'Night tonight',
         power.nightCovered
-          ? `${power.nightNeed} kWh · the bank covers it`
+          ? `${power.nightNeed} kWh · ${power.reserve} kWh spare`
           : `${power.nightNeed} kWh · the bank is short`,
         power.nightCovered ? 'ok' : 'warn',
       ),

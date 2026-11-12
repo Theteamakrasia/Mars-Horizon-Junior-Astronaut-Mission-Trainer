@@ -678,10 +678,13 @@ try {
   const crisis = await evaluate(`!!document.querySelector('#act .gl__choices')`);
   note('the sol ran', crisis || (await evaluate(`!!document.querySelector('#act .act-tile')`)));
 
-  // 13b. The power card reads the batteries, not the projection (ISS-078). A
-  //      bare outpost needs more than its battery holds to get through a
-  //      night, so after one sol the store - and the card - are at zero, and
-  //      the meter's percentage agrees. The old card was a constant 200 kWh.
+  // 13b. The power card reads the day, not the level in the batteries
+  //      (ISS-084). The batteries are drained overnight and refilled by the
+  //      Sun, so the level in the bank is at its lowest at dawn: a card that
+  //      showed it read "12%" every morning of the run, and the player was
+  //      right to say the electricity was always nearly gone. The card shows
+  //      what the Sun makes and what is spare over what the outpost needs,
+  //      and the bar says what share of the outpost's power the panels make.
   const powerCard = await evaluate(`(() => {
     const stat = [...document.querySelectorAll('#act .gl__stat')]
       .find((s) => (s.querySelector('.gl__stat-label')?.textContent ?? '').startsWith('Power'));
@@ -692,19 +695,20 @@ try {
     };
   })()`);
 
-  note('the act power card reads the stored kWh', /^\d+ kWh$/.test(powerCard?.value ?? ''), `${powerCard?.label || 'no card'} = ${powerCard?.value || 'nothing'}`);
-  /* The bar and the number have to agree with each other, whatever the
-     balance is: the card says how much is stored, and the bar says how much
-     of the capacity that is. (It used to say a bare outpost reads empty,
-     which stopped being true when the lander's battery was sized to carry a
-     night - ISS-083.) */
-  const stored = Number((powerCard?.value ?? '').replace(/[^\d]/g, ''));
-  const capacity = Number((powerCard?.label.match(/(\d+) kWh max/)?.[1] ?? '0'));
+  note(
+    'the act power card reads the day\'s power',
+    /kWh today/.test(powerCard?.label ?? '') && /kWh/.test(powerCard?.value ?? ''),
+    `${powerCard?.label || 'no card'} = ${powerCard?.value || 'nothing'}`,
+  );
+  /* The card says the same thing in kWh: what the Sun made, and what is
+     spare over what the outpost needs. */
+  const made = Number((powerCard?.label.match(/(\d+) kWh today/)?.[1] ?? '0'));
 
   note(
-    'and the bar agrees with the number on the card',
-    capacity > 0 && powerCard?.meter === String(Math.round((stored / capacity) * 100)),
-    `${stored} of ${capacity} kWh = ${powerCard?.meter ?? '?'}%`,
+    'and the card says what is spare, not just what is there',
+    made > 0 &&
+      ((powerCard?.value ?? '').includes('spare') !== (powerCard?.value ?? '').includes('short')),
+    `${made} kWh made · ${powerCard?.value ?? 'nothing'} · ${powerCard?.meter ?? '?'}% of the need`,
   );
 
   /* The forecast's timetable is rolled per page load (D-048), so a crisis

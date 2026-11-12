@@ -57,6 +57,8 @@ export interface TodayPower {
   readonly spendable: number;
   /** kWh the night needs from the batteries. */
   readonly nightNeed: number;
+  /** kWh the bank would hold after the night, if nothing is spent today. */
+  readonly reserve: number;
   /** True when the batteries still cover the night. */
   readonly nightCovered: boolean;
 }
@@ -73,6 +75,7 @@ export function powerToday(run: RunState): TodayPower {
     capacity: Math.round(budget.capacityKwh),
     spendable: Math.round(budget.spendableKwh),
     nightNeed: Math.round(budget.nightNeedKwh),
+    reserve: Math.round(budget.reserveKwh),
     nightCovered: budget.nightCovered,
   };
 }

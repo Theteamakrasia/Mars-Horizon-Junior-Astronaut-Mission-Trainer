@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { CORE_MODULES, systemsFor } from './modules';
-import { canAffordKwh, CRISIS_CHOICE, CRISIS_DEFAULT, keepsTheNight, powerBudget } from './powerBudget';
+import { canAffordKwh, CRISIS_CHOICE, CRISIS_DEFAULT, keepsTheNight, nightCoverAfterJob, powerBudget } from './powerBudget';
 import { newRun, startOutpost, withState, type RunState } from './run';
 
 /**
@@ -155,17 +155,19 @@ describe('the power budget', () => {
 });
 
 describe('what a job may cost', () => {
-  it('is the level the batteries will hold at dusk', () => {
+  it('is the energy the sol has in hand', () => {
     const run = outpost('jezero');
     const budget = powerBudget(run);
 
-    expect(budget.spendableKwh).toBe(150);
+    /* 150 in the bank, 258 made, 132 drawn by day: 288 to spend. */
+    expect(budget.spendableKwh).toBeCloseTo(288, 6);
     expect(canAffordKwh(run, 25)).toBe(true);
   });
 
-  it('is what the panels will add on top of the bank', () => {
+  it('counts the panels as well as the bank, so an empty bank is not a no', () => {
     /* The bank is empty at dawn because the night took it, and the Sun was
-       about to make 258 kWh. The job is paid for out of the day. */
+       about to make 258 kWh. The job is paid for out of the daylight, so the
+       jobs still run. */
     const empty = withState(outpost('jezero'), { stores: { ...outpost('jezero').stores, power: 0 } });
 
     expect(canAffordKwh(empty, 25)).toBe(true);
@@ -178,19 +180,37 @@ describe('what a job may cost', () => {
     expect(canAffordKwh(dark, 0)).toBe(true);
   });
 
-  it('never offers more than the batteries can hold', () => {
+  it('keeps the reserve whole when the job is inside the sol\'s spare', () => {
+    /* The bug the player reported: the job was charged after the batteries
+       had filled, so the surplus had already spilled and every kWh came out
+       of the night's reserve. The bank fell a little further every sol. */
     const run = outpost('jezero');
     const budget = powerBudget(run);
 
-    expect(budget.spendableKwh).toBeLessThanOrEqual(budget.capacityKwh);
+    expect(budget.reserveKwh).toBe(30);
+    /* The bank is full, so the surplus covers the job and the reserve is
+       untouched. */
+    expect(nightCoverAfterJob(budget, 8)).toBe(30);
+    expect(nightCoverAfterJob(budget, 25)).toBe(30);
+  });
+
+  it('takes the reserve when the bank is not full enough to cover the job', () => {
+    /* The steady state: the bank holds what the night needs and no more, so
+       a job over the sol's spare comes straight out of the reserve. */
+    const spent = withState(outpost('jezero'), { stores: { ...outpost('jezero').stores, power: 30 } });
+    const budget = powerBudget(spent);
+
+    expect(budget.reserveKwh).toBe(30);
+    expect(nightCoverAfterJob(budget, 8)).toBe(30);
+    expect(nightCoverAfterJob(budget, 25)).toBeCloseTo(23, 6);
   });
 
   it('says whether the night survives the job', () => {
     const run = outpost('jezero');
     const budget = powerBudget(run);
 
-    /* 150 in the bank, 120 for the night: a 25 kWh job leaves 125. */
+    /* 150 in the bank, 120 for the night: the reserve is 30. */
     expect(keepsTheNight(budget, 25)).toBe(true);
-    expect(keepsTheNight(budget, 140)).toBe(false);
+    expect(keepsTheNight(budget, 200)).toBe(false);
   });
 });

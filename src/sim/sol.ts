@@ -311,17 +311,26 @@ export function advanceSol(run: RunState): RunState {
 
   let unmet = 0;
 
-  let level = run.stores.power + generatedDay + (generatedNuclear / 2) - dayDraw;
+  /*
+   * The Sun comes up, the outpost draws all day, and the day's work is paid
+   * for out of what is left — before the batteries fill.
+   *
+   * The order matters, and it was wrong (ISS-084). The job used to be charged
+   * *after* the batteries had filled, so the surplus had already spilled and
+   * every kWh the crew spent came straight out of the night's reserve: the
+   * bank fell a little further every sol and ended up at zero, with a small
+   * blackout every sol after that. The player was right - the electricity was
+   * going nowhere.
+   *
+   * The job runs while the Sun is up, so it is paid for by the daylight. What
+   * the batteries keep is the night's reserve, and the surplus that does not
+   * fit is what spills.
+   */
+  let level = run.stores.power + generatedDay + (generatedNuclear / 2) - dayDraw - extraPowerCost;
   const wasted = Math.max(0, level - capacity);
 
   level = Math.min(capacity, level);
 
-  if (level < 0) {
-    unmet += -level;
-    level = 0;
-  }
-
-  level -= extraPowerCost;
   if (level < 0) {
     unmet += -level;
     level = 0;

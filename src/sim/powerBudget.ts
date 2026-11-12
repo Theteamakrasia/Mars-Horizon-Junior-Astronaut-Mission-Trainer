@@ -86,18 +86,53 @@ export interface PowerBudget {
    * numbers below it say what today looks like.
    */
   readonly spareKwh: number;
+  /**
+   * The same balance on a clear day.
+   *
+   * `spareKwh` counts the dust storm that is over the panels today, which
+   * makes a site in credit look short. This one does not, so it is the
+   * number that says whether the *build* is sound.
+   */
+  readonly siteSpareKwh: number;
   /** kWh in the batteries now. */
   readonly storedKwh: number;
   /** kWh the batteries hold. */
   readonly capacityKwh: number;
   /**
-   * kWh the batteries will hold at dusk if nothing is spent.
+   * kWh a job may cost today.
    *
-   * A job is paid out of this, so it is also the most a job may cost. It is
-   * capped by what the batteries can hold: sunlight made with nowhere to go is
-   * spilled, and the player is told about it in the receipt.
+   * The energy the sol has in hand: the bank at dawn, plus what the panels
+   * make, less what the outpost draws all day. The day's work is paid out of
+   * this, and the batteries keep the night's worth.
+   *
+   * It is the gate for every price in the game, and it is what the desk
+   * shows, so the two cannot disagree (ISS-084). Zero when the day cannot
+   * pay for anything at all.
    */
   readonly spendableKwh: number;
+  /**
+   * kWh the daylight has left once the outpost has drawn all day.
+   *
+   * The same number as `spendableKwh` before it is floored at zero: negative
+   * means the day does not even cover the outpost's own draw.
+   */
+  readonly dayLeftKwh: number;
+  /**
+   * kWh the bank will hold at dusk, if nothing is spent today.
+   *
+   * What the reserve is worth, in the number the player can compare a job
+   * against.
+   */
+  readonly duskKwh: number;
+  /**
+   * kWh of the bank that is left over after the night has taken its share.
+   *
+   * Zero when the night is already short, and `nightShortKwh` says by how
+   * much.
+   */
+  readonly reserveKwh: number;
+  /** kWh the night is short by, if it is short. */
+  readonly nightShortKwh: number;
   /** True when the night is covered without spending anything today. */
   readonly nightCovered: boolean;
   /** True when the greenhouse is paused for this sol. */
@@ -149,10 +184,14 @@ export function powerBudget(run: RunState): PowerBudget {
   const demandKwh = loadKw * (SUN_HOURS + NIGHT_HOURS);
   const capacityKwh = systems.batteryKwh;
 
-  /* What the batteries hold at dusk: the level at dawn, plus what the panels
-     made, less what the outpost drew all day, capped by what they can hold. */
-  const dusk = Math.min(capacityKwh, run.stores.power + solarKwh + nuclearKwh / 2 - dayNeedKwh);
-  const spendableKwh = capacityKwh <= 0 ? 0 : Math.max(0, dusk);
+  /* What the daylight leaves once the outpost has drawn all day: the bank as
+     it was, plus what the panels made, less the day's draw. The day's work is
+     paid out of this, and the batteries keep the night's worth. */
+  const dayLeft = run.stores.power + solarKwh + nuclearKwh / 2 - dayNeedKwh;
+
+  /* What the bank will hold at dusk, and what is left of it after the night.
+     These are the same numbers the sol step works with, in the same order. */
+  const dusk = Math.max(0, Math.min(capacityKwh, dayLeft));
 
   return {
     solarKwh,
@@ -162,22 +201,42 @@ export function powerBudget(run: RunState): PowerBudget {
     demandKwh,
     nightNeedKwh,
     spareKwh: solarKwh + nuclearKwh - demandKwh,
+    siteSpareKwh:
+      systems.solarKw * systems.sunFactor * run.panelHealth * SUN_HOURS + nuclearKwh - demandKwh,
     storedKwh: run.stores.power,
     capacityKwh,
-    spendableKwh,
-    nightCovered: spendableKwh >= nightNeedKwh,
+    spendableKwh: Math.max(0, dayLeft),
+    dayLeftKwh: dayLeft,
+    duskKwh: dusk,
+    reserveKwh: Math.max(0, dusk - nightNeedKwh),
+    nightShortKwh: Math.max(0, nightNeedKwh - dusk),
+    nightCovered: dusk >= nightNeedKwh,
     greenhousePaused,
   };
 }
 
 /**
- * What the batteries would have at dusk after a job of this size is paid for.
+ * What the night will be left with after a job of this size is paid for.
  *
- * The job is paid out of the dusk level, so this is the number the night's
- * reserve has to come out of.
+ * Positive means the bank still covers the night and the number is what it
+ * has to spare; negative means the night is short by that much. The job is
+ * paid out of the daylight, so when the bank is full the surplus covers it
+ * and the night is none the worse.
+ */
+export function nightCoverAfterJob(budget: PowerBudget, costKwh: number): number {
+  const dusk = Math.max(0, Math.min(budget.capacityKwh, budget.dayLeftKwh - costKwh));
+
+  return dusk - budget.nightNeedKwh;
+}
+
+/**
+ * What the night would have left after a job of this size is paid for.
+ *
+ * The job is paid out of the daylight, so when the bank is full the surplus
+ * covers it and the night is none the worse.
  */
 export function afterJob(budget: PowerBudget, costKwh: number): number {
-  return Math.max(0, budget.spendableKwh - costKwh);
+  return nightCoverAfterJob(budget, costKwh);
 }
 
 /**
@@ -186,6 +245,9 @@ export function afterJob(budget: PowerBudget, costKwh: number): number {
  * The one rule for every price in the game: a job, a crisis option and a
  * training game are all checked against the same number, so the screen can
  * never offer something the run cannot pay for.
+ *
+ * The night's reserve is a warning and never a lock: a job that breaks the
+ * night is allowed, and the card says what the night would be afterwards.
  */
 export function canAffordKwh(run: RunState, costKwh: number): boolean {
   return costKwh <= powerBudget(run).spendableKwh;
@@ -195,8 +257,9 @@ export function canAffordKwh(run: RunState, costKwh: number): boolean {
  * True when paying this many kWh still leaves the night covered.
  *
  * The night is a warning and never a lock: the player may spend the reserve,
- * but the card says what the reserve will be afterwards.
+ * sometimes that is the right call, but the card says what the reserve will
+ * be afterwards.
  */
 export function keepsTheNight(budget: PowerBudget, costKwh: number): boolean {
-  return afterJob(budget, costKwh) >= budget.nightNeedKwh;
+  return nightCoverAfterJob(budget, costKwh) >= 0;
 }

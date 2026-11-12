@@ -17,7 +17,7 @@
 import type { ScienceGoal } from './goals';
 import type { EngineKind } from './minigames';
 import type { ModuleKind } from './modules';
-import { canAffordKwh, powerBudget } from './powerBudget';
+import { canAffordKwh, nightCoverAfterJob, powerBudget } from './powerBudget';
 import type { ResourceStores } from './resources';
 import type { RunState } from './run';
 import type { ScienceTopic } from './topics';
@@ -385,11 +385,10 @@ export function planForSol(sol: number): SolPlan | null {
 /**
  * True when the batteries can pay for this job right now.
  *
- * The job is paid for out of what the batteries will hold at the end of the
- * day, not out of the sunlight that arrives during it — but that sunlight is
- * in the number, because the panels fill the batteries while the outpost
- * draws from them. So a job is affordable when the day's panels and the
- * batteries in store can pay for it.
+ * The job is paid for out of the energy the sol has in hand: the bank at
+ * dawn, plus what the panels make, less what the outpost draws all day. The
+ * night's reserve is a warning and never a lock — the card says what the
+ * night would be afterwards.
  *
  * It is the same rule as a crisis option and the same number the desk shows.
  */
@@ -421,10 +420,21 @@ export function lockedReason(spec: ActivitySpec, run: RunState): string | null {
    * what there is to spend and what the night will need — so the player can
    * see how far off they are.
    *
+   * At a site that cannot pay for itself, the useful sentence is not about
+   * today's price. It is that the outpost is short every sol, and what would
+   * fix it.
+   *
    * `rest` costs nothing, so this can never leave the day with no choice.
    */
   if (!canAfford(spec, run)) {
     const budget = powerBudget(run);
+
+    if (budget.siteSpareKwh < 0) {
+      return (
+        `The outpost is ${Math.abs(Math.round(budget.siteSpareKwh))} kWh short every sol, so there is nothing to spend. ` +
+        'Another solar array would fix it.'
+      );
+    }
 
     return (
       `This job needs ${spec.powerCostKwh} kWh. You can spend ${Math.round(budget.spendableKwh)} kWh today, ` +
@@ -436,23 +446,34 @@ export function lockedReason(spec: ActivitySpec, run: RunState): string | null {
 }
 
 /**
- * The warning a job carries when paying for it would break the night's
+ * The warning a job carries when paying for it would eat into the night's
  * reserve, or null when it would not.
  *
- * The night is a warning and never a lock. The player may spend the reserve —
- * sometimes that is the right call — but the card says what the reserve will
- * be afterwards, because a bank that is 24 kWh short at midnight is how a run
- * ends.
+ * A job the daylight can cover on its own leaves the reserve alone, and so
+ * does one that costs less than the sol's spare. One that comes out of the
+ * reserve gets a warning: the night is a warning and never a lock, but the
+ * card says what the reserve would be afterwards.
  */
 export function nightWarning(spec: ActivitySpec, run: RunState): string | null {
   if (spec.powerCostKwh === 0) return null;
 
   const budget = powerBudget(run);
-  const left = Math.max(0, budget.spendableKwh - spec.powerCostKwh);
+  const after = nightCoverAfterJob(budget, spec.powerCostKwh);
 
-  if (left >= budget.nightNeedKwh) return null;
+  if (budget.nightShortKwh > 0) {
+    /* The night is already short. The job makes it shorter, and the player
+       is told how much shorter. */
+    if (after >= -budget.nightShortKwh) return null;
 
-  return `Paying for this leaves ${Math.round(left)} kWh, and tonight needs ${Math.round(budget.nightNeedKwh)} kWh.`;
+    return `This job makes the night worse: it would be ${Math.round(-after)} kWh short instead of ${Math.round(budget.nightShortKwh)}.`;
+  }
+
+  if (after >= budget.reserveKwh) return null;
+
+  return (
+    `This job comes out of the night's reserve: the bank would hold ${Math.round(after)} kWh after the night ` +
+    `instead of ${Math.round(budget.reserveKwh)}.`
+  );
 }
 
 /** An activity and whether the player may pick it right now. */

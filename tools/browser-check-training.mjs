@@ -400,6 +400,45 @@ try {
   note("the points are still on the score", after.science !== "", after.science);
   note("the science score did not go back to nothing", after.science === before.science, `${before.science} then ${after.science}`);
 
+  console.log("9 the same game again, on the next sol");
+  /* The day's training starts again with the sol, so the replay is tested on
+     a clean day: the same game twice, and the board has to be a new one - the
+     crew is playing again, so the game deals again (ISS-085). */
+  await tap('#act .act-tile[data-tile="tasks"]');
+  await sleep(700);
+  await ev(`(() => { const card = [...document.querySelectorAll("#act .act-order")].find((c) => !c.disabled); if (card) card.click(); })()`);
+  await sleep(600);
+  await ev(`(() => { const b = [...document.querySelectorAll("#act button")].find((n) => n.textContent.includes("Run sol")); if (b) b.click(); })()`);
+  await sleep(1800);
+
+  await tap('#act .act-tile[data-tile="orders"]');
+  await sleep(700);
+  const nextSol = await trainingState();
+  note("the next sol starts the training again", nextSol.count.includes("0/2"), nextSol.count);
+
+  note("the cargo round opened", (await playCard("Cargo Sorting")) === true);
+  const firstBoard = await ev(`[...document.querySelectorAll("#act .trn__crate")].map((n) => n.getAttribute("aria-label")).join(",")`);
+  note("the cargo round was won", (await playCargo()) === true);
+  await tap("#act .trn__btn--primary");
+  await sleep(800);
+
+  await tap('#act .act-tile[data-tile="orders"]');
+  await sleep(700);
+  note("the same game opens again", (await playCard("Cargo Sorting")) === true);
+  const secondBoard = await ev(`[...document.querySelectorAll("#act .trn__crate")].map((n) => n.getAttribute("aria-label")).join(",")`);
+  note("and it deals a new board", firstBoard !== secondBoard, `${firstBoard} then ${secondBoard}`);
+  note("the second play was won too", (await playCargo()) === true);
+  const paidAgain = await ev(`document.querySelector("#act .trn__done-points")?.textContent ?? ""`);
+  note("and it paid again", /^\+\d+ POINTS$/.test(paidAgain), paidAgain);
+  await tap("#act .trn__btn--primary");
+  await sleep(900);
+
+  const replayed = await trainingState();
+  note("the day is two games on", replayed.count.includes("2/2"), replayed.count);
+  note("the tasks are open", replayed.tasksLocked === "false", replayed.tasks);
+  const card = await ev(`(() => { const c = [...document.querySelectorAll("#act .trn__card")].find((x) => x.querySelector(".trn__card-name")?.textContent === "Cargo Sorting"); return (c?.textContent ?? "").replace(/\\s+/g, " "); })()`);
+  note("the card says it was played twice", card.includes("2×"), card.trim());
+
   console.log("ERRORS: " + (errors.length === 0 ? "none" : errors.slice(0, 4).join(" | ")));
   const failed = notes.filter((n) => !n.ok);
 
