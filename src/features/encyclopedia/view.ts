@@ -13,6 +13,7 @@
 import { h } from '../../dom/h';
 import { navigate } from '../../ui/router';
 import { gameScreen, gamePanel, moduleArt } from '../../ui/gameLoop';
+import { icon } from '../../ui/icons';
 import { entries, type EncyclopediaEntry } from './model';
 import type { RunState } from '../../sim/run';
 import { factFor, type NasaFact } from '../../data/nasaGallery';
@@ -34,7 +35,12 @@ export function mountEncyclopedia(
        the build screen; once the outpost stands it is the day, and sending a
        player mid-run to the build screen looks like a fresh start (ISS-072). */
     const midRun = run !== null && run.modules.length > 0;
-    const back = h('button', { class: 'gl__btn gl__btn--primary', type: 'button' }, midRun ? '← Back to the day' : '← Back to outpost');
+    const back = h(
+      'button',
+      { class: 'gl__btn gl__btn--primary' },
+      h('span', { class: 'gl__link-arrow gl__link-arrow--back', 'aria-hidden': 'true' }, icon('chevron')),
+      midRun ? ' Back to the day' : ' Back to outpost',
+    );
     back.addEventListener('click', () => navigate(midRun ? 'act' : 'base'));
 
     const panel = gamePanel({
@@ -89,10 +95,12 @@ export function mountEncyclopedia(
         { class: 'enc__card-body' },
         h('h3', { class: 'enc__card-name', text: entry.name }),
         h('p', { class: 'enc__card-one-line', text: entry.oneLine }),
-        h('span', {
-          class: 'enc__card-cost',
-          text: entry.cost === 0 ? 'Free with lander' : `✦ ${entry.cost}`,
-        }),
+        h(
+          'span',
+          { class: 'enc__card-cost' },
+          entry.cost === 0 ? 'Free with lander' : icon('sparkle'),
+          entry.cost === 0 ? null : ` ${entry.cost}`,
+        ),
       ),
     );
 
@@ -123,8 +131,7 @@ export function mountEncyclopedia(
         class: 'enc__modal-close',
         type: 'button',
         'aria-label': 'Close details',
-        text: '✕',
-      }),
+      }, icon('close')),
       h('img', {
         class: 'enc__modal-art',
         src: moduleArt(entry.kind),

@@ -22,6 +22,7 @@ import { landAt, newRun, type RunState } from '../../sim/run';
 import { nextStop } from '../../ui/registry';
 import { navigate } from '../../ui/router';
 import { gameHeader } from '../../ui/gameLoop';
+import { icon } from '../../ui/icons';
 import { nasaCard } from '../../ui/nasaCard';
 import { h } from '../../dom/h';
 import { regionCard } from '../../data/nasaGallery';
@@ -294,8 +295,7 @@ export function mountLandingSite(
         class: 'landing-site__nasa-modal-close',
         type: 'button',
         'aria-label': 'Close NASA data',
-        text: '✕',
-      }),
+      }, icon('close')),
       card === null
         ? h('p', { text: 'No NASA data available for this region.' })
         : nasaCard(card, 'A real NASA picture'),

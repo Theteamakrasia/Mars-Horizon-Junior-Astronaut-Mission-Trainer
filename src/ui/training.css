@@ -243,9 +243,7 @@
   line-height: 1.15;
 }
 
-.trn__head-title .ico {
-  color: var(--gl-orange);
-}
+/* The title's picture carries its own colour now, so there is nothing to tint. */
 
 .trn__status {
   padding: 0.25em 0.7em;
@@ -458,8 +456,8 @@
 }
 
 .trn__tile .ico {
-  width: 70%;
-  height: 70%;
+  width: 100%;
+  height: 100%;
 }
 
 .trn__tile--1 { background: #dbe9f4; color: var(--gl-blue); }
@@ -490,8 +488,8 @@
 }
 
 .trn__face .ico {
-  width: 62%;
-  height: 62%;
+  width: 100%;
+  height: 100%;
 }
 
 .trn__face--open {
@@ -535,8 +533,8 @@
 }
 
 .trn__ground .ico {
-  width: 72%;
-  height: 72%;
+  width: 100%;
+  height: 100%;
 }
 
 .trn__ground--rock {
@@ -660,8 +658,8 @@
 }
 
 .trn__crate .ico {
-  width: clamp(16px, 1.8vw, 26px);
-  height: clamp(16px, 1.8vw, 26px);
+  width: clamp(20px, 2.4vw, 34px);
+  height: clamp(20px, 2.4vw, 34px);
 }
 
 .trn__crate-name {
@@ -698,8 +696,8 @@
 }
 
 .trn__ghost .ico {
-  width: clamp(20px, 2.2vw, 32px);
-  height: clamp(20px, 2.2vw, 32px);
+  width: clamp(26px, 2.9vw, 42px);
+  height: clamp(26px, 2.9vw, 42px);
 }
 
 .trn__stores {
@@ -733,8 +731,8 @@
 }
 
 .trn__store-title .ico {
-  width: 1.1em;
-  height: 1.1em;
+  width: clamp(15px, 1.7vw, 24px);
+  height: clamp(15px, 1.7vw, 24px);
 }
 
 .trn__store-items {
@@ -745,9 +743,8 @@
 }
 
 .trn__stored .ico {
-  width: clamp(13px, 1.4vw, 20px);
-  height: clamp(13px, 1.4vw, 20px);
-  color: var(--gl-green);
+  width: clamp(16px, 1.8vw, 26px);
+  height: clamp(16px, 1.8vw, 26px);
 }
 
 /* ------------------------------------------------------ asteroid defender -- */

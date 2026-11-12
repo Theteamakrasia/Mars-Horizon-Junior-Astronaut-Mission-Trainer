@@ -34,8 +34,8 @@ export interface ReadButtonOptions {
 export function readButton(getText: () => string, options: ReadButtonOptions = {}): HTMLButtonElement | null {
   if (!canReadAloud()) return null;
 
-  const idle = options.idleLabel ?? '🔊 Read aloud';
-  const stop = options.stopLabel ?? '⏹ Stop reading';
+  const idle = options.idleLabel ?? 'Read aloud';
+  const stop = options.stopLabel ?? 'Stop reading';
   const aria = options.ariaLabel ?? 'Read this screen aloud';
 
   const button = h('button', { class: options.className ?? 'gl__calm', type: 'button' });

@@ -68,10 +68,17 @@ const GAME_MOUNT: Readonly<Record<TrainingGameId, TrainingGameMount>> = {
 };
 
 /** What each band is called on the completion screen. */
-const PERFORMANCE_LABEL: Readonly<Record<TrainingPerformance, string>> = {
-  excellent: 'Excellent! ⭐⭐⭐',
-  good: 'Good work! ⭐⭐',
-  basic: 'Done ⭐',
+const PERFORMANCE_WORD: Readonly<Record<TrainingPerformance, string>> = {
+  excellent: 'Excellent!',
+  good: 'Good work!',
+  basic: 'Done',
+};
+
+/** How many stars each band is worth. */
+const PERFORMANCE_STARS: Readonly<Record<TrainingPerformance, number>> = {
+  excellent: 3,
+  good: 2,
+  basic: 1,
 };
 
 /** Where the record of the day's training is written. */
@@ -256,9 +263,14 @@ export function trainingSection(
           }),
         ),
         status === 'completed'
-          ? h('p', { class: 'trn__card-done', text: `Completed ✓ · ${row?.points ?? 0} points earned` })
+          ? h(
+              'p',
+              { class: 'trn__card-done' },
+              icon('check'),
+              ` Completed · ${row?.points ?? 0} points earned`,
+            )
           : status === 'locked'
-            ? h('p', { class: 'trn__card-locked', text: '🔒 Locked — two games are done today' })
+            ? h('p', { class: 'trn__card-locked' }, icon('lock'), ' Locked — two games are done today')
             : null,
         button,
       );
@@ -336,7 +348,7 @@ export function openTrainingGame(
   const head = h('header', { class: 'trn__head' }, title, status, close);
 
   const restart = h('button', { class: 'trn__btn', type: 'button' }, '↻ Restart');
-  const leave = h('button', { class: 'trn__btn', type: 'button' }, '✕ Exit');
+  const leave = h('button', { class: 'trn__btn', type: 'button' }, 'Exit');
 
   const panel = h('div', { class: 'trn__panel', role: 'dialog', 'aria-modal': 'true', 'aria-label': gameName });
   const backdrop = h('div', { class: 'trn__backdrop' }, panel);
@@ -406,7 +418,12 @@ export function openTrainingGame(
       h('div', { class: 'trn__done-icon', 'aria-hidden': 'true' }, icon('star')),
       h('h3', { class: 'trn__done-title', text: 'TRAINING COMPLETED!' }),
       h('p', { class: 'trn__done-text', text: winMessage }),
-      h('p', { class: 'trn__done-perf', text: PERFORMANCE_LABEL[outcome.performance] }),
+      h(
+        'p',
+        { class: 'trn__done-perf' },
+        PERFORMANCE_WORD[outcome.performance],
+        ...Array.from({ length: PERFORMANCE_STARS[outcome.performance] }, () => icon('star')),
+      ),
       h('p', { class: 'trn__done-points', text: `+${outcome.points} POINTS` }),
       h('p', { class: 'trn__done-progress', text: `Daily progress: ${outcome.completedCount}/${outcome.dailyLimit} games completed` }),
     ];

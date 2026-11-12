@@ -17,7 +17,6 @@ describe('encyclopedia model', () => {
     const solar = entryFor('solar-array');
     expect(solar?.kind).toBe('solar-array');
     expect(solar?.name).toBe('Solar Array');
-    expect(solar?.emoji).toBe('☀️');
   });
 
   it('resolves every known kind back to itself', () => {

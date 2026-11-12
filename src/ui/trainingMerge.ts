@@ -7,7 +7,7 @@
  */
 
 import { h } from '../dom/h';
-import { icon, type IconName } from './icons';
+import { icon, RESOURCE_ICON, type IconName } from './icons';
 import {
   MERGE_LEVEL_NAMES,
   MERGE_SIZE,
@@ -21,8 +21,13 @@ import {
 } from '../sim/trainingMerge';
 import type { TrainingGameMount } from './trainingGame';
 
-/** The picture on each level of supply. */
-const LEVEL_ICON: readonly IconName[] = ['box', 'droplet', 'leaf', 'bolt', 'oxygen', 'home'];
+/**
+ * The picture on each level of supply.
+ *
+ * The four levels the crew climbs are the colony's own stores, so they wear
+ * the game's pictures: the same water, food, power and air the HUD shows.
+ */
+const LEVEL_ICON: readonly IconName[] = ['box', RESOURCE_ICON.water, RESOURCE_ICON.food, RESOURCE_ICON.power, RESOURCE_ICON.oxygen, 'home'];
 
 /** How far a finger has to travel before it counts as a swipe. */
 const SWIPE_DISTANCE = 24;

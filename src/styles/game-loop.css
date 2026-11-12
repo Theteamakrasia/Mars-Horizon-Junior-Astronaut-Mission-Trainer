@@ -144,6 +144,13 @@
   flex: 0 0 auto;
 }
 
+/* The rocket is a picture in a coloured square, so it is sized to leave the
+   orange showing around it rather than to fill the square edge to edge. */
+.gl__brand-mark .ico {
+  width: 82%;
+  height: 82%;
+}
+
 .gl__brand-text {
   display: flex;
   flex-direction: column;
@@ -773,6 +780,14 @@
   margin-left: auto;
 }
 
+/* The button's arrow is a picture now, and a narrow one: it keeps the mark
+   small enough to sit at the end of the words without crowding them. */
+.gl__btn-arrow .ico {
+  width: 1.15em;
+  height: 1.15em;
+  vertical-align: -0.2em;
+}
+
 .gl__link {
   display: inline-flex;
   align-items: center;
@@ -903,6 +918,9 @@
 
 .gl__cost {
   flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
   margin-left: auto;
   padding: 0 0.5em;
   border-radius: 999px;
