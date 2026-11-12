@@ -33,6 +33,11 @@ than a documented one.
   and a drawing module in `ui/` behind one shared contract: 113 new tests, and a
   headless-Chrome check that plays two of the games for real, refuses a third, and
   refreshes the page (37 checks).
+- **Took the owner's play-test on board.** A matched pair in Memory Match is now
+  **taken off the table** instead of lying there face up, and the asteroid round was
+  given **fifty seconds** instead of thirty, with the rocks coming more slowly at the
+  start and staying up longer: the round was being lost on the clock rather than on
+  the aim. The instructions now say what happens to a pair.
 
 **Files**
 
@@ -71,6 +76,10 @@ than a documented one.
   rank now measures the training as well as the work. The reward values were scaled
   down rather than the ladder changed, and the five numbers are the owner's to move
   (D-073).
+- **The memory game nearly lost its own win condition.** The win was "every card is in
+  the matched set", and the pairs now leave the table and leave that set behind — so
+  the count is a counter of pairs found, not the size of a set. Caught by reading the
+  code back after the change, before it was played.
 
 **Next**
 
