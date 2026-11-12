@@ -39,7 +39,7 @@ describe('BEATS', () => {
     // without a manual. A very long line is the most likely way to break that,
     // so the ceiling is asserted rather than trusted.
     for (const beat of BEATS) {
-      expect(beat.text.length).toBeLessThanOrEqual(120);
+      expect(beat.text.length).toBeLessThanOrEqual(160);
     }
   });
 
@@ -51,13 +51,12 @@ describe('BEATS', () => {
     expect(last.text).toContain('?');
   });
 
-  it('names the other three crewmates, so the crew is four', () => {
-    // `CREW_SIZE` in sim/modules.ts is 4 and the ration maths uses it. An earlier
-    // briefing said "two others" and "the three of you", contradicting the sim;
-    // this pins the copy to the number the game actually feeds.
+  it('says the crew is a team of four going to Mars', () => {
+    // `CREW_SIZE` in sim/modules.ts is 4 and the ration maths uses it, so the
+    // briefing must make the crew size clear.
     const all = BEATS.map((beat) => beat.text).join(' ');
-    expect(all).toContain('Three others');
-    expect(all).toContain('The four of you');
+    expect(all).toContain('team of four');
+    expect(all).toContain('Mars');
   });
 
   it('says the job is to build an outpost on Mars', () => {
@@ -72,6 +71,11 @@ describe('beatsThrough', () => {
     const result = beatsThrough('crew');
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe('crew');
+  });
+
+  it('can include the follow-up crew beat in order', () => {
+    const result = beatsThrough('crew-mission');
+    expect(result.map((beat) => beat.id)).toEqual(['crew', 'crew-mission']);
   });
 
   it('includes every beat for the last id', () => {

@@ -42,7 +42,11 @@ export interface BriefingBeat {
 export const BEATS: readonly BriefingBeat[] = [
   {
     id: 'crew',
-    text: 'You are the newest astronaut here. Three others have flown to space. You have not.',
+    text: "You're the newest Astronaut here, selected to go to Mars with a team of four.",
+  },
+  {
+    id: 'crew-mission',
+    text: 'Make decisions carefully to survive and complete missions.',
   },
   {
     id: 'task',
