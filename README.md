@@ -138,7 +138,7 @@ The experience introduces its setting and systems through the mission journey, p
 - GNU Make (If using makefile)
 
 **Command**
-```
+```sh
 make docker-up    # runs: docker compose up --build (It build and starts the project locally)
 make docker-down  # runs: docker compose down (You can use Ctrl + C. It stops the container) 
 make docker-log   # runs: docker compose logs --follow (It tracks the logs of docker container)
