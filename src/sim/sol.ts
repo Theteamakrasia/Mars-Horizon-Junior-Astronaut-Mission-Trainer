@@ -276,7 +276,7 @@ export function advanceSol(run: RunState, roverRoll?: number): RunState {
 
   if (picked !== null && activity === null) {
     notes.push(
-      `There was not enough power for ${picked.title} today, so that job was not done.`,
+      `There was not enough power for ${picked.title} today, so that order was not done.`,
     );
   }
 

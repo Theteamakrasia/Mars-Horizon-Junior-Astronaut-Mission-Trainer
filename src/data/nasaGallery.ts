@@ -200,7 +200,7 @@ export const NASA_CARDS: readonly NasaCard[] = [
     nasaId: 'iss040e009126',
     title: 'Growing food in space',
     alt: 'An astronaut harvesting fresh plants grown on the International Space Station.',
-    caption: 'Astronauts grow lettuce and other plants in space to learn how to feed a crew far from Earth. Your greenhouse does the same job on Mars.',
+    caption: 'Astronauts grow lettuce and other plants in space to learn how to feed a crew far from Earth. Your greenhouse does the same work on Mars.',
     fact: 'The Veg-01 experiment grew red romaine lettuce on the station in 2014.',
     credit: 'NASA',
     imageUrl: assetUrl('iss040e009126'),

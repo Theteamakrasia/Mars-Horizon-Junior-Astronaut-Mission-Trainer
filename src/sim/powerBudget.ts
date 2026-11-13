@@ -99,7 +99,7 @@ export interface PowerBudget {
   /** kWh the batteries hold. */
   readonly capacityKwh: number;
   /**
-   * kWh a job may cost today.
+   * kWh an order may cost today.
    *
    * The energy the sol has in hand: the bank at dawn, plus what the panels
    * make, less what the outpost draws all day. The day's work is paid out of

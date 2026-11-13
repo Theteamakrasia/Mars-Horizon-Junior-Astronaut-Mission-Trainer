@@ -55,7 +55,7 @@ export const STANDING_ORDERS: readonly StandingOrder[] = [
   { id: 'floor-thirty', sol: 1, goal: 'life-support', topic: 'missions', text: 'Every tank stays above 30%. Two sols below the line and the crew goes home.' },
   { id: 'power-night', sol: 1, goal: 'power', topic: 'power', text: 'A solar panel only works while the Sun is up. Every night needs batteries.' },
 
-  { id: 'power-first', sol: 2, goal: 'power', topic: 'power', text: 'Before a job starts, the batteries must already hold what it costs.' },
+  { id: 'power-first', sol: 2, goal: 'power', topic: 'power', text: 'Before an order starts, the batteries must already hold what it costs.' },
   { id: 'water-ice', sol: 2, goal: 'life-support', topic: 'water', text: 'Water ice lies under the ground at this site.' },
 
   { id: 'rad-no-field', sol: 3, goal: 'radiation', topic: 'radiation', text: 'Mars has no global magnetic field. The crew needs shielding.' },

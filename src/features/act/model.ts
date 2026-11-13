@@ -32,7 +32,7 @@ import type { ScienceTopic } from '../../sim/topics';
  *   `demand`     what the outpost needs over the whole sol
  *   `spare`      the difference, and negative when the outpost runs down
  *   `stored`     what is in the batteries now
- *   `spendable`  what a job may cost today: the bank plus the sunlight the
+ *   `spendable`  what an order may cost today: the bank plus the sunlight the
  *                outpost does not need
  *   `nightNeed`  what the night will take
  *
@@ -54,7 +54,7 @@ export interface TodayPower {
   readonly stored: number;
   /** The batteries' capacity, in kWh. */
   readonly capacity: number;
-  /** kWh a job may cost today. */
+  /** kWh an order may cost today. */
   readonly spendable: number;
   /** kWh the night needs from the batteries. */
   readonly nightNeed: number;
@@ -296,14 +296,14 @@ export function secondsLeft(totalSeconds: number, elapsedMs: number): number {
  * What the last sol did to the power, in one line.
  *
  * Every number the player needs to add the sol up by eye: what was made, what
- * the outpost used, what the night took, what the job cost, what spilled, and
+ * the outpost used, what the night took, what the order cost, what spilled, and
  * where the bank ended. It is the answer to "why did my power go down?", and
  * it is on the screen every sol rather than only when something went wrong —
  * a sol the player can add up is a sol they can plan around.
  *
  * The night is named because it is the spender nobody sees: most of a sol's
  * power goes on the dark half of it, and the bank is empty at dawn because of
- * that rather than because of the job (ISS-083).
+ * that rather than because of the order (ISS-083).
  */
 export function powerReceipt(run: RunState): string {
   const record = run.log[run.log.length - 1];
@@ -313,23 +313,23 @@ export function powerReceipt(run: RunState): string {
   const made = Math.round(record.powerGenerated);
   const outpost = Math.round(record.powerUsed - record.powerExtra);
   const night = Math.round(record.powerNight);
-  const job = Math.round(record.powerExtra);
+  const order = Math.round(record.powerExtra);
   const spilled = Math.round(record.powerWasted);
   const ended = Math.round(record.stores.power);
 
   const parts = [`made ${made} kWh`, `outpost ${outpost} (night ${night})`];
 
-  if (job > 0) parts.push(`job ${job}`);
+  if (order > 0) parts.push(`order ${order}`);
   if (spilled > 0) parts.push(`${spilled} spilled`);
   parts.push(`ended ${ended} kWh`);
 
   let line = `Yesterday: ${parts.join(' · ')}.`;
 
-  if (job > 0 && record.blackout <= POWER_BLACKOUT_FLOOR) {
+  if (order > 0 && record.blackout <= POWER_BLACKOUT_FLOOR) {
     line +=
       spilled > 0
-        ? " The job used today's sunlight instead of the battery, so less power was wasted and the battery can end the same."
-        : " The job used today's power; if the battery ended lower, it came out of the reserve.";
+        ? " The order used today's sunlight instead of the battery, so less power was wasted and the battery can end the same."
+        : " The order used today's power; if the battery ended lower, it came out of the reserve.";
   }
 
   if (record.blackout > POWER_BLACKOUT_FLOOR) {

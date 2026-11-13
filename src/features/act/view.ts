@@ -1006,7 +1006,7 @@ export function mountAct(
    * The day's power budget, as rows the player can add up.
    *
    * Five numbers and a night: what the panels make, what the outpost needs,
-   * what is left over every sol, what is in the bank, what a job may cost
+   * what is left over every sol, what is in the bank, what an order may cost
    * today, and what the night will take. The night is on every one of them,
    * because it is where the power goes and it was the number nobody was shown
    * (ISS-083).
@@ -1071,7 +1071,7 @@ export function mountAct(
         { class: 'gl__mini' },
         h('span', { class: 'gl__mini-label' }, icon(RESOURCE_ICON.power), 'For today'),
         h('span', { class: 'gl__mini-value', text: `${today.spendable} kWh` }),
-        h('span', { class: 'gl__mini-detail', text: 'what a job may cost' }),
+        h('span', { class: 'gl__mini-detail', text: 'what an order may cost' }),
       ),
       h(
         'div',

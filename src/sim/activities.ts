@@ -319,7 +319,7 @@ export const SOL_PLANS: readonly SolPlan[] = [
   {
     sol: 3,
     title: 'Mission 3: Robotic Operations',
-    subtitle: 'Rovers do the routine jobs so people do not have to.',
+    subtitle: 'Rovers do the routine work so people do not have to.',
     activityIds: ['survey', 'map-site', 'experiment'],
   },
   {
@@ -449,7 +449,7 @@ export function lockedReason(spec: ActivitySpec, run: RunState): string | null {
     }
 
     return (
-      `This job needs ${spec.powerCostKwh} kWh. You can spend ${Math.round(budget.spendableKwh)} kWh today, ` +
+      `This order needs ${spec.powerCostKwh} kWh. You can spend ${Math.round(budget.spendableKwh)} kWh today, ` +
       `and tonight needs ${Math.round(budget.nightNeedKwh)} kWh.`
     );
   }
@@ -477,13 +477,13 @@ export function nightWarning(spec: ActivitySpec, run: RunState): string | null {
        is told how much shorter. */
     if (after >= -budget.nightShortKwh) return null;
 
-    return `This job makes the night worse: it would be ${Math.round(-after)} kWh short instead of ${Math.round(budget.nightShortKwh)}.`;
+    return `This order makes the night worse: it would be ${Math.round(-after)} kWh short instead of ${Math.round(budget.nightShortKwh)}.`;
   }
 
   if (after >= budget.reserveKwh) return null;
 
   return (
-    `This job comes out of the night's reserve: the bank would hold ${Math.round(after)} kWh after the night ` +
+    `This order comes out of the night's reserve: the bank would hold ${Math.round(after)} kWh after the night ` +
     `instead of ${Math.round(budget.reserveKwh)}.`
   );
 }

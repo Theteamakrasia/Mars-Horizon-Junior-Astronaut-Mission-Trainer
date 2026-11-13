@@ -7,6 +7,59 @@ say so and say why - a clean change with an unexplained problem underneath is wo
 than a documented one.
 
 
+## 2026-11-13 — Bigger tour controls, one set of site stats, and the word "mission"
+
+**Did**
+
+- Made the interior tour's controls readable: the N/R hint is now a warm-accent
+  pill at twice its old size, and REPEAT BRIEF / NEXT ROOM are 44px-tall buttons
+  at the room title's weight, with the primary carrying the accent and a glow.
+  The d-pad arrows grew with them, and the phone override stopped shrinking the
+  buttons to 0.56rem.
+- Fixed the landing-site panel growing a second copy of every stat row on each
+  visit (ISS-103). The view appended five dots per axis per mount into
+  containers that live in `index.html` for the session; it now clears them at
+  mount and on teardown, and resets the name, summary, LAND HERE state and
+  thumbnail layers so a revisit opens empty.
+- Renamed the player's goal from "job" to "mission" everywhere the player reads
+  it, and split the old word's other two meanings: a day's work is an "order"
+  (matching "work orders"), a tool's purpose is a "task". Recorded as D-088.
+- Repaired the ISS-099 row in `docs/team/issues.md`, which had lost its id and
+  title cells and left its description orphaned under ISS-100.
+
+**Files**
+
+- `src/features/interior/interior.css`
+- `src/features/landing-site/view.ts`
+- `src/sim/{guide,activities,sol,standingOrders,powerBudget}.ts`,
+  `src/sim/guide.test.ts`
+- `src/features/act/{model.ts,view.ts,act.css}`, `src/ui/activityPlayer.ts`,
+  `src/data/nasaGallery.ts`
+- `tools/browser-check-landing-cinematic.mjs`
+- `docs/team/{issues,decisions,progress-log}.md`
+
+**Problems**
+
+- The dots bug was not unit-testable: the repo runs Vitest in node-env with no
+  DOM (ISS-013), so the guard is a count in the headless landing-cinematic check
+  on each of the five visits it already made. `npm run check` and `npm test`
+  (1138 tests) pass; the browser check needs a served build and Chrome, so it
+  was not run here.
+- The root cause was a mount that appended instead of replacing, in a screen the
+  router hides rather than destroys. The interior already had the fix and a
+  comment explaining it; landing-site had neither, and no check counted dots.
+- Two lines of the copy are still `.test.ts` names and module comments that say
+  "job" as shorthand (`powerExtra`, `nightCoverAfterJob`). That is deliberate:
+  renaming the mechanics would touch every balance test for no player-visible
+  gain.
+
+**Next**
+
+- Run `tools/browser-check-landing-cinematic.mjs` against a build on the machine
+  that does the demo, to turn the dots guard from written to seen.
+- The interior controls have not been photographed at phone width; the new
+  sizes are a proposal that only a real screen can confirm.
+
 ## 2026-11-13 — Add a self-contained local static deployment
 
 **Did**
