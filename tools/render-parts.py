@@ -30,7 +30,6 @@ Bold, which matches the baked labels.
 Usage
 -----
     python tools/render-parts.py                 # writes Assets/video/parts.mp4
-    python tools/render-parts.py --keyframes out # writes preview PNGs instead
 """
 
 from __future__ import annotations
@@ -340,30 +339,17 @@ def render_video(out_path: str, shots: dict[str, Image.Image]) -> None:
     print(f"wrote {out_path}")
 
 
-def dump_keyframes(out_dir: str, shots: dict[str, Image.Image]) -> None:
-    os.makedirs(out_dir, exist_ok=True)
-    for t in (0.0, 0.7, 1.45, 2.6, 3.7, 4.8, 6.0, 7.0, 8.2, 9.2, 10.4, 10.5, 11.2, 11.9):
-        Image.fromarray(frame_at(t, shots)).save(
-            os.path.join(out_dir, f"key_{t:.2f}.png"))
-    print(f"wrote keyframes to {out_dir}")
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--out", default=DEFAULT_OUT, help="output video path")
-    parser.add_argument("--keyframes", metavar="DIR",
-                        help="write preview PNGs to DIR instead of rendering a video")
     args = parser.parse_args()
 
     print("loading shots")
     keys = ["overview_intro", "overview", *SHOT_FILES]
     shots = {key: load_shot(key) for key in keys}
 
-    if args.keyframes:
-        dump_keyframes(args.keyframes, shots)
-    else:
-        render_video(args.out, shots)
+    render_video(args.out, shots)
 
 
 if __name__ == "__main__":
