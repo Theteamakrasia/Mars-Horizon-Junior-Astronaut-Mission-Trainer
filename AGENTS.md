@@ -13,9 +13,10 @@ demo **Nov 14-15**.
 **The one invariant: `sim/` and each feature's `model.ts` are pure — no `document`, no
 `window`, no network.**
 
-That is what lets 1051 tests run in a few seconds with no browser and no mocks, so the game
-can be asserted on rather than eyeballed. Everything else here exists to protect it. If
-you are unsure where code goes: if it touches the DOM it is not pure.
+That is what lets the simulation and screen models be exercised without a browser. The
+Vitest suite also contains tests for data parsers and UI helpers, and its count changes as
+tests are added; use `npm test` for the current result. If you are unsure where code goes:
+if it touches the DOM it is not pure.
 
 **Current reality: the whole journey is built.** The **naming menu is the entry route** —
 the player names their astronaut and presses START MISSION, which flows through
@@ -90,7 +91,7 @@ human upholds it and nothing catches you.
 | R-10 | No `on*="..."` inline handlers in markup | **enforced** | `no-inline-handler` |
 | R-11 | A relative import that resolves to nothing is an error | **enforced** | `unresolved-import`, `unresolved-asset` |
 | R-12 | Typecheck clean; `strict`, `noUnusedLocals` | **enforced** | `npm run check` |
-| R-13 | Tests pass (1051 today) | **enforced** | `npm test`, watch ISS-015 |
+| R-13 | Tests pass | **enforced** | `npm test`; see `docs/team/issues.md` for current test concerns |
 | R-14 | No `index.ts` barrel files — import concrete paths | convention | nothing |
 | R-15 | Feature CSS is imported by its own `view.ts`, never added to `style.css` | convention | nothing |
 | R-16 | Files are UTF-8, LF, no BOM. Preserve a file's existing endings | convention | **nothing** — ISS-005 |
@@ -98,7 +99,7 @@ human upholds it and nothing catches you.
 | R-18 | One commit per step, `type(scope): message` | convention | nothing |
 | R-19 | Log a bug in `docs/team/issues.md` before fixing it | convention | nothing |
 | R-20 | No violence, no death, no enemies. Losing costs resources, never a life | convention | nothing |
-| R-21 | Never commit an API key or `.env*` | convention | **nothing** — ISS-006 open |
+| R-21 | Never commit an API key or local `.env*` file; `.env.example` is allowed | convention | `.gitignore`; no secret scanner is configured |
 
 **R-5 is the one that keeps this modular.** Two screens that need each other's data take
 it from `RunState`, passed explicitly from `main.ts` — not through imports.
@@ -171,7 +172,8 @@ The two requests outside the landing page are both in `data/`:
 ## 4. Boot order
 
 1. `index.html` parses; five visual layers exist.
-2. Google Fonts request — the only network request on the page (ISS-007).
+2. Google Fonts stylesheet request — the initial HTML's external request (ISS-007). The
+   game also makes optional NASA/NOAA requests through `data/` after it starts.
 3. `/src/main.ts` loads as a module; imports `style.css` first.
 4. Vite resolves `floating.png` to a fingerprinted URL.
 5. `bootstrap()` waits for `DOMContentLoaded` if still loading, otherwise runs now.
@@ -243,7 +245,7 @@ Silence is indistinguishable from forgetting.**
 - `type(scope): message` — `feat(sim):`, `fix(debrief):`, `docs(team):`, `test(base):`,
   `chore(deps):`, `refactor(ui):`. Types: `feat` `fix` `docs` `test` `chore` `refactor`.
 - Never commit `dist/`, `node_modules/`, `.env*`. All already in `.gitignore` **except**
-  `.env*` (ISS-006).
+  `.env*` (ISS-006 is fixed; `.env.example` is the documented exception).
 
 ## 8. Where things live
 
@@ -337,7 +339,7 @@ opening its folder — that is the whole point of the layout.
 npm install
 npm run dev        # Vite dev server
 npm run check      # layer + banned-API check, then tsc --noEmit   <- run this
-npm test           # vitest, 1051 tests                            <- 40% flaky, ISS-015
+npm test           # Vitest unit suite
 npm run build      # to dist/
 npm run preview    # serve the build
 npm run balance    # is the game still winnable?  <- run this after touching sim/
@@ -355,8 +357,8 @@ Do not build any of these. Stop, ask, and get a decision recorded in
 
 - **Supabase auth or cloud save state.** Deferred (D-003). The device-local save in
   `ui/save.ts` is the one exception, and it is not an account (D-081).
-- **Any API key handling.** Until ISS-006 is fixed. One line in `.gitignore`.
-- **Live DONKI fetching** until ISS-008 is answered in a real browser.
+- **Privileged API keys in browser code.** A `VITE_` value is visible to users; keep
+  credentials appropriate for public clients and preserve the fallback paths.
 - **A plan phase.** Act is built without one — confirmed by the owner. Do not add
   `features/plan/` unasked.
 - **A login page in front of `naming`.** Intended, not built — Supabase is deferred and

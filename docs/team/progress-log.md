@@ -7,6 +7,35 @@ say so and say why - a clean change with an unexplained problem underneath is wo
 than a documented one.
 
 
+## 2026-11-13 — Reconcile the project overview and architecture with the implementation
+
+**Did**
+
+- Rewrote the root README as a concise project and developer guide. It now describes the
+  built journey, current local save/data behavior, requirements, and actual npm commands.
+- Replaced the architecture document's stale file-by-file inventory with the current
+  runtime, routing, boundaries, data integrations, and build flow.
+- Corrected stale setup and status statements in `AGENTS.md`, including the outdated test
+  count and the already-fixed `.env` ignore issue.
+
+**Files**
+
+- `README.md`, `AGENTS.md`, `docs/architecture.md`
+
+**Problems**
+
+- The previous overview said the README disagreed with source, and the architecture
+  reference described a pre-journey build. Those contradictions were present in the docs;
+  no application code was changed.
+- The separate codebase maps and issue summary still need to be aligned with these sources
+  of truth in the next documentation step.
+
+**Next**
+
+- Finish the evidence-backed codebase maps and a consolidated warning/issue inventory,
+  then add the requested local Make and Docker Compose workflow.
+
+
 ## 2026-11-13 - The landing film's Skip button is in the top right, like the takeoff scene's
 
 **Did**
