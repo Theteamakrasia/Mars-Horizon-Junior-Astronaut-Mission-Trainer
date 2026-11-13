@@ -193,6 +193,14 @@ For deeper project guidance, start with the [documentation map](docs/README.md),
 
 The current run is saved in the browser's local storage on that device. There is no account, cloud save, or game backend, so another browser or device has a separate run. NASA and NOAA requests are made through the data layer; the saved gallery and approximate forecast allow the core experience to continue when those services are unavailable. The page also loads its font stylesheet from Google Fonts.
 
+## AI Usage
+
+The team used **Claude Sonnet (web), ChatGPT with Codex, OpenCode (Space Bunny, DeepSeek, MiniMax, and LongCat), and Google Gemini** as development assistants. They supported ideation, requirement breakdown, technical explanations, repository exploration, targeted implementation suggestions, debugging, test-case brainstorming, and documentation refinement. Their use overlapped; exact model snapshots and task-by-task attribution were not logged.
+
+AI suggestions were reviewed and adapted by the team. Team members retained responsibility for design decisions, implementation, integration, testing, and the final project. No AI tool independently built or owned the complete application.
+
+See [AI Usage & Declaration](./AI-USAGE-%26-DECLARATION.md) for the detailed disclosure, materials provided to AI tools, scientific data sources, libraries, and asset references.
+
 ## License
 
 The project source is distributed under the [MIT License](LICENSE). NASA materials remain subject to their original source terms and attribution guidance.
