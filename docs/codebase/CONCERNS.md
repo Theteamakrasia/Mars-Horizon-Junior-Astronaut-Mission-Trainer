@@ -1,35 +1,36 @@
-# Codebase Concerns
+# Codebase concerns
 
-## Top Risks
+## Prioritized risks
 
-| Severity | Concern | Evidence | Impact | Suggested action |
-|---|---|---|---|---|
-| Resolved here | Randomized open-space test launch | `src/sim/frame.test.ts`, ISS-015 | Could fail CI without a simulation regression | Fixed with a deterministic trajectory |
-| High | Core game and data modules are stubs | `docs/architecture.md` | No playable game loop or live data | Implement tracked feature tasks |
-| Medium | DOM behavior has no tests | `docs/team/issues.md`, ISS-011 | Browser lifecycle regressions may escape | Add browser DOM test environment |
-| Medium | NASA API CORS and key handling unresolved | `docs/team/issues.md`, ISS-006/008/009 | Live API cannot safely be enabled | Resolve issues before API work |
+The issue tracker currently lists these open concerns (severity is the tracker value):
+ISS-002 (starfield drift), ISS-005 (mixed line endings), ISS-007 (Google Fonts CDN),
+ISS-009 (shared NASA demo key), ISS-011 (DOM coverage), ISS-013 (no DOM test environment),
+ISS-019 (cinematic visual consistency), ISS-020 (NASA insignia on props), ISS-050 (stale
+architecture-contract report), and ISS-053 (test coverage/count records). See
+[`../team/issues.md`](../team/issues.md) for descriptions and status. This map was checked
+on 2026-11-13; that tracker remains authoritative.
 
-## Technical and Security Debt
+No production TODO, FIXME, or HACK markers were found in the source scan performed for
+this document. The scanner's generated output is not committed; use source searches to
+reproduce that observation.
 
-Runtime behavior is still a landing page plus astronaut physics; plans in README describe
-future gameplay. `.gitignore` lacks the planned `.env*` protection (ISS-006). npm reported
-one moderate and two critical advisories during the HTML validator dependency installation;
-the advisories need inspection against the lockfile before assigning package-level fixes.
+## Security and operational notes
 
-## Performance and Fragile Areas
-
-No benchmark or profiling configuration exists. `src/main.ts`, DOM animation and pointer
-handling, and simulation math are sensitive areas; change pure math with deterministic
-tests, and inspect DOM changes in a browser.
-
-## [ASK USER] Questions
-
-No unresolved deployment intent remains; the project owner requested Vercel production
-deployment after successful default-branch checks. The repository secrets
-`VERCEL_TOKEN`, `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID` remain operational prerequisites.
+- No backend, authentication, or database is configured; game state remains in browser
+  localStorage (`src/ui/save.ts`).
+- External browser requests are limited to integrations implemented under `src/data/`,
+  plus the Google Fonts stylesheet in `index.html`.
+- `.gitignore` excludes `.env` variants while allowing `.env.example`; `.dockerignore`
+  excludes local environment files from container builds.
+- The client-side NASA API key is not confidential after Vite embeds it. Keep the app's
+  fallback path and avoid placing privileged credentials in frontend bundles.
+- No dependency audit configuration, coverage threshold, or performance benchmark suite
+  is present in the repository.
 
 ## Evidence
 
-- `docs/team/issues.md`, `docs/team/tasks.md`
-- `package.json`, `package-lock.json`, `.gitignore`
-- `.github/workflows/`, repository scan output from the initial mapping
+- `docs/team/issues.md`
+- `docs/architecture.md`
+- `src/data/spaceweather.ts`, `src/data/nasaDaily.ts`, `index.html`
+- `src/ui/save.ts`, `.env.example`, `.gitignore`, `.dockerignore`
+- `package.json`, `.github/workflows/ci.yml`

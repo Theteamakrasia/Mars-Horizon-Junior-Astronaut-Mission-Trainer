@@ -36,6 +36,35 @@ than a documented one.
   then add the requested local Make and Docker Compose workflow.
 
 
+## 2026-11-13 — Rebuild the codebase map and known-risk inventory
+
+**Did**
+
+- Replaced all seven `docs/codebase/` references with evidence-backed summaries of the
+  actual stack, source layout, architecture, conventions, integrations, and tests.
+- Added `docs/CODE_QUALITY.md`, which lists the open issues from the canonical tracker and
+  documents verified security and operational caveats without claiming a security audit.
+- Removed the generated scan output so `docs/codebase/` contains exactly its seven
+  contracted reference documents.
+
+**Files**
+
+- `docs/codebase/{STACK,STRUCTURE,ARCHITECTURE,CONVENTIONS,INTEGRATIONS,TESTING,CONCERNS}.md`
+- `docs/CODE_QUALITY.md`
+
+**Problems**
+
+- The tracker still contains open items whose titles describe old source or test facts.
+  This pass records them as tracker items instead of silently changing their status;
+  verify current source and tracker details before treating them as live defects.
+- This is a source-based documentation review, not a dependency or penetration audit.
+
+**Next**
+
+- Add and document the Makefile and Compose deployment, then validate the docs and
+  container configuration before opening the upstream PR.
+
+
 ## 2026-11-13 - The landing film's Skip button is in the top right, like the takeoff scene's
 
 **Did**

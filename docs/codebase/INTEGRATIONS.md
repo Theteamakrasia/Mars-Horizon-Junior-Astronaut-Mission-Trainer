@@ -1,24 +1,31 @@
-# External Integrations
+# External integrations
 
-## Integration Inventory
+## Inventory
 
-| System | Type | Purpose | Auth | Criticality | Evidence |
-|---|---|---|---|---|---|
-| Google Fonts | External asset request | Landing-page typography | None | Low | `index.html` |
-| NASA DONKI | Planned API | Space weather data; current module is a stub | Not implemented | Planned | `src/data/spaceweather.ts`, `docs/team/issues.md` ISS-008 |
-| GitHub Actions | CI service | Quality checks and gated Vercel release | GitHub workflow token | High for publishing | `.github/workflows/` |
-| Vercel | Hosting | Publish validated default-branch build | `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` secrets | Deployment | `.github/workflows/deploy.yml`, `vercel.json` |
+| System | Purpose | Authentication | Fallback / behavior | Evidence |
+| --- | --- | --- | --- | --- |
+| NASA DONKI | Live solar flare data | Optional `VITE_NASA_API_KEY`; otherwise shared demo key | Tries NOAA after failure | `src/data/spaceweather.ts` |
+| NOAA SWPC | Solar flare data fallback | None | Empty result leads to approximate local forecast | `src/data/spaceweather.ts` |
+| NASA APOD | Astronomy picture enrichment | Shared NASA endpoint access | Saved gallery is used when unavailable | `src/data/nasaDaily.ts`, `src/data/nasaGallery.ts` |
+| Google Fonts | Web typography | None | CSS fallback fonts | `index.html` |
+| GitHub Actions | CI and optional gated Vercel deploy | GitHub workflow token; Vercel secrets for deploy | CI checks pull requests and default branch | `.github/workflows/` |
 
-## Data, Credentials, Reliability
+## Data stores and credentials
 
-No database or persistent store is configured. No app secrets are currently read by
-source. CI installs from the npm lockfile; Vercel's automatic Git deployment is disabled.
-GitHub Actions deploys the exact checked commit only after `Code checks` succeeds for a
-push to the default branch. No API retry, timeout,
-metrics, or tracing policy is implemented.
+The browser uses localStorage for a versioned device-local game save and audio settings.
+There is no remote database. `.env.example` documents the optional NASA key, while
+`.gitignore` excludes `.env` files except the example. A `VITE_` value is compiled into
+client-visible code and cannot be used as a confidential secret.
+
+## Reliability and observability
+
+The NASA data clients use bounded request timeouts and validate response shapes; the
+space-weather path falls back across providers and both data paths have local fallback
+content. Retry/backoff, application metrics, tracing, and centralized monitoring are not
+configured. A failed optional enrichment does not prevent the core mission from running.
 
 ## Evidence
 
-- `index.html`, `src/data/spaceweather.ts`
-- `package.json`, `package-lock.json`
-- `.github/workflows/ci.yml`, `.github/workflows/deploy.yml`, `vercel.json`
+- `src/data/spaceweather.ts`, `src/data/nasaDaily.ts`, `src/data/nasaGallery.ts`
+- `src/ui/save.ts`, `src/sim/save.ts`, `.env.example`, `.gitignore`
+- `index.html`, `.github/workflows/ci.yml`, `.github/workflows/deploy.yml`

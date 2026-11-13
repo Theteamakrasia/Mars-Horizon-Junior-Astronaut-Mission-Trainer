@@ -1,31 +1,40 @@
-# Coding Conventions
+# Coding conventions
 
-## Naming
+## Naming and module rules
 
-| Item | Rule | Example | Evidence |
-|---|---|---|---|
-| Files | lower camel or feature role names | `floatAstronaut.ts`, `model.ts` | `src/` |
-| Functions | lower camel | `stepAstronaut` | `src/sim/frame.ts` |
-| Types | PascalCase | `AstronautFrame` | `src/sim/frame.ts` |
-| Constants | UPPER_SNAKE_CASE | `MAX_THROW_SPEED` | `src/sim/drift.ts` |
+| Item | Convention | Example | Evidence |
+| --- | --- | --- | --- |
+| Feature directories | kebab-case | `landing-site/` | `src/features/` |
+| TypeScript files | lower camel case or feature roles | `floatAstronaut.ts`, `model.ts` | `src/dom/`, `src/features/` |
+| Functions and variables | lower camel case | `advanceSol` | `src/sim/sol.ts` |
+| Types and interfaces | PascalCase | `RunState` | `src/sim/run.ts` |
+| Constants | UPPER_SNAKE_CASE where named constants are used | `MAX_SOL` | `src/sim/constants.ts` |
 
-## Formatting and Static Checks
+Use explicit relative imports and concrete module paths. Do not add barrel `index.ts`
+files. A feature may not import another feature; shared state is passed through the app
+shell. Preserve file line endings when editing.
 
-No formatter or general lint tool is configured. TypeScript uses strict checking and
-`noUnusedLocals`. `npm run check` runs layer/banned-API checks and `tsc`; `npm run check:html`
-validates `index.html`. Inline CSS and style elements are permitted by `.htmlvalidate.json`.
+## Formatting and checks
 
-## Imports and Errors
+No dedicated formatter or general purpose linter is configured. TypeScript enables
+`strict`, `noUnusedLocals`, `noUnusedParameters`, and `noFallthroughCasesInSwitch`.
+`npm run check` runs import checks, markup checks, and `tsc --noEmit`.
 
-Use concrete relative module paths; do not add `index.ts` barrels. Features cannot import
-other features. Stubs throw explicit errors. `requireElement` throws when required boot
-markup is missing. No structured logging or secret-redaction policy is configured.
+## Errors and browser effects
 
-## Tests and Evidence
+Required DOM lookups throw descriptive errors when markup is missing. Network response
+parsers validate fields and clients use fallback data. There is no logging framework or
+central structured error policy. Keep DOM access in browser-facing modules and network
+access in `src/data/`.
 
-Tests are co-located as `*.test.ts`, use Vitest, and target pure logic without browser mocks.
-Coverage thresholds are not configured. See `AGENTS.md` and `scripts/check-imports.mjs`.
+## Tests
 
-- `tsconfig.json`, `package.json`, `.htmlvalidate.json`
-- `scripts/check-imports.mjs`, `src/sim/frame.test.ts`
-- `AGENTS.md`
+Tests are colocated and named `*.test.ts`; most exercise pure logic under Vitest's Node
+environment. Coverage thresholds are not configured. See [TESTING.md](TESTING.md).
+
+## Evidence
+
+- `AGENTS.md`, `scripts/check-imports.mjs`
+- `tsconfig.json`, `package.json`
+- `src/sim/sol.ts`, `src/features/naming/model.test.ts`
+- `src/data/spaceweather.ts`, `src/ui/gameLoop.ts`

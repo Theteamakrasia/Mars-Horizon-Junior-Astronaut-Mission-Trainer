@@ -1,25 +1,36 @@
-# Testing Patterns
+# Testing patterns
 
-## Test Stack and Commands
+## Test stack and commands
 
-Vitest 3.2 with Vitest assertions. Run `npm test`; `npm run check` also typechecks and
-enforces source layering. HTML validation is `npm run check:html`. No integration or E2E
-test command and no coverage command are configured.
+- Runner/assertions: Vitest 3.2 (`expect` and Vitest test APIs).
+- Unit suite: `npm test`.
+- Static checks and typecheck: `npm run check`.
+- Production build: `npm run build`.
+- Simulation balance: `npm run balance`.
+- Coverage reporting: no coverage script or threshold is configured.
 
-## Layout and Scope
+## Layout and scope
 
-Tests are co-located as `*.test.ts`. Existing tests cover pure simulation functions and
-route parsing; there are no DOM, browser integration, or end-to-end tests. No global test
-setup file is configured (`vite.config.ts`).
+Unit tests are colocated with source as `*.test.ts`. Most test pure simulation, feature
+models, UI helpers, and data parsers in the Node environment. There is no configured DOM
+test environment or global setup. Browser checks in `tools/browser-check-*.mjs` exercise
+selected complete flows against a running browser and are separate from `npm test`.
 
-## Isolation and Gaps
+| Scope | Present | Examples / limit |
+| --- | --- | --- |
+| Unit | Yes | `src/sim/*.test.ts`, feature model tests |
+| Data parser/client | Yes | `src/data/spaceweather.test.ts`, `src/data/nasaDaily.test.ts` |
+| Browser journey checks | Selected journeys | `tools/browser-check-journey.mjs`, other browser checks |
+| Coverage threshold | No | No coverage config found |
 
-Pure logic runs in Vitest's default Node environment without DOM mocks. The flaky test
-recorded as ISS-015 is made deterministic in this branch; coverage thresholds are absent.
-DOM module coverage is also tracked as ISS-011.
+Pure tests inject fetch implementations into data clients; unit tests do not depend on
+live services. DOM lifecycle gaps and known flaky-test history are recorded in
+`docs/team/issues.md`; verify current status there rather than relying on historical
+counts in older notes.
 
 ## Evidence
 
 - `package.json`, `vite.config.ts`
-- `src/sim/frame.test.ts`, `src/ui/routes.test.ts`
+- `src/sim/frame.test.ts`, `src/data/spaceweather.test.ts`
+- `tools/browser-check-journey.mjs`, `tools/browser-check-save.mjs`
 - `.github/workflows/ci.yml`, `docs/team/issues.md`
