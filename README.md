@@ -35,6 +35,20 @@ into a playable lesson in systems thinking, science, and resource management.
 > to identify the challenge and acknowledge source material; they remain subject to NASA's
 > applicable usage and attribution guidance.
 
+## Contents
+
+- [The idea](#the-idea)
+- [The mission journey](#the-mission-journey)
+- [The ten game missions](#the-ten-game-missions)
+- [A day on Mars](#a-day-on-mars)
+- [Learning goals](#learning-goals)
+- [Science and real-world data](#science-and-real-world-data)
+- [Designed for young players](#designed-for-young-players)
+- [Run the project locally](#run-the-project-locally)
+- [Project structure](#project-structure)
+- [Save data and connectivity](#save-data-and-connectivity)
+- [License](#license)
+
 ## The idea
 
 Mars is far from Earth, and an outpost cannot rely on instant deliveries when something goes
@@ -69,6 +83,29 @@ naming → briefing → supply → launch → interior → landing site → land
 During setup, the player chooses a landing region and builds the outpost from available
 modules. The daily operations screen is the mission's working hub. After the twelfth sol, the
 debrief explains the outcome using the run's resource history.
+
+## The ten game missions
+
+These are missions within the game: a sequence of outpost objectives that takes the player
+from establishing a base to expanding it. They describe the astronaut's in-game work, not the
+development stages of the project.
+
+| # | In-game mission | Focus |
+| --- | --- | --- |
+| 1 | Establish the Outpost | Build essential infrastructure and understand why power comes first. |
+| 2 | Survey the Environment | Read site conditions before committing outpost resources. |
+| 3 | Operate the Rover | Use robotic exploration to survey and work beyond the habitat. |
+| 4 | Prepare for an EVA | Learn how suit limits, airlocks, and time shape an excursion. |
+| 5 | Find Local Resources | Search the Martian environment for useful materials. |
+| 6 | Use Local Resources (ISRU) | Explore how in-situ resource utilization can reduce dependence on supplies from Earth. |
+| 7 | Grow the First Harvest | Connect greenhouse needs with water, power, and food supplies. |
+| 8 | Conduct a Science Expedition | Collect observations and samples to support research. |
+| 9 | Survive a Major Hazard | Apply preparation and operating decisions during a serious Mars hazard. |
+| 10 | Expand the Outpost | Add capability while keeping essential systems stable. |
+
+ISRU means **in-situ resource utilization**: using materials found where a mission operates
+instead of transporting every supply from Earth. The missions make that engineering idea part
+of the game's larger resource-management story.
 
 ## A day on Mars
 
@@ -149,24 +186,29 @@ points for further discussion about Mars, space weather, and engineering.
 ### Development server
 
 ```sh
-npm ci
-npm run dev
+make install
+make dev
 ```
 
-Open the local URL printed by Vite, usually <http://localhost:5173>. The Makefile offers
-shortcuts such as `make install` and `make dev`.
+Open the local URL printed by Vite, usually <http://localhost:5173>. Run `make help` to see
+all available targets. Common targets include `make check`, `make test`, `make build`, and
+`make balance`.
+
+To build and serve the production bundle locally, run `make build` followed by `make preview`.
+Vite prints the preview URL, usually <http://localhost:4173>.
 
 ### Docker Compose
 
 Build and run the static site locally:
 
 ```sh
-docker compose up --build
+make docker-up
 ```
 
-Then open <http://localhost:8080>. Stop with `Ctrl-C`, or run `docker compose down`. The
-container build does not need a NASA API key; live data and Google Fonts are optional network
-enrichments, with in-game data fallbacks where applicable.
+This runs `docker compose up --build`. Open <http://localhost:8080>. Stop with `Ctrl-C`, or
+run `make docker-down` in another terminal. Use `make docker-logs` to follow container logs.
+The container build does not need a NASA API key; live data and Google Fonts are optional
+network enrichments, with in-game data fallbacks where applicable.
 
 ### Project checks
 
