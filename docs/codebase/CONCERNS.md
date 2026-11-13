@@ -5,8 +5,8 @@
 The issue tracker currently lists these open concerns (severity is the tracker value):
 ISS-002 (starfield drift), ISS-005 (mixed line endings), ISS-007 (Google Fonts CDN),
 ISS-009 (shared NASA demo key), ISS-011 (DOM coverage), ISS-013 (no DOM test environment),
-ISS-019 (cinematic visual consistency), ISS-020 (NASA insignia on props), ISS-050 (stale
-architecture-contract report), and ISS-053 (test coverage/count records). See
+ISS-019 (cinematic visual consistency), ISS-020 (NASA insignia on props), and ISS-053
+(test coverage/count records). See
 [`../team/issues.md`](../team/issues.md) for descriptions and status. This map was checked
 on 2026-11-13; that tracker remains authoritative.
 
@@ -24,8 +24,10 @@ reproduce that observation.
   excludes local environment files from container builds.
 - The client-side NASA API key is not confidential after Vite embeds it. Keep the app's
   fallback path and avoid placing privileged credentials in frontend bundles.
-- No dependency audit configuration, coverage threshold, or performance benchmark suite
-  is present in the repository.
+- `npm audit` reported 2 moderate, 1 high, and 2 critical development-toolchain
+  vulnerabilities on 2026-11-13. Details and scope are in [`../CODE_QUALITY.md`](../CODE_QUALITY.md).
+- No automated dependency audit configuration, coverage threshold, or performance
+  benchmark suite is present in the repository.
 
 ## Evidence
 

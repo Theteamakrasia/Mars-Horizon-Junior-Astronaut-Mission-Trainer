@@ -3,8 +3,8 @@
 This is a maintained summary of current warnings and risks found in the repository.
 `docs/team/issues.md` is the authoritative, detailed tracker: status and remediation can
 change there before this summary is refreshed. This inventory was checked against the
-repository on 2026-11-13. It does not claim a security audit or dependency vulnerability
-scan has been performed.
+repository on 2026-11-13. The advisory snapshot below comes from `npm audit` against the
+npm advisory service on that date; it is not a full security audit.
 
 ## Open tracked issues
 
@@ -18,13 +18,28 @@ scan has been performed.
 | ISS-013 | Low | Vitest uses Node and has no DOM environment | DOM behavior cannot be exercised in the unit runner as configured |
 | ISS-019 | Low | Cinematics use mixed visual styles | Visual consistency concern |
 | ISS-020 | Low | NASA insignia appears on children’s suits and props | Attribution/brand review concern |
-| ISS-050 | Medium | Historical report of inaccurate module contracts in architecture documentation | Verify the current architecture reference before relying on exported API lists |
 | ISS-053 | Medium | Issue tracker says simulation test coverage and test-count records need correction | Do not rely on historical test totals; inspect current test files and run the suite when authorized |
 
 The above status list was read from the open rows in `docs/team/issues.md`. Confirm there
 before acting; this summary can lag.
 
 ## Security and dependency notes
+
+`npm audit` reported five vulnerable dependency entries on 2026-11-13 (2 moderate, 1 high,
+2 critical). All are in the development/build toolchain; the app declares no production
+npm dependencies. The affected versions and reported fix availability are:
+
+| Package | Locked version | Reported severity | Exposure / reported fix |
+| --- | --- | --- | --- |
+| `vite` | 7.3.6 | High (plus moderate advisories) | Dev server/build tooling; npm reported a compatible fix available |
+| `vitest` | 3.2.7 | Critical (includes moderate advisories) | Test tooling; npm reported the available fix as Vitest 5.1.0, a major upgrade |
+| `tinypool` | 1.1.1 | Critical | Transitive Vitest worker dependency; fixed through the Vitest upgrade |
+| `@vitest/mocker` | 3.2.7 | Moderate | Transitive Vitest mock tooling; fixed through the Vitest upgrade |
+| `fast-uri` | 3.1.8 | Moderate | Transitive HTML validator dependency; npm reported a compatible fix available |
+
+These are advisory matches, not a determination that the vulnerable paths are reachable in
+this application's use. No dependency versions were changed in this documentation and
+deployment task. Re-run `npm audit` before remediation because advisory data changes.
 
 - The application has no backend, account system, or remote database. A run and audio
   preferences are stored in browser `localStorage` on that device (`src/ui/save.ts`).
@@ -36,8 +51,7 @@ before acting; this summary can lag.
 - `.gitignore` excludes `.env` files except `.env.example`; `.dockerignore` excludes local
   environment files from Docker build context.
 - The repository does not configure Dependabot, an automated dependency audit, an SBOM,
-  or a security scanning workflow. This is an observed tooling gap, not evidence that a
-  known exploitable dependency vulnerability exists.
+  or a security scanning workflow; the advisory snapshot above was a one-time local check.
 - No dedicated performance benchmark or profiling setup is configured.
 
 ## Areas that need careful review
@@ -53,5 +67,6 @@ boundary is enforced, but browser layout and lifecycle still require browser-lev
 - `docs/team/issues.md` (open issue rows and individual descriptions)
 - `src/ui/save.ts`, `src/data/spaceweather.ts`, `src/data/nasaDaily.ts`, `index.html`
 - `.gitignore`, `.dockerignore`, `package.json`, `.github/workflows/`
+- `package-lock.json`, `npm audit --json`, `npm ls vite vitest @vitest/mocker tinypool fast-uri` (2026-11-13)
 - `scripts/check-imports.mjs`, `tools/browser-check-*.mjs`
 - Recent Git history (`git log --name-only` as of 2026-11-13)

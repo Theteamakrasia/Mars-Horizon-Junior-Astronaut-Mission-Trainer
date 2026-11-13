@@ -7,6 +7,42 @@ say so and say why - a clean change with an unexplained problem underneath is wo
 than a documented one.
 
 
+## 2026-11-13 — Add a self-contained local static deployment
+
+**Did**
+
+- Added a Makefile with npm check/build/preview/balance and Compose lifecycle targets.
+- Added a multi-stage Dockerfile: Vite builds in Node and only the static output is copied
+  into a version-pinned unprivileged NGINX runtime. Added the canonical `compose.yaml` and
+  excluded local environment files and unused development assets from the build context.
+- Documented local prerequisites, commands, runtime behavior, and current open risks. No
+  application or gameplay source changed.
+- Recorded D-087 and TASK-110, and closed ISS-050 after removing the inaccurate module
+  contract table from the refreshed architecture document.
+
+**Files**
+
+- `Makefile`, `Dockerfile`, `compose.yaml`, `.dockerignore`, `docker/nginx.conf`
+- `docs/local-development.md`, `docs/README.md`, `README.md`
+- `docs/team/{decisions,issues,tasks,progress-log}.md`
+
+**Problems**
+
+- Docker image tags resolved and the image built successfully. The running container
+  served `index.html` and `mobile.html` on port 8080 as uid 101; the temporary container
+  was stopped after the smoke check.
+- `npm audit` reports five existing dev-toolchain advisories (2 moderate, 1 high,
+  2 critical). They are documented with affected locked packages; dependency versions
+  were left unchanged as requested.
+- NASA/NOAA and Google Fonts still need browser network access for live enrichment; offline
+  behavior is provided by the existing data fallbacks.
+
+**Next**
+
+- Run the repository checks and container configuration/build, review the full change,
+  then push the topic branch and open a PR targeting upstream `main`.
+
+
 ## 2026-11-13 — Reconcile the project overview and architecture with the implementation
 
 **Did**
