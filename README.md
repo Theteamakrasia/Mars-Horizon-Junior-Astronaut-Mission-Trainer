@@ -180,8 +180,10 @@ points for further discussion about Mars, space weather, and engineering.
 
 ### Requirements
 
-- Node.js 22 and npm
-- Docker Engine with the Compose plugin (optional, for containerized local use)
+- **Docker Compose workflow:** GNU Make, Docker Engine, and the Docker Compose plugin. Node.js
+  and npm do not need to be installed on the host; the Dockerfile uses a Node.js 22 build
+  image and runs `npm ci` and `npm run build` inside Docker.
+- **Native development and checks:** Node.js 22 and npm, in addition to GNU Make.
 
 ### Development server
 
@@ -193,6 +195,9 @@ make dev
 Open the local URL printed by Vite, usually <http://localhost:5173>. Run `make help` to see
 all available targets. Common targets include `make check`, `make test`, `make build`, and
 `make balance`.
+
+These development targets run npm on the host: `make install` runs `npm ci`, `make dev` runs
+`npm run dev`, and `make preview` runs `npm run preview -- --host 0.0.0.0`.
 
 To build and serve the production bundle locally, run `make build` followed by `make preview`.
 Vite prints the preview URL, usually <http://localhost:4173>.
@@ -212,12 +217,18 @@ network enrichments, with in-game data fallbacks where applicable.
 
 ### Project checks
 
+Run checks through Make. These targets use the host's Node.js and npm:
+
 ```sh
-npm run check    # import boundaries, markup checks, and TypeScript
-npm test         # unit tests
-npm run build    # production static bundle
-npm run balance  # checks whether the simulation remains winnable
+make check    # runs: npm run check (import boundaries, markup, and TypeScript)
+make test     # runs: npm test (unit tests)
+make build    # runs: npm run build (production static bundle)
+make balance  # runs: npm run balance (simulation balance check)
 ```
+
+For a Docker-only production build and local run, use `make docker-up`. Under the hood,
+`docker compose up --build` builds the Node.js 22 stage, runs `npm ci` and `npm run build`
+inside the image, then serves the static bundle from the NGINX runtime image.
 
 ## Project structure
 
