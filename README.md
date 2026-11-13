@@ -31,7 +31,7 @@
 
 ## Contents
 
-[The idea](#the-idea) | [The mission journey](#the-mission-journey) | [The ten game missions](#the-ten-game-missions) | [A day on Mars](#a-day-on-mars) | [Learning goals](#learning-goals) | [Science and real-world data](#science-and-real-world-data) | [Designed for young players](#designed-for-young-players) | [Run the project locally](#run-the-project-locally) | [Project structure](#project-structure) | [Save data and connectivity](#save-data-and-connectivity) | [License](#license)
+[The idea](#the-idea) | [The mission journey](#the-mission-journey) | [The ten game missions](#the-ten-game-missions) | [A day on Mars](#a-day-on-mars) | [Learning goals](#learning-goals) | [Science and real-world data](#science-and-real-world-data) | [Designed for young players](#designed-for-young-players) | [Run the project locally](#run-the-project-locally) | [Project structure](#project-structure) | [Save data and connectivity](#save-data-and-connectivity) | [AI Usage](#ai-usage) | [License](#license)
 
 ## The idea
 
@@ -195,7 +195,7 @@ The current run is saved in the browser's local storage on that device. There is
 
 ## AI Usage
 
-The team used **Claude Sonnet (web), ChatGPT with Codex, OpenCode (Space Bunny, DeepSeek, MiniMax, and LongCat), and Google Gemini** as development assistants. They supported ideation, requirement breakdown, technical explanations, repository exploration, targeted implementation suggestions, debugging, test-case brainstorming, and documentation refinement. Their use overlapped; exact model snapshots and task-by-task attribution were not logged.
+The team used **Claude Sonnet (web), ChatGPT with Codex, OpenCode (Space Bunny, DeepSeek, MiniMax, and LongCat), and Google Gemini** as development assistants. They supported ideation, requirement breakdown, technical explanations, repository exploration, targeted implementation suggestions, debugging, test-case brainstorming reviewing, and documentation refinement. Their use overlapped; exact model snapshots and task-by-task attribution were not logged.
 
 AI suggestions were reviewed and adapted by the team. Team members retained responsibility for design decisions, implementation, integration, testing, and the final project. No AI tool independently built or owned the complete application.
 
