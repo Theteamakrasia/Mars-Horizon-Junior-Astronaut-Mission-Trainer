@@ -22,7 +22,6 @@ a number nobody can check is a number nobody can fix.
 Usage
 -----
     python tools/render-docking.py                 # writes Assets/video/docking.mp4
-    python tools/render-docking.py --keyframes out # writes preview PNGs instead
 """
 
 from __future__ import annotations
@@ -296,20 +295,10 @@ def render_video(out_path: str, bg: np.ndarray, sprite: Image.Image, dist: np.nd
     print(f"wrote {out_path}")
 
 
-def dump_keyframes(out_dir: str, bg: np.ndarray, sprite: Image.Image, dist: np.ndarray) -> None:
-    os.makedirs(out_dir, exist_ok=True)
-    for t in (0.0, 0.9, 1.8, 2.4, 3.0):
-        frame = frame_at(t, bg, sprite, dist)
-        Image.fromarray(frame).save(os.path.join(out_dir, f"key_{t:.1f}.png"))
-    print(f"wrote keyframes to {out_dir}")
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--out", default=DEFAULT_OUT, help="output video path")
-    parser.add_argument("--keyframes", metavar="DIR",
-                        help="write preview PNGs to DIR instead of rendering a video")
     args = parser.parse_args()
 
     print("loading assets")
@@ -318,10 +307,7 @@ def main() -> None:
     bg = build_background(sep, sprite)
     dist = distance_field()
 
-    if args.keyframes:
-        dump_keyframes(args.keyframes, bg, sprite, dist)
-    else:
-        render_video(args.out, bg, sprite, dist)
+    render_video(args.out, bg, sprite, dist)
 
 
 if __name__ == "__main__":
