@@ -11,6 +11,8 @@
  *
  *   - "Land here" starts the film for ALL FIVE landing regions, and the film
  *     says which region the player chose;
+ *   - coming back to the map rebuilds the Site Analysis panel rather than
+ *     adding to it, so five dots a row stays five (ISS-103);
  *   - the frames come in the order they were supplied - 02, then the black
  *     beat, then 03, 04, 05 and 06 - with no cut in the wrong direction;
  *   - the stage is exactly the size of the screen it is mounted in, at five
@@ -445,6 +447,20 @@ try {
     await evaluate(`location.hash = '#landing-site'`);
     await waitFor(`(() => { const s = document.getElementById('landing-site'); return !!s && !s.hidden; })()`);
     await sleep(500);
+
+    /* The panel is rebuilt on every visit, because the screens are hidden
+       rather than destroyed. Ten dots a row is the marker of a mount that
+       appended instead of replacing (ISS-103). */
+    const dots = await evaluate(`(() => {
+      const rows = [...document.querySelectorAll('#landing-site [data-landing-score]')];
+      return { rows: rows.length, counts: rows.map((row) => row.children.length) };
+    })()`);
+
+    note(
+      `the Site Analysis panel shows five dots a row, once, at ${region}`,
+      dots.rows === 5 && dots.counts.every((count) => count === 5),
+      `${dots.rows} rows with ${dots.counts.join('/')} dots`,
+    );
 
     await evaluate(`(() => {
       const pin = document.querySelector('[data-landing-pin=${JSON.stringify(region)}]');

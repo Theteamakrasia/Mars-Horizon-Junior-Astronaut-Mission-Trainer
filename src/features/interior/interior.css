@@ -284,7 +284,12 @@
 /* ---------- HINT ----------
    The keyboard is the primary control; the pad is the same actions for a
    pointer. The hint is the only place that spells out N and R, so it stays
-   visible even when the buttons are used. */
+   visible even when the buttons are used.
+
+   It is a hint, not a button: the pill is styled to be read at a glance over
+   live artwork, so it carries the warm accent the room art already uses and a
+   warm glow, rather than the muted grey it had. A child who cannot find the
+   keys is the one this is for. */
 .interior__hint {
   position: absolute;
   left: 3%;
@@ -292,12 +297,15 @@
   z-index: 5;
   max-width: 62%;
   margin: 0;
-  padding: 0.38rem 0.7rem;
+  padding: 0.55rem 1.05rem;
+  border: 1px solid rgba(255, 138, 61, 0.55);
   border-radius: 999px;
-  background: rgba(3, 7, 12, 0.78);
-  color: var(--i-muted);
-  font-size: clamp(0.58rem, 1.1vmin, 0.74rem);
-  letter-spacing: 0.04em;
+  background: rgba(9, 17, 28, 0.92);
+  box-shadow: 0 0.6rem 1.6rem rgba(255, 138, 61, 0.18), 0 0.2rem 0.5rem rgba(0, 0, 0, 0.5);
+  color: var(--i-accent-soft);
+  font-size: clamp(0.8rem, 1.7vmin, 1.05rem);
+  font-weight: 700;
+  letter-spacing: 0.05em;
   line-height: 1.4;
 }
 
@@ -316,9 +324,9 @@
 
 .interior__dpad {
   display: grid;
-  grid-template-columns: repeat(2, 3rem);
-  grid-template-rows: 3rem;
-  gap: 0.25rem;
+  grid-template-columns: repeat(2, 3.4rem);
+  grid-template-rows: 3.4rem;
+  gap: 0.3rem;
 }
 
 .interior__dpad[hidden] {
@@ -330,11 +338,11 @@
   place-items: center;
   padding: 0;
   border: 1px solid var(--i-line);
-  border-radius: 0.4rem;
+  border-radius: 0.5rem;
   background: rgba(5, 11, 19, 0.86);
   color: var(--i-text);
   font-family: inherit;
-  font-size: 0.8rem;
+  font-size: 1rem;
   line-height: 1;
   cursor: pointer;
   touch-action: none;
@@ -358,19 +366,24 @@
 .interior__actions {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.5rem;
 }
 
+/* The two actions are the room's only exit and its only repeat: a child must
+   be able to hit them without aiming. They are sized to a 44px touch target and
+   read at the same weight as the room title, and the primary carries the accent
+   so NEXT ROOM is obviously the way on. */
 .interior__button {
-  padding: 0.5rem 0.8rem;
+  min-height: 2.75rem;
+  padding: 0.75rem 1.15rem;
   border: 1px solid var(--i-line);
-  border-radius: 0.4rem;
-  background: rgba(5, 11, 19, 0.88);
+  border-radius: 0.55rem;
+  background: rgba(5, 11, 19, 0.9);
   color: var(--i-text);
   font-family: inherit;
-  font-size: clamp(0.58rem, 1.05vmin, 0.72rem);
+  font-size: clamp(0.82rem, 1.65vmin, 1.02rem);
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
   cursor: pointer;
 }
@@ -385,6 +398,7 @@
   border-color: var(--i-accent);
   background: var(--i-accent);
   color: #1c0d04;
+  box-shadow: 0 0.5rem 1.3rem rgba(255, 138, 61, 0.32);
 }
 
 .interior__button--primary:hover,
@@ -471,8 +485,9 @@
   }
 
   .interior__hint {
-    max-width: 48%;
-    font-size: 0.58rem;
+    max-width: 50%;
+    padding: 0.45rem 0.8rem;
+    font-size: 0.72rem;
   }
 
   .interior__controls {
@@ -480,13 +495,16 @@
   }
 
   .interior__dpad {
-    grid-template-columns: repeat(2, 2.4rem);
-    grid-template-rows: 2.4rem;
+    grid-template-columns: repeat(2, 2.8rem);
+    grid-template-rows: 2.8rem;
   }
 
+  /* Still large enough to read and to tap; the stage is a 16:9 letterbox on a
+     phone, so the controls cannot take the whole bottom of it. */
   .interior__button {
-    padding: 0.4rem 0.55rem;
-    font-size: 0.56rem;
+    min-height: 2.4rem;
+    padding: 0.55rem 0.7rem;
+    font-size: 0.72rem;
   }
 }
 

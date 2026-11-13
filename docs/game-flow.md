@@ -244,7 +244,7 @@ each is graded into **stars**, and each is a pure function over literal inputs.
 | **Timing** (`timing`) | stops the sweeping marker inside the safe band | sol 2 |
 | **Radar** (`radar`) | pings squares until one of them is hot | sol 3 |
 | **Sorting** (`sort`) | keeps the ones worth keeping and leaves the rest | sol 4 |
-| **Matching** (`match`) | gives every tool its job | sol 5 |
+| **Matching** (`match`) | gives every tool its task | sol 5 |
 | **Packing** (`pack`) | fills the pod within its mass limit | sol 6 |
 
 **Every sol has at least one order the player can work.** The unlock schedule and the sol

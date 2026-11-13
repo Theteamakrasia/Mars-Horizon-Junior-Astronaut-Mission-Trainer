@@ -95,7 +95,7 @@ function sortItems(): readonly SortItem[] {
   ];
 }
 
-/** The pairs to match: each tool with its job. */
+/** The pairs to match: each tool with its task. */
 function matchPairs(): readonly MatchPair[] {
   return [
     { left: 'Radar', right: 'Finds ice under the ground' },
@@ -310,7 +310,7 @@ function sortInspection(): Inspection {
   };
 }
 
-/** The matching: pair each thing with its job. */
+/** The matching: pair each thing with its task. */
 function matchInspection(): Inspection {
   const pairs = matchPairs();
   const answers: Record<string, string> = {};
@@ -339,7 +339,7 @@ function matchInspection(): Inspection {
 
   return {
     name: ENGINE_NAME.match,
-    element: h('div', { class: 'insp__body' }, h('p', { class: 'insp__ask', text: 'Match each tool to its job.' }), list),
+    element: h('div', { class: 'insp__body' }, h('p', { class: 'insp__ask', text: 'Match each tool to its task.' }), list),
     done: () => pairs.every((pair) => (answers[pair.left] ?? '') !== ''),
     result: () => gradeMatch(pairs.map((pair) => [pair.left, pair.right] as const), answers),
   };

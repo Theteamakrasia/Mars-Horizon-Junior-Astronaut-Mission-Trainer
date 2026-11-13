@@ -125,7 +125,7 @@
   cursor: default;
 }
 
-/* The matching: a tool and its job. */
+/* The matching: a tool and its task. */
 .insp__pairs {
   flex-direction: column;
 }

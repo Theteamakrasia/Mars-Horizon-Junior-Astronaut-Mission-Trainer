@@ -32,14 +32,14 @@ export interface GuideStep {
 /**
  * The steps, in the order they meet the player.
  *
- * The first three are the job, and they are worth reading: a child who
+ * The first three are the mission, and they are worth reading: a child who
  * knows they are keeping five things alive and that a sol is one Mars day
  * can work out the rest for themselves.
  */
 export const GUIDE_STEPS: readonly GuideStep[] = [
   {
-    id: 'job',
-    title: 'Your job',
+    id: 'mission',
+    title: 'Your mission',
     body: 'Keep the crew alive for twelve sols. A sol is one Mars day, and it is 24 hours and 39 minutes long.',
     where: 'recap',
   },
@@ -64,7 +64,7 @@ export const GUIDE_STEPS: readonly GuideStep[] = [
   {
     id: 'power',
     title: 'The power budget',
-    body: 'Each sol the panels make power and the outpost needs it. What is left is what a job may cost. A red number means you are running down.',
+    body: 'Each sol the panels make power and the outpost needs it. What is left is what an order may cost. A red number means you are running down.',
     where: 'desk',
   },
   {

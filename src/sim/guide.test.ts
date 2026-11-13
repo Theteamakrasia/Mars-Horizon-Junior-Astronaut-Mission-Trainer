@@ -35,13 +35,13 @@ describe('the guide', () => {
   it('covers the things a player has to work out', () => {
     const ids = GUIDE_STEPS.map((step) => step.id);
 
-    for (const needed of ['job', 'systems', 'orders', 'checks', 'board', 'recap', 'score']) {
+    for (const needed of ['mission', 'systems', 'orders', 'checks', 'board', 'recap', 'score']) {
       expect(ids).toContain(needed);
     }
   });
 
   it('is found by id', () => {
-    expect(guideStep('job')?.title).toBe('Your job');
+    expect(guideStep('mission')?.title).toBe('Your mission');
     expect(guideStep('nothing-like-this')).toBeNull();
   });
 });
