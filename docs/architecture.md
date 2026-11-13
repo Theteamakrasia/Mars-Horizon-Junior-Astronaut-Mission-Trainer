@@ -74,6 +74,25 @@ requests. This separation makes most game behavior testable in Node without DOM 
 
 No backend, database, account system, analytics, or telemetry integration is configured.
 
+## Top-level project files
+
+| Path | Status | Responsibility |
+| --- | --- | --- |
+| `README.md` | Complete | Project overview and developer entrypoint |
+| `AGENTS.md` | Complete | Contribution constraints and project-specific engineering rules |
+| `package.json`, `package-lock.json` | Complete | npm scripts and locked development toolchain |
+| `index.html`, `mobile.html` | Complete | Desktop entrypoint and mobile letterbox shell |
+| `vite.config.ts`, `tsconfig.json` | Complete | Static build inputs and TypeScript configuration |
+| `Makefile` | Complete | Short aliases for development, checks, build, preview, balance, and Compose |
+| `Dockerfile` | Complete | Multi-stage static build and unprivileged runtime image |
+| `compose.yaml` | Complete | Local web service published on port 8080 |
+| `.dockerignore` | Complete | Build-context exclusions, including local environment files |
+| `docker/nginx.conf` | Complete | Static file serving and immutable caching for fingerprinted assets |
+| `docs/` | Complete | Architecture, game flow, local development, codebase, and team records |
+| `src/` | Complete | Browser application layers and screen features |
+| `Assets/` | Complete | Application artwork, audio, icons, and video |
+| `tools/`, `scripts/` | Complete | Browser/balance utilities and repository checks |
+
 ## Build and verification
 
 `vite.config.ts` disables Vite's default `public/` directory, uses a relative asset base,

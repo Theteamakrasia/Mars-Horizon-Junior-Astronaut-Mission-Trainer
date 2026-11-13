@@ -4,6 +4,9 @@
 
 | Path | Purpose | Evidence |
 | --- | --- | --- |
+| `README.md`, `AGENTS.md` | Project and contribution documentation | `README.md`, `AGENTS.md` |
+| `package.json`, `package-lock.json` | npm scripts and dependency lock | `package.json`, `package-lock.json` |
+| `Dockerfile`, `compose.yaml`, `.dockerignore`, `Makefile` | Container and local development entrypoints | Root build files |
 | `src/sim/` | Pure mission simulation, state, forecasts, rules, and tests | `src/sim/run.ts`, `src/sim/sol.ts` |
 | `src/features/` | Screen-specific model, view, styles, and feature notes | `src/features/README.md` |
 | `src/data/` | External data clients and local reference catalogues | `src/data/spaceweather.ts`, `src/data/nasaDaily.ts` |

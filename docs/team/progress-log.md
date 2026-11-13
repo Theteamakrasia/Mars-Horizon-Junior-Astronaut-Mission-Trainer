@@ -41,10 +41,13 @@ than a documented one.
 - The Vercel PR status cannot deploy a preview until a member authorizes the fork for the
   configured team. This is separate from the local Compose deployment and is not a code
   check failure.
+- Final documentation-matrix review found the new root deployment files were not indexed
+  in the architecture tree; the architecture and structure references now list them.
 
 **Next**
 
-- PR #47 is open against upstream `main`; local and CI checks pass. Await maintainer review
+- PR #47 is open against upstream `main`; local and CI checks pass. The latest commit only
+  updates file indexes, so the earlier checks remain applicable. Await maintainer review
   and authorization if a Vercel preview is required.
 
 

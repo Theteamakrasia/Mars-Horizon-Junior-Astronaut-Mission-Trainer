@@ -88,6 +88,7 @@ testing, integrations, and the current issues inventory.
 | `Assets/` | Artwork, audio, icons, and video included in the build |
 | `docs/` | Architecture, product flow, decisions, issues, and project references |
 | `tools/` | Balance and browser-check utilities plus asset preparation tools |
+| `Makefile`, `Dockerfile`, `compose.yaml`, `docker/` | Local development commands and static container deployment |
 
 ## Data and privacy
 
