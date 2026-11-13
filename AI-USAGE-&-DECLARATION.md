@@ -9,8 +9,8 @@ The team used several AI-assisted tools during different stages of the project. 
 
 | Tool | How the team used it |
 | --- | --- |
-| **Anthropic Claude (Sonnet, web)** | Discussing project ideas and requirements, comparing possible approaches, explaining selected code or technical concepts, and reviewing or improving documentation. |
-| **ChatGPT (Codex workflow; team-recalled model label: `luna-latest`)** | Assisting with repository and code understanding, implementation approaches, targeted code suggestions, debugging, test ideas, and technical documentation. |
+| **Anthropic Claude (Web with `sonet-5.5`)** | Discussing project ideas and requirements, comparing possible approaches, explaining selected code or technical concepts, and reviewing or improving documentation. |
+| **ChatGPT (Codex with `luna-5.6`)** | Assisting with repository and code understanding, implementation approaches, targeted code suggestions, debugging, test ideas, and technical documentation. |
 | **OpenCode** with the configured labels **Space Bunny, DeepSeek, MiniMax, and LongCat** | Agent-assisted repository exploration, implementation guidance, code refinement, troubleshooting, and review of selected changes. These are the labels remembered by the team; they are not intended as a claim that each provider performed a separate, exclusive role. |
 | **Google Gemini** | Exploring alternative solutions, explaining technical and scientific concepts, and supporting research, review, and documentation work. |
 
@@ -25,6 +25,7 @@ Across these tools, AI assistance was used selectively for:
 - **Development support:** exploring selected parts of the codebase, comparing implementation options, suggesting targeted code changes, and helping interpret errors.
 - **Testing and debugging:** proposing edge cases and test scenarios, interpreting test or build output, and helping investigate unexpected behavior.
 - **Writing and communication:** drafting or refining project descriptions, in-game wording, README content, and technical documentation.
+- **Reviewing:** reviewing pull request before merging to find hidden bug, vulnerability and other issues.
 
 ## 3. Data and Materials Provided to AI Tools
 
