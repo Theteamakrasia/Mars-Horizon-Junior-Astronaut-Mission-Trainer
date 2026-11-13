@@ -135,6 +135,13 @@ export function mountLandingSite(
     const container = require<HTMLElement>(root, `[data-landing-score="${axis}"]`);
     container.setAttribute('role', 'img');
 
+    // Mount is idempotent, like the interior's progress dots. The screens are
+    // hidden rather than destroyed (ui/registry.ts), so these containers live
+    // in index.html for the whole session; without clearing first, coming back
+    // to the map appended five more dots to every row and the stats read twice
+    // or three times over (ISS-103).
+    container.replaceChildren();
+
     const dots: HTMLSpanElement[] = [];
 
     for (let i = 0; i < 5; i += 1) {
@@ -148,6 +155,19 @@ export function mountLandingSite(
     scoreContainers[axis] = container;
     scoreDots[axis] = dots;
   }
+
+  // The panel's text and controls are reset here for the same reason: a revisit
+  // otherwise opened on the last region's name, its filled dots and its
+  // summary, which read as a choice the player had already made.
+  name.textContent = '';
+  name.classList.remove('is-selected');
+  blurb.textContent = '';
+  summary.textContent = '';
+  summary.classList.remove('is-visible');
+  landButton.disabled = true;
+  landButton.classList.remove('is-first-selection');
+  thumbA.classList.remove('is-front');
+  thumbB.classList.remove('is-front');
 
   // The map fades up once it is ready. Resting state is already correct; the
   // opacity transition decorates the entrance.
@@ -521,6 +541,15 @@ export function mountLandingSite(
 
     for (const pin of pins) {
       pin.removeAttribute('disabled');
+    }
+
+    /* The dots belong to one visit, like the header above. The next mount
+       clears anyway, but a container left holding them is a container the next
+       reader of this file has to wonder about (ISS-103). */
+    for (const axis of SITE_AXES) {
+      scoreContainers[axis].replaceChildren();
+      scoreContainers[axis].removeAttribute('aria-label');
+      scoreContainers[axis].removeAttribute('role');
     }
 
     stage.classList.remove('is-landing');

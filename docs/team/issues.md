@@ -11,10 +11,11 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 
 | id | title | severity | owner | status | fix-in |
 | --- | --- | --- | --- | --- | --- |
+| ISS-103 | Every visit to the map added another row of site stats, so the Site Analysis panel read two, three, five times over | high | agent | fixed | this branch |
 | ISS-102 | The landing film's Skip button was in the bottom right, where the launch reel's is in the top right | low | agent | fixed | 3e2d07c |
 | ISS-101 | The training check ran a sol and never answered the crisis on it, so the sol never happened | medium | agent | fixed | this branch |
 | ISS-100 | The setup window check expected a sparkle that is now a drawn icon, and read the cost as the wrong thing | low | agent | fixed | this branch |
- and still carried emoji, with a drawn icon set supplied | medium | agent | fixed | this branch |
+| ISS-099 | The game drew its own pictograms and still carried emoji, with a drawn icon set supplied | medium | agent | fixed | this branch |
 | ISS-098 | The training check asserted the wrong thing about a refresh, and the game grew a save under it | medium | agent | fixed | this branch |
 | ISS-097 | The build check looked for the supply cards in the panel, and the cards moved to the setup window | low | agent | fixed | this branch |
 | ISS-096 | The training browser check re-walked the journey to test a refresh, so it always failed | medium | agent | fixed | this branch |
@@ -113,6 +114,34 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | ISS-014 | `base.css` calls the page non-interactive while draggable | low | agent | fixed | this branch |
 
 ---
+
+## ISS-103 - Every visit to the map added another row of site stats, so the Site Analysis panel read two, three, five times over
+
+- **Reported by:** the owner, 2026-11-13, with a screenshot of the Valles Marineris
+  panel showing ten dots per axis over the "Site Analysis" heading.
+- **Where:** `src/features/landing-site/view.ts`, the loop that builds the five
+  score dots.
+- **Problem:** the panel grew a second copy of every stat row each time the player
+  came back to the map: five dots became ten, then fifteen. The screen is not
+  destroyed when it is left — `ui/registry.ts` hides screens and shows them again —
+  so the empty `[data-landing-score]` containers in `index.html` survive a visit,
+  and the view appended five fresh dots into each of them on every mount. The
+  panel also reopened on the previous visit's region name, filled dots and
+  summary, which read as a choice the player had already made.
+- **Cause:** mount was not idempotent. The interior solved the identical bug for
+  its progress dots with `dotsList.replaceChildren()` and a comment saying why;
+  `landing-site` never got the same line. A headless check that returns to the
+  map several times had never counted the dots, so nothing failed.
+- **Fix:** each axis container is cleared before its five dots are built, and
+  cleared again on teardown. The name, blurb, summary, the LAND HERE button's
+  first-selection state and the two thumbnail layers are reset at mount for the
+  same reason, so a revisit opens on "Choose a landing site." with an empty
+  panel. `tools/browser-check-landing-cinematic.mjs`, which already visits the
+  map once per region, now counts the dots on every one of those visits and
+  fails if any row is not exactly five.
+- **Pre-existing:** yes; the dots were built this way when the panel was written.
+  The previous "stabilise Site Analysis rendering" fix (9107ad1) addressed the
+  panel's layout, not its mount.
 
 ## ISS-102 - The landing film's Skip button was in the bottom right, where the launch reel's is in the top right
 
