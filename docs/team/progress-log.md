@@ -19,6 +19,8 @@ than a documented one.
   application or gameplay source changed.
 - Recorded D-087 and TASK-110, and closed ISS-050 after removing the inaccurate module
   contract table from the refreshed architecture document.
+- Pushed the topic branch and opened PR #47 against upstream `main`. GitHub's
+  `Code checks` workflow completed successfully.
 
 **Files**
 
@@ -36,11 +38,14 @@ than a documented one.
   were left unchanged as requested.
 - NASA/NOAA and Google Fonts still need browser network access for live enrichment; offline
   behavior is provided by the existing data fallbacks.
+- The Vercel PR status cannot deploy a preview until a member authorizes the fork for the
+  configured team. This is separate from the local Compose deployment and is not a code
+  check failure.
 
 **Next**
 
-- Run the repository checks and container configuration/build, review the full change,
-  then push the topic branch and open a PR targeting upstream `main`.
+- PR #47 is open against upstream `main`; local and CI checks pass. Await maintainer review
+  and authorization if a Vercel preview is required.
 
 
 ## 2026-11-13 — Reconcile the project overview and architecture with the implementation
