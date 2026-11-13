@@ -1,45 +1,57 @@
 # Architecture
 
-## Architectural Style
+## Style and constraints
 
-Layered browser application with feature folders and pure simulation logic. The primary
-constraint is that `sim/` and feature models remain free of DOM and network dependencies;
-feature folders do not import one another (`scripts/check-imports.mjs`).
+This is a static browser application organized into dependency constrained layers and
+screen feature folders. Pure game rules are separated from DOM and network effects.
+The custom checker enforces those import boundaries and disallows several browser/network
+APIs outside their designated layers.
 
-## System Flow
+## Runtime flow
 
 ```text
-index.html -> src/main.ts -> DOM helpers -> pure sim functions -> rendered transforms
+index.html / mobile.html
+  → src/main.ts (restore save and initialize browser effects)
+  → src/ui/router.ts (hash route)
+  → src/ui/registry.ts (screen factory)
+  → feature view + pure models/simulation
+  → UI callback updates RunState and local save
 ```
 
-`main.ts` loads the landing page stylesheet, resolves required elements, creates the
-starfield, and starts the astronaut animation. DOM helpers call pure simulation functions
-to calculate each frame. Hash routing exists separately and is not wired into `main.ts`.
+`src/main.ts` owns the current `RunState`, loads it before the first screen is mounted,
+and passes it to the screen factory. `ui/registry.ts` is the only registry importing
+feature views. Screens unmount before navigation. Network calls are made in `data/` and
+joined to views through browser-facing loaders.
 
-## Responsibilities
+## Responsibility map
 
-| Layer | Owns | Must not own | Evidence |
-|---|---|---|---|
-| `sim/` | Drift, deformation, frame calculations | Browser APIs, networking | `src/sim/` |
-| `features/` | Screen-specific model and view | Cross-feature imports | `src/features/README.md` |
-| `dom/` | Animation, pointer events, stars | Pure game rules | `src/dom/` |
-| `ui/` | Hash parsing and navigation | Feature implementations | `src/ui/router.ts` |
-| `data/` | Future external data adapter | UI and rendering | `src/data/README.md` |
+| Module | Owns | Must not own | Evidence |
+| --- | --- | --- | --- |
+| `sim/` | Run state transitions and deterministic rules | Browser APIs or network | `src/sim/sol.ts`, `scripts/check-imports.mjs` |
+| Feature `model.ts` | Pure screen-specific derived values | DOM or other features | `src/features/act/model.ts` |
+| Feature `view.ts` | Screen rendering and event lifecycle | Other feature implementations | `src/ui/registry.ts` |
+| `data/` | Validating external responses and fallback behavior | DOM | `src/data/spaceweather.ts` |
+| `dom/` | Browser effects/adapters | Mission rules | `src/dom/forecastLoader.ts` |
+| `ui/` | Routing, cross-screen shell, persistence, and shared widgets | Feature-specific screen logic | `src/ui/router.ts`, `src/ui/save.ts` |
 
-## Patterns
+## Integrations and persistence
 
-Pure functions compose simulation state; `main.ts` is the composition root; layer rules are
-checked by a custom source scanner. CI runs those checks before the Vercel deployment
-workflow can deploy the validated default-branch commit.
+Solar flare enrichment follows NASA DONKI → NOAA SWPC → local approximate forecast.
+NASA APOD enriches the saved gallery and falls back to it. The forecast schedule itself
+is generated deterministically from run state. `ui/save.ts` adapts versioned data in
+`sim/save.ts` to browser localStorage. There is no backend or cross-device sync.
 
-## Risks
+## Architectural risks
 
-- Several simulation, feature, and data modules are typed stubs that throw (`docs/architecture.md`).
-- Router is implemented but not connected to the boot path (`src/main.ts`).
-- DOM behavior has no automated tests (`docs/team/issues.md`, ISS-011).
+- DOM lifecycle behavior is not covered by the Node-only unit suite; browser-check scripts
+  cover selected journeys and require a browser runtime. See ISS-011 and ISS-013 in
+  `docs/team/issues.md`.
+- Several open team issues concern docs, offline behavior, and external-service limits;
+  consult the issue tracker before addressing them. See `docs/CODE_QUALITY.md`.
 
 ## Evidence
 
-- `src/main.ts`, `src/sim/frame.ts`, `src/dom/floatAstronaut.ts`
+- `src/main.ts`, `src/ui/router.ts`, `src/ui/registry.ts`
+- `src/sim/sol.ts`, `src/sim/save.ts`, `src/ui/save.ts`
+- `src/data/spaceweather.ts`, `src/data/nasaDaily.ts`, `src/dom/forecastLoader.ts`
 - `scripts/check-imports.mjs`, `vite.config.ts`
-- `.github/workflows/ci.yml`, `.github/workflows/deploy.yml`

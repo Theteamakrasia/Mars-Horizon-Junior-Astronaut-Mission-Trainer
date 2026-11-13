@@ -62,7 +62,7 @@ Status values: `open`, `fixed` (with the commit), `accepted` (won't fix, on purp
 | ISS-054 | The build card counted the extras while the limit counted everything | high | agent | fixed | this branch |
 | ISS-052 | The game never named the five science goals it is about | medium | agent | fixed | 4199bd5 |
 | ISS-051 | The ration check asked the same question every run, so the answer was always 80 | medium | agent | fixed | 9f0fabb |
-| ISS-050 | `architecture.md`'s module-contract table lists exports that do not exist | medium | agent | open | — |
+| ISS-050 | `architecture.md`'s module-contract table lists exports that do not exist | medium | agent | fixed | 0a45fc6 |
 | ISS-049 | NASA's Astronomy Picture of the Day rejects the shared `DEMO_KEY` with a 429 | medium | agent | fixed | this branch |
 | ISS-048 | The cosmetic sol headlines did not match the forecast schedule | low | agent | fixed | 816e1fb, b471ecb |
 | ISS-047 | The supply screen ignored the Enter key until NEXT had been clicked with a mouse | medium | agent | fixed | this branch |

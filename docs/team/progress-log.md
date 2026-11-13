@@ -7,6 +7,108 @@ say so and say why - a clean change with an unexplained problem underneath is wo
 than a documented one.
 
 
+## 2026-11-13 — Add a self-contained local static deployment
+
+**Did**
+
+- Added a Makefile with npm check/build/preview/balance and Compose lifecycle targets.
+- Added a multi-stage Dockerfile: Vite builds in Node and only the static output is copied
+  into a version-pinned unprivileged NGINX runtime. Added the canonical `compose.yaml` and
+  excluded local environment files and unused development assets from the build context.
+- Documented local prerequisites, commands, runtime behavior, and current open risks. No
+  application or gameplay source changed.
+- Recorded D-087 and TASK-110, and closed ISS-050 after removing the inaccurate module
+  contract table from the refreshed architecture document.
+- Pushed the topic branch and opened PR #47 against upstream `main`. GitHub's
+  `Code checks` workflow completed successfully.
+
+**Files**
+
+- `Makefile`, `Dockerfile`, `compose.yaml`, `.dockerignore`, `docker/nginx.conf`
+- `docs/local-development.md`, `docs/README.md`, `README.md`
+- `docs/team/{decisions,issues,tasks,progress-log}.md`
+
+**Problems**
+
+- Docker image tags resolved and the image built successfully. The running container
+  served `index.html` and `mobile.html` on port 8080 as uid 101; the temporary container
+  was stopped after the smoke check.
+- `npm audit` reports five existing dev-toolchain advisories (2 moderate, 1 high,
+  2 critical). They are documented with affected locked packages; dependency versions
+  were left unchanged as requested.
+- NASA/NOAA and Google Fonts still need browser network access for live enrichment; offline
+  behavior is provided by the existing data fallbacks.
+- The Vercel PR status cannot deploy a preview until a member authorizes the fork for the
+  configured team. This is separate from the local Compose deployment and is not a code
+  check failure.
+- Final documentation-matrix review found the new root deployment files were not indexed
+  in the architecture tree; the architecture and structure references now list them.
+
+**Next**
+
+- PR #47 is open against upstream `main`; local and CI checks pass. The latest commit only
+  updates file indexes, so the earlier checks remain applicable. Await maintainer review
+  and authorization if a Vercel preview is required.
+
+
+## 2026-11-13 — Reconcile the project overview and architecture with the implementation
+
+**Did**
+
+- Rewrote the root README as a concise project and developer guide. It now describes the
+  built journey, current local save/data behavior, requirements, and actual npm commands.
+- Replaced the architecture document's stale file-by-file inventory with the current
+  runtime, routing, boundaries, data integrations, and build flow.
+- Corrected stale setup and status statements in `AGENTS.md`, including the outdated test
+  count and the already-fixed `.env` ignore issue.
+
+**Files**
+
+- `README.md`, `AGENTS.md`, `docs/architecture.md`
+
+**Problems**
+
+- The previous overview said the README disagreed with source, and the architecture
+  reference described a pre-journey build. Those contradictions were present in the docs;
+  no application code was changed.
+- The separate codebase maps and issue summary still need to be aligned with these sources
+  of truth in the next documentation step.
+
+**Next**
+
+- Finish the evidence-backed codebase maps and a consolidated warning/issue inventory,
+  then add the requested local Make and Docker Compose workflow.
+
+
+## 2026-11-13 — Rebuild the codebase map and known-risk inventory
+
+**Did**
+
+- Replaced all seven `docs/codebase/` references with evidence-backed summaries of the
+  actual stack, source layout, architecture, conventions, integrations, and tests.
+- Added `docs/CODE_QUALITY.md`, which lists the open issues from the canonical tracker and
+  documents verified security and operational caveats without claiming a security audit.
+- Removed the generated scan output so `docs/codebase/` contains exactly its seven
+  contracted reference documents.
+
+**Files**
+
+- `docs/codebase/{STACK,STRUCTURE,ARCHITECTURE,CONVENTIONS,INTEGRATIONS,TESTING,CONCERNS}.md`
+- `docs/CODE_QUALITY.md`
+
+**Problems**
+
+- The tracker still contains open items whose titles describe old source or test facts.
+  This pass records them as tracker items instead of silently changing their status;
+  verify current source and tracker details before treating them as live defects.
+- This is a source-based documentation review, not a dependency or penetration audit.
+
+**Next**
+
+- Add and document the Makefile and Compose deployment, then validate the docs and
+  container configuration before opening the upstream PR.
+
+
 ## 2026-11-13 - The landing film's Skip button is in the top right, like the takeoff scene's
 
 **Did**

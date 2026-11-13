@@ -10,6 +10,14 @@ Format: number · who decided · **Choice** · **Why** · **Rejected** · **Cons
 
 ---
 
+**D-087 — agent — 2026-11-13**
+**Choice:** Local container deployment builds the existing Vite static bundle and serves it with an **unprivileged NGINX runtime**. The Compose file is `compose.yaml`, publishes port 8080, and requires no backend, API key, or extra application dependency. `Makefile` provides aliases for common npm and Compose commands.
+**Why:** The repository builds two static HTML entrypoints and declares no production npm dependencies. Running a Node application server would add a process and runtime the application does not need. Building in Node and copying only `dist/` into NGINX keeps the runtime aligned with the existing production artifact and leaves gameplay and network fallbacks unchanged.
+**Rejected:** (a) **A Node server in production** — it adds a server process where the built app is static. (b) **A database or API service in Compose** — the game has no backend and device-local save is the recorded design (D-081). (c) **Copying local `.env` files into the build** — Vite client variables are visible to browser users, so secrets do not belong in the bundle.
+**Consequence:** `Dockerfile` has a locked-dependency Vite build stage and a static runtime stage; `compose.yaml` exposes `localhost:8080`; `.dockerignore` excludes local secrets, generated output, and development-only material. The development server remains `npm run dev` / `make dev`.
+
+---
+
 **D-086 — agent — 2026-11-13**
 **Choice:** A film's exit control — the Skip button — is in the **top right corner**, at `top: 1rem; right: 1rem`, on **both** films. The landing cinematic's Skip moves there from the bottom right, where the launch reel's Skip already is.
 **Why:** The owner asked for it plainly, and the reason stands on its own: the game has two films, and the one control that ends a film should not move between them. A player who cut the departure reel had learned to look up; on the landing film there was nothing up there to find. The bottom right is also the busiest corner of that screen — the caption panel runs along the bottom edge, and the lower middle of the frame is where the parachute and the capsule are. The launch reel's Skip has been in the top right since D-072, and the parts tour takes over the lower half of that screen, so moving it instead would have put it under the tour panel.

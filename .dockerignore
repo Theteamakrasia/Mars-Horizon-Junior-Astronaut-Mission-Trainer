@@ -1,0 +1,17 @@
+.git
+.github
+.agents
+.aws
+.codex
+.env
+.env.*
+!.env.example
+node_modules
+dist
+coverage
+docs
+tools
+Assets/audio/masters/
+Assets/README_ref/
+Assets/images/*/source/
+*.log
